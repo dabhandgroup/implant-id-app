@@ -35,15 +35,15 @@ function openAccessModal(type,btn){
       + '<li>Historical scan notes from your clinic</li>'
       + '<li>Emergency contact information</li>'
       + '</ul></div>'
-    : '<label class="am-reason-label" for="am-reason">Reason for declining</label>'
-      + '<select class="am-select" id="am-reason">'
-      + '<option value="">Select a reason (optional)</option>'
-      + '<option value="not-patient">Not a current patient at this clinic</option>'
-      + '<option value="already-access">Patient already has access</option>'
-      + '<option value="wrong-clinic">Request sent to wrong clinic</option>'
-      + '<option value="security">Security or verification concern</option>'
-      + '<option value="other">Other</option>'
-      + '</select>'
+    : '<label class="am-reason-label">Reason for declining</label>'
+      + '<div class="am-dd" id="am-dd">'
+      + '<button class="am-dd-btn" id="am-dd-btn" type="button" onclick="amDdToggle(event)">'
+      + '<span class="am-dd-val" id="am-dd-val">Select a reason (optional)</span>'
+      + '<svg class="am-dd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>'
+      + '</button>'
+      + '<div class="am-dd-menu" id="am-dd-menu">'
+      + ['Not a current patient at this clinic','Patient already has access','Request sent to wrong clinic','Security or verification concern','Other'].map(function(o){return '<button class="am-dd-item" type="button" onclick="amDdSelect(this)">'+o+'</button>';}).join('')
+      + '</div></div>'
       + '<p class="am-warn">The patient will be notified that their request was reviewed. No reason is shared with them unless you choose to.</p>';
 
   document.getElementById('access-modal').innerHTML=
@@ -68,6 +68,37 @@ function closeAccessModal(){
   if(b) b.classList.remove('open');
   _arCard=null; _arType=null;
 }
+
+/* Decline reason custom dropdown */
+function amDdToggle(e){
+  e && e.stopPropagation();
+  var btn=document.getElementById('am-dd-btn');
+  var menu=document.getElementById('am-dd-menu');
+  if(!btn||!menu) return;
+  var isOpen=menu.classList.contains('open');
+  menu.classList.toggle('open',!isOpen);
+  btn.classList.toggle('open',!isOpen);
+}
+function amDdSelect(el){
+  var val=el.textContent;
+  var valEl=document.getElementById('am-dd-val');
+  var menu=document.getElementById('am-dd-menu');
+  var btn=document.getElementById('am-dd-btn');
+  if(valEl){valEl.textContent=val;valEl.classList.add('chosen');}
+  menu && menu.querySelectorAll('.am-dd-item').forEach(function(i){i.classList.remove('selected');});
+  el.classList.add('selected');
+  menu && menu.classList.remove('open');
+  btn && btn.classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var dd=document.getElementById('am-dd');
+  if(dd && !dd.contains(e.target)){
+    var menu=document.getElementById('am-dd-menu');
+    var btn=document.getElementById('am-dd-btn');
+    menu && menu.classList.remove('open');
+    btn && btn.classList.remove('open');
+  }
+});
 
 function confirmAccess(){
   var card=_arCard, type=_arType;

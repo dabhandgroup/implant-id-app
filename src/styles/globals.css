@@ -1,5 +1,5 @@
 /* ── Global search bar (injected into .app-top on every clinic page) ── */
-#gs-root{position:relative;width:300px;flex-shrink:0}
+#gs-root{position:relative;width:600px;flex-shrink:1;min-width:0}
 #gs-field{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0 12px;height:38px;transition:border-color .15s,box-shadow .15s;cursor:text}
 #gs-field:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
 #gs-field svg{width:16px;height:16px;color:var(--muted);flex-shrink:0}
@@ -22,7 +22,7 @@
 .gs-txt span{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gs-empty{padding:20px;text-align:center;color:var(--muted);font-size:14px}
 .gs-empty b{color:var(--text)}
-@media(max-width:700px){#gs-root{width:auto;flex:1}#gs-kbd{display:none}}
+@media(max-width:900px){#gs-root{width:auto;flex:1;min-width:0}#gs-kbd{display:none}}
 
 /* Smooth instant page transitions */
 @view-transition { navigation: auto; }

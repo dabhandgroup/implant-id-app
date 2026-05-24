@@ -36,6 +36,15 @@ export default function AppNav() {
     APP_ROUTES.forEach((route) => router.prefetch(route))
   }, [router])
 
+  // Handle navigation requests from GlobalSearch
+  useEffect(() => {
+    function onGsNav(e: Event) {
+      router.push((e as CustomEvent<string>).detail)
+    }
+    window.addEventListener('gs:nav', onGsNav)
+    return () => window.removeEventListener('gs:nav', onGsNav)
+  }, [router])
+
   // Intercept all <a> clicks inside dangerouslySetInnerHTML and route them
   // through Next.js so navigation is client-side (no full reload, URL still updates)
   useEffect(() => {

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import '@/styles/globals.css'
 import Providers from './providers'
 import AppNav from '@/components/AppNav'
+import GlobalSearch from '@/components/GlobalSearch'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -35,6 +36,7 @@ export default function RootLayout({
       <body>
         <Providers>
           <AppNav />
+          <GlobalSearch />
           {children}
         </Providers>
       </body>

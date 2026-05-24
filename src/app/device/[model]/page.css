@@ -534,6 +534,13 @@
   font-weight: 500;
 }
 
+/* ── View-as role toggle ─────────────────────────────────────────────────── */
+.va-bar{display:inline-flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;flex-shrink:0}
+.va-label{font-family:var(--ff);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);white-space:nowrap;padding:0 6px 0 4px}
+.va-tab{font-family:var(--ff);font-size:12px;font-weight:500;color:var(--muted);background:transparent;border:0;border-radius:7px;padding:5px 11px;cursor:pointer;white-space:nowrap;transition:color .15s,background .15s;line-height:1}
+.va-tab:hover{color:var(--text);background:color-mix(in srgb,var(--text) 5%,transparent)}
+.va-tab.active{background:var(--accent);color:#fff}
+
 /* Responsive */
 @media (max-width: 1000px) {
   .dv-grid {
@@ -542,6 +549,8 @@
 }
 
 @media (max-width: 700px) {
+  .va-label{display:none}
+  .va-tab{padding:5px 8px;font-size:11px}
   .dv-hero {
     padding: 20px;
     flex-direction: column;

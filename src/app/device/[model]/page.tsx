@@ -259,6 +259,12 @@ export default async function DevicePage(
                 <span style={{ color: 'var(--text)', fontWeight: 500 }}>{device.device_name}</span>
               </nav>
             </div>
+            <div className="va-bar" id="va-bar">
+              <span className="va-label">View as</span>
+              <button className="va-tab" data-role="admin">Admin</button>
+              <button className="va-tab" data-role="radiographer">Radiographer</button>
+              <button className="va-tab" data-role="surgeon">Surgeon</button>
+            </div>
             <div className="app-top-r">
               <button className="ibtn notif-btn" aria-label="Notifications">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -338,7 +344,7 @@ export default async function DevicePage(
               <div>
 
                 {/* MRI Safety card */}
-                <div className="dv-card">
+                <div className="dv-card" id="va-mri">
                   <div className="dv-card-head">MRI Safety</div>
 
                   {/* Rep required notice */}
@@ -461,7 +467,7 @@ export default async function DevicePage(
                 </div>
 
                 {/* Technical Parameters card */}
-                <div className="dv-card">
+                <div className="dv-card" id="va-tech">
                   <div className="dv-card-head">Technical Parameters</div>
 
                   <div>
@@ -553,7 +559,7 @@ export default async function DevicePage(
 
                 {/* Conditions & Contraindications card */}
                 {(device.prescan_checklist || device.postscan_checklist || device.entry_notes || device.patient_instructions) && (
-                  <div className="dv-card">
+                  <div className="dv-card" id="va-conditions">
                     <div className="dv-card-head">Conditions &amp; Contraindications</div>
 
                     {device.entry_notes && (
@@ -801,6 +807,45 @@ export default async function DevicePage(
           <a href="#">Settings</a>
         </div>
       </aside>
+
+      {/* ── View-as role toggle script ── */}
+      <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  // Which cards each role can see
+  var SHOW={
+    admin:['va-mri','va-tech','va-conditions'],
+    radiographer:['va-mri','va-tech'],
+    surgeon:['va-tech','va-conditions']
+  };
+  var ALL=['va-mri','va-tech','va-conditions'];
+
+  function applyRole(role){
+    if(!SHOW[role]) role='admin';
+    // Persist
+    try{localStorage.setItem('iid-role',role);}catch(e){}
+    // Update tab states
+    document.querySelectorAll('.va-tab').forEach(function(t){
+      t.classList.toggle('active',t.dataset.role===role);
+    });
+    // Show / hide cards
+    var show=SHOW[role];
+    ALL.forEach(function(id){
+      var el=document.getElementById(id);
+      if(el) el.style.display=(show.indexOf(id)>=0)?'':'none';
+    });
+  }
+
+  // Read persisted role (default: admin)
+  var saved;
+  try{saved=localStorage.getItem('iid-role');}catch(e){}
+  applyRole(saved||'admin');
+
+  // Wire up tab buttons
+  document.querySelectorAll('.va-tab').forEach(function(t){
+    t.addEventListener('click',function(){applyRole(this.dataset.role);});
+  });
+})();
+` }} />
 
       {/* ── Logout modal ── */}
       <div className="logout-back" id="logout-back">

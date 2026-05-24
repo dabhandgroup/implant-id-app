@@ -74,17 +74,17 @@ function confirmAccess(){
   closeAccessModal();
   if(!card) return;
 
-  var approveBtn=card.querySelector('.pca-approve');
-  var declineBtn=card.querySelector('.pca-decline');
+  var approveBtn=card.querySelector('.pc-approve');
+  var declineBtn=card.querySelector('.pc-decline');
 
   if(type==='approve'){
-    approveBtn.textContent='✓ Approved';
-    approveBtn.style.cssText='background:var(--ok);color:#fff;opacity:.65;cursor:default;pointer-events:none;flex:1;padding:7px 0;border-radius:8px;border:0;font-family:var(--ff);font-size:12.5px;font-weight:600';
-    declineBtn.style.display='none';
+    approveBtn.innerHTML='✓ Approved';
+    approveBtn.style.cssText='background:var(--ok);color:#fff;opacity:.65;cursor:default;pointer-events:none;border-radius:7px;padding:5px 10px;border:0;font-family:var(--ff);font-size:12px;font-weight:500';
+    if(declineBtn) declineBtn.style.display='none';
   } else {
     declineBtn.textContent='Declined';
-    declineBtn.style.cssText='background:transparent;color:var(--muted2);border:1px solid var(--border);opacity:.65;cursor:default;pointer-events:none;flex:1;padding:7px 0;border-radius:8px;font-family:var(--ff);font-size:12.5px;font-weight:500';
-    approveBtn.style.display='none';
+    declineBtn.style.cssText='background:transparent;color:var(--muted2);border:1px solid var(--border);opacity:.65;cursor:default;pointer-events:none;border-radius:7px;padding:5px 10px;font-family:var(--ff);font-size:12px;font-weight:500';
+    if(approveBtn) approveBtn.style.display='none';
   }
 
   // Animate card out after a short pause so user sees the state change

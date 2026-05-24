@@ -1,0 +1,126 @@
+@import '../dashboard/page.css';
+@import '../all-patients/page.css';
+
+.staff-list { display: flex; flex-direction: column; }
+.staff-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 90px 120px auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+.staff-row:last-child { border-bottom: 0; }
+.staff-row:hover { background: var(--hover); }
+.staff-av {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
+  font-family: var(--ff);
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.staff-name { font-family: var(--ff); font-size: 14px; font-weight: 500; color: var(--text); }
+.staff-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.staff-role-badge {
+  font-size: 11px;
+  font-family: var(--ff);
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-align: center;
+}
+.staff-role-badge.admin { background: color-mix(in srgb,var(--accent) 12%,transparent); color: var(--accent); }
+.staff-role-badge.member { background: var(--border); color: var(--muted); }
+.staff-role-badge.pending { background: color-mix(in srgb,var(--warn) 12%,transparent); color: var(--warn); }
+@media (max-width: 700px) {
+  .staff-row { grid-template-columns: 38px 1fr; }
+  .staff-row > *:nth-child(n+3) { display: none; }
+}
+
+/* ── Custom select dropdown (csd) ──────────────────────────────────────────── */
+.csd { position: relative; display: inline-block; }
+.csd-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-family: var(--ff);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+  white-space: nowrap;
+  min-width: 160px;
+  text-align: left;
+}
+.csd-btn.has-val { color: var(--text); }
+.csd.open .csd-btn {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.csd-arr { margin-left: auto; width: 14px; height: 14px; flex-shrink: 0; transition: transform .15s; }
+.csd.open .csd-arr { transform: rotate(180deg); }
+.csd-drop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.13);
+  display: none;
+  flex-direction: column;
+  z-index: 200;
+  overflow: hidden;
+}
+.csd-drop-right { left: auto; right: 0; }
+.csd.open .csd-drop { display: flex; }
+.csd-opt {
+  padding: 10px 14px;
+  font-family: var(--ff);
+  font-size: 13.5px;
+  color: var(--text);
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-align: left;
+  transition: background .1s;
+  white-space: nowrap;
+}
+.csd-opt:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.csd-opt.selected { color: var(--accent); font-weight: 600; }
+
+/* Role badge variants */
+.staff-role-badge.clinician { background: color-mix(in srgb,var(--ok) 14%,transparent); color: var(--ok); }
+.staff-role-badge.specialist { background: color-mix(in srgb,#7c3aed 12%,transparent); color: #7c3aed; }
+
+/* Staff table header row */
+.staff-head {
+  display: grid;
+  grid-template-columns: 44px 1fr 90px 120px auto;
+  gap: 14px;
+  padding: 10px 20px;
+  font-family: var(--ff);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+
+/* ── Full-width CSD inside field labels ─────────────────────────────────────── */
+.field .csd { width: 100%; display: block; }
+.field .csd-btn { width: 100%; min-width: 0; box-sizing: border-box; }

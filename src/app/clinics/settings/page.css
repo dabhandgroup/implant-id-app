@@ -1,0 +1,212 @@
+@import '../dashboard/page.css';
+
+/* ── Custom select dropdown (csd) ──────────────────────────────────────────── */
+.csd { position: relative; display: inline-block; }
+.csd-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-family: var(--ff);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+  white-space: nowrap;
+  min-width: 160px;
+  text-align: left;
+}
+.csd-btn.has-val { color: var(--text); }
+.csd.open .csd-btn {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.csd-arr { margin-left: auto; width: 14px; height: 14px; flex-shrink: 0; transition: transform .15s; }
+.csd.open .csd-arr { transform: rotate(180deg); }
+.csd-drop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.13);
+  display: none;
+  flex-direction: column;
+  z-index: 200;
+  overflow: hidden;
+}
+.csd-drop-right { left: auto; right: 0; }
+.csd.open .csd-drop { display: flex; }
+.csd-opt {
+  padding: 10px 14px;
+  font-family: var(--ff);
+  font-size: 13.5px;
+  color: var(--text);
+  cursor: pointer;
+  background: none;
+  border: none;
+  text-align: left;
+  transition: background .1s;
+  white-space: nowrap;
+}
+.csd-opt:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.csd-opt.selected { color: var(--accent); font-weight: 600; }
+
+/* ── Settings tab bar ───────────────────────────────────────────────────────── */
+.stab-bar {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 28px;
+  overflow-x: auto;
+  gap: 0;
+  scrollbar-width: none;
+}
+.stab-bar::-webkit-scrollbar { display: none; }
+.stab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 18px;
+  font-family: var(--ff);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+  margin-bottom: -2px;
+  transition: color .15s, border-color .15s;
+}
+.stab-btn:hover { color: var(--text); }
+.stab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.stab-pane { display: none; }
+.stab-pane.active { display: block; }
+
+/* ── Settings card rows ─────────────────────────────────────────────────────── */
+.set-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.set-row:first-child { padding-top: 0; }
+.set-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.set-row-label { font-family: var(--ff); font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+.set-row-desc { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+/* ── 7-year upsell card ──────────────────────────────────────────────────────── */
+.upsell-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 12px;
+  padding: 14px 18px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.upsell-ic {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.upsell-title { font-family: var(--ff); font-size: 14px; font-weight: 600; color: var(--text); }
+.upsell-desc { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+
+/* ── Invoice list ────────────────────────────────────────────────────────────── */
+.invoice-list { display: flex; flex-direction: column; }
+.invoice-row {
+  display: grid;
+  grid-template-columns: 1fr 110px 100px 90px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.invoice-row:last-child { border-bottom: 0; }
+.invoice-head {
+  font-family: var(--ff);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-top: 0;
+  border-bottom-color: var(--border);
+}
+.invoice-period { font-family: var(--ff); font-weight: 500; color: var(--text); }
+.invoice-amount { font-family: var(--ff); font-weight: 500; color: var(--text); }
+
+/* ── Toggle checkbox ─────────────────────────────────────────────────────────── */
+.toggle-chk {
+  appearance: none;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: background .2s;
+}
+.toggle-chk::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left .2s;
+}
+.toggle-chk:checked { background: var(--accent); }
+.toggle-chk:checked::after { left: 19px; }
+
+/* field label for settings */
+.field label { font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); display: block; margin-bottom: 6px; }
+.field { display: flex; flex-direction: column; margin-bottom: 0; }
+
+@media (max-width: 680px) {
+  .invoice-row { grid-template-columns: 1fr auto; }
+  .invoice-row > *:nth-child(2),
+  .invoice-row > *:nth-child(3) { display: none; }
+  .stab-btn { padding: 9px 13px; font-size: 13px; }
+}
+
+/* ── Invoice PDF download button ─────────────────────────────────────────────── */
+.invoice-pdf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: 8px;
+  font-family: var(--ff);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  color: var(--accent);
+  transition: all .15s;
+  white-space: nowrap;
+}
+.invoice-pdf-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.invoice-pdf-btn svg { flex-shrink: 0; }

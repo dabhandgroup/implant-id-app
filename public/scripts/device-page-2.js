@@ -1,0 +1,1 @@
+document.addEventListener("click",function(e){var l=document.getElementById("mini-lang");if(l&&!l.contains(e.target))l.classList.remove("open");var d=document.getElementById("login-dd");if(d&&!d.contains(e.target))d.classList.remove("open")});

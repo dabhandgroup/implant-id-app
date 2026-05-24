@@ -1,0 +1,2 @@
+function toggleSb(){document.getElementById('app').classList.toggle('collapsed');try{localStorage.setItem('iid-sb-pt',document.getElementById('app').classList.contains('collapsed')?'1':'0')}catch(e){}}
+try{if(localStorage.getItem('iid-sb-pt')!=='0')document.getElementById('app').classList.add('collapsed')}catch(e){}

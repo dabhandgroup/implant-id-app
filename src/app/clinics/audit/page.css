@@ -1,0 +1,74 @@
+@import '../dashboard/page.css';
+@import '../all-patients/page.css';
+
+.audit-row {
+  display: grid;
+  grid-template-columns: 140px 140px 1fr auto;
+  gap: 12px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  font-size: 13.5px;
+  transition: background .1s;
+}
+.audit-row:last-child { border-bottom: 0; }
+.audit-row:hover { background: var(--hover); }
+.audit-time { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.audit-user { font-family: var(--ff); font-size: 13px; font-weight: 500; color: var(--text); }
+.audit-action { font-family: var(--ff); font-size: 13.5px; font-weight: 500; color: var(--text); }
+.audit-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+@media (max-width: 720px) {
+  .audit-row { grid-template-columns: 1fr; gap: 4px; }
+  .audit-time { font-size: 11.5px; }
+}
+
+/* ── Audit filter buttons ───────────────────────────────────────────────────── */
+.audit-filters { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.audit-filter-btn {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: var(--ff);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.audit-filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+.audit-filter-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+/* ── Audit event type tags ─────────────────────────────────────────────────── */
+.audit-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--ff);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.type-scan   { background: color-mix(in srgb,var(--accent) 12%,transparent); color: var(--accent); }
+.type-view   { background: color-mix(in srgb,var(--ok) 12%,transparent);     color: var(--ok); }
+.type-access { background: color-mix(in srgb,var(--warn) 12%,transparent);   color: var(--warn); }
+.type-admin  { background: color-mix(in srgb,var(--muted) 15%,transparent);  color: var(--muted); }
+
+/* ── Audit table header ────────────────────────────────────────────────────── */
+.audit-head {
+  display: grid;
+  grid-template-columns: 140px 140px 1fr auto;
+  gap: 12px;
+  padding: 10px 20px;
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.3px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}

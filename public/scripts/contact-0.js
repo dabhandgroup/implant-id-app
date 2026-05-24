@@ -1,0 +1,2 @@
+function pickCdd(id,v){var d=document.getElementById(id);d.querySelector('.cdd-btn').textContent=v;d.querySelector('.cdd-btn').classList.remove('ph');d.classList.remove('open')}
+document.addEventListener('click',function(e){document.querySelectorAll('.cdd').forEach(function(d){if(!d.contains(e.target))d.classList.remove('open')})});

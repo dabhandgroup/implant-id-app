@@ -1,0 +1,26 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/device",
+      "destination": "/device-page"
+    },
+    {
+      "source": "/device/:mn",
+      "destination": "/device-page"
+    },
+    {
+      "source": "/clinics/patient/:mn",
+      "destination": "/clinics/patient-view"
+    },
+    {
+      "source": "/clinics/scan-patient",
+      "destination": "/clinics/patient/add"
+    },
+    {
+      "source": "/clinics/add-patient",
+      "destination": "/clinics/patient/add"
+    }
+  ]
+}

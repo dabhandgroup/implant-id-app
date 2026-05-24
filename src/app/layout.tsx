@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import '@/styles/globals.css'
 import Providers from './providers'
+import AppNav from '@/components/AppNav'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -32,7 +33,10 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppNav />
+          {children}
+        </Providers>
       </body>
     </html>
   )

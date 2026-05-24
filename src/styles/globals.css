@@ -1,3 +1,10 @@
+/* Smooth instant page transitions */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: iid-out 120ms ease forwards; }
+::view-transition-new(root) { animation: iid-in  120ms ease forwards; }
+@keyframes iid-out { to   { opacity: 0; } }
+@keyframes iid-in  { from { opacity: 0; } }
+
 /* Implant ID — shared design system */
 :root{
   --bg:#f6f5f1; --bg2:#ffffff; --panel:#ffffff;

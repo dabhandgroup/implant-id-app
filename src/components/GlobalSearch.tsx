@@ -66,6 +66,8 @@ export default function GlobalSearch() {
     appTop.style.cssText += ';display:flex;align-items:center;gap:12px'
     const topL = appTop.querySelector('.app-top-l') as HTMLElement | null
     if (topL) topL.style.flexShrink = '0'
+    const topR = appTop.querySelector('.app-top-r') as HTMLElement | null
+    if (topR) topR.style.marginLeft = 'auto'
 
     // ── Search logic ────────────────────────────────────────────────────────
     const input = document.getElementById('gs-input') as HTMLInputElement

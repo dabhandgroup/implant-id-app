@@ -598,6 +598,39 @@ export default async function DevicePage(
               {/* RIGHT — sidebar info */}
               <div>
 
+                {/* Quick actions card */}
+                <div className="dv-card">
+                  <div className="dv-card-head">Quick actions</div>
+                  <a href="/clinics/add-patient" className="qa-btn primary">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M3 21v-2a4 4 0 0 1 4-4h4M19 8v6M16 11h6" />
+                    </svg>
+                    Add to patient
+                  </a>
+                  <a href="/clinics/library" className="qa-btn">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
+                    </svg>
+                    View in library
+                  </a>
+                  <button
+                    className="qa-btn"
+                    onClick={() => {
+                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                        navigator.clipboard.writeText(modelNumbers[0] ?? device.model_number)
+                      }
+                    }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                      <rect x="9" y="9" width="13" height="13" rx="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Copy model number
+                  </button>
+                </div>
+
                 {/* Manufacturer card */}
                 {manufacturer && (
                   <div className="dv-card">
@@ -670,38 +703,6 @@ export default async function DevicePage(
                   </div>
                 )}
 
-                {/* Quick actions card */}
-                <div className="dv-card">
-                  <div className="dv-card-head">Quick actions</div>
-                  <a href="/clinics/add-patient" className="qa-btn primary">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M3 21v-2a4 4 0 0 1 4-4h4M19 8v6M16 11h6" />
-                    </svg>
-                    Add to patient
-                  </a>
-                  <a href="/clinics/library" className="qa-btn">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
-                    </svg>
-                    View in library
-                  </a>
-                  <button
-                    className="qa-btn"
-                    onClick={() => {
-                      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                        navigator.clipboard.writeText(modelNumbers[0] ?? device.model_number)
-                      }
-                    }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                      <rect x="9" y="9" width="13" height="13" rx="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                    Copy model number
-                  </button>
-                </div>
 
               </div>
             </div>

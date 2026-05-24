@@ -3,6 +3,8 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useEffect } from 'react'
 
 // All app routes — prefetched on load so every click is instant
+// Note: /device/[model] routes are dynamic — we don't prefetch specific device
+// URLs here, but the click interceptor below handles them via router.push
 const APP_ROUTES = [
   '/clinics/dashboard',
   '/clinics/all-patients',

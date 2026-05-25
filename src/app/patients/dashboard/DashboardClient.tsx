@@ -5,43 +5,51 @@ import { useQuery }                    from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
 import { useRouter }                   from 'next/navigation'
 
-// ── Confetti burst (pure CSS, no extra package) ───────────────────────────────
-const CONFETTI_COLORS = ['#29869f','#29a8cc','#2f9e72','#d97d2c','#8b5cf6','#ec4899','#f59e0b']
+// ── Confetti burst — explosion from screen centre ─────────────────────────────
+const CONFETTI_COLORS = ['#29869f','#29a8cc','#2f9e72','#d97d2c','#8b5cf6','#ec4899','#f59e0b','#fff']
 function ConfettiBurst({ onDone }: { onDone: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 3500)
+    const t = setTimeout(onDone, 3800)
     return () => clearTimeout(t)
   }, [onDone])
-  const pieces = Array.from({ length: 90 }, (_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-    size: 6 + Math.random() * 7,
-    dur:  1.4 + Math.random() * 1.6,
-    del:  Math.random() * 0.6,
-    dx:   (Math.random() - 0.5) * 60,
-    rot:  Math.random() * 720 - 360,
-    round: Math.random() > 0.5,
-  }))
+  const pieces = Array.from({ length: 110 }, (_, i) => {
+    const angle  = Math.random() * 360               // degrees
+    const dist   = 28 + Math.random() * 46           // % of viewport
+    const rad    = (angle * Math.PI) / 180
+    const tx     = Math.cos(rad) * dist              // vw
+    const ty     = Math.sin(rad) * dist              // vh — positive = down
+    return {
+      id: i,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      size:  5 + Math.random() * 8,
+      dur:   0.9 + Math.random() * 1.4,
+      del:   Math.random() * 0.25,
+      rot:   Math.random() * 900 - 450,
+      tx, ty,
+      round: Math.random() > 0.45,
+    }
+  })
   return (
     <>
       <style>{`
-        @keyframes cf-fall {
-          0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(100vh) rotate(var(--cfr)) translateX(var(--cfdx)); opacity: 0; }
+        @keyframes cf-burst {
+          0%   { transform: translate(0,0) rotate(0deg) scale(1); opacity:1; }
+          60%  { opacity: 1; }
+          100% { transform: translate(var(--ctx),var(--cty)) rotate(var(--cfr)) scale(0.4); opacity:0; }
         }
       `}</style>
       <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:9999, overflow:'hidden' }}>
         {pieces.map(p => (
           <div key={p.id} style={{
             position: 'absolute',
-            left: `${p.x}%`, top: 0,
+            left: '50vw', top: '45vh',
             width: p.size, height: p.size,
             background: p.color,
             borderRadius: p.round ? '50%' : '2px',
+            ['--ctx' as string]: `${p.tx}vw`,
+            ['--cty' as string]: `${p.ty}vh`,
             ['--cfr' as string]: `${p.rot}deg`,
-            ['--cfdx' as string]: `${p.dx}px`,
-            animation: `cf-fall ${p.dur}s ${p.del}s ease-in forwards`,
+            animation: `cf-burst ${p.dur}s ${p.del}s cubic-bezier(.2,.8,.4,1) forwards`,
           }} />
         ))}
       </div>
@@ -143,13 +151,32 @@ export default function DashboardClient() {
   return (
     <>
       {showConfetti && <ConfettiBurst onDone={() => setShowConfetti(false)} />}
+
+      {/* ── Pending verification banner ───────────────────────────────────── */}
+      {isPending && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
+          background: 'linear-gradient(90deg,#b45309,#d97706)',
+          color: '#fff',
+          padding: '10px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, lineHeight: 1.4,
+          boxShadow: '0 2px 12px rgba(180,83,9,.35)',
+        }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+          </svg>
+          Your implant record is currently pending. A clinician will confirm your records before you can use your Implant ID.
+        </div>
+      )}
+
       {/* Mobile sidebar overlay */}
       <div
         className={`sb-back${sbOpen ? ' open' : ''}`}
         onClick={() => setSbOpen(false)}
       />
 
-      <div className={`app${sbCollapsed ? ' collapsed' : ''}`}>
+      <div className={`app${sbCollapsed ? ' collapsed' : ''}`} style={isPending ? { paddingTop: 42 } : undefined}>
 
         {/* ── Sidebar ──────────────────────────────────────────────────────── */}
         <aside className={`sidebar${sbOpen ? ' open' : ''}`}>
@@ -337,13 +364,13 @@ export default function DashboardClient() {
             </div>
 
             {/* ── Implant pass card ─────────────────────────────────────── */}
-            <div className="pass-big" style={isPending ? {
-              background: 'linear-gradient(155deg,#4a5568 0%,#718096 55%,#a0aec0 100%)',
-              filter: 'none',
-            } : undefined}>
+            <div
+              className="pass-big"
+              style={isPending ? { filter: 'grayscale(0.55) brightness(0.82)', position: 'relative' } : undefined}
+            >
               <div className="pb-top">
                 <div className="pb-brand">
-                  <img src="/icon.svg" alt="" style={isPending ? { filter: 'brightness(0) invert(.7)' } : undefined}/>
+                  <img src="/icon.svg" alt="" />
                   Implant ID
                 </div>
                 <div style={{ fontFamily:'var(--ff)', fontSize:11, letterSpacing:'1.6px', textTransform:'uppercase', opacity:.75 }}>
@@ -351,32 +378,43 @@ export default function DashboardClient() {
                 </div>
               </div>
 
-              {/* Pending badge */}
+              {/* Pending badge with tooltip */}
               {isPending && (
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)',
-                  borderRadius: 999, padding: '5px 12px', marginBottom: 14,
-                  fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600,
-                  letterSpacing: '.5px', color: '#fff', position: 'relative', zIndex: 2,
-                }}>
-                  <span style={{
-                    width: 7, height: 7, borderRadius: '50%', background: '#fbbf24',
-                    boxShadow: '0 0 8px #fbbf24', animation: 'pending-pulse 2s ease-in-out infinite',
-                  }}/>
-                  Pending verification
+                <div style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }} className="pending-badge-wrap">
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)',
+                    borderRadius: 999, padding: '5px 12px',
+                    fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600,
+                    letterSpacing: '.5px', color: '#fff', position: 'relative', zIndex: 2,
+                    cursor: 'default',
+                  }}>
+                    <span style={{
+                      width: 7, height: 7, borderRadius: '50%', background: '#fbbf24',
+                      boxShadow: '0 0 8px #fbbf24', flexShrink: 0,
+                      animation: 'pending-pulse 2s ease-in-out infinite',
+                    }}/>
+                    Pending verification
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ opacity:.7 }}>
+                      <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                    </svg>
+                  </div>
+                  <div className="pending-tooltip">
+                    Your implant details are being verified by your clinical team.
+                    Once confirmed, your wallet pass and sharing features will be unlocked.
+                  </div>
                 </div>
               )}
 
               {/* Self-reported device or placeholder */}
-              <div className="pb-status" style={{ opacity: isPending ? .65 : 1 }}>
+              <div className={`pb-status${isPending ? ' pb-status--pending' : ''}`} style={{ opacity: isPending ? .75 : 1 }}>
                 {patient.selfReportedDeviceType ?? 'No device type recorded'}
               </div>
-              <div className="pb-name" style={{ fontSize: patient.selfReportedDevice ? 26 : 20, opacity: isPending ? .8 : 1 }}>
+              <div className="pb-name" style={{ fontSize: patient.selfReportedDevice ? 26 : 20, opacity: isPending ? .85 : 1 }}>
                 {patient.selfReportedDevice ?? 'Awaiting verification'}
               </div>
               {isPending && (
-                <p style={{ fontFamily:'var(--ff)', fontSize:12.5, opacity:.72, marginBottom:18, position:'relative', zIndex:2, lineHeight:1.5 }}>
+                <p style={{ fontFamily:'var(--ff)', fontSize:12.5, opacity:.75, marginBottom:18, position:'relative', zIndex:2, lineHeight:1.5 }}>
                   Your clinical team will verify these details with your hospital. Once confirmed, your wallet pass will be activated.
                 </p>
               )}
@@ -402,27 +440,21 @@ export default function DashboardClient() {
                 )}
               </div>
 
-              {/* Actions — disabled until verified */}
-              <div className="pb-actions" style={{ marginTop: 20 }}>
-                <div style={{ position: 'relative', display: 'inline-block' }} title={isPending ? 'Available once your implant details are verified by your clinical team' : undefined}>
+              {/* Actions — hidden when pending */}
+              {!isPending && (
+                <div className="pb-actions" style={{ marginTop: 20 }}>
                   <button
                     className="btn btn-s"
-                    disabled={isPending}
-                    onClick={() => !isPending && setWallOpen(true)}
-                    style={isPending ? { opacity:.45, cursor:'not-allowed' } : undefined}
+                    onClick={() => setWallOpen(true)}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>
                     </svg>
                     Add to Wallet
                   </button>
-                </div>
-                <div style={{ position: 'relative', display: 'inline-block' }} title={isPending ? 'Available once your implant details are verified by your clinical team' : undefined}>
                   <button
                     className="btn"
-                    disabled={isPending}
-                    onClick={() => !isPending && setWallOpen(true)}
-                    style={isPending ? { opacity:.45, cursor:'not-allowed' } : undefined}
+                    onClick={() => setWallOpen(true)}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
@@ -431,7 +463,7 @@ export default function DashboardClient() {
                     Share with clinic
                   </button>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Quick access */}
@@ -739,6 +771,22 @@ export default function DashboardClient() {
         .wtab{background:transparent;border:0;font-family:var(--ff);font-size:12.5px;font-weight:500;color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer;transition:all .15s}
         .wtab.active{background:var(--text);color:var(--bg)}
         @keyframes pending-pulse{0%,100%{opacity:1;box-shadow:0 0 8px #fbbf24}50%{opacity:.5;box-shadow:0 0 2px #fbbf24}}
+        /* Hide green status dot when pending */
+        .pb-status--pending::before{display:none !important}
+        /* Pending tooltip */
+        .pending-badge-wrap{position:relative}
+        .pending-tooltip{
+          display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+          background:rgba(0,0,0,.85);color:#fff;font-family:var(--ff);font-size:12px;line-height:1.5;
+          padding:8px 12px;border-radius:8px;width:230px;text-align:center;
+          white-space:normal;pointer-events:none;z-index:100;
+          box-shadow:0 4px 16px rgba(0,0,0,.25);
+        }
+        .pending-tooltip::after{
+          content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
+          border:6px solid transparent;border-top-color:rgba(0,0,0,.85);
+        }
+        .pending-badge-wrap:hover .pending-tooltip{display:block}
       `}</style>
     </>
   )

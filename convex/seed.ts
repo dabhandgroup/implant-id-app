@@ -10,6 +10,16 @@ import { v } from 'convex/values'
 export const seedDevices = mutation({
   args: {},
   handler: async (ctx) => {
+    // Only admins may re-seed the catalogue
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Unauthenticated')
+
+    const caller = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!caller || caller.role !== 'admin') throw new Error('Forbidden: admin only')
+
     // Clear existing devices first (idempotent re-run)
     const existing = await ctx.db.query('devices').collect()
     await Promise.all(existing.map((d) => ctx.db.delete(d._id)))

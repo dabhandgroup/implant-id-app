@@ -1,17 +1,11 @@
 import './page.css'
-import { html } from './content'
-import ScriptLoader from '@/components/ScriptLoader'
+import LoginClient from './LoginClient'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: "Log in \u00b7 Implant ID",
+  title: 'Log in · Implant ID',
 }
 
 export default function Page() {
-  return (
-    <>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
-      <ScriptLoader scripts={["/scripts/login-0.js"]} />
-    </>
-  )
+  return <LoginClient />
 }

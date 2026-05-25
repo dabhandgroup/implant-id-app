@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { useUser, useClerk } from '@clerk/nextjs'
 
 const navHTML = `<nav class="site-nav">
   <div class="nav-inner">
@@ -36,15 +38,7 @@ const navHTML = `<nav class="site-nav">
       </ul>
     </div>
     <div class="nav-r">
-      <div class="login-dd" id="login-dd">
-        <button class="btn login-dd-btn">Sign in</button>
-        <div class="login-menu">
-          <a href="/login"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg><div><span>Log in</span><span class="sub">Already have an account</span></div></a>
-          <hr>
-          <a href="/clinics/onboarding"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 21V8l9-5 9 5v13"/></svg><div><span>Register a clinic</span><span class="sub">Book a demo</span></div></a>
-          <a href="/patients/register"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg><div><span>Register as a patient</span><span class="sub">Free forever · Apple Wallet pass</span></div></a>
-        </div>
-      </div>
+      <span id="nav-auth-slot"></span>
       <a href="/contact" class="btn btn-s">Contact</a>
       <button class="nav-hamb" aria-label="Menu">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -106,13 +100,13 @@ export default function Nav() {
       })
     })
 
-    // Login dropdown toggle
-    const loginBtn = document.querySelector('.login-dd-btn')
-    if (loginBtn) {
-      loginBtn.addEventListener('click', () => {
+    // Login dropdown toggle — delegated so it works after portal renders
+    function handleLoginDd(e: MouseEvent) {
+      if ((e.target as Element).closest('.login-dd-btn')) {
         document.getElementById('login-dd')?.classList.toggle('open')
-      })
+      }
     }
+    document.addEventListener('click', handleLoginDd)
 
     // Mobile menu open/close
     const hamb = document.querySelector('.nav-hamb')
@@ -160,13 +154,111 @@ export default function Nav() {
     }
 
     document.addEventListener('click', handleDocClick)
+    document.addEventListener('click', handleLoginDd)
     document.addEventListener('keydown', handleKeydown)
 
     return () => {
       document.removeEventListener('click', handleDocClick)
+      document.removeEventListener('click', handleLoginDd)
       document.removeEventListener('keydown', handleKeydown)
     }
   }, [])
 
-  return <div style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: navHTML }} />
+  return (
+    <>
+      <div style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: navHTML }} />
+      <NavAuthPortal />
+    </>
+  )
+}
+
+/** Renders Clerk auth controls into the #nav-auth-slot placeholder in the nav HTML. */
+function NavAuthPortal() {
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+
+  useEffect(() => {
+    setSlot(document.getElementById('nav-auth-slot'))
+  }, [])
+
+  if (!slot) return null
+
+  const { user, isLoaded } = useUser()
+  const { signOut } = useClerk()
+  const [open, setOpen] = useState(false)
+
+  // Close the user menu on outside click
+  useEffect(() => {
+    if (!open) return
+    function handle(e: MouseEvent) {
+      const el = document.getElementById('user-dd')
+      if (el && !el.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('click', handle)
+    return () => document.removeEventListener('click', handle)
+  }, [open])
+
+  // Show nothing until Clerk resolves auth state (avoids flash)
+  if (!isLoaded) return createPortal(<div style={{ width: 80 }} />, slot)
+
+  if (!user) {
+    return createPortal(
+      <div className="login-dd" id="login-dd">
+        <button className="btn login-dd-btn">Sign in</button>
+        <div className="login-menu">
+          <a href="/login">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            <div><span>Log in</span><span className="sub">Already have an account</span></div>
+          </a>
+          <hr />
+          <a href="/clinics/onboarding">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13"/></svg>
+            <div><span>Register a clinic</span><span className="sub">Book a demo</span></div>
+          </a>
+          <a href="/patients/register">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+            <div><span>Register as a patient</span><span className="sub">Free forever · Apple Wallet pass</span></div>
+          </a>
+        </div>
+      </div>,
+      slot
+    )
+  }
+
+  const initials = (user.firstName?.[0] ?? user.primaryEmailAddress?.emailAddress?.[0] ?? '?').toUpperCase()
+  const displayName = user.firstName ? `${user.firstName} ${user.lastName ?? ''}`.trim() : (user.primaryEmailAddress?.emailAddress ?? '')
+
+  return createPortal(
+    <div className="login-dd" id="user-dd" style={{ position: 'relative' }}>
+      <button
+        className="nav-user-btn"
+        onClick={() => setOpen(o => !o)}
+        aria-label="Account menu"
+      >
+        <span className="nav-user-av">{initials}</span>
+        <span className="nav-user-name">{displayName}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ opacity: 0.4, transition: 'transform .18s', transform: open ? 'rotate(180deg)' : 'none' }}><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open && (
+        <div className="login-menu" style={{ display: 'block' }}>
+          <a href="/clinics/dashboard">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <div><span>Dashboard</span><span className="sub">Go to your clinic</span></div>
+          </a>
+          <a href="/clinics/settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <div><span>Settings</span><span className="sub">Account &amp; clinic preferences</span></div>
+          </a>
+          <hr />
+          <button
+            style={{ background: 'none', border: 0, width: '100%', padding: 0, cursor: 'pointer' }}
+            onClick={() => signOut({ redirectUrl: '/login' })}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <div><span>Sign out</span><span className="sub">{displayName}</span></div>
+          </button>
+        </div>
+      )}
+    </div>,
+    slot
+  )
 }

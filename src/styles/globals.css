@@ -385,6 +385,17 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .login-menu a svg{width:16px;height:16px;flex-shrink:0;color:var(--accent)}
 .login-menu a .sub{display:block;font-family:var(--fb);font-size:12px;color:var(--muted2);font-weight:400;margin-top:1px}
 .login-menu hr{border:0;height:1px;background:var(--border);margin:4px 2px}
+/* login-menu button rows (sign-out) match anchor style */
+.login-menu button{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:8px;width:100%;text-align:left;font-family:var(--ff);font-size:13.5px;font-weight:500;color:var(--text);transition:all .15s}
+.login-menu button:hover{background:color-mix(in srgb,#d94040 7%,transparent);color:#c03030}
+.login-menu button svg{width:16px;height:16px;flex-shrink:0;color:#c03030}
+.login-menu button .sub{display:block;font-family:var(--fb);font-size:12px;color:var(--muted2);font-weight:400;margin-top:1px}
+
+/* Signed-in user avatar button */
+.nav-user-btn{display:inline-flex;align-items:center;gap:7px;background:transparent;border:1px solid var(--border);border-radius:9px;padding:5px 10px 5px 6px;cursor:pointer;font-family:var(--ff);font-size:13px;font-weight:500;color:var(--text);transition:border-color .15s,background .15s}
+.nav-user-btn:hover{border-color:var(--border2);background:color-mix(in srgb,var(--text) 4%,transparent)}
+.nav-user-av{width:24px;height:24px;border-radius:6px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;font-family:var(--ff);display:grid;place-items:center;flex-shrink:0}
+.nav-user-name{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 @media(max-width:980px){
   .site-nav .nav-c{display:none}

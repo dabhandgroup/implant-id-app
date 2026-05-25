@@ -1,9 +1,6 @@
-import { SignUp } from "@clerk/nextjs";
+import { redirect } from 'next/navigation'
 
+// We use a custom login page at /login — redirect anything Clerk sends here
 export default function SignUpPage() {
-  return (
-    <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
-      <SignUp />
-    </div>
-  );
+  redirect('/login')
 }

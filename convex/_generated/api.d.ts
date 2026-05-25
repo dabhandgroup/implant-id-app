@@ -10,6 +10,7 @@
 
 import type * as clinics from "../clinics.js";
 import type * as email from "../email.js";
+import type * as emailTemplate from "../emailTemplate.js";
 import type * as http from "../http.js";
 import type * as patients from "../patients.js";
 import type * as seed from "../seed.js";
@@ -24,6 +25,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   clinics: typeof clinics;
   email: typeof email;
+  emailTemplate: typeof emailTemplate;
   http: typeof http;
   patients: typeof patients;
   seed: typeof seed;

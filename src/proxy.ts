@@ -3,10 +3,11 @@ import { NextResponse } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
   '/login(.*)',
+  '/sign-up(.*)',             // patient account creation — unauthenticated users land here
   '/forgot(.*)',
   '/sso-callback(.*)',        // OAuth return leg — must be public
   '/api/webhooks/(.*)',       // Clerk webhook delivery — no browser session
-  // /sign-in and /sign-up redirect to /login — no Clerk UI served there
+  '/clinics/onboarding(.*)', // clinic application form — no auth required to apply
 ])
 
 // Hard-fail at startup if Clerk isn't configured — never silently open all routes
@@ -31,8 +32,9 @@ export default clerkMiddleware(async (auth, req) => {
   const path = req.nextUrl.pathname
 
   if (role) {
-    // Clinic routes — only clinic_staff and admin
-    if (path.startsWith('/clinics') && role !== 'clinic_staff' && role !== 'admin') {
+    // Clinic routes — only clinic_staff and admin (except the public onboarding form)
+    if (path.startsWith('/clinics') && !path.startsWith('/clinics/onboarding')
+        && role !== 'clinic_staff' && role !== 'admin') {
       return NextResponse.redirect(new URL('/patients/dashboard', req.url))
     }
     // Patient routes — only patient and admin

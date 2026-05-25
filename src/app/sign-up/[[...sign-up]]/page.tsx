@@ -1,6 +1,11 @@
-import { redirect } from 'next/navigation'
+import './page.css'
+import type { Metadata } from 'next'
+import SignUpClient from './SignUpClient'
 
-// We use a custom login page at /login — redirect anything Clerk sends here
+export const metadata: Metadata = {
+  title: 'Create your account · Implant ID',
+}
+
 export default function SignUpPage() {
-  redirect('/login')
+  return <SignUpClient />
 }

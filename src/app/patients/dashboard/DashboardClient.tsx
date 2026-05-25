@@ -183,13 +183,27 @@ export default function DashboardClient() {
             </svg>
             <span>My record</span>
           </a>
-          <a className="sb-link" href="/patients/share" title="Share with clinic">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-              <path d="M16 6l-4-4-4 4M12 2v13"/>
-            </svg>
-            <span>Share with clinic</span>
-          </a>
+          {isPending ? (
+            <span className="sb-link sb-link--locked" aria-disabled="true" title="Available once your record is verified">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <path d="M16 6l-4-4-4 4M12 2v13"/>
+              </svg>
+              <span>Share with clinic</span>
+              <svg className="sb-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </span>
+          ) : (
+            <a className="sb-link" href="/patients/share" title="Share with clinic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <path d="M16 6l-4-4-4 4M12 2v13"/>
+              </svg>
+              <span>Share with clinic</span>
+            </a>
+          )}
           <a className="sb-link" href="#" title="Documents &amp; manuals">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/>
@@ -546,13 +560,23 @@ export default function DashboardClient() {
                 </svg>
                 <span className="t">Record</span>
               </a>
-              <a href="/patients/share" className="mob-nav-tab" aria-label="Share with clinic">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                  <path d="M16 6l-4-4-4 4M12 2v13"/>
-                </svg>
-                <span className="t">Share</span>
-              </a>
+              {isPending ? (
+                <span className="mob-nav-tab mob-nav-tab--locked" aria-disabled="true" aria-label="Share with clinic — available once verified">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                    <path d="M16 6l-4-4-4 4M12 2v13"/>
+                  </svg>
+                  <span className="t">Share</span>
+                </span>
+              ) : (
+                <a href="/patients/share" className="mob-nav-tab" aria-label="Share with clinic">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                    <path d="M16 6l-4-4-4 4M12 2v13"/>
+                  </svg>
+                  <span className="t">Share</span>
+                </a>
+              )}
               <a href="/patients/find-care" className="mob-nav-tab" aria-label="Find a clinic">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
@@ -775,6 +799,10 @@ export default function DashboardClient() {
         @keyframes pending-pulse{0%,100%{opacity:1;box-shadow:0 0 8px #f59e0b}50%{opacity:.4;box-shadow:0 0 3px #f59e0b}}
         /* Hide green status dot when pending */
         .pb-status--pending::before{display:none !important}
+        /* Locked nav items */
+        .sb-link--locked{opacity:.45;cursor:not-allowed;pointer-events:none;display:flex;align-items:center;gap:10px}
+        .sb-lock{width:12px;height:12px;margin-left:auto;flex-shrink:0;opacity:.7}
+        .mob-nav-tab--locked{opacity:.35;cursor:not-allowed;pointer-events:none}
         /* Pending tooltip — appears below badge so it's never clipped by banner */
         .pending-badge-wrap{position:relative;display:inline-block}
         .pending-tooltip{

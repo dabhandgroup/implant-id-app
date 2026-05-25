@@ -10,8 +10,8 @@ out/
 .env.local
 .env.*.local
 
-# Convex generated files
-convex/_generated/
+# Convex generated files — committed so Vercel build can resolve imports
+# convex/_generated/
 
 # OS
 .DS_Store

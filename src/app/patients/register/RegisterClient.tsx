@@ -299,22 +299,14 @@ export default function RegisterClient() {
   const router        = useRouter()
   const existingPatient = useQuery(api.patients.getMyPatient)
 
-  // Already registered — send straight to dashboard
-  useEffect(() => {
-    if (existingPatient) router.replace('/patients/dashboard')
-  }, [existingPatient, router])
-
-  // Show nothing while checking for an existing record (prevents form flash)
-  if (existingPatient === undefined || existingPatient) return null
-
   // ── Step 1: personal details ──────────────────────────────────────────────
+  const clerkPhone = user?.primaryPhoneNumber?.phoneNumber ?? ''
   const [firstName, setFirstName] = useState(user?.firstName ?? '')
   const [lastName,  setLastName]  = useState(user?.lastName  ?? '')
   const [dobDay,    setDobDay]    = useState('')
   const [dobMonth,  setDobMonth]  = useState('')
   const [dobYear,   setDobYear]   = useState('')
-  const clerkPhone = user?.primaryPhoneNumber?.phoneNumber ?? ''
-  const [phone, setPhone] = useState(clerkPhone)
+  const [phone,     setPhone]     = useState(clerkPhone)
 
   // ── Step 2: self-reported implant ─────────────────────────────────────────
   const [deviceName,   setDeviceName]   = useState('')
@@ -335,6 +327,14 @@ export default function RegisterClient() {
   const [step,    setStep]    = useState<Step>('details')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
+
+  // Already registered — redirect (must be after all hooks)
+  useEffect(() => {
+    if (existingPatient) router.replace('/patients/dashboard')
+  }, [existingPatient, router])
+
+  // Hold the form while Convex is still loading or a redirect is pending
+  if (existingPatient === undefined || existingPatient) return null
 
   function err(msg: string) { setError(msg); setLoading(false) }
   function clearErr()       { setError('') }

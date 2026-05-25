@@ -47,11 +47,17 @@ export default defineSchema({
     phone:     v.optional(v.string()),
 
     // Self-reported implant (unverified until clinic confirms)
-    selfReportedDevice:      v.optional(v.string()),  // e.g. "Medtronic Azure XT DR"
-    selfReportedDeviceType:  v.optional(v.string()),  // e.g. "Pacemaker / ICD"
-    selfReportedImplantMonth:v.optional(v.string()),  // MM
-    selfReportedImplantYear: v.optional(v.string()),  // YYYY
-    selfReportedHospital:    v.optional(v.string()),
+    selfReportedDevice:       v.optional(v.string()),  // free-text name
+    selfReportedDeviceId:     v.optional(v.string()),  // devices.ts device_id if matched
+    selfReportedManufacturer: v.optional(v.string()),  // manufacturer common_name
+    selfReportedModelNumber:  v.optional(v.string()),  // model_number
+    selfReportedDeviceType:   v.optional(v.string()),  // e.g. "Pacemaker"
+    selfReportedImplantMonth: v.optional(v.string()),  // MM
+    selfReportedImplantYear:  v.optional(v.string()),  // YYYY
+    selfReportedHospital:     v.optional(v.string()),
+    selfReportedSurgeon:      v.optional(v.string()),
+    selfReportedImplants:     v.optional(v.string()),  // JSON — additional implants array
+    countryOfBirth:           v.optional(v.string()),
 
     // Emergency contact (collected at registration)
     emergencyContactName:     v.optional(v.string()),
@@ -155,6 +161,40 @@ export default defineSchema({
   })
     .index('by_user', ['userId'])
     .index('by_user_unread', ['userId', 'read']),
+
+  // Clinic onboarding applications (pre-approval)
+  clinicApplications: defineTable({
+    // Contact
+    contactName:  v.string(),
+    contactEmail: v.string(),
+    contactPhone: v.optional(v.string()),
+    jobTitle:     v.optional(v.string()),
+
+    // Facility
+    facilityName:     v.string(),
+    facilityType:     v.string(),  // "Hospital", "Private clinic", etc.
+    facilityAddress:  v.string(),
+    facilityCity:     v.string(),
+    facilityCountry:  v.string(),
+    facilityWebsite:  v.optional(v.string()),
+    facilityPhone:    v.optional(v.string()),
+
+    // Regulatory
+    regulatoryBody:   v.optional(v.string()),
+    registrationNum:  v.optional(v.string()),
+
+    // Services
+    services:         v.array(v.string()),  // e.g. ["MRI", "Pacemaker clinics"]
+    additionalInfo:   v.optional(v.string()),
+
+    // Status
+    status:       v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected')),
+    submittedAt:  v.number(),
+    reviewedAt:   v.optional(v.number()),
+    reviewNotes:  v.optional(v.string()),
+  })
+    .index('by_status', ['status'])
+    .index('by_email', ['contactEmail']),
 
   // Clinic audit log
   auditLog: defineTable({

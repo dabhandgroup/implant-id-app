@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server'
-import { v } from 'convex/values'
+import { v }              from 'convex/values'
+import { internal }       from './_generated/api'
 
 /**
  * Patient ID format: IID-[3 surname][2 firstname][DD][MM][2 random]
@@ -69,16 +70,23 @@ export const createPatient = mutation({
 
     // Step 2 — self-reported implant (pending verification)
     selfReportedDevice:       v.optional(v.string()),
+    selfReportedDeviceId:     v.optional(v.string()),
+    selfReportedManufacturer: v.optional(v.string()),
+    selfReportedModelNumber:  v.optional(v.string()),
     selfReportedDeviceType:   v.optional(v.string()),
     selfReportedImplantMonth: v.optional(v.string()),
     selfReportedImplantYear:  v.optional(v.string()),
     selfReportedHospital:     v.optional(v.string()),
+    selfReportedSurgeon:      v.optional(v.string()),
+    selfReportedImplants:     v.optional(v.string()),  // JSON array of additional implants
+    countryOfBirth:           v.optional(v.string()),
 
     // Step 3 — emergency contact
     emergencyContactName:     v.optional(v.string()),
     emergencyContactPhone:    v.optional(v.string()),
     emergencyContactRelation: v.optional(v.string()),
     additionalNotes:          v.optional(v.string()),
+
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -116,12 +124,18 @@ export const createPatient = mutation({
       lastName:      args.lastName,
       dob:           args.dob,
       phone:         args.phone,
+      countryOfBirth: args.countryOfBirth,
 
       selfReportedDevice:       args.selfReportedDevice,
+      selfReportedDeviceId:     args.selfReportedDeviceId,
+      selfReportedManufacturer: args.selfReportedManufacturer,
+      selfReportedModelNumber:  args.selfReportedModelNumber,
       selfReportedDeviceType:   args.selfReportedDeviceType,
       selfReportedImplantMonth: args.selfReportedImplantMonth,
       selfReportedImplantYear:  args.selfReportedImplantYear,
       selfReportedHospital:     args.selfReportedHospital,
+      selfReportedSurgeon:      args.selfReportedSurgeon,
+      selfReportedImplants:     args.selfReportedImplants,
 
       emergencyContactName:     args.emergencyContactName,
       emergencyContactPhone:    args.emergencyContactPhone,
@@ -130,6 +144,17 @@ export const createPatient = mutation({
 
       verificationStatus: 'pending',
     })
+
+    // Send welcome email using Clerk identity email
+    const email = identity.email
+    if (email) {
+      await ctx.scheduler.runAfter(0, internal.email.sendPatientWelcomeEmail, {
+        firstName:     args.firstName,
+        lastName:      args.lastName,
+        email,
+        implantIdCode: code,
+      })
+    }
 
     return { id: patientId, implantIdCode: code }
   },

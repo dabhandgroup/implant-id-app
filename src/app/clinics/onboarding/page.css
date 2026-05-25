@@ -5,6 +5,7 @@
 .onb-side h1{font-size:clamp(28px,3vw,40px);font-weight:500;letter-spacing:-.025em;line-height:1.1;margin:32px 0 16px;color:#fff}
 .onb-side>p{color:rgba(255,255,255,.8);font-size:15px;line-height:1.6;max-width:420px}
 .onb-side .steps{margin-top:40px;display:flex;flex-direction:column;gap:0;flex:1}
+.onb-side-steps{display:flex;flex-direction:column;gap:0}
 .onb-step{display:flex;gap:16px;padding:18px 0;position:relative}
 .onb-step+.onb-step{border-top:1px solid rgba(255,255,255,.12)}
 .onb-step .num{width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);display:grid;place-items:center;font-family:var(--ff);font-size:13px;font-weight:600;flex-shrink:0;color:rgba(255,255,255,.6)}

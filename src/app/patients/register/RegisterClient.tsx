@@ -1,9 +1,9 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { useUser }    from '@clerk/nextjs'
-import { useMutation } from 'convex/react'
-import { api }         from '../../../../convex/_generated/api'
-import { useRouter }   from 'next/navigation'
+import { useUser }               from '@clerk/nextjs'
+import { useMutation, useQuery } from 'convex/react'
+import { api }                   from '../../../../convex/_generated/api'
+import { useRouter }             from 'next/navigation'
 
 type Step = 'details' | 'implant' | 'emergency' | 'summary'
 
@@ -297,6 +297,15 @@ export default function RegisterClient() {
   const { user }      = useUser()
   const createPatient = useMutation(api.patients.createPatient)
   const router        = useRouter()
+  const existingPatient = useQuery(api.patients.getMyPatient)
+
+  // Already registered — send straight to dashboard
+  useEffect(() => {
+    if (existingPatient) router.replace('/patients/dashboard')
+  }, [existingPatient, router])
+
+  // Show nothing while checking for an existing record (prevents form flash)
+  if (existingPatient === undefined || existingPatient) return null
 
   // ── Step 1: personal details ──────────────────────────────────────────────
   const [firstName, setFirstName] = useState(user?.firstName ?? '')

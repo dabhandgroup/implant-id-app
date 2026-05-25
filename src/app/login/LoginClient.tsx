@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useSignIn } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
+import { setUserRoleIfNew } from '../actions/setUserRole'
 
 // ─── country list ────────────────────────────────────────────────────────────
 
@@ -29,7 +30,7 @@ const COUNTRIES = [
 ]
 
 type Tab          = 'patient' | 'clinic'
-type PatientPhase = 'phone' | 'phone-otp' | 'email'
+type PatientPhase = 'phone' | 'phone-otp' | 'email' | 'email-otp' | 'email-pw'
 type ClinicPhase  = 'email' | 'email-otp' | 'password'
 
 // ─── component ───────────────────────────────────────────────────────────────
@@ -72,17 +73,15 @@ export default function LoginClient() {
   function err(msg: string) { setError(msg); setLoading(false) }
   function otpVal() { return otp.join('') }
 
-  function handleOtpInput(i: number, val: string) {
-    const next = [...otp]; next[i] = val.slice(-1); setOtp(next)
-    if (val && i < 5) {
-      const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
-      inputs[i + 1]?.focus()
-    }
-  }
+  // kept for backward compat; OtpInputs now handles everything internally
+  function _unusedOtpInput() { /* replaced by OtpInputs internal handler */ }
 
   async function finalizeAndGo(dest: string) {
     const { error: fe } = await signIn!.finalize()
     if (fe) return err(fe.message ?? 'Could not complete sign-in')
+    // Stamp the role onto Clerk publicMetadata (no-op for existing users)
+    const role = tab === 'patient' ? 'patient' : 'clinic_staff'
+    await setUserRoleIfNew(role).catch(() => { /* non-fatal */ })
     router.push(dest)
   }
 
@@ -106,11 +105,12 @@ export default function LoginClient() {
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
-  async function verifyPhoneOtp() {
-    if (otpVal().length < 6) return err('Enter the 6-digit code')
+  async function verifyPhoneOtp(code?: string) {
+    const c = code ?? otpVal()
+    if (c.length < 6) return err('Enter the 6-digit code')
     setLoading(true); setError('')
     try {
-      const { error: ve } = await signIn!.phoneCode.verifyCode({ code: otpVal() })
+      const { error: ve } = await signIn!.phoneCode.verifyCode({ code: c })
       if (ve) return err(ve.message ?? 'Invalid code')
       if (signIn!.status === 'complete') await finalizeAndGo('/patients/dashboard')
       else err('Verification incomplete — contact support')
@@ -131,6 +131,32 @@ export default function LoginClient() {
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
+  // ── Patient: email OTP ────────────────────────────────────────────────────
+
+  async function sendPatientEmailOtp() {
+    if (!ptEmail.trim()) return err('Enter your email')
+    setLoading(true); setError('')
+    try {
+      const { error: ce } = await signIn!.create({ identifier: ptEmail.trim() })
+      if (ce) return err(ce.message ?? 'Could not start sign-in')
+      const { error: se } = await signIn!.emailCode.sendCode()
+      if (se) return err(se.message ?? 'Could not send code')
+      setOtp(['', '', '', '', '', '']); setPatPhase('email-otp')
+    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+  }
+
+  async function verifyPatientEmailOtp(code?: string) {
+    const c = code ?? otpVal()
+    if (c.length < 6) return err('Enter the 6-digit code')
+    setLoading(true); setError('')
+    try {
+      const { error: ve } = await signIn!.emailCode.verifyCode({ code: c })
+      if (ve) return err(ve.message ?? 'Invalid code')
+      if (signIn!.status === 'complete') await finalizeAndGo('/patients/dashboard')
+      else err('Verification incomplete — contact support')
+    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+  }
+
   // ── Clinic: email OTP ─────────────────────────────────────────────────────
 
   async function sendClinicOtp() {
@@ -145,11 +171,12 @@ export default function LoginClient() {
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
-  async function verifyClinicOtp() {
-    if (otpVal().length < 6) return err('Enter the 6-digit code')
+  async function verifyClinicOtp(code?: string) {
+    const c = code ?? otpVal()
+    if (c.length < 6) return err('Enter the 6-digit code')
     setLoading(true); setError('')
     try {
-      const { error: ve } = await signIn!.emailCode.verifyCode({ code: otpVal() })
+      const { error: ve } = await signIn!.emailCode.verifyCode({ code: c })
       if (ve) return err(ve.message ?? 'Invalid code')
       if (signIn!.status === 'complete') await finalizeAndGo('/clinics/dashboard')
       else err('Verification incomplete — contact support')
@@ -186,17 +213,63 @@ export default function LoginClient() {
   }
 
   // ── shared OTP input row ───────────────────────────────────────────────────
+  // onComplete receives the full 6-digit string — called on paste OR when the
+  // last digit is typed, so users never have to click Verify manually.
 
-  function OtpInputs() {
+  function OtpInputs({ onComplete }: { onComplete: (code: string) => void }) {
+
+    function handleChange(i: number, val: string) {
+      const digit = val.slice(-1)
+      const next  = [...otp]; next[i] = digit; setOtp(next)
+      // Advance focus to next box while typing
+      if (digit && i < 5) {
+        const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
+        inputs[i + 1]?.focus()
+      }
+      // Auto-submit when the last box is filled by typing
+      if (i === 5 && digit) {
+        const code = [...otp.slice(0, 5), digit].join('')
+        if (code.length === 6) onComplete(code)
+      }
+    }
+
+    function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+      e.preventDefault()
+      // Strip non-digits, take first 6
+      const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+      if (!digits) return
+      // Spread across all boxes
+      const next = ['', '', '', '', '', '']
+      for (let i = 0; i < digits.length; i++) next[i] = digits[i]
+      setOtp(next)
+      // Focus the last filled box
+      const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
+      inputs[Math.min(digits.length - 1, 5)]?.focus()
+      // Auto-submit if we got a full code
+      if (digits.length === 6) onComplete(digits)
+    }
+
+    function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+      // Backspace on empty box — jump back
+      if (e.key === 'Backspace' && !otp[i] && i > 0) {
+        const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
+        inputs[i - 1]?.focus()
+      }
+    }
+
     return (
       <div className="code-row">
         {otp.map((v, i) => (
           <input
             key={i}
             maxLength={1}
+            inputMode="numeric"
+            pattern="[0-9]*"
             className="code-input"
             value={v}
-            onChange={e => handleOtpInput(i, e.target.value)}
+            onChange={e => handleChange(i, e.target.value)}
+            onPaste={handlePaste}
+            onKeyDown={e => handleKeyDown(i, e)}
             onFocus={e => e.target.select()}
           />
         ))}
@@ -247,6 +320,7 @@ export default function LoginClient() {
           {/* ── PATIENT TAB ───────────────────────────────────────────────── */}
           {tab === 'patient' && (
             <>
+              {/* Phone: enter number → send OTP */}
               {patPhase === 'phone' && (
                 <div className="tab-view active">
                   <div className="field">
@@ -283,33 +357,77 @@ export default function LoginClient() {
                       <span>Use Face ID or fingerprint</span>
                     </button>
                   </div>
-                  <div className="divider">or continue with email</div>
+                  <div className="divider">or use email</div>
                   <button type="button" className="btn btn-lg btn-block" onClick={() => { setPatPhase('email'); setError('') }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ marginRight: 6 }}><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" /><path d="m22 6-10 7L2 6" /></svg>
-                    Log in with email
+                    Continue with email
                   </button>
                 </div>
               )}
 
+              {/* Phone: enter OTP */}
               {patPhase === 'phone-otp' && (
                 <div className="tab-view active">
                   <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 18, lineHeight: 1.55 }}>
                     We've sent a 6-digit code to your phone. Enter it below.
                   </p>
-                  <OtpInputs />
+                  <OtpInputs onComplete={verifyPhoneOtp} />
                   <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '16px 0' }}>
                     Didn't get it? <button type="button" className="link-btn" onClick={sendPhoneOtp}>Resend code</button>
                   </p>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button type="button" className="btn btn-lg" onClick={() => { setPatPhase('phone'); setError('') }}>← Back</button>
-                    <button type="button" className="btn btn-s btn-lg" style={{ flex: 1 }} onClick={verifyPhoneOtp} disabled={loading}>
+                    <button type="button" className="btn btn-s btn-lg" style={{ flex: 1 }} onClick={() => verifyPhoneOtp()} disabled={loading}>
                       {loading ? 'Verifying…' : 'Verify & log in →'}
                     </button>
                   </div>
                 </div>
               )}
 
+              {/* Email: enter address → send OTP (default email flow) */}
               {patPhase === 'email' && (
+                <div className="tab-view active">
+                  <div className="field">
+                    <label>Email address</label>
+                    <div className="i-wrap">
+                      <svg className="i-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" /><path d="m22 6-10 7L2 6" /></svg>
+                      <input className="input" type="email" placeholder="you@email.com" value={ptEmail} onChange={e => setPtEmail(e.target.value)} />
+                    </div>
+                  </div>
+                  <button type="button" className="btn btn-s btn-lg btn-block" onClick={sendPatientEmailOtp} disabled={loading}>
+                    {loading ? 'Sending…' : 'Send verification code →'}
+                  </button>
+                  <p style={{ textAlign: 'center', marginTop: 14, fontSize: 13, color: 'var(--muted)' }}>
+                    Prefer a password?{' '}
+                    <button type="button" className="link-btn" onClick={() => { setPatPhase('email-pw'); setError('') }}>Log in with password</button>
+                  </p>
+                  <button type="button" className="link-btn" style={{ display: 'block', textAlign: 'center', marginTop: 10, width: '100%' }} onClick={() => { setPatPhase('phone'); setError('') }}>
+                    ← Back to phone login
+                  </button>
+                </div>
+              )}
+
+              {/* Email: enter OTP */}
+              {patPhase === 'email-otp' && (
+                <div className="tab-view active">
+                  <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 18, lineHeight: 1.55 }}>
+                    We've sent a 6-digit code to <strong>{ptEmail}</strong>. Enter it below.
+                  </p>
+                  <OtpInputs onComplete={verifyPatientEmailOtp} />
+                  <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '16px 0' }}>
+                    Didn't get it? <button type="button" className="link-btn" onClick={sendPatientEmailOtp}>Resend code</button>
+                  </p>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button type="button" className="btn btn-lg" onClick={() => { setPatPhase('email'); setError('') }}>← Back</button>
+                    <button type="button" className="btn btn-s btn-lg" style={{ flex: 1 }} onClick={() => verifyPatientEmailOtp()} disabled={loading}>
+                      {loading ? 'Verifying…' : 'Verify & log in →'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Email + password (old-school fallback) */}
+              {patPhase === 'email-pw' && (
                 <div className="tab-view active">
                   <form onSubmit={patEmailLogin}>
                     <div className="field">
@@ -338,8 +456,8 @@ export default function LoginClient() {
                     </div>
                     <button type="submit" className="btn btn-s btn-lg btn-block" disabled={loading}>{loading ? 'Signing in…' : 'Log in →'}</button>
                   </form>
-                  <button type="button" className="link-btn" style={{ display: 'block', textAlign: 'center', marginTop: 14, width: '100%' }} onClick={() => { setPatPhase('phone'); setError('') }}>
-                    ← Back to phone login
+                  <button type="button" className="link-btn" style={{ display: 'block', textAlign: 'center', marginTop: 14, width: '100%' }} onClick={() => { setPatPhase('email'); setError('') }}>
+                    ← Send me a code instead
                   </button>
                 </div>
               )}
@@ -361,11 +479,6 @@ export default function LoginClient() {
                   <button type="button" className="btn btn-s btn-lg btn-block" onClick={sendClinicOtp} disabled={loading}>
                     {loading ? 'Sending…' : 'Send verification code →'}
                   </button>
-                  <div className="divider">or continue with email &amp; password</div>
-                  <button type="button" className="btn btn-lg btn-block" onClick={() => { setClPhase('password'); setError('') }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" style={{ marginRight: 6 }}><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                    Log in with password
-                  </button>
                   <div className="divider">or continue with</div>
                   <div className="sso">
                     <button className="sso-btn" type="button" onClick={() => ssoLogin('oauth_google')} disabled={loading}>
@@ -377,6 +490,10 @@ export default function LoginClient() {
                       Continue with Microsoft
                     </button>
                   </div>
+                  <p style={{ textAlign: 'center', marginTop: 18, fontSize: 13, color: 'var(--muted)' }}>
+                    Prefer a password?{' '}
+                    <button type="button" className="link-btn" onClick={() => { setClPhase('password'); setError('') }}>Log in with password</button>
+                  </p>
                 </div>
               )}
 
@@ -385,13 +502,13 @@ export default function LoginClient() {
                   <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 18, lineHeight: 1.55 }}>
                     We've sent a 6-digit verification code to your email.
                   </p>
-                  <OtpInputs />
+                  <OtpInputs onComplete={verifyClinicOtp} />
                   <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '16px 0' }}>
                     Didn't get it? <button type="button" className="link-btn" onClick={sendClinicOtp}>Resend code</button>
                   </p>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button type="button" className="btn btn-lg" onClick={() => { setClPhase('email'); setError('') }}>← Back</button>
-                    <button type="button" className="btn btn-s btn-lg" style={{ flex: 1 }} onClick={verifyClinicOtp} disabled={loading}>
+                    <button type="button" className="btn btn-s btn-lg" style={{ flex: 1 }} onClick={() => verifyClinicOtp()} disabled={loading}>
                       {loading ? 'Verifying…' : 'Verify & log in →'}
                     </button>
                   </div>

@@ -2,12 +2,15 @@ import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
 
 // Called after Clerk sign-in to ensure a user row exists in Convex.
-// Intentionally accepts no role or clerkId from the client — both are derived
-// from the verified Clerk JWT so callers cannot spoof them.
+// clerkId is always derived from the verified JWT — callers cannot spoof it.
+// role is accepted for NEW users only; existing users keep their current role.
 export const upsertUser = mutation({
   args: {
     email: v.string(),
     name: v.string(),
+    // Role hint from the login tab — ignored for existing users so a patient
+    // logging in via the clinic tab can never upgrade themselves.
+    role: v.optional(v.union(v.literal('patient'), v.literal('clinic_staff'))),
   },
   handler: async (ctx, args) => {
     // Convex validates the Clerk JWT; identity.subject is the real Clerk user ID
@@ -22,17 +25,17 @@ export const upsertUser = mutation({
       .unique()
 
     if (existing) {
-      // Only update profile fields — never touch role here
+      // Only update profile fields — never touch role for existing users
       await ctx.db.patch(existing._id, { email: args.email, name: args.name })
       return existing._id
     }
 
-    // New users always start as clinic_staff; promote to admin in the dashboard
+    // New user: use the supplied role, falling back to 'patient' (safer default)
     return ctx.db.insert('users', {
       clerkId,
       email: args.email,
       name: args.name,
-      role: 'clinic_staff',
+      role: args.role ?? 'patient',
     })
   },
 })

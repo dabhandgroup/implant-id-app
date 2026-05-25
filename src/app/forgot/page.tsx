@@ -1,14 +1,11 @@
-import { html } from './content'
+import '../login/page.css'
+import ForgotClient from './ForgotClient'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: "Reset password \u00b7 Implant ID",
+  title: 'Reset password · Implant ID',
 }
 
 export default function Page() {
-  return (
-    <>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
-    </>
-  )
+  return <ForgotClient />
 }

@@ -1,17 +1,11 @@
 import './page.css'
-import { html } from './content'
-import ScriptLoader from '@/components/ScriptLoader'
 import type { Metadata } from 'next'
+import DashboardClient from './DashboardClient'
 
 export const metadata: Metadata = {
-  title: "My implant record \u00b7 Implant ID",
+  title: 'My implant record \u00b7 Implant ID',
 }
 
 export default function Page() {
-  return (
-    <>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
-      <ScriptLoader scripts={["/scripts/patients-dashboard-0.js", "/scripts/patients-dashboard-1.js", "/scripts/patients-dashboard-2.js"]} />
-    </>
-  )
+  return <DashboardClient />
 }

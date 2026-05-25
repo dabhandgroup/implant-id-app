@@ -1,0 +1,144 @@
+/* ── Patient registration wizard ─────────────────────────────────────────── */
+
+.reg{
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  padding: 40px 20px 80px;
+}
+
+.reg-card{
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 44px 44px 40px;
+  box-shadow: 0 40px 80px -30px rgba(14,42,51,.14);
+}
+
+.reg-logo{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--ff);
+  font-weight: 600;
+  font-size: 19px;
+  color: var(--text);
+  text-decoration: none;
+  margin-bottom: 36px;
+}
+.reg-logo img{ height: 38px; width: auto; }
+.reg-logo .logo-text{ display: flex; align-items: baseline; gap: 3px; }
+.reg-logo .logo-text b{ font-weight: 700; }
+.reg-logo .logo-text span{
+  background: linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  font-weight: 700;
+}
+
+/* Step indicator */
+.reg-steps{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 32px;
+}
+.reg-step{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--ff);
+  font-size: 12px;
+  color: var(--muted2);
+  transition: color .2s;
+}
+.reg-step.active{ color: var(--accent); }
+.reg-step.done{ color: var(--ok); }
+.reg-step-dot{
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: background .2s, color .2s;
+}
+.reg-step.active .reg-step-dot{
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.reg-step.done .reg-step-dot{
+  background: var(--ok);
+  color: #fff;
+  border-color: var(--ok);
+}
+.reg-step-line{
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  transition: background .3s;
+}
+.reg-step-line.done{ background: var(--ok); }
+
+.reg-card h1{
+  font-size: 26px;
+  letter-spacing: -.025em;
+  margin-bottom: 6px;
+}
+.reg-card .sub{
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin-bottom: 28px;
+}
+
+/* Success state */
+.reg-success{
+  text-align: center;
+  padding: 20px 0 10px;
+}
+.reg-success-ic{
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: color-mix(in srgb,var(--ok) 12%,transparent);
+  color: var(--ok);
+  display: grid;
+  place-items: center;
+  margin: 0 auto 20px;
+}
+.reg-iid{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: color-mix(in srgb,var(--accent) 8%,transparent);
+  border: 1px solid color-mix(in srgb,var(--accent) 25%,transparent);
+  border-radius: 12px;
+  padding: 14px 20px;
+  margin: 16px 0 24px;
+  font-family: var(--ff);
+}
+.reg-iid-label{
+  font-size: 10px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--muted2);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+.reg-iid-code{
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--accent-deep);
+  letter-spacing: .5px;
+}
+
+@media(max-width: 560px){
+  .reg-card{ padding: 32px 24px 28px; border-radius: 16px; }
+  .reg-card h1{ font-size: 22px; }
+}

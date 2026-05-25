@@ -1,9 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
   '/login(.*)',
   '/forgot(.*)',
-  '/sso-callback(.*)',   // OAuth return leg — must be public
+  '/sso-callback(.*)',        // OAuth return leg — must be public
+  '/api/webhooks/(.*)',       // Clerk webhook delivery — no browser session
   // /sign-in and /sign-up redirect to /login — no Clerk UI served there
 ])
 
@@ -15,8 +17,32 @@ if (!process.env.CLERK_SECRET_KEY) {
 }
 
 export default clerkMiddleware(async (auth, req) => {
+  // 1. Require authentication for all non-public routes
   if (!isPublicRoute(req)) {
     await auth.protect()
+  }
+
+  // 2. Role-based route enforcement (only when signed in)
+  const { sessionClaims } = await auth()
+  // Role lives in publicMetadata, surfaced via JWT template:
+  // Clerk dashboard → Configure → Sessions → Customize session token
+  // Add: { "role": "{{user.public_metadata.role}}" }
+  const role = (sessionClaims as { role?: string } | null)?.role
+  const path = req.nextUrl.pathname
+
+  if (role) {
+    // Clinic routes — only clinic_staff and admin
+    if (path.startsWith('/clinics') && role !== 'clinic_staff' && role !== 'admin') {
+      return NextResponse.redirect(new URL('/patients/dashboard', req.url))
+    }
+    // Patient routes — only patient and admin
+    if (path.startsWith('/patients') && role !== 'patient' && role !== 'admin') {
+      return NextResponse.redirect(new URL('/clinics/dashboard', req.url))
+    }
+    // Admin routes — only admin
+    if (path.startsWith('/admin') && role !== 'admin') {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
   }
 })
 

@@ -3,6 +3,7 @@ import { ClerkProvider, useAuth } from '@clerk/nextjs'
 import { ConvexProviderWithClerk } from 'convex/react-clerk'
 import { ConvexReactClient } from 'convex/react'
 import UserSync from './UserSync'
+import LogoutHandler from '@/components/LogoutHandler'
 
 const clerkKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL
@@ -16,6 +17,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <ClerkProvider publishableKey={clerkKey}>
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         <UserSync />
+        <LogoutHandler />
         {children}
       </ConvexProviderWithClerk>
     </ClerkProvider>

@@ -61,11 +61,24 @@ export const getMyPatient = query({
 /** Create a patient profile for the current user. Idempotent — safe to call twice. */
 export const createPatient = mutation({
   args: {
+    // Step 1 — personal details
     firstName: v.string(),
     lastName:  v.string(),
     dob:       v.string(),               // YYYY-MM-DD
     phone:     v.optional(v.string()),
-    address:   v.optional(v.string()),
+
+    // Step 2 — self-reported implant (pending verification)
+    selfReportedDevice:       v.optional(v.string()),
+    selfReportedDeviceType:   v.optional(v.string()),
+    selfReportedImplantMonth: v.optional(v.string()),
+    selfReportedImplantYear:  v.optional(v.string()),
+    selfReportedHospital:     v.optional(v.string()),
+
+    // Step 3 — emergency contact
+    emergencyContactName:     v.optional(v.string()),
+    emergencyContactPhone:    v.optional(v.string()),
+    emergencyContactRelation: v.optional(v.string()),
+    additionalNotes:          v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -77,8 +90,7 @@ export const createPatient = mutation({
       .unique()
     if (!user) throw new Error('User profile not found — please try again')
 
-    // Idempotent: if already registered, return the same shape so the
-    // registration screen can always display the IID code.
+    // Idempotent: if already registered, return the same shape
     const existing = await ctx.db
       .query('patients')
       .withIndex('by_user', (q) => q.eq('userId', user._id))
@@ -93,14 +105,9 @@ export const createPatient = mutation({
         .query('patients')
         .withIndex('by_implant_code', (q) => q.eq('implantIdCode', candidate))
         .first()
-      if (!clash) {
-        code = candidate
-        break
-      }
+      if (!clash) { code = candidate; break }
     }
-    if (!code) {
-      throw new Error('Could not generate a unique patient ID — please try again')
-    }
+    if (!code) throw new Error('Could not generate a unique patient ID — please try again')
 
     const patientId = await ctx.db.insert('patients', {
       userId:        user._id,
@@ -109,11 +116,21 @@ export const createPatient = mutation({
       lastName:      args.lastName,
       dob:           args.dob,
       phone:         args.phone,
-      address:       args.address,
+
+      selfReportedDevice:       args.selfReportedDevice,
+      selfReportedDeviceType:   args.selfReportedDeviceType,
+      selfReportedImplantMonth: args.selfReportedImplantMonth,
+      selfReportedImplantYear:  args.selfReportedImplantYear,
+      selfReportedHospital:     args.selfReportedHospital,
+
+      emergencyContactName:     args.emergencyContactName,
+      emergencyContactPhone:    args.emergencyContactPhone,
+      emergencyContactRelation: args.emergencyContactRelation,
+      additionalNotes:          args.additionalNotes,
+
+      verificationStatus: 'pending',
     })
 
-    // Return both the Convex ID and the human-readable code so the
-    // registration screen can display it on the success step.
     return { id: patientId, implantIdCode: code }
   },
 })

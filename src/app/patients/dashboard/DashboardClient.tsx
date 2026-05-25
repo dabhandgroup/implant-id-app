@@ -5,6 +5,50 @@ import { useQuery }                    from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
 import { useRouter }                   from 'next/navigation'
 
+// ── Confetti burst (pure CSS, no extra package) ───────────────────────────────
+const CONFETTI_COLORS = ['#29869f','#29a8cc','#2f9e72','#d97d2c','#8b5cf6','#ec4899','#f59e0b']
+function ConfettiBurst({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3500)
+    return () => clearTimeout(t)
+  }, [onDone])
+  const pieces = Array.from({ length: 90 }, (_, i) => ({
+    id: i,
+    x: Math.random() * 100,
+    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+    size: 6 + Math.random() * 7,
+    dur:  1.4 + Math.random() * 1.6,
+    del:  Math.random() * 0.6,
+    dx:   (Math.random() - 0.5) * 60,
+    rot:  Math.random() * 720 - 360,
+    round: Math.random() > 0.5,
+  }))
+  return (
+    <>
+      <style>{`
+        @keyframes cf-fall {
+          0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(var(--cfr)) translateX(var(--cfdx)); opacity: 0; }
+        }
+      `}</style>
+      <div style={{ position:'fixed', inset:0, pointerEvents:'none', zIndex:9999, overflow:'hidden' }}>
+        {pieces.map(p => (
+          <div key={p.id} style={{
+            position: 'absolute',
+            left: `${p.x}%`, top: 0,
+            width: p.size, height: p.size,
+            background: p.color,
+            borderRadius: p.round ? '50%' : '2px',
+            ['--cfr' as string]: `${p.rot}deg`,
+            ['--cfdx' as string]: `${p.dx}px`,
+            animation: `cf-fall ${p.dur}s ${p.del}s ease-in forwards`,
+          }} />
+        ))}
+      </div>
+    </>
+  )
+}
+
 export default function DashboardClient() {
   const { user, isLoaded }  = useUser()
   const { signOut }         = useClerk()
@@ -23,6 +67,7 @@ export default function DashboardClient() {
   const [emailSent,     setEmailSent]     = useState(false)
   const [linkCopied,    setLinkCopied]    = useState(false)
   const [clinicEmail,   setClinicEmail]   = useState('')
+  const [showConfetti,  setShowConfetti]  = useState(false)
 
   const sbBotRef        = useRef<HTMLDivElement>(null)
   const mobProfileRef   = useRef<HTMLDivElement>(null)
@@ -54,6 +99,17 @@ export default function DashboardClient() {
     if (patient === null) router.replace('/patients/register')
   }, [patient, router])
 
+  // Confetti on first visit after registration
+  useEffect(() => {
+    if (patient && typeof sessionStorage !== 'undefined') {
+      const flag = sessionStorage.getItem('iid_just_registered')
+      if (flag) {
+        sessionStorage.removeItem('iid_just_registered')
+        setShowConfetti(true)
+      }
+    }
+  }, [patient])
+
   // ── Loading / redirect states ─────────────────────────────────────────────
   if (!isLoaded || patient === undefined) {
     return <div style={{ minHeight: '100vh', background: 'var(--bg)' }} />
@@ -66,6 +122,7 @@ export default function DashboardClient() {
   const fullName    = `${firstName} ${lastName}`
   const initials    = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
   const iidCode     = patient.implantIdCode
+  const isPending   = !patient.verificationStatus || patient.verificationStatus === 'pending'
   const passUrl     = `${typeof window !== 'undefined' ? window.location.origin : 'https://implantid.io'}/pass/${iidCode}`
 
   function doSignOut() {
@@ -81,8 +138,11 @@ export default function DashboardClient() {
     setTimeout(() => setLinkCopied(false), 1800)
   }
 
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
   return (
     <>
+      {showConfetti && <ConfettiBurst onDone={() => setShowConfetti(false)} />}
       {/* Mobile sidebar overlay */}
       <div
         className={`sb-back${sbOpen ? ' open' : ''}`}
@@ -277,43 +337,51 @@ export default function DashboardClient() {
             </div>
 
             {/* ── Implant pass card ─────────────────────────────────────── */}
-            <div className="pass-big">
+            <div className="pass-big" style={isPending ? {
+              background: 'linear-gradient(155deg,#4a5568 0%,#718096 55%,#a0aec0 100%)',
+              filter: 'none',
+            } : undefined}>
               <div className="pb-top">
                 <div className="pb-brand">
-                  <img src="/icon.svg" alt="" />
+                  <img src="/icon.svg" alt="" style={isPending ? { filter: 'brightness(0) invert(.7)' } : undefined}/>
                   Implant ID
                 </div>
-                <div style={{
-                  fontFamily: 'var(--ff)',
-                  fontSize: 11,
-                  letterSpacing: '1.6px',
-                  textTransform: 'uppercase',
-                  opacity: .75,
-                }}>
+                <div style={{ fontFamily:'var(--ff)', fontSize:11, letterSpacing:'1.6px', textTransform:'uppercase', opacity:.75 }}>
                   Medical · Implant Record
                 </div>
               </div>
 
-              {/* No device added yet */}
-              <div className="pb-status" style={{ opacity: .7 }}>
-                No device added yet
-              </div>
-              <div className="pb-name" style={{ fontSize: 22, opacity: .85 }}>
-                Add your first device
-              </div>
-              <p style={{
-                fontFamily: 'var(--ff)',
-                fontSize: 13,
-                opacity: .75,
-                marginBottom: 22,
-                position: 'relative',
-                zIndex: 2,
-              }}>
-                Your clinical team will record your implant details here after your procedure.
-              </p>
+              {/* Pending badge */}
+              {isPending && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)',
+                  borderRadius: 999, padding: '5px 12px', marginBottom: 14,
+                  fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600,
+                  letterSpacing: '.5px', color: '#fff', position: 'relative', zIndex: 2,
+                }}>
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%', background: '#fbbf24',
+                    boxShadow: '0 0 8px #fbbf24', animation: 'pending-pulse 2s ease-in-out infinite',
+                  }}/>
+                  Pending verification
+                </div>
+              )}
 
-              {/* IID code in grid */}
-              <div className="pb-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+              {/* Self-reported device or placeholder */}
+              <div className="pb-status" style={{ opacity: isPending ? .65 : 1 }}>
+                {patient.selfReportedDeviceType ?? 'No device type recorded'}
+              </div>
+              <div className="pb-name" style={{ fontSize: patient.selfReportedDevice ? 26 : 20, opacity: isPending ? .8 : 1 }}>
+                {patient.selfReportedDevice ?? 'Awaiting verification'}
+              </div>
+              {isPending && (
+                <p style={{ fontFamily:'var(--ff)', fontSize:12.5, opacity:.72, marginBottom:18, position:'relative', zIndex:2, lineHeight:1.5 }}>
+                  Your clinical team will verify these details with your hospital. Once confirmed, your wallet pass will be activated.
+                </p>
+              )}
+
+              <div className="pb-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
                 <div>
                   <div className="k">Your Implant ID</div>
                   <div className="v">{iidCode}</div>
@@ -322,22 +390,47 @@ export default function DashboardClient() {
                   <div className="k">Name</div>
                   <div className="v">{fullName}</div>
                 </div>
+                {patient.selfReportedImplantYear && (
+                  <div>
+                    <div className="k">Implanted</div>
+                    <div className="v">
+                      {patient.selfReportedImplantMonth
+                        ? `${MONTHS[parseInt(patient.selfReportedImplantMonth)-1]?.slice(0,3)} ${patient.selfReportedImplantYear}`
+                        : patient.selfReportedImplantYear}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="pb-actions">
-                <button className="btn btn-s" onClick={() => setWallOpen(true)}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>
-                  </svg>
-                  Add to Wallet
-                </button>
-                <button className="btn" onClick={() => setWallOpen(true)}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                    <path d="M16 6l-4-4-4 4M12 2v13"/>
-                  </svg>
-                  Share with clinic
-                </button>
+              {/* Actions — disabled until verified */}
+              <div className="pb-actions" style={{ marginTop: 20 }}>
+                <div style={{ position: 'relative', display: 'inline-block' }} title={isPending ? 'Available once your implant details are verified by your clinical team' : undefined}>
+                  <button
+                    className="btn btn-s"
+                    disabled={isPending}
+                    onClick={() => !isPending && setWallOpen(true)}
+                    style={isPending ? { opacity:.45, cursor:'not-allowed' } : undefined}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>
+                    </svg>
+                    Add to Wallet
+                  </button>
+                </div>
+                <div style={{ position: 'relative', display: 'inline-block' }} title={isPending ? 'Available once your implant details are verified by your clinical team' : undefined}>
+                  <button
+                    className="btn"
+                    disabled={isPending}
+                    onClick={() => !isPending && setWallOpen(true)}
+                    style={isPending ? { opacity:.45, cursor:'not-allowed' } : undefined}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                      <path d="M16 6l-4-4-4 4M12 2v13"/>
+                    </svg>
+                    Share with clinic
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -642,10 +735,10 @@ export default function DashboardClient() {
         </div>
       </div>
 
-      {/* Shared wtab style — only needed here since no ScriptLoader */}
       <style>{`
         .wtab{background:transparent;border:0;font-family:var(--ff);font-size:12.5px;font-weight:500;color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer;transition:all .15s}
         .wtab.active{background:var(--text);color:var(--bg)}
+        @keyframes pending-pulse{0%,100%{opacity:1;box-shadow:0 0 8px #fbbf24}50%{opacity:.5;box-shadow:0 0 2px #fbbf24}}
       `}</style>
     </>
   )

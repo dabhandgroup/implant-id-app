@@ -37,16 +37,36 @@ export default defineSchema({
 
   // Patient profiles
   patients: defineTable({
-    userId: v.id('users'),
-    implantIdCode: v.string(),   // e.g. IID-XXXXXXXX
+    userId:        v.id('users'),
+    implantIdCode: v.string(),          // e.g. IID-SMIJO2311XK
+
+    // Personal details
     firstName: v.string(),
-    lastName: v.string(),
-    dob: v.optional(v.string()),
-    phone: v.optional(v.string()),
-    address: v.optional(v.string()),
-    emergencyContact: v.optional(v.string()),
+    lastName:  v.string(),
+    dob:       v.optional(v.string()),  // YYYY-MM-DD
+    phone:     v.optional(v.string()),
+
+    // Self-reported implant (unverified until clinic confirms)
+    selfReportedDevice:      v.optional(v.string()),  // e.g. "Medtronic Azure XT DR"
+    selfReportedDeviceType:  v.optional(v.string()),  // e.g. "Pacemaker / ICD"
+    selfReportedImplantMonth:v.optional(v.string()),  // MM
+    selfReportedImplantYear: v.optional(v.string()),  // YYYY
+    selfReportedHospital:    v.optional(v.string()),
+
+    // Emergency contact (collected at registration)
+    emergencyContactName:     v.optional(v.string()),
+    emergencyContactPhone:    v.optional(v.string()),
+    emergencyContactRelation: v.optional(v.string()),
+
+    // Extra clinical notes (allergies, etc.)
+    additionalNotes: v.optional(v.string()),
+
+    // 'pending' until clinic verifies the implant details, then 'active'
+    verificationStatus: v.optional(
+      v.union(v.literal('pending'), v.literal('active'))
+    ),
   })
-    .index('by_user', ['userId'])
+    .index('by_user',         ['userId'])
     .index('by_implant_code', ['implantIdCode']),
 
   // Patient's implant records (one patient can have multiple devices)

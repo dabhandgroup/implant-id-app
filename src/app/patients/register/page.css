@@ -138,6 +138,21 @@
   letter-spacing: .5px;
 }
 
+.reg-info-box{
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: color-mix(in srgb,var(--accent) 7%,transparent);
+  border: 1px solid color-mix(in srgb,var(--accent) 22%,transparent);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-top: 4px;
+}
+.reg-info-box svg{ color: var(--accent); }
+
 @media(max-width: 560px){
   .reg-card{ padding: 32px 24px 28px; border-radius: 16px; }
   .reg-card h1{ font-size: 22px; }

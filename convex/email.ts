@@ -22,12 +22,15 @@ export const sendClinicApplicationEmail = internalAction({
     contactName:     v.string(),
     contactEmail:    v.string(),
     facilityType:    v.string(),
-    facilityCity:    v.string(),
+    facilityCity:    v.optional(v.string()),
     facilityCountry: v.string(),
     services:        v.array(v.string()),
   },
   handler: async (_ctx, args) => {
     const r = resend()
+    const location = args.facilityCity
+      ? `${args.facilityCity}, ${args.facilityCountry}`
+      : args.facilityCountry
     await r.emails.send({
       from:    FROM,
       to:      ADMIN_EMAIL,
@@ -42,7 +45,7 @@ export const sendClinicApplicationEmail = internalAction({
         tableRows: [
           { label: 'Facility',  value: args.facilityName },
           { label: 'Type',      value: args.facilityType },
-          { label: 'Location',  value: `${args.facilityCity}, ${args.facilityCountry}` },
+          { label: 'Location',  value: location },
           { label: 'Contact',   value: args.contactName },
           { label: 'Email',     value: args.contactEmail },
           { label: 'Services',  value: args.services.join(', ') || '—' },

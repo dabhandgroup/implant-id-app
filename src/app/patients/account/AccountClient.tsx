@@ -58,8 +58,16 @@ export default function AccountClient() {
   const [totpDisableErr,     setTotpDisableErr]     = useState('')
   const [secretCopied,       setSecretCopied]       = useState(false)
 
+  // ── Profile photo upload ──────────────────────────────────────────────────
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoErr,       setPhotoErr]       = useState('')
+
+  // ── Implant ID clipboard ──────────────────────────────────────────────────
+  const [iidCopied, setIidCopied] = useState(false)
+
   const sbBotRef      = useRef<HTMLDivElement>(null)
   const mobProfileRef = useRef<HTMLDivElement>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -135,6 +143,31 @@ export default function AccountClient() {
       const e = err as { errors?: Array<{ message: string }> }
       setPasskeyErr(e?.errors?.[0]?.message ?? 'Failed to remove passkey. Try again.')
     }
+  }
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setPhotoErr('')
+    setPhotoUploading(true)
+    try {
+      await user.setProfileImage({ file })
+    } catch (err: unknown) {
+      const ex = err as { errors?: Array<{ message: string }> }
+      setPhotoErr(ex?.errors?.[0]?.message ?? 'Upload failed — please try again.')
+    } finally {
+      setPhotoUploading(false)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+    }
+  }
+
+  async function copyIid() {
+    if (!iidCode) return
+    try {
+      await navigator.clipboard.writeText(iidCode)
+      setIidCopied(true)
+      setTimeout(() => setIidCopied(false), 2000)
+    } catch { /* ignore */ }
   }
 
   async function startTotpSetup() {
@@ -405,23 +438,28 @@ export default function AccountClient() {
                 </div>
                 <div>
                   <div className="photo-hint" style={{ marginTop: 0, marginBottom: 8, fontSize: 13, color: 'var(--muted)' }}>
-                    Profile photos are managed through your Clerk account.
-                    JPG or PNG · square crops best.
+                    JPG or PNG · square crops best · max 5 MB
                   </div>
+                  {photoErr && (
+                    <div className="sec-err" style={{ marginBottom: 10 }}>{photoErr}</div>
+                  )}
                   <div className="photo-actions">
-                    <a
-                      href="https://accounts.clerk.dev"
-                      target="_blank" rel="noopener noreferrer"
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: 'none' }}
+                      onChange={handlePhotoChange}
+                    />
+                    <button
                       className="btn btn-s"
-                      style={{ fontSize: 13, padding: '8px 16px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={photoUploading}
+                      style={{ fontSize: 13, padding: '8px 16px' }}
                     >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                        <polyline points="15 3 21 3 21 9"/>
-                        <line x1="10" y1="14" x2="21" y2="3"/>
-                      </svg>
-                      Manage photo
-                    </a>
+                      {photoUploading ? 'Uploading…' : 'Change photo'}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -471,7 +509,31 @@ export default function AccountClient() {
                 )}
                 <div className="f-group">
                   <label className="f-label">Implant ID</label>
-                  <input type="text" className="f-input" value={iidCode} disabled readOnly />
+                  <button
+                    type="button"
+                    className="f-input"
+                    onClick={copyIid}
+                    title="Click to copy your Implant ID"
+                    aria-label={`Implant ID ${iidCode} — click to copy`}
+                    style={{
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                      width: '100%',
+                      background: iidCopied ? 'color-mix(in srgb,var(--ok) 8%,var(--bg))' : undefined,
+                      borderColor: iidCopied ? 'var(--ok)' : undefined,
+                      color: iidCopied ? 'var(--ok)' : 'var(--text)',
+                      transition: 'background .2s,border-color .2s,color .2s',
+                    }}
+                  >
+                    <span style={{ fontFamily: 'var(--fb)', letterSpacing: '.05em' }}>{iidCode}</span>
+                    <span style={{ fontSize: 11.5, fontFamily: 'var(--ff)', fontWeight: 500, opacity: .65, flexShrink: 0, letterSpacing: '.02em' }}>
+                      {iidCopied ? '✓ Copied!' : 'Copy'}
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>

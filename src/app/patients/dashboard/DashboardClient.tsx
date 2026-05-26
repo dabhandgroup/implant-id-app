@@ -567,18 +567,18 @@ export default function DashboardClient() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/>
               </svg>
-              <span>Documents &amp; manuals</span>
+              <span>Documents</span>
               <svg className="sb-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <rect x="3" y="11" width="18" height="11" rx="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </span>
           ) : (
-            <a className="sb-link" href="#" title="Documents &amp; manuals">
+            <a className="sb-link" href="#" title="Documents">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/>
               </svg>
-              <span>Documents &amp; manuals</span>
+              <span>Documents</span>
             </a>
           )}
 
@@ -885,7 +885,7 @@ export default function DashboardClient() {
 
             {/* Documents placeholder */}
             <div className="sec">
-              <h2>Your manuals &amp; safety sheets</h2>
+              <h2>Your documents</h2>
               <p className="sub">Documents will appear here once your clinical team adds your implant details.</p>
               <div style={{
                 background: 'var(--bg2)',

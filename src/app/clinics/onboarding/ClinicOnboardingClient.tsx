@@ -61,32 +61,6 @@ const STEP_META = [
   { id: 4, label: 'Review',   desc: 'Confirm & submit'     },
 ]
 
-// ── Side steps ────────────────────────────────────────────────────────────────
-
-function SideSteps({ current }: { current: Step }) {
-  return (
-    <div className="onb-side-steps">
-      {STEP_META.map(s => {
-        const state = s.id === current ? 'active' : s.id < current ? 'done' : 'future'
-        return (
-          <div key={s.id} className={`onb-step ${state}`}>
-            <div className="num">
-              {state === 'done'
-                ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                : s.id
-              }
-            </div>
-            <div>
-              <h4>{s.label}</h4>
-              <p>{s.desc}</p>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 // ── Summary row ───────────────────────────────────────────────────────────────
 
 function SumRow({ label, value }: { label: string; value?: string }) {
@@ -210,16 +184,20 @@ export default function ClinicOnboardingClient() {
               <b>Implant</b><span>ID</span>
             </span>
           </a>
-          <h1 style={{ marginTop:40 }}>Application received</h1>
-          <p>We'll review your application and get back to you within 2 working days.</p>
+          <h1 style={{ marginTop:40 }}>Register your clinic.</h1>
+          <p>We verify every clinic before granting access to patient records. This keeps the platform secure and trustworthy for everyone.</p>
           <div className="trust" style={{ marginTop:'auto' }}>
             <span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              All data encrypted
+              HIPAA-grade
             </span>
             <span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-              Manual review
+              SOC 2
+            </span>
+            <span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+              GDPR
             </span>
           </div>
         </div>
@@ -275,28 +253,43 @@ export default function ClinicOnboardingClient() {
           </span>
         </a>
 
-        <h1>Join the Implant ID network</h1>
+        <h1>Register your clinic.</h1>
         <p>
-          Give your team instant access to verified implant data and MRI safety
-          information — at the point of care.
+          We verify every clinic before granting access to patient records.
+          This keeps the platform secure and trustworthy for everyone.
         </p>
 
         <div className="steps">
-          <SideSteps current={step} />
+          <div className="onb-side-steps">
+            {[
+              { n: 1, label: 'Clinic details',     desc: 'Name, address, facility type, contact info' },
+              { n: 2, label: 'Accreditation',       desc: 'Upload your registration certificate or proof of accreditation' },
+              { n: 3, label: 'Verification call',   desc: 'Quick 10-minute call to verify your clinic and walk you through the platform' },
+              { n: 4, label: 'You\'re live',        desc: 'Full access to the Implant ID platform for your team' },
+            ].map(s => (
+              <div key={s.n} className="onb-step future">
+                <div className="num">{s.n}</div>
+                <div>
+                  <h4>{s.label}</h4>
+                  <p>{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="trust">
           <span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            All data encrypted
+            HIPAA-grade
           </span>
           <span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
-            Manual verification
+            SOC 2
           </span>
           <span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
-            GDPR compliant
+            GDPR
           </span>
         </div>
       </div>
@@ -305,12 +298,20 @@ export default function ClinicOnboardingClient() {
       <div className="onb-main">
         <div className="onb-box">
 
+          {/* Eyebrow */}
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:22 }}>
+            <div style={{ width:22, height:1.5, background:'var(--accent)', flexShrink:0 }} />
+            <span style={{ fontFamily:'var(--ff)', fontSize:10.5, fontWeight:700, letterSpacing:'1.6px', textTransform:'uppercase', color:'var(--accent)' }}>
+              Clinic Onboarding
+            </span>
+          </div>
+
           {/* Progress dots */}
-          <div style={{ display:'flex', gap:6, marginBottom:18 }}>
+          <div style={{ display:'flex', gap:6, marginBottom:14 }}>
             {STEP_META.map((s, i) => (
               <div key={s.id} style={{
-                height:8, borderRadius:4, transition:'all .2s',
-                width: i === stepIdx ? 20 : 8,
+                height:6, borderRadius:3, transition:'all .2s',
+                width: i === stepIdx ? 22 : 6,
                 background: i === stepIdx ? 'var(--accent)' : i < stepIdx ? 'var(--ok)' : 'var(--border)',
               }} />
             ))}

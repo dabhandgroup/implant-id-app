@@ -128,8 +128,11 @@ export default function DashboardClient() {
   useEffect(() => {
     if (!patient || !user) return
     if (!(patient as Record<string, unknown>).welcomeSeen) {
-      const emailVerified = user.primaryEmailAddress?.verification?.status === 'verified'
-      setWelcomeStep(emailVerified ? 'passkey' : 'welcome')
+      // Fall back to first email address if no primary is set (e.g. phone-signup users)
+      const emailAddr = user.primaryEmailAddress ?? user.emailAddresses?.[0] ?? null
+      const emailVerified = emailAddr?.verification?.status === 'verified'
+      // If no email in Clerk at all, skip straight to passkey step
+      setWelcomeStep((!emailAddr || emailVerified) ? 'passkey' : 'welcome')
       setWelcomeOpen(true)
     }
   }, [patient, user])
@@ -140,8 +143,15 @@ export default function DashboardClient() {
     async function send() {
       setWEmailSending(true)
       setWEmailErr('')
+      // Use primary email, or first email address on the account (handles phone-signup users)
+      const emailAddr = user!.primaryEmailAddress ?? user!.emailAddresses?.[0] ?? null
+      if (!emailAddr) {
+        setWEmailErr('No email address is linked to your Clerk account. Please add one in Account Settings.')
+        setWEmailSending(false)
+        return
+      }
       try {
-        await user!.primaryEmailAddress?.prepareVerification({ strategy: 'email_code' })
+        await emailAddr.prepareVerification({ strategy: 'email_code' })
         setWEmailSent(true)
         setWResendAt(Date.now())
       } catch (ex: unknown) {
@@ -205,13 +215,16 @@ export default function DashboardClient() {
   async function verifyWelcomeEmail() {
     const code = wEmailCode.join('')
     if (code.length < 6) { setWEmailErr('Enter the full 6-digit code'); return }
+    const emailAddr = user?.primaryEmailAddress ?? user?.emailAddresses?.[0] ?? null
+    if (!emailAddr) { setWEmailErr('No email address found'); return }
     setWEmailLoading(true)
     setWEmailErr('')
     try {
-      await user!.primaryEmailAddress!.attemptVerification({ code })
+      await emailAddr.attemptVerification({ code })
       setWelcomeStep('passkey')
     } catch (ex: unknown) {
-      setWEmailErr(ex instanceof Error ? ex.message : 'Incorrect code — please try again')
+      const e = ex as { errors?: Array<{ message: string }> }
+      setWEmailErr(e?.errors?.[0]?.message ?? (ex instanceof Error ? ex.message : 'Incorrect code — please try again'))
     } finally {
       setWEmailLoading(false)
     }
@@ -318,7 +331,7 @@ export default function DashboardClient() {
                     </div>
                     <div style={{ paddingBottom:18 }}>
                       <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--muted)' }}>Implant ID approved</div>
-                      <div style={{ fontSize:12.5, color:'var(--muted2)', marginTop:2 }}>1–3 working days · our team verifies your implant</div>
+                      <div style={{ fontSize:12.5, color:'var(--muted2)', marginTop:2 }}>1–3 working days · your clinic verifies your implant details</div>
                     </div>
                   </div>
 
@@ -360,7 +373,9 @@ export default function DashboardClient() {
                   </div>
                   <div>
                     <div style={{ fontFamily:'var(--ff)', fontWeight:700, fontSize:16, color:'var(--text)', lineHeight:1.2 }}>Verify your email</div>
-                    <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>{user?.primaryEmailAddress?.emailAddress}</div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>
+                      {(user?.primaryEmailAddress ?? user?.emailAddresses?.[0])?.emailAddress}
+                    </div>
                   </div>
                 </div>
                 <p style={{ color: wEmailResent ? 'var(--ok)' : 'var(--muted)', fontSize:13.5, marginBottom:16, transition:'color .2s' }}>

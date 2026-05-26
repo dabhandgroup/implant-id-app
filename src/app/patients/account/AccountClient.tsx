@@ -5,6 +5,7 @@ import { useQuery }                    from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
 import { useRouter }                   from 'next/navigation'
 import { CustomSelect }                from '@/components/ui/CustomSelect'
+import QRCode                          from 'qrcode'
 
 const MONTHS_LONG = [
   'January','February','March','April','May','June',
@@ -48,6 +49,8 @@ export default function AccountClient() {
 
   // ── Security — TOTP ───────────────────────────────────────────────────────
   const [totpSetup,          setTotpSetup]          = useState<{ secret: string; uri: string } | null>(null)
+  const [totpQr,             setTotpQr]             = useState('')
+  const [totpShowKey,        setTotpShowKey]        = useState(false)
   const [totpCode,           setTotpCode]           = useState('')
   const [totpVerifyErr,      setTotpVerifyErr]      = useState('')
   const [totpVerifyLoading,  setTotpVerifyLoading]  = useState(false)
@@ -138,9 +141,17 @@ export default function AccountClient() {
     if (!user) return
     setTotpVerifyErr('')
     setTotpCode('')
+    setTotpShowKey(false)
     try {
       const totp = await user.createTOTP()
-      setTotpSetup({ secret: totp.secret ?? '', uri: totp.uri ?? '' })
+      const uri = totp.uri ?? ''
+      const secret = totp.secret ?? ''
+      setTotpSetup({ secret, uri })
+      // Generate QR entirely in-browser — secret never leaves the device
+      if (uri) {
+        const dataUrl = await QRCode.toDataURL(uri, { margin: 1, width: 180, color: { dark: '#0e2a33', light: '#ffffff' } })
+        setTotpQr(dataUrl)
+      }
     } catch (err: unknown) {
       const e = err as { errors?: Array<{ message: string }> }
       setTotpVerifyErr(e?.errors?.[0]?.message ?? 'Failed to start 2FA setup.')
@@ -155,6 +166,8 @@ export default function AccountClient() {
       await user.verifyTOTP({ code: totpCode })
       setTotpSetup(null)
       setTotpCode('')
+      setTotpQr('')
+      setTotpShowKey(false)
     } catch (err: unknown) {
       const e = err as { errors?: Array<{ message: string }> }
       setTotpVerifyErr(e?.errors?.[0]?.message ?? 'Incorrect code — check the app and try again.')
@@ -566,28 +579,43 @@ export default function AccountClient() {
                   <div className="totp-setup">
                     <div className="totp-step">
                       <div className="totp-step-num">1</div>
-                      <div>
-                        <b>Open your authenticator app</b>
-                        <p>Google Authenticator, Authy, or any TOTP app. Tap <b>Add account</b> then <b>Enter a setup key</b>.</p>
+                      <div style={{ minWidth: 0, width: '100%' }}>
+                        <b>Scan the QR code</b>
+                        <p>Open Google Authenticator, Authy, or any TOTP app. Tap <b>+</b> then <b>Scan QR code</b>.</p>
+                        {totpQr && (
+                          <div style={{ margin: '12px 0 8px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+                            <img
+                              src={totpQr}
+                              alt="TOTP QR code"
+                              width={164} height={164}
+                              style={{ borderRadius: 10, border: '1px solid var(--border)', display: 'block' }}
+                            />
+                            <button
+                              className="link-btn"
+                              style={{ fontSize: 12.5, color: 'var(--muted)' }}
+                              onClick={() => setTotpShowKey(v => !v)}
+                            >
+                              {totpShowKey ? 'Hide setup key' : "Can't scan? Enter key manually"}
+                            </button>
+                            {totpShowKey && (
+                              <div style={{ width: '100%' }}>
+                                <div className="totp-secret-row">
+                                  <code className="totp-secret">{totpSetup.secret}</code>
+                                  <button className="btn" style={{ fontSize: 12, padding: '5px 12px', flexShrink: 0 }} onClick={copySecret}>
+                                    {secretCopied ? 'Copied ✓' : 'Copy'}
+                                  </button>
+                                </div>
+                                <p style={{ marginTop: 5, fontSize: 12, color: 'var(--muted2)' }}>
+                                  Account: Implant ID · Type: Time-based
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="totp-step">
                       <div className="totp-step-num">2</div>
-                      <div style={{ minWidth: 0 }}>
-                        <b>Enter this setup key</b>
-                        <div className="totp-secret-row">
-                          <code className="totp-secret">{totpSetup.secret}</code>
-                          <button className="btn" style={{ fontSize: 12, padding: '5px 12px', flexShrink: 0 }} onClick={copySecret}>
-                            {secretCopied ? 'Copied ✓' : 'Copy'}
-                          </button>
-                        </div>
-                        <p style={{ marginTop: 6, fontSize: 12, color: 'var(--muted2)' }}>
-                          Account: Implant ID · Type: Time-based
-                        </p>
-                      </div>
-                    </div>
-                    <div className="totp-step">
-                      <div className="totp-step-num">3</div>
                       <div style={{ width: '100%', minWidth: 0 }}>
                         <b>Enter the 6-digit code</b>
                         <p style={{ marginBottom: 10 }}>Type the code shown in your authenticator app to confirm setup.</p>
@@ -612,7 +640,7 @@ export default function AccountClient() {
                           </button>
                           <button
                             className="btn"
-                            onClick={() => { setTotpSetup(null); setTotpCode(''); setTotpVerifyErr('') }}
+                            onClick={() => { setTotpSetup(null); setTotpCode(''); setTotpVerifyErr(''); setTotpQr(''); setTotpShowKey(false) }}
                             style={{ fontSize: 13, padding: '8px 16px' }}
                           >
                             Cancel

@@ -71,12 +71,16 @@ export default function DashboardClient() {
   const [showConfetti,  setShowConfetti]  = useState(false)
   const [welcomeOpen,     setWelcomeOpen]     = useState(false)
   const [welcomeStep,     setWelcomeStep]     = useState<'welcome' | 'verify-email' | 'passkey'>('welcome')
-  const [wEmailSent,      setWEmailSent]      = useState(false)
-  const [wEmailCode,      setWEmailCode]      = useState(['','','','','',''])
-  const [wEmailErr,       setWEmailErr]       = useState('')
-  const [wEmailLoading,   setWEmailLoading]   = useState(false)
-  const [wPasskeyErr,     setWPasskeyErr]     = useState('')
-  const [wPasskeyLoading, setWPasskeyLoading] = useState(false)
+  const [wEmailSent,        setWEmailSent]        = useState(false)
+  const [wEmailSending,     setWEmailSending]     = useState(false)
+  const [wEmailCode,        setWEmailCode]        = useState(['','','','','',''])
+  const [wEmailErr,         setWEmailErr]         = useState('')
+  const [wEmailLoading,     setWEmailLoading]     = useState(false)
+  const [wEmailResent,      setWEmailResent]      = useState(false)
+  const [wResendAt,         setWResendAt]         = useState(0)
+  const [wResendCountdown,  setWResendCountdown]  = useState(0)
+  const [wPasskeyErr,       setWPasskeyErr]       = useState('')
+  const [wPasskeyLoading,   setWPasskeyLoading]   = useState(false)
 
   const sbBotRef        = useRef<HTMLDivElement>(null)
   const mobProfileRef   = useRef<HTMLDivElement>(null)
@@ -134,15 +138,34 @@ export default function DashboardClient() {
   useEffect(() => {
     if (welcomeStep !== 'verify-email' || wEmailSent || !user) return
     async function send() {
+      setWEmailSending(true)
+      setWEmailErr('')
       try {
         await user!.primaryEmailAddress?.prepareVerification({ strategy: 'email_code' })
         setWEmailSent(true)
+        setWResendAt(Date.now())
       } catch (ex: unknown) {
-        setWEmailErr(ex instanceof Error ? ex.message : 'Could not send code — please try again')
+        const e = ex as { errors?: Array<{ message: string }> }
+        setWEmailErr(e?.errors?.[0]?.message ?? (ex instanceof Error ? ex.message : 'Could not send code — please try again'))
+      } finally {
+        setWEmailSending(false)
       }
     }
     send()
   }, [welcomeStep, wEmailSent, user])
+
+  // 30-second resend countdown
+  useEffect(() => {
+    if (wResendAt === 0) return
+    const COOLDOWN = 30
+    const tick = () => {
+      const remaining = Math.max(0, COOLDOWN - Math.floor((Date.now() - wResendAt) / 1000))
+      setWResendCountdown(remaining)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [wResendAt])
 
   // ── Loading / redirect states ─────────────────────────────────────────────
   if (!isLoaded || patient === undefined) {
@@ -195,9 +218,12 @@ export default function DashboardClient() {
   }
 
   function resendWelcomeEmail() {
-    setWEmailSent(false)
+    if (wResendCountdown > 0) return
+    setWEmailSent(false)  // triggers auto-send useEffect
     setWEmailCode(['','','','','',''])
     setWEmailErr('')
+    setWEmailResent(true)
+    setTimeout(() => setWEmailResent(false), 2500)
   }
 
   async function addWelcomePasskey() {
@@ -337,8 +363,14 @@ export default function DashboardClient() {
                     <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>{user?.primaryEmailAddress?.emailAddress}</div>
                   </div>
                 </div>
-                <p style={{ color:'var(--muted)', fontSize:13.5, marginBottom:16 }}>
-                  {wEmailSent ? 'Enter the 6-digit code we just sent you.' : 'Sending your code…'}
+                <p style={{ color: wEmailResent ? 'var(--ok)' : 'var(--muted)', fontSize:13.5, marginBottom:16, transition:'color .2s' }}>
+                  {wEmailResent
+                    ? '✓ Code resent — check your inbox.'
+                    : wEmailSending
+                    ? 'Sending your code…'
+                    : wEmailSent
+                    ? 'Enter the 6-digit code we just sent you.'
+                    : 'Preparing…'}
                 </p>
                 <div style={{ display:'flex', justifyContent:'center', gap:6, marginBottom: wEmailErr ? 10 : 16 }}>
                   {[0,1,2,3,4,5].map(i => (
@@ -394,7 +426,12 @@ export default function DashboardClient() {
                   ))}
                 </div>
                 {wEmailErr && (
-                  <p style={{ color:'var(--err)', fontSize:12.5, textAlign:'center', marginBottom:10 }}>{wEmailErr}</p>
+                  <div style={{
+                    background: 'color-mix(in srgb,var(--err) 8%,transparent)',
+                    border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
+                    borderRadius: 10, padding: '10px 14px',
+                    color:'var(--err)', fontSize:13, marginBottom:12, lineHeight:1.4,
+                  }}>{wEmailErr}</div>
                 )}
                 <button
                   className="btn btn-s btn-block btn-lg"
@@ -406,7 +443,10 @@ export default function DashboardClient() {
                 </button>
                 <p style={{ textAlign:'center', fontSize:12.5, color:'var(--muted)' }}>
                   Didn&apos;t get it?{' '}
-                  <button className="link-btn" style={{ fontSize:'inherit' }} onClick={resendWelcomeEmail}>Resend</button>
+                  {wResendCountdown > 0
+                    ? <span style={{ color:'var(--muted2)' }}>Resend in {wResendCountdown}s</span>
+                    : <button className="link-btn" style={{ fontSize:'inherit' }} onClick={resendWelcomeEmail}>Resend</button>
+                  }
                 </p>
               </div>
             )}

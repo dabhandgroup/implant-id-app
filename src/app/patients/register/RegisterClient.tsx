@@ -9,8 +9,8 @@ import { setUserRoleIfNew }             from '../../actions/setUserRole'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Step = 'details' | 'verifyEmail' | 'verifyPhone' | 'implant' | 'summary'
-const STEPS: Step[] = ['details', 'verifyEmail', 'verifyPhone', 'implant', 'summary']
+type Step = 'details' | 'verifyEmail' | 'implant' | 'summary'
+const STEPS: Step[] = ['details', 'verifyEmail', 'implant', 'summary']
 
 interface SelectedDevice {
   device_id:    string
@@ -509,20 +509,15 @@ export default function RegisterClient() {
   const [emailOtp,  setEmailOtp]  = useState(['', '', '', '', '', ''])
   const emailRefs = useRef<(HTMLInputElement | null)[]>([])
 
-  // ── Step 3: phone OTP ─────────────────────────────────────────────────────
-  const [phoneOtp,  setPhoneOtp]  = useState(['', '', '', '', '', ''])
-  const phoneRefs = useRef<(HTMLInputElement | null)[]>([])
-
-  // ── Step 4: implant details ───────────────────────────────────────────────
+  // ── Step 3: implant details ───────────────────────────────────────────────
   const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null)
   const [hospital,      setHospital]      = useState('')
   const [surgeon,       setSurgeon]       = useState('')
   const [surgeryMonth,  setSurgeryMonth]  = useState('')
   const [surgeryYear,   setSurgeryYear]   = useState('')
 
-  // ── Step 5: summary ───────────────────────────────────────────────────────
-  const [notes,   setNotes]   = useState('')
-  const [iidCode, setIidCode] = useState('')
+  // ── Step 4: summary ───────────────────────────────────────────────────────
+  const [notes, setNotes] = useState('')
 
   // ── UI ────────────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(false)
@@ -530,7 +525,7 @@ export default function RegisterClient() {
 
   // If already signed in, jump past auth steps
   useEffect(() => {
-    if (isLoaded && isSignedIn && (step === 'details' || step === 'verifyEmail' || step === 'verifyPhone')) {
+    if (isLoaded && isSignedIn && (step === 'details' || step === 'verifyEmail')) {
       setStep('implant')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -588,15 +583,14 @@ export default function RegisterClient() {
       return showErr('Please enter a valid email address')
     if (!phoneNum.trim())   return showErr('Please enter your phone number')
 
-    const phone = `${phoneDial}${phoneNum.replace(/[\s\-().]/g, '')}`
-
     setLoading(true)
     try {
+      // Phone is collected for the patient record (Convex) — not passed to Clerk
+      // so it doesn't become a required sign-up verification field
       const { error: createErr } = await signUp!.create({
         firstName:    firstName.trim(),
         lastName:     lastName.trim(),
         emailAddress: email.trim().toLowerCase(),
-        phoneNumber:  phone,
       })
       if (createErr) return showErr(createErr.longMessage || createErr.message)
 
@@ -612,7 +606,7 @@ export default function RegisterClient() {
     }
   }
 
-  // ── Step 2 → 3: verify email OTP, send SMS OTP ───────────────────────────
+  // ── Step 2 → 3: verify email OTP → finalize → set role ───────────────────
 
   async function verifyEmail(code?: string) {
     const c = code ?? emailOtp.join('')
@@ -622,33 +616,13 @@ export default function RegisterClient() {
       const { error: verErr } = await signUp!.verifications.verifyEmailCode({ code: c })
       if (verErr) return showErr(verErr.longMessage || verErr.message)
 
-      const { error: smsErr } = await signUp!.verifications.sendPhoneCode()
-      if (smsErr) return showErr(smsErr.longMessage || smsErr.message)
-
-      setPhoneOtp(['', '', '', '', '', ''])
-      goStep('verifyPhone')
-    } catch (ex) {
-      showErr(clerkErr(ex))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── Step 3 → 4: verify phone OTP, finalize, set patient role ─────────────
-
-  async function verifyPhone(code?: string) {
-    const c = code ?? phoneOtp.join('')
-    if (c.length < 6) return showErr('Enter the full 6-digit code')
-    setLoading(true)
-    try {
-      const { error: verErr } = await signUp!.verifications.verifyPhoneCode({ code: c })
-      if (verErr) return showErr(verErr.longMessage || verErr.message)
-
-      // Finalize converts the complete sign-up into an active session
+      // Email is the only required Clerk identifier — sign-up is complete, activate session
       const { error: finErr } = await signUp!.finalize()
       if (finErr) return showErr(finErr.longMessage || finErr.message)
 
-      await setUserRoleIfNew('patient')
+      // Best-effort role stamp — requireRole defaults to 'patient' if missing
+      try { await setUserRoleIfNew('patient') } catch { /* retry on next request */ }
+
       goStep('implant')
     } catch (ex) {
       showErr(clerkErr(ex))
@@ -657,7 +631,7 @@ export default function RegisterClient() {
     }
   }
 
-  // ── Step 4 → 5: move to summary ──────────────────────────────────────────
+  // ── Step 3 → 4: move to summary ──────────────────────────────────────────
 
   function goToSummary(e: React.FormEvent) {
     e.preventDefault()
@@ -691,11 +665,8 @@ export default function RegisterClient() {
         additionalNotes:          notes.trim()    || undefined,
       })
 
-      const code = result && typeof result === 'object' && 'implantIdCode' in result
-        ? (result as { implantIdCode: string }).implantIdCode
-        : ''
-
-      setIidCode(code)
+      // Record created — go straight to dashboard (pending card shown there)
+      void result
       router.replace('/patients/dashboard')
     } catch (ex) {
       showErr((ex as { message?: string })?.message ?? 'Something went wrong — please try again')
@@ -737,7 +708,6 @@ export default function RegisterClient() {
   }
 
   const emailOtpHandlers = makeOtpHandlers(emailOtp, setEmailOtp, emailRefs, verifyEmail)
-  const phoneOtpHandlers = makeOtpHandlers(phoneOtp, setPhoneOtp, phoneRefs, verifyPhone)
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -818,17 +788,17 @@ export default function RegisterClient() {
                 </div>
               </div>
 
-              {/* DOB + Country row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="field">
-                  <label>Date of birth <span className="req">*</span></label>
-                  <DobPicker value={dob} onChange={setDob} />
-                </div>
-                <div className="field">
-                  <label>Country of birth <span className="req">*</span></label>
-                  <CountrySelect flag={countryFlag} country={countryName}
-                    onChange={(f, n) => { setCountryFlag(f); setCountryName(n) }} />
-                </div>
+              {/* DOB — full width for space */}
+              <div className="field">
+                <label>Date of birth <span className="req">*</span></label>
+                <DobPicker value={dob} onChange={setDob} />
+              </div>
+
+              {/* Country of birth — below DOB */}
+              <div className="field">
+                <label>Country of birth <span className="req">*</span></label>
+                <CountrySelect flag={countryFlag} country={countryName}
+                  onChange={(f, n) => { setCountryFlag(f); setCountryName(n) }} />
               </div>
 
               {/* Email */}
@@ -849,7 +819,7 @@ export default function RegisterClient() {
                   onPhoneChange={setPhoneNum}
                 />
                 <span className="field-hint">
-                  We'll verify your email first, then send an SMS to this number.
+                  Stored securely on your patient record.
                 </span>
               </div>
 
@@ -905,51 +875,7 @@ export default function RegisterClient() {
           </div>
 
           {/* ─────────────────────────────────────────────────────────────── */}
-          {/* STEP 3: Verify phone                                            */}
-          {/* ─────────────────────────────────────────────────────────────── */}
-          <div className={`step-pane${step === 'verifyPhone' ? ' on' : ''}`}>
-            <h3 className="step-title">Verify your phone</h3>
-            <p className="step-sub">
-              We've sent a 6-digit SMS code to <strong>{phoneDisplay}</strong>.
-              Enter it below.
-            </p>
-
-            <OtpRow
-              otp={phoneOtp} refs={phoneRefs}
-              onChange={phoneOtpHandlers.onChange}
-              onKeyDown={phoneOtpHandlers.onKeyDown}
-              onPaste={phoneOtpHandlers.onPaste}
-            />
-
-            <p className="resend-row">
-              Didn't receive it?{' '}
-              <button type="button" disabled={loading} className="link-btn"
-                onClick={async () => {
-                  setLoading(true)
-                  try {
-                    await signUp!.verifications.sendPhoneCode()
-                  } catch {}
-                  setLoading(false)
-                }}>
-                Resend SMS
-              </button>
-            </p>
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
-              <button className="btn btn-lg" type="button"
-                onClick={() => goStep('verifyEmail')} style={{ flex: '0 0 auto' }}>
-                ← Back
-              </button>
-              <button className="btn btn-s btn-lg" type="button"
-                style={{ flex: 1 }} disabled={loading}
-                onClick={() => verifyPhone()}>
-                {loading ? 'Verifying…' : 'Verify phone →'}
-              </button>
-            </div>
-          </div>
-
-          {/* ─────────────────────────────────────────────────────────────── */}
-          {/* STEP 4: Add your implant                                        */}
+          {/* STEP 3: Add your implant                                        */}
           {/* ─────────────────────────────────────────────────────────────── */}
           <div className={`step-pane${step === 'implant' ? ' on' : ''}`}>
             <h3 className="step-title">Add your implant</h3>
@@ -1000,7 +926,7 @@ export default function RegisterClient() {
               <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
                 {!isSignedIn && (
                   <button className="btn btn-lg" type="button"
-                    onClick={() => goStep('verifyPhone')} style={{ flex: '0 0 auto' }}>
+                    onClick={() => goStep('verifyEmail')} style={{ flex: '0 0 auto' }}>
                     ← Back
                   </button>
                 )}
@@ -1012,7 +938,7 @@ export default function RegisterClient() {
           </div>
 
           {/* ─────────────────────────────────────────────────────────────── */}
-          {/* STEP 5: Summary + submit                                        */}
+          {/* STEP 4: Summary + submit                                        */}
           {/* ─────────────────────────────────────────────────────────────── */}
           <div className={`step-pane${step === 'summary' ? ' on' : ''}`}>
             <h3 className="step-title">Review your record</h3>

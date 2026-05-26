@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { useSignIn } from '@clerk/nextjs'
+import { useState, useEffect } from 'react'
+import { useSignIn, useAuth } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 // ── OTP inputs — module level so React never remounts on state change ──────────
@@ -59,8 +59,16 @@ function OtpInputs({ otp, setOtp, onComplete }: OtpProps) {
 type Phase = 'email' | 'email-otp' | 'mfa-totp'
 
 export default function MasterLoginClient() {
-  const router     = useRouter()
-  const { signIn } = useSignIn()
+  const router                   = useRouter()
+  const { signIn }               = useSignIn()
+  const { isSignedIn, isLoaded } = useAuth()
+
+  // Redirect already-authenticated users straight to the dashboard
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.replace('/master/dashboard')
+    }
+  }, [isLoaded, isSignedIn, router])
 
   const [email,   setEmail]   = useState('')
   const [otp,     setOtp]     = useState(['', '', '', '', '', ''])
@@ -68,6 +76,9 @@ export default function MasterLoginClient() {
   const [phase,   setPhase]   = useState<Phase>('email')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
+
+  // Guard: show nothing while Clerk loads or while the redirect is in-flight
+  if (!isLoaded || isSignedIn) return null
 
   function err(msg: string) { setError(msg); setLoading(false) }
   function otpVal()          { return otp.join('') }

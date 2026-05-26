@@ -10,7 +10,6 @@ export default function MasterDocumentsPage() {
       manufacturer: 'Medtronic plc',
       device: 'Micra AV Pacemaker',
       uploaded: '12 Jan 2026',
-      size: '1.2 MB',
     },
     {
       id: 2,
@@ -19,7 +18,6 @@ export default function MasterDocumentsPage() {
       manufacturer: 'Zimmer Biomet',
       device: 'Oxford Knee System',
       uploaded: '16 Jan 2026',
-      size: '3.4 MB',
     },
     {
       id: 3,
@@ -28,7 +26,6 @@ export default function MasterDocumentsPage() {
       manufacturer: 'Stryker Orthopaedics',
       device: 'Tritanium PL Cage',
       uploaded: '22 Feb 2026',
-      size: '0.9 MB',
     },
     {
       id: 4,
@@ -37,7 +34,6 @@ export default function MasterDocumentsPage() {
       manufacturer: 'Medtronic plc',
       device: 'Reveal LINQ ICM',
       uploaded: '12 Jan 2026',
-      size: '2.1 MB',
     },
     {
       id: 5,
@@ -46,7 +42,6 @@ export default function MasterDocumentsPage() {
       manufacturer: 'Zimmer Biomet',
       device: 'Persona Knee System',
       uploaded: '18 Jan 2026',
-      size: '0.6 MB',
     },
     {
       id: 6,
@@ -55,7 +50,6 @@ export default function MasterDocumentsPage() {
       manufacturer: 'Stryker Orthopaedics',
       device: 'Accolade II Hip Stem',
       uploaded: '22 Feb 2026',
-      size: '0.4 MB',
     },
   ]
 
@@ -71,7 +65,7 @@ export default function MasterDocumentsPage() {
       <div className="m-h">
         <div>
           <h2>Documents</h2>
-          <div className="sub">Device contracts, MRI condition PDFs, and instructions for use uploaded by manufacturers.</div>
+          <div className="sub">Signed submission contracts auto-generated when manufacturers submit devices. Each PDF contains the full device record, manufacturer details, and the uploader&apos;s electronic signature.</div>
         </div>
       </div>
 
@@ -95,7 +89,6 @@ export default function MasterDocumentsPage() {
               <th>Manufacturer</th>
               <th>Device</th>
               <th>Uploaded</th>
-              <th>Size</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -123,7 +116,6 @@ export default function MasterDocumentsPage() {
                   <td style={{ color: 'var(--muted)' }}>{doc.manufacturer}</td>
                   <td>{doc.device}</td>
                   <td style={{ color: 'var(--muted)' }}>{doc.uploaded}</td>
-                  <td style={{ color: 'var(--muted)' }}>{doc.size}</td>
                   <td style={{ display: 'flex', gap: 6 }}>
                     <button className="m-act">View</button>
                     <button className="m-act">Download</button>

@@ -1,6 +1,6 @@
 .onb{min-height:100vh;display:grid;grid-template-columns:1fr 1.2fr}
 .onb-side{background:linear-gradient(160deg,var(--accent-deep),var(--accent) 60%,var(--accent2));color:#fff;padding:60px 48px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;box-sizing:border-box}
-.onb-side .logo img{height:44px}
+.onb-side .logo img{height:56px}
 .onb-side .logo-text{color:#fff}
 .onb-side h1{font-size:clamp(28px,3vw,40px);font-weight:500;letter-spacing:-.025em;line-height:1.1;margin:32px 0 16px;color:#fff}
 .onb-side>p{color:rgba(255,255,255,.8);font-size:15px;line-height:1.6;max-width:420px}
@@ -45,8 +45,12 @@ textarea.input{resize:vertical;min-height:80px}
 .onb-note svg{flex-shrink:0;width:18px;height:18px;color:var(--accent);margin-top:1px}
 @media(max-width:900px){
   .onb{grid-template-columns:1fr}
-  .onb-side{padding:32px 24px}
+  .onb-side{padding:24px 24px 20px;position:static !important;height:auto !important;overflow:visible}
+  .onb-side h1{font-size:24px;margin:14px 0 0;line-height:1.15}
+  .onb-side>p{display:none}
   .onb-side .steps{display:none}
-  .onb-main{padding:32px 24px}
+  .onb-side .trust{display:none}
+  .onb-main{padding:28px 20px}
   .form-grid{grid-template-columns:1fr}
+  .onb-box h2{font-size:22px}
 }

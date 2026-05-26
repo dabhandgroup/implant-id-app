@@ -45,8 +45,8 @@ function SidePanel() {
   return (
     <div className="onb-side">
       <a href="/" className="logo" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>
-        <img src="/icon.svg" alt="" style={{ height:44 }} />
-        <span className="logo-text" style={{ fontFamily:'var(--ff)', fontWeight:700, fontSize:18 }}>
+        <img src="/icon.svg" alt="" style={{ height:56 }} />
+        <span className="logo-text" style={{ fontFamily:'var(--ff)', fontWeight:700, fontSize:22 }}>
           <b>Implant</b><span>ID</span>
         </span>
       </a>
@@ -60,10 +60,9 @@ function SidePanel() {
       <div className="steps">
         <div className="onb-side-steps">
           {[
-            { n: 1, label: 'Clinic details',    desc: 'Name, address, facility type, contact info' },
-            { n: 2, label: 'Accreditation',     desc: 'Upload your registration certificate or proof of accreditation' },
-            { n: 3, label: 'Verification call', desc: 'Quick 10-minute call to verify your clinic and walk you through the platform' },
-            { n: 4, label: "You're live",       desc: 'Full access to the Implant ID platform for your team' },
+            { n: 1, label: 'Clinic details',    desc: 'Fill in this form — name, address, accreditation and contact info' },
+            { n: 2, label: 'Verification call', desc: 'Quick 10-minute call to verify your clinic and walk you through the platform' },
+            { n: 3, label: "You're live",       desc: 'Full access to the Implant ID platform for your team' },
           ].map(s => (
             <div key={s.n} className="onb-step future">
               <div className="num">{s.n}</div>
@@ -157,6 +156,9 @@ export default function ClinicOnboardingClient() {
     if (!contactName.trim())     return setError('Enter the primary contact name')
     if (!contactEmail.trim() || !contactEmail.includes('@'))
       return setError('Enter a valid email address')
+    if (!accreditationFile)      return setError('Upload your accreditation certificate or proof of registration')
+    if (!regulatoryBody)         return setError('Select your regulatory or accreditation body')
+    if (!registrationNum.trim()) return setError('Enter your registration or licence number')
 
     setLoading(true)
 
@@ -426,10 +428,11 @@ export default function ClinicOnboardingClient() {
               <h3>
                 <span className="num">3</span>
                 Accreditation
+                <span style={{ color:'var(--err)', marginLeft:2 }}>*</span>
               </h3>
               <p className="desc">
                 Upload your registration certificate or proof of accreditation.
-                <span style={{ fontWeight:400, opacity:.7 }}> (optional — you can provide this after approval)</span>
+                This is required as part of the verification process.
               </p>
 
               <input
@@ -477,14 +480,15 @@ export default function ClinicOnboardingClient() {
             <div className="form-section">
               <h3>
                 <span className="num">4</span>
-                Regulatory body <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
+                Regulatory body
               </h3>
-              <p className="desc">If your facility is registered with a regulatory or accreditation body, let us know.</p>
+              <p className="desc">Your facility's regulatory or accreditation body and registration number.</p>
 
-              <div className="form-grid">
+              <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
                 <CustomSelect
                   label="Regulatory / accreditation body"
+                  required
                   value={regulatoryBody}
                   onChange={setRegulatoryBody}
                   options={REGULATORY_BODIES}
@@ -492,7 +496,10 @@ export default function ClinicOnboardingClient() {
                 />
 
                 <div className="field">
-                  <label>Registration / licence number <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
+                  <label>
+                    Registration / licence number
+                    <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
+                  </label>
                   <input
                     className="input"
                     type="text"

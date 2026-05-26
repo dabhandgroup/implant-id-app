@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useClerk } from '@clerk/nextjs'
+import { usePathname } from 'next/navigation'
 
 interface MasterShellProps {
-  pathname: string
   children: React.ReactNode
 }
 
@@ -21,8 +21,9 @@ function pageTitleFromPathname(pathname: string): string {
   return 'Dashboard'
 }
 
-export default function MasterShell({ pathname, children }: MasterShellProps) {
+export default function MasterShell({ children }: MasterShellProps) {
   const { signOut } = useClerk()
+  const pathname = usePathname()
 
   // Desktop collapse
   const [collapsed, setCollapsed] = useState(false)

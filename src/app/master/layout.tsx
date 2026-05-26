@@ -14,5 +14,5 @@ export default async function MasterLayout({ children }: { children: React.React
     return <>{children}</>
   }
 
-  return <MasterShell pathname={pathname}>{children}</MasterShell>
+  return <MasterShell>{children}</MasterShell>
 }

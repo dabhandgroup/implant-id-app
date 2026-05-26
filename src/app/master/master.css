@@ -86,6 +86,23 @@ body{background:var(--bg);color:var(--text)}
 .m-signout{background:transparent;border:0;color:var(--muted);font-family:var(--ff);font-size:13px;cursor:pointer;padding:0 4px;transition:color .15s}
 .m-signout:hover{color:var(--err)}
 
+/* Tabs */
+.m-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:4px}
+.m-tab{flex:1;padding:8px 16px;border-radius:7px;font-family:var(--ff);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;background:transparent;border:0;transition:all .15s;white-space:nowrap}
+.m-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.m-tab:hover:not(.active){color:var(--text)}
+
+/* Application detail info grid */
+.m-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.m-info-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+.m-info-card .k{font-family:var(--ff);font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted2);font-weight:600;margin-bottom:6px}
+.m-info-card .v{font-family:var(--fb);font-size:14px;color:var(--text)}
+
+/* Back link */
+.m-back{display:inline-flex;align-items:center;gap:7px;font-family:var(--ff);font-size:13px;color:var(--muted);text-decoration:none;margin-bottom:20px;transition:color .15s}
+.m-back:hover{color:var(--text)}
+.m-back svg{width:14px;height:14px}
+
 /* Mobile */
 @media(max-width:900px){
   .m-kpi-row{grid-template-columns:1fr 1fr}

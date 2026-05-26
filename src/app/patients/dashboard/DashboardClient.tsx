@@ -247,7 +247,7 @@ export default function DashboardClient() {
             {/* Screen 1: Welcome */}
             {welcomeStep === 'welcome' && (
               <div style={{ padding: '24px 28px 28px' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
                   <div style={{
                     width:40, height:40, borderRadius:12, flexShrink:0,
                     background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
@@ -260,14 +260,60 @@ export default function DashboardClient() {
                   </div>
                   <div>
                     <div style={{ fontFamily:'var(--ff)', fontWeight:700, fontSize:16, color:'var(--text)', lineHeight:1.2 }}>Welcome, {firstName}!</div>
-                    <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Your record is set up</div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Here&apos;s what happens next</div>
                   </div>
                 </div>
-                <p style={{ color:'var(--muted)', fontSize:13.5, lineHeight:1.6, marginBottom:20 }}>
-                  Your clinical team will verify your implant details — usually 1–3 working days. Until then your wallet pass is inactive, but clinics can already look you up using your ID: <strong style={{ color:'var(--text)' }}>{iidCode}</strong>
-                </p>
+
+                {/* Steps */}
+                <div style={{ marginBottom:24 }}>
+
+                  {/* 1 — Verify email */}
+                  <div style={{ display:'flex', gap:12, position:'relative' }}>
+                    <div style={{ position:'absolute', left:15, top:34, width:2, height:'calc(100% - 10px)', background:'var(--border2)' }} />
+                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, zIndex:1, background:'color-mix(in srgb,var(--accent) 10%,transparent)', border:'1.5px solid var(--accent)', display:'grid', placeItems:'center' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.2">
+                        <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+                        <path d="m22 6-10 7L2 6"/>
+                      </svg>
+                    </div>
+                    <div style={{ paddingBottom:18 }}>
+                      <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>Verify your email</div>
+                      <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Confirm your address — takes 30 seconds</div>
+                    </div>
+                  </div>
+
+                  {/* 2 — Approval */}
+                  <div style={{ display:'flex', gap:12, position:'relative' }}>
+                    <div style={{ position:'absolute', left:15, top:34, width:2, height:'calc(100% - 10px)', background:'var(--border2)' }} />
+                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, zIndex:1, background:'var(--bg)', border:'1.5px solid var(--border2)', display:'grid', placeItems:'center' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.2">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                    </div>
+                    <div style={{ paddingBottom:18 }}>
+                      <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--muted)' }}>Implant ID approved</div>
+                      <div style={{ fontSize:12.5, color:'var(--muted2)', marginTop:2 }}>1–3 working days · our team verifies your implant</div>
+                    </div>
+                  </div>
+
+                  {/* 3 — Unlock */}
+                  <div style={{ display:'flex', gap:12 }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, background:'var(--bg)', border:'1.5px solid var(--border2)', display:'grid', placeItems:'center' }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.2">
+                        <rect x="3" y="11" width="18" height="11" rx="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--muted)' }}>Start using Implant ID</div>
+                      <div style={{ fontSize:12.5, color:'var(--muted2)', marginTop:2 }}>Wallet pass, clinic sharing &amp; more unlock</div>
+                    </div>
+                  </div>
+
+                </div>
+
                 <button className="btn btn-s btn-block btn-lg" onClick={() => setWelcomeStep('verify-email')}>
-                  Next →
+                  Verify email →
                 </button>
               </div>
             )}

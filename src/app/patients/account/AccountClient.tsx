@@ -42,6 +42,19 @@ export default function AccountClient() {
   const [emergencyAccess, setEmergencyAccess] = useState(true)
   const [shareLocation,   setShareLocation]   = useState(false)
 
+  // ── Security — passkeys ───────────────────────────────────────────────────
+  const [passkeyLoading, setPasskeyLoading] = useState(false)
+  const [passkeyErr,     setPasskeyErr]     = useState('')
+
+  // ── Security — TOTP ───────────────────────────────────────────────────────
+  const [totpSetup,          setTotpSetup]          = useState<{ secret: string; uri: string } | null>(null)
+  const [totpCode,           setTotpCode]           = useState('')
+  const [totpVerifyErr,      setTotpVerifyErr]      = useState('')
+  const [totpVerifyLoading,  setTotpVerifyLoading]  = useState(false)
+  const [totpDisableLoading, setTotpDisableLoading] = useState(false)
+  const [totpDisableErr,     setTotpDisableErr]     = useState('')
+  const [secretCopied,       setSecretCopied]       = useState(false)
+
   const sbBotRef      = useRef<HTMLDivElement>(null)
   const mobProfileRef = useRef<HTMLDivElement>(null)
 
@@ -93,6 +106,83 @@ export default function AccountClient() {
     const [y, m, d] = patient.dob.split('-')
     const monthName = MONTHS_LONG[parseInt(m, 10) - 1] ?? ''
     dobFormatted = `${parseInt(d, 10)} ${monthName} ${y}`
+  }
+
+  async function addPasskey() {
+    if (!user) return
+    setPasskeyErr('')
+    setPasskeyLoading(true)
+    try {
+      await user.createPasskey()
+    } catch (err: unknown) {
+      const e = err as { errors?: Array<{ message: string }> }
+      setPasskeyErr(e?.errors?.[0]?.message ?? 'Failed to add passkey. Try again.')
+    } finally {
+      setPasskeyLoading(false)
+    }
+  }
+
+  async function removePasskey(id: string) {
+    if (!user) return
+    setPasskeyErr('')
+    try {
+      const pk = user.passkeys?.find(p => p.id === id)
+      await pk?.delete()
+    } catch (err: unknown) {
+      const e = err as { errors?: Array<{ message: string }> }
+      setPasskeyErr(e?.errors?.[0]?.message ?? 'Failed to remove passkey. Try again.')
+    }
+  }
+
+  async function startTotpSetup() {
+    if (!user) return
+    setTotpVerifyErr('')
+    setTotpCode('')
+    try {
+      const totp = await user.createTOTP()
+      setTotpSetup({ secret: totp.secret ?? '', uri: totp.uri ?? '' })
+    } catch (err: unknown) {
+      const e = err as { errors?: Array<{ message: string }> }
+      setTotpVerifyErr(e?.errors?.[0]?.message ?? 'Failed to start 2FA setup.')
+    }
+  }
+
+  async function verifyTotpSetup() {
+    if (!user || !totpSetup || totpCode.length < 6) return
+    setTotpVerifyErr('')
+    setTotpVerifyLoading(true)
+    try {
+      await user.verifyTOTP({ code: totpCode })
+      setTotpSetup(null)
+      setTotpCode('')
+    } catch (err: unknown) {
+      const e = err as { errors?: Array<{ message: string }> }
+      setTotpVerifyErr(e?.errors?.[0]?.message ?? 'Incorrect code — check the app and try again.')
+    } finally {
+      setTotpVerifyLoading(false)
+    }
+  }
+
+  async function disableTotp() {
+    if (!user) return
+    setTotpDisableErr('')
+    setTotpDisableLoading(true)
+    try {
+      await user.disableTOTP()
+    } catch (err: unknown) {
+      const e = err as { errors?: Array<{ message: string }> }
+      setTotpDisableErr(e?.errors?.[0]?.message ?? 'Failed to disable 2FA. Try again.')
+    } finally {
+      setTotpDisableLoading(false)
+    }
+  }
+
+  function copySecret() {
+    if (!totpSetup) return
+    navigator.clipboard.writeText(totpSetup.secret).then(() => {
+      setSecretCopied(true)
+      setTimeout(() => setSecretCopied(false), 2000)
+    })
   }
 
   function doSignOut() {
@@ -354,6 +444,10 @@ export default function AccountClient() {
                   <div className="f-group">
                     <label className="f-label">Phone</label>
                     <input type="tel" className="f-input" value={phone} disabled readOnly />
+                    <span style={{ fontSize: 12, color: 'var(--muted2)', lineHeight: 1.5 }}>
+                      Your phone number is linked to your Implant ID. To change it, contact{' '}
+                      <a href="mailto:support@implantid.io" style={{ color: 'var(--accent)' }}>support@implantid.io</a>.
+                    </span>
                   </div>
                 )}
                 {dobFormatted && (
@@ -366,6 +460,170 @@ export default function AccountClient() {
                   <label className="f-label">Implant ID</label>
                   <input type="text" className="f-input" value={iidCode} disabled readOnly />
                 </div>
+              </div>
+            </div>
+
+            {/* ── Security ──────────────────────────────────────────────── */}
+            <div className="acc-card">
+              <h2>Security</h2>
+              <div className="sub">Manage passkeys and two-factor authentication to keep your account secure.</div>
+
+              {/* Passkeys */}
+              <div className="sec-section">
+                <div className="sec-section-hd">
+                  <div>
+                    <b style={{ fontFamily: 'var(--ff)', fontSize: 14.5, display: 'block', marginBottom: 3 }}>Passkeys</b>
+                    <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                      Sign in with Face ID, Touch ID, or Windows Hello instead of a password.
+                    </span>
+                  </div>
+                  <button
+                    className="btn btn-s"
+                    onClick={addPasskey}
+                    disabled={passkeyLoading}
+                    style={{ flexShrink: 0, fontSize: 13, padding: '8px 14px' }}
+                  >
+                    {passkeyLoading ? 'Adding…' : '+ Add passkey'}
+                  </button>
+                </div>
+
+                {(!user?.passkeys || user.passkeys.length === 0) && (
+                  <div className="sec-empty">No passkeys added yet.</div>
+                )}
+
+                {user?.passkeys && user.passkeys.length > 0 && (
+                  <div className="sec-list">
+                    {user.passkeys.map(pk => (
+                      <div key={pk.id} className="sec-row">
+                        <div className="sec-row-ic">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                            <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                          </svg>
+                        </div>
+                        <div className="sec-row-info">
+                          <b>{pk.name || 'Passkey'}</b>
+                          {pk.createdAt && (
+                            <span>Added {new Date(pk.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          )}
+                        </div>
+                        <button
+                          className="btn"
+                          onClick={() => removePasskey(pk.id)}
+                          style={{ fontSize: 12, padding: '5px 12px', color: 'var(--err)', borderColor: 'color-mix(in srgb, var(--err) 30%, var(--border))' }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {passkeyErr && <div className="sec-err">{passkeyErr}</div>}
+              </div>
+
+              <div className="sec-divider" />
+
+              {/* Two-factor authentication */}
+              <div className="sec-section">
+                <div className="sec-section-hd">
+                  <div>
+                    <b style={{ fontFamily: 'var(--ff)', fontSize: 14.5, display: 'block', marginBottom: 3 }}>Two-factor authentication</b>
+                    <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                      Require a one-time code from Google Authenticator or Authy on each login.
+                    </span>
+                  </div>
+                  {!totpSetup && (
+                    user?.twoFactorEnabled ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                        <span className="sec-badge sec-badge--on">Enabled</span>
+                        <button
+                          className="btn"
+                          onClick={disableTotp}
+                          disabled={totpDisableLoading}
+                          style={{ fontSize: 12, padding: '5px 12px', color: 'var(--err)', borderColor: 'color-mix(in srgb, var(--err) 30%, var(--border))' }}
+                        >
+                          {totpDisableLoading ? 'Removing…' : 'Remove'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="btn btn-s"
+                        onClick={startTotpSetup}
+                        style={{ flexShrink: 0, fontSize: 13, padding: '8px 14px' }}
+                      >
+                        Set up
+                      </button>
+                    )
+                  )}
+                </div>
+
+                {!user?.twoFactorEnabled && !totpSetup && (
+                  <div className="sec-empty">Not enabled. Add an authenticator app for an extra layer of security.</div>
+                )}
+
+                {/* TOTP setup flow */}
+                {totpSetup && (
+                  <div className="totp-setup">
+                    <div className="totp-step">
+                      <div className="totp-step-num">1</div>
+                      <div>
+                        <b>Open your authenticator app</b>
+                        <p>Google Authenticator, Authy, or any TOTP app. Tap <b>Add account</b> then <b>Enter a setup key</b>.</p>
+                      </div>
+                    </div>
+                    <div className="totp-step">
+                      <div className="totp-step-num">2</div>
+                      <div style={{ minWidth: 0 }}>
+                        <b>Enter this setup key</b>
+                        <div className="totp-secret-row">
+                          <code className="totp-secret">{totpSetup.secret}</code>
+                          <button className="btn" style={{ fontSize: 12, padding: '5px 12px', flexShrink: 0 }} onClick={copySecret}>
+                            {secretCopied ? 'Copied ✓' : 'Copy'}
+                          </button>
+                        </div>
+                        <p style={{ marginTop: 6, fontSize: 12, color: 'var(--muted2)' }}>
+                          Account: Implant ID · Type: Time-based
+                        </p>
+                      </div>
+                    </div>
+                    <div className="totp-step">
+                      <div className="totp-step-num">3</div>
+                      <div style={{ width: '100%', minWidth: 0 }}>
+                        <b>Enter the 6-digit code</b>
+                        <p style={{ marginBottom: 10 }}>Type the code shown in your authenticator app to confirm setup.</p>
+                        {totpVerifyErr && <div className="sec-err" style={{ marginBottom: 10 }}>{totpVerifyErr}</div>}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            className="f-input"
+                            placeholder="000000"
+                            value={totpCode}
+                            onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            style={{ fontFamily: 'var(--ff)', letterSpacing: '0.15em', maxWidth: 150, fontSize: 18 }}
+                          />
+                          <button
+                            className="btn btn-s"
+                            onClick={verifyTotpSetup}
+                            disabled={totpVerifyLoading || totpCode.length < 6}
+                            style={{ fontSize: 13, padding: '8px 16px' }}
+                          >
+                            {totpVerifyLoading ? 'Verifying…' : 'Verify'}
+                          </button>
+                          <button
+                            className="btn"
+                            onClick={() => { setTotpSetup(null); setTotpCode(''); setTotpVerifyErr('') }}
+                            style={{ fontSize: 13, padding: '8px 16px' }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {totpDisableErr && <div className="sec-err" style={{ marginTop: 8 }}>{totpDisableErr}</div>}
               </div>
             </div>
 

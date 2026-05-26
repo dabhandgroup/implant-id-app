@@ -69,7 +69,6 @@ export default function LoginClient() {
   const [error,   setError]   = useState('')
 
   // MFA — TOTP second factor
-  const [mfaCode,    setMfaCode]    = useState('')
   const [mfaDest,    setMfaDest]    = useState('')   // remembered so verify can redirect
 
   // ── helpers ────────────────────────────────────────────────────────────────
@@ -86,7 +85,7 @@ export default function LoginClient() {
   async function finalizeAndGo(dest: string) {
     if (signIn!.status === 'needs_second_factor') {
       setMfaDest(dest)
-      setMfaCode('')
+      setOtp(['','','','','',''])
       setError('')
       if (tab === 'patient') setPatPhase('mfa-totp')
       else setClPhase('mfa-totp')
@@ -102,7 +101,7 @@ export default function LoginClient() {
   }
 
   async function verifyMfaTotp(code?: string) {
-    const c = code ?? mfaCode
+    const c = code ?? otpVal()
     if (c.length < 6) return err('Enter the 6-digit code from your authenticator app')
     setLoading(true); setError('')
     try {
@@ -517,27 +516,11 @@ export default function LoginClient() {
                       <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Open your authenticator app for the code</div>
                     </div>
                   </div>
-                  <div className="field">
-                    <label>6-digit code</label>
-                    <input
-                      className="input"
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="000000"
-                      value={mfaCode}
-                      autoFocus
-                      onChange={e => {
-                        const v = e.target.value.replace(/\D/g,'').slice(0,6)
-                        setMfaCode(v)
-                        if (v.length === 6) verifyMfaTotp(v)
-                      }}
-                      style={{ fontFamily:'var(--ff)', letterSpacing:'0.2em', fontSize:20, textAlign:'center' }}
-                    />
-                  </div>
-                  <button type="button" className="btn btn-s btn-lg btn-block" onClick={() => verifyMfaTotp()} disabled={loading || mfaCode.length < 6} style={{ marginBottom:10 }}>
+                  <OtpInputs onComplete={verifyMfaTotp} />
+                  <button type="button" className="btn btn-s btn-lg btn-block" onClick={() => verifyMfaTotp()} disabled={loading || otpVal().length < 6} style={{ marginBottom:10, marginTop:16 }}>
                     {loading ? 'Verifying…' : 'Verify →'}
                   </button>
-                  <button type="button" className="link-btn" style={{ display:'block', textAlign:'center', width:'100%' }} onClick={() => { setPatPhase('phone'); setError(''); setMfaCode('') }}>
+                  <button type="button" className="link-btn" style={{ display:'block', textAlign:'center', width:'100%' }} onClick={() => { setPatPhase('phone'); setError(''); setOtp(['','','','','','']) }}>
                     ← Start over
                   </button>
                 </div>
@@ -643,27 +626,11 @@ export default function LoginClient() {
                       <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Open your authenticator app for the code</div>
                     </div>
                   </div>
-                  <div className="field">
-                    <label>6-digit code</label>
-                    <input
-                      className="input"
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="000000"
-                      value={mfaCode}
-                      autoFocus
-                      onChange={e => {
-                        const v = e.target.value.replace(/\D/g,'').slice(0,6)
-                        setMfaCode(v)
-                        if (v.length === 6) verifyMfaTotp(v)
-                      }}
-                      style={{ fontFamily:'var(--ff)', letterSpacing:'0.2em', fontSize:20, textAlign:'center' }}
-                    />
-                  </div>
-                  <button type="button" className="btn btn-s btn-lg btn-block" onClick={() => verifyMfaTotp()} disabled={loading || mfaCode.length < 6} style={{ marginBottom:10 }}>
+                  <OtpInputs onComplete={verifyMfaTotp} />
+                  <button type="button" className="btn btn-s btn-lg btn-block" onClick={() => verifyMfaTotp()} disabled={loading || otpVal().length < 6} style={{ marginBottom:10, marginTop:16 }}>
                     {loading ? 'Verifying…' : 'Verify →'}
                   </button>
-                  <button type="button" className="link-btn" style={{ display:'block', textAlign:'center', width:'100%' }} onClick={() => { setClPhase('email'); setError(''); setMfaCode('') }}>
+                  <button type="button" className="link-btn" style={{ display:'block', textAlign:'center', width:'100%' }} onClick={() => { setClPhase('email'); setError(''); setOtp(['','','','','','']) }}>
                     ← Start over
                   </button>
                 </div>

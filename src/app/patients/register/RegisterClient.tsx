@@ -565,17 +565,19 @@ function OtpRow({
   onPaste:  (e: React.ClipboardEvent) => void
 }) {
   return (
-    <div className="code-row" onPaste={onPaste}>
+    <div className="code-row">
       {otp.map((digit, i) => (
         <input
           key={i}
           ref={el => { refs.current[i] = el }}
-          maxLength={1}
+          type="tel"
+          inputMode="numeric"
+          autoComplete={i === 0 ? 'one-time-code' : 'off'}
           className="code-input"
           value={digit}
-          inputMode="numeric"
           onChange={e => onChange(i, e.target.value)}
           onKeyDown={e => onKeyDown(i, e)}
+          onPaste={onPaste}
           onFocus={e => e.target.select()}
         />
       ))}
@@ -813,15 +815,35 @@ export default function RegisterClient() {
     refs:   React.MutableRefObject<(HTMLInputElement | null)[]>,
     verify: (code: string) => void,
   ) {
-    function onChange(idx: number, val: string) {
-      const digit = val.replace(/\D/g, '').slice(-1)
-      const next  = [...otp]; next[idx] = digit; setOtp(next)
-      if (digit && idx < 5) refs.current[idx + 1]?.focus()
-      if (next.every(d => d) && next.join('').length === 6) verify(next.join(''))
-    }
     function onKeyDown(idx: number, e: React.KeyboardEvent<HTMLInputElement>) {
-      if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
-        refs.current[idx - 1]?.focus()
+      if (/^\d$/.test(e.key)) {
+        e.preventDefault()
+        const next = [...otp]; next[idx] = e.key; setOtp(next)
+        if (idx < 5) refs.current[idx + 1]?.focus()
+        if (next.every(d => d)) verify(next.join(''))
+      } else if (e.key === 'Backspace') {
+        e.preventDefault()
+        if (otp[idx]) {
+          const next = [...otp]; next[idx] = ''; setOtp(next)
+        } else if (idx > 0) {
+          const next = [...otp]; next[idx - 1] = ''; setOtp(next)
+          refs.current[idx - 1]?.focus()
+        }
+      } else if (e.key === 'ArrowLeft' && idx > 0) {
+        e.preventDefault(); refs.current[idx - 1]?.focus()
+      } else if (e.key === 'ArrowRight' && idx < 5) {
+        e.preventDefault(); refs.current[idx + 1]?.focus()
+      }
+    }
+    function onChange(idx: number, val: string) {
+      // Only fires for iOS SMS autofill / autocomplete — multi-char fill
+      const raw = val.replace(/\D/g, '')
+      if (raw.length > 1) {
+        const next = ['', '', '', '', '', '']
+        raw.slice(0, 6).split('').forEach((c, i) => { next[i] = c })
+        setOtp(next)
+        refs.current[Math.min(raw.length - 1, 5)]?.focus()
+        if (next.every(d => d)) verify(next.join(''))
       }
     }
     function onPaste(e: React.ClipboardEvent) {
@@ -829,9 +851,9 @@ export default function RegisterClient() {
       if (!text) return
       e.preventDefault()
       const next = ['', '', '', '', '', '']
-      text.split('').forEach((d, i) => { if (i < 6) next[i] = d })
+      text.split('').forEach((d, i) => { next[i] = d })
       setOtp(next)
-      refs.current[Math.min(text.length, 5)]?.focus()
+      refs.current[Math.min(text.length - 1, 5)]?.focus()
       if (text.length === 6) verify(text)
     }
     return { onChange, onKeyDown, onPaste }

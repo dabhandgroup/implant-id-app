@@ -159,3 +159,23 @@ export const createPatient = mutation({
     return { id: patientId, implantIdCode: code }
   },
 })
+
+/** Mark the welcome flow as seen so it's never shown again across any device */
+export const markWelcomeSeen = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) return
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) return
+    await ctx.db.patch(patient._id, { welcomeSeen: true })
+  },
+})

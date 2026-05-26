@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useUser, useClerk }           from '@clerk/nextjs'
-import { useQuery }                    from 'convex/react'
+import { useQuery, useMutation }        from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
 import { useRouter }                   from 'next/navigation'
 
@@ -54,6 +54,7 @@ export default function DashboardClient() {
   const { signOut }         = useClerk()
   const router              = useRouter()
   const patient             = useQuery(api.patients.getMyPatient)
+  const markWelcomeSeen     = useMutation(api.patients.markWelcomeSeen)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [sbCollapsed,   setSbCollapsed]   = useState(false)
@@ -68,9 +69,18 @@ export default function DashboardClient() {
   const [linkCopied,    setLinkCopied]    = useState(false)
   const [clinicEmail,   setClinicEmail]   = useState('')
   const [showConfetti,  setShowConfetti]  = useState(false)
+  const [welcomeOpen,     setWelcomeOpen]     = useState(false)
+  const [welcomeStep,     setWelcomeStep]     = useState<'welcome' | 'verify-email' | 'passkey'>('welcome')
+  const [wEmailSent,      setWEmailSent]      = useState(false)
+  const [wEmailCode,      setWEmailCode]      = useState(['','','','','',''])
+  const [wEmailErr,       setWEmailErr]       = useState('')
+  const [wEmailLoading,   setWEmailLoading]   = useState(false)
+  const [wPasskeyErr,     setWPasskeyErr]     = useState('')
+  const [wPasskeyLoading, setWPasskeyLoading] = useState(false)
 
   const sbBotRef        = useRef<HTMLDivElement>(null)
   const mobProfileRef   = useRef<HTMLDivElement>(null)
+  const wCodeRefs       = useRef<(HTMLInputElement | null)[]>([])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -110,6 +120,30 @@ export default function DashboardClient() {
     }
   }, [patient])
 
+  // Welcome overlay — shown once per patient (tracked in Convex so it persists across devices)
+  useEffect(() => {
+    if (!patient || !user) return
+    if (!(patient as Record<string, unknown>).welcomeSeen) {
+      const emailVerified = user.primaryEmailAddress?.verification?.status === 'verified'
+      setWelcomeStep(emailVerified ? 'passkey' : 'welcome')
+      setWelcomeOpen(true)
+    }
+  }, [patient, user])
+
+  // Auto-send email verification code when entering verify-email screen
+  useEffect(() => {
+    if (welcomeStep !== 'verify-email' || wEmailSent || !user) return
+    async function send() {
+      try {
+        await user!.primaryEmailAddress?.prepareVerification({ strategy: 'email_code' })
+        setWEmailSent(true)
+      } catch (ex: unknown) {
+        setWEmailErr(ex instanceof Error ? ex.message : 'Could not send code — please try again')
+      }
+    }
+    send()
+  }, [welcomeStep, wEmailSent, user])
+
   // ── Loading / redirect states ─────────────────────────────────────────────
   if (!isLoaded || patient === undefined) {
     return <div style={{ minHeight: '100vh', background: 'var(--bg)' }} />
@@ -140,9 +174,241 @@ export default function DashboardClient() {
 
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
+  function doneWelcome() {
+    markWelcomeSeen()
+    setWelcomeOpen(false)
+  }
+
+  async function verifyWelcomeEmail() {
+    const code = wEmailCode.join('')
+    if (code.length < 6) { setWEmailErr('Enter the full 6-digit code'); return }
+    setWEmailLoading(true)
+    setWEmailErr('')
+    try {
+      await user!.primaryEmailAddress!.attemptVerification({ code })
+      setWelcomeStep('passkey')
+    } catch (ex: unknown) {
+      setWEmailErr(ex instanceof Error ? ex.message : 'Incorrect code — please try again')
+    } finally {
+      setWEmailLoading(false)
+    }
+  }
+
+  function resendWelcomeEmail() {
+    setWEmailSent(false)
+    setWEmailCode(['','','','','',''])
+    setWEmailErr('')
+  }
+
+  async function addWelcomePasskey() {
+    setWPasskeyLoading(true)
+    setWPasskeyErr('')
+    try {
+      await user!.createPasskey()
+      doneWelcome()
+    } catch (ex: unknown) {
+      setWPasskeyErr(ex instanceof Error ? ex.message : 'Could not set up passkey — please try again')
+      setWPasskeyLoading(false)
+    }
+  }
+
   return (
     <>
       {showConfetti && <ConfettiBurst onDone={() => setShowConfetti(false)} />}
+
+      {/* ── Welcome overlay ────────────────────────────────────────────────── */}
+      {welcomeOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'rgba(10,20,30,.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 16,
+        }}>
+          <div style={{
+            background: 'var(--bg2)', borderRadius: 18,
+            width: '100%', maxWidth: 380,
+            boxShadow: '0 24px 60px rgba(0,0,0,.28)',
+          }}>
+
+            {/* Step dots */}
+            <div style={{ display:'flex', gap:5, justifyContent:'center', padding:'20px 28px 0' }}>
+              {(['welcome','verify-email','passkey'] as const).map(s => (
+                <div key={s} style={{
+                  height: 3, flex: 1, borderRadius: 99,
+                  background: welcomeStep === s || (s === 'welcome' && welcomeStep !== 'welcome')
+                    || (s === 'verify-email' && welcomeStep === 'passkey')
+                    ? 'var(--accent)' : 'var(--border2)',
+                  transition: 'background .2s',
+                }} />
+              ))}
+            </div>
+
+            {/* Screen 1: Welcome */}
+            {welcomeStep === 'welcome' && (
+              <div style={{ padding: '24px 28px 28px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                  <div style={{
+                    width:40, height:40, borderRadius:12, flexShrink:0,
+                    background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                    display:'grid', placeItems:'center',
+                  }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      <path d="m9 12 2 2 4-4"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily:'var(--ff)', fontWeight:700, fontSize:16, color:'var(--text)', lineHeight:1.2 }}>Welcome, {firstName}!</div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Your record is set up</div>
+                  </div>
+                </div>
+                <p style={{ color:'var(--muted)', fontSize:13.5, lineHeight:1.6, marginBottom:20 }}>
+                  Your clinical team will verify your implant details — usually 1–3 working days. Until then your wallet pass is inactive, but clinics can already look you up using your ID: <strong style={{ color:'var(--text)' }}>{iidCode}</strong>
+                </p>
+                <button className="btn btn-s btn-block btn-lg" onClick={() => setWelcomeStep('verify-email')}>
+                  Next →
+                </button>
+              </div>
+            )}
+
+            {/* Screen 2: Verify email */}
+            {welcomeStep === 'verify-email' && (
+              <div style={{ padding: '24px 28px 28px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                  <div style={{
+                    width:40, height:40, borderRadius:12, flexShrink:0,
+                    background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                    display:'grid', placeItems:'center',
+                  }}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
+                      <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+                      <path d="m22 6-10 7L2 6"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily:'var(--ff)', fontWeight:700, fontSize:16, color:'var(--text)', lineHeight:1.2 }}>Verify your email</div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>{user?.primaryEmailAddress?.emailAddress}</div>
+                  </div>
+                </div>
+                <p style={{ color:'var(--muted)', fontSize:13.5, marginBottom:16 }}>
+                  {wEmailSent ? 'Enter the 6-digit code we just sent you.' : 'Sending your code…'}
+                </p>
+                <div style={{ display:'flex', justifyContent:'center', gap:6, marginBottom: wEmailErr ? 10 : 16 }}>
+                  {[0,1,2,3,4,5].map(i => (
+                    <input
+                      key={i}
+                      ref={el => { wCodeRefs.current[i] = el }}
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                      value={wEmailCode[i]}
+                      className="code-input"
+                      style={{ width:42, height:50, fontSize:22 }}
+                      onKeyDown={e => {
+                        if (/^\d$/.test(e.key)) {
+                          e.preventDefault()
+                          const next = [...wEmailCode]; next[i] = e.key; setWEmailCode(next)
+                          if (i < 5) wCodeRefs.current[i+1]?.focus()
+                        } else if (e.key === 'Backspace') {
+                          e.preventDefault()
+                          if (wEmailCode[i]) {
+                            const next = [...wEmailCode]; next[i] = ''; setWEmailCode(next)
+                          } else if (i > 0) {
+                            const next = [...wEmailCode]; next[i-1] = ''; setWEmailCode(next)
+                            wCodeRefs.current[i-1]?.focus()
+                          }
+                        } else if (e.key === 'ArrowLeft' && i > 0) {
+                          e.preventDefault(); wCodeRefs.current[i-1]?.focus()
+                        } else if (e.key === 'ArrowRight' && i < 5) {
+                          e.preventDefault(); wCodeRefs.current[i+1]?.focus()
+                        }
+                      }}
+                      onChange={e => {
+                        // iOS SMS autofill fills the whole value at once
+                        const raw = e.target.value.replace(/\D/g,'')
+                        if (raw.length > 1) {
+                          const next = ['','','','','','']
+                          raw.slice(0,6).split('').forEach((c,j) => { next[j] = c })
+                          setWEmailCode(next)
+                          wCodeRefs.current[Math.min(raw.length - 1, 5)]?.focus()
+                        }
+                      }}
+                      onPaste={e => {
+                        e.preventDefault()
+                        const pasted = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6)
+                        if (!pasted) return
+                        const next = ['','','','','','']
+                        pasted.split('').forEach((c,j) => { next[j] = c })
+                        setWEmailCode(next)
+                        wCodeRefs.current[Math.min(pasted.length - 1, 5)]?.focus()
+                      }}
+                      onFocus={e => e.target.select()}
+                    />
+                  ))}
+                </div>
+                {wEmailErr && (
+                  <p style={{ color:'var(--err)', fontSize:12.5, textAlign:'center', marginBottom:10 }}>{wEmailErr}</p>
+                )}
+                <button
+                  className="btn btn-s btn-block btn-lg"
+                  onClick={verifyWelcomeEmail}
+                  disabled={wEmailLoading || wEmailCode.join('').length < 6}
+                  style={{ marginBottom:10 }}
+                >
+                  {wEmailLoading ? 'Verifying…' : 'Verify email'}
+                </button>
+                <p style={{ textAlign:'center', fontSize:12.5, color:'var(--muted)' }}>
+                  Didn&apos;t get it?{' '}
+                  <button className="link-btn" style={{ fontSize:'inherit' }} onClick={resendWelcomeEmail}>Resend</button>
+                </p>
+              </div>
+            )}
+
+            {/* Screen 3: Passkey */}
+            {welcomeStep === 'passkey' && (
+              <div style={{ padding: '24px 28px 28px' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+                  <div style={{
+                    width:40, height:40, borderRadius:12, flexShrink:0,
+                    background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                    display:'grid', placeItems:'center',
+                  }}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
+                      <path d="M9 2H5a2 2 0 0 0-2 2v4M15 2h4a2 2 0 0 1 2 2v4"/>
+                      <path d="M9 22H5a2 2 0 0 1-2-2v-4M15 22h4a2 2 0 0 0 2-2v-4"/>
+                      <path d="M8.5 9.5v1.5a2 2 0 0 0 2 2h3a2 2 0 0 0 2-2V9.5"/>
+                      <path d="M8.5 8V7a3.5 3.5 0 0 1 7 0v1"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily:'var(--ff)', fontWeight:700, fontSize:16, color:'var(--text)', lineHeight:1.2 }}>Sign in with Face ID</div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Optional — takes 5 seconds</div>
+                  </div>
+                </div>
+                <p style={{ color:'var(--muted)', fontSize:13.5, lineHeight:1.6, marginBottom:20 }}>
+                  Add a passkey to skip passwords entirely. Face ID, Touch ID, or your device PIN — faster and more secure.
+                </p>
+                {wPasskeyErr && (
+                  <p style={{ color:'var(--err)', fontSize:12.5, textAlign:'center', marginBottom:10 }}>{wPasskeyErr}</p>
+                )}
+                <button
+                  className="btn btn-s btn-block btn-lg"
+                  onClick={addWelcomePasskey}
+                  disabled={wPasskeyLoading}
+                  style={{ marginBottom:12 }}
+                >
+                  {wPasskeyLoading ? 'Setting up…' : 'Enable passkey'}
+                </button>
+                <button className="btn btn-block btn-lg" onClick={doneWelcome}>
+                  Maybe later
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
 
       {/* Mobile sidebar overlay */}
       <div

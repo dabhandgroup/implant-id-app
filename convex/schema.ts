@@ -67,6 +67,9 @@ export default defineSchema({
     // Extra clinical notes (allergies, etc.)
     additionalNotes: v.optional(v.string()),
 
+    // Set to true once the patient has dismissed the first-login welcome flow
+    welcomeSeen: v.optional(v.boolean()),
+
     // 'pending' until clinic verifies the implant details, then 'active'
     verificationStatus: v.optional(
       v.union(v.literal('pending'), v.literal('active'))

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useUser, useSignUp }           from '@clerk/nextjs'
+import { useUser, useSignUp, useClerk } from '@clerk/nextjs'
 import { useMutation, useQuery }        from 'convex/react'
 import { api }                          from '../../../../convex/_generated/api'
 import { useRouter }                    from 'next/navigation'
@@ -290,7 +290,12 @@ function PhonePicker({
       </button>
       <input
         className="input" type="tel" placeholder={placeholder}
-        value={phoneNum} onChange={e => onPhoneChange(e.target.value)}
+        value={phoneNum}
+        onChange={e => onPhoneChange(e.target.value)}
+        onBlur={e => {
+          const stripped = e.target.value.replace(/^0+/, '')
+          if (stripped !== e.target.value) onPhoneChange(stripped)
+        }}
         style={{ flex: 1 }}
       />
       {open && (
@@ -485,6 +490,7 @@ function OtpRow({
 export default function RegisterClient() {
   const { isLoaded, isSignedIn, user } = useUser()
   const { signUp }    = useSignUp()
+  const { setActive } = useClerk()
   const createPatient = useMutation(api.patients.createPatient)
   const router        = useRouter()
   const existingPatient = useQuery(api.patients.getMyPatient)
@@ -585,7 +591,8 @@ export default function RegisterClient() {
 
     setLoading(true)
     try {
-      const e164 = `${phoneDial}${phoneNum.replace(/\D/g, '')}`
+      const digits = phoneNum.replace(/\D/g, '').replace(/^0+/, '')
+      const e164 = `${phoneDial}${digits}`
       const { error: createErr } = await signUp!.create({
         firstName:    firstName.trim(),
         lastName:     lastName.trim(),
@@ -616,8 +623,21 @@ export default function RegisterClient() {
       const { error: verErr } = await signUp!.verifications.verifyPhoneCode({ code: c })
       if (verErr) return showErr(verErr.longMessage || verErr.message)
 
-      const { error: finErr } = await signUp!.finalize()
-      if (finErr) return showErr(finErr.longMessage || finErr.message)
+      if (signUp!.status === 'complete') {
+        // Clerk auto-created the session — just activate it
+        if (signUp!.createdSessionId) {
+          await setActive({ session: signUp!.createdSessionId })
+        } else {
+          const { error: finErr } = await signUp!.finalize()
+          if (finErr) return showErr(finErr.longMessage || finErr.message)
+        }
+      } else {
+        // Still missing requirements — show what's needed
+        const missing = (signUp!.missingFields as string[]).join(', ')
+        return showErr(
+          `Sign-up could not be completed — missing: ${missing}. Please contact support@implantid.io`
+        )
+      }
 
       try { await setUserRoleIfNew('patient') } catch {}
       goStep('implant')

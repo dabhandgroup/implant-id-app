@@ -1,124 +1,149 @@
-/* ── Wrap ──────────────────────────────────────────────────────────────────── */
+/* Master portal login — dark theme, centred card, no sidebar */
+/* Mirrors the manufacturer-login aesthetic from the original design */
+
+body{background:#050e11;color:#eaf4f7}
+
 .mstr-wrap{
   min-height:100vh;
-  background:#0a0a0c;
+  background:#050e11;
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:32px 20px;
+  padding:48px 24px;
   box-sizing:border-box;
 }
 
-/* ── Card ──────────────────────────────────────────────────────────────────── */
-.mstr-card{
-  background:#131316;
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:20px;
-  padding:48px 44px;
-  max-width:460px;
+.mstr-box{
   width:100%;
-  box-shadow:0 32px 80px -20px rgba(0,0,0,.7);
+  max-width:420px;
 }
 
-/* ── Eyebrow ───────────────────────────────────────────────────────────────── */
+/* Eyebrow */
 .mstr-ey{
   display:flex;
   align-items:center;
   gap:8px;
-  margin-bottom:22px;
-}
-.mstr-ey-line{
-  width:22px;
-  height:1.5px;
-  background:var(--accent);
-  flex-shrink:0;
-}
-.mstr-ey-text{
+  margin-bottom:14px;
+  color:#7de1ff;
   font-family:var(--ff);
   font-size:10.5px;
   font-weight:700;
   letter-spacing:1.8px;
   text-transform:uppercase;
-  color:var(--accent);
+}
+.mstr-ey::before{
+  content:'';
+  display:block;
+  width:22px;
+  height:1.5px;
+  background:#7de1ff;
+  flex-shrink:0;
 }
 
-/* ── Heading ───────────────────────────────────────────────────────────────── */
+/* Logo */
+.mstr-logo{
+  display:inline-flex;
+  align-items:center;
+  gap:12px;
+  font-family:var(--ff);
+  font-weight:600;
+  font-size:22px;
+  letter-spacing:-.015em;
+  color:#fff;
+  text-decoration:none;
+  margin-bottom:40px;
+}
+.mstr-logo img{height:48px}
+.mstr-logo b{font-weight:600;color:#fff}
+.mstr-logo span{
+  background:linear-gradient(90deg,#fff,#cdeef6);
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  font-weight:700;
+}
+
+/* Heading */
 .mstr-h1{
   font-family:var(--ff);
-  font-size:clamp(26px,4vw,34px);
-  font-weight:600;
+  font-size:30px;
+  font-weight:500;
+  color:#fff;
   letter-spacing:-.025em;
+  margin:0 0 8px;
   line-height:1.1;
-  color:#f0f0f2;
-  margin:0 0 10px;
 }
 .mstr-sub{
+  color:rgba(234,244,247,.62);
   font-size:14.5px;
-  color:rgba(255,255,255,.45);
-  line-height:1.6;
+  line-height:1.55;
   margin:0 0 28px;
 }
 
-/* ── Error banner ──────────────────────────────────────────────────────────── */
+/* Error */
 .mstr-err{
-  background:color-mix(in srgb,var(--err) 14%,transparent);
-  border:1px solid color-mix(in srgb,var(--err) 30%,transparent);
+  background:rgba(220,60,60,.12);
+  border:1px solid rgba(220,60,60,.28);
   border-radius:10px;
   padding:10px 14px;
   font-size:13.5px;
-  color:var(--err);
+  color:#ff7b7b;
   margin-bottom:20px;
 }
 
-/* ── Field + label ─────────────────────────────────────────────────────────── */
-.mstr-field{
-  display:flex;
-  flex-direction:column;
-  gap:6px;
-  margin-bottom:16px;
-}
-.mstr-label{
+/* Field */
+.mstr-field{margin-bottom:14px}
+.mstr-field label{
   font-family:var(--ff);
   font-size:11px;
-  font-weight:700;
-  letter-spacing:.9px;
+  letter-spacing:1.3px;
   text-transform:uppercase;
-  color:rgba(255,255,255,.4);
+  color:rgba(234,244,247,.55);
+  font-weight:600;
+  display:block;
+  margin-bottom:6px;
 }
 
-/* ── Input (dark override) ─────────────────────────────────────────────────── */
-.mstr-input{
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:12px;
-  padding:13px 16px;
-  font-family:var(--fb);
-  font-size:15px;
-  color:#f0f0f2;
-  background:rgba(255,255,255,.05);
-  transition:border-color .15s,box-shadow .15s;
-  outline:none;
-  width:100%;
-  box-sizing:border-box;
-}
-.mstr-input::placeholder{color:rgba(255,255,255,.22)}
-.mstr-input:focus{
-  border-color:var(--accent);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent);
-}
-
-/* ── Input wrapper (icon) ──────────────────────────────────────────────────── */
+/* Input wrapper */
 .mstr-i-wrap{position:relative}
-.mstr-i-wrap .mstr-input{padding-left:44px}
 .mstr-i-ic{
   position:absolute;
   left:14px;
   top:50%;
   transform:translateY(-50%);
-  color:rgba(255,255,255,.28);
+  width:16px;
+  height:16px;
+  color:rgba(234,244,247,.5);
   pointer-events:none;
-  width:17px;
-  height:17px;
 }
+
+/* Input */
+.mstr-input{
+  width:100%;
+  background:rgba(234,244,247,.05);
+  border:1px solid rgba(234,244,247,.12);
+  border-radius:10px;
+  padding:13px 15px 13px 42px;
+  color:#fff;
+  font-family:var(--fb);
+  font-size:14px;
+  transition:all .15s;
+  outline:none;
+  box-sizing:border-box;
+}
+.mstr-input::placeholder{color:rgba(234,244,247,.35)}
+.mstr-input:focus{
+  border-color:#29a8cc;
+  box-shadow:0 0 0 3px rgba(41,168,204,.2);
+  background:rgba(234,244,247,.08);
+}
+
+/* No-icon input variant */
+.mstr-input-bare{
+  padding-left:15px;
+}
+
+/* Show/hide password toggle */
 .mstr-i-tog{
   position:absolute;
   right:12px;
@@ -126,138 +151,110 @@
   transform:translateY(-50%);
   background:none;
   border:0;
-  color:rgba(255,255,255,.35);
+  color:rgba(234,244,247,.4);
   cursor:pointer;
   padding:4px;
   line-height:0;
   transition:color .15s;
 }
-.mstr-i-tog:hover{color:rgba(255,255,255,.65)}
+.mstr-i-tog:hover{color:rgba(234,244,247,.75)}
 
-/* ── Remember / forgot row ─────────────────────────────────────────────────── */
+/* Remember / forgot row */
 .mstr-row{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin:4px 0 22px;
+  margin:8px 0 22px;
+  font-size:13px;
 }
-.mstr-check{
-  display:flex;
+.mstr-row label{
+  color:rgba(234,244,247,.7);
+  display:inline-flex;
   align-items:center;
   gap:8px;
-  font-family:var(--ff);
-  font-size:13px;
-  color:rgba(255,255,255,.45);
   cursor:pointer;
-  user-select:none;
+  font-family:var(--fb);
 }
-.mstr-check input{
-  width:15px;
-  height:15px;
-  accent-color:var(--accent);
-  cursor:pointer;
-}
-.mstr-forgot{
-  font-family:var(--ff);
-  font-size:13px;
-  color:var(--accent);
-  font-weight:500;
+.mstr-row label input{accent-color:#29a8cc}
+.mstr-row a{
+  color:#7de1ff;
   text-decoration:none;
+  font-family:var(--ff);
+  font-weight:500;
 }
-.mstr-forgot:hover{text-decoration:underline}
+.mstr-row a:hover{text-decoration:underline}
 
-/* ── Primary button ────────────────────────────────────────────────────────── */
+/* Primary button — gradient */
 .mstr-btn{
   width:100%;
-  padding:15px;
-  background:var(--accent);
+  background:linear-gradient(90deg,#29869f,#29a8cc);
   color:#fff;
   border:0;
-  border-radius:12px;
   font-family:var(--ff);
-  font-size:15px;
   font-weight:600;
+  font-size:14.5px;
+  padding:14px;
+  border-radius:10px;
   cursor:pointer;
-  transition:background .15s,opacity .15s;
-  letter-spacing:.01em;
+  transition:filter .15s,opacity .15s;
 }
-.mstr-btn:hover:not(:disabled){background:var(--accent-deep)}
+.mstr-btn:hover:not(:disabled){filter:brightness(1.12)}
 .mstr-btn:disabled{opacity:.5;cursor:not-allowed}
 
-/* ── Divider ───────────────────────────────────────────────────────────────── */
+/* Ghost button (passkey / SSO) */
+.mstr-ghost{
+  width:100%;
+  background:rgba(234,244,247,.05);
+  border:1px solid rgba(234,244,247,.12);
+  border-radius:10px;
+  padding:12px 16px;
+  color:rgba(234,244,247,.75);
+  font-family:var(--ff);
+  font-size:13.5px;
+  cursor:pointer;
+  transition:background .15s,border-color .15s,color .15s;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+}
+.mstr-ghost:hover:not(:disabled){
+  background:rgba(234,244,247,.09);
+  border-color:rgba(234,244,247,.25);
+  color:#fff;
+}
+.mstr-ghost:disabled{opacity:.5;cursor:not-allowed}
+.mstr-ghost svg{flex-shrink:0;color:#7de1ff}
+
+/* SSO row */
+.mstr-sso{display:flex;gap:10px;margin-top:0}
+.mstr-sso .mstr-ghost{font-size:13px}
+
+/* Divider */
 .mstr-divider{
   display:flex;
   align-items:center;
-  gap:12px;
+  gap:14px;
   margin:20px 0;
-  color:rgba(255,255,255,.2);
+  color:rgba(234,244,247,.45);
   font-family:var(--ff);
-  font-size:12px;
-  letter-spacing:.4px;
+  font-size:11px;
+  letter-spacing:1.3px;
+  text-transform:uppercase;
+  font-weight:600;
 }
 .mstr-divider::before,.mstr-divider::after{
   content:'';
   flex:1;
   height:1px;
-  background:rgba(255,255,255,.1);
+  background:rgba(234,244,247,.1);
 }
 
-/* ── Biometric button ──────────────────────────────────────────────────────── */
-.mstr-bio{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:9px;
-  width:100%;
-  padding:13px;
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:12px;
-  font-family:var(--ff);
-  font-size:14px;
-  color:rgba(255,255,255,.6);
-  cursor:pointer;
-  transition:border-color .15s,background .15s,color .15s;
-  margin-bottom:0;
-}
-.mstr-bio:hover:not(:disabled){
-  border-color:var(--accent);
-  background:color-mix(in srgb,var(--accent) 8%,transparent);
-  color:rgba(255,255,255,.9);
-}
-.mstr-bio:disabled{opacity:.5;cursor:not-allowed}
-.mstr-bio svg{color:var(--accent);flex-shrink:0}
-
-/* ── SSO row ───────────────────────────────────────────────────────────────── */
-.mstr-sso{display:flex;gap:10px}
-.mstr-sso-btn{
-  flex:1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:8px;
-  padding:12px;
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:12px;
-  font-family:var(--ff);
-  font-size:13.5px;
-  color:rgba(255,255,255,.65);
-  cursor:pointer;
-  transition:border-color .15s,background .15s;
-}
-.mstr-sso-btn:hover:not(:disabled){
-  border-color:rgba(255,255,255,.22);
-  background:rgba(255,255,255,.07);
-  color:#fff;
-}
-.mstr-sso-btn:disabled{opacity:.5;cursor:not-allowed}
-
-/* ── Link button ───────────────────────────────────────────────────────────── */
+/* Link button */
 .mstr-link{
   background:none;
   border:0;
-  color:var(--accent);
+  color:#7de1ff;
   font-family:var(--ff);
   font-size:13px;
   font-weight:600;
@@ -266,47 +263,40 @@
 }
 .mstr-link:hover{text-decoration:underline}
 
-/* ── OTP boxes (dark) ──────────────────────────────────────────────────────── */
+/* Footer */
+.mstr-foot{
+  text-align:center;
+  margin-top:24px;
+  font-family:var(--ff);
+  font-size:11.5px;
+  color:rgba(234,244,247,.4);
+}
+.mstr-foot a{color:rgba(234,244,247,.7);text-decoration:none}
+.mstr-foot a:hover{color:#fff}
+
+/* OTP boxes */
 .mstr-code-row{display:flex;gap:10px;justify-content:center;margin-bottom:4px}
 .mstr-code-input{
-  width:52px;
-  height:60px;
+  width:54px;
+  height:62px;
   text-align:center;
   font-family:var(--ff);
   font-size:26px;
   font-weight:600;
-  border:1.5px solid rgba(255,255,255,.12);
-  border-radius:12px;
+  border:1.5px solid rgba(234,244,247,.15);
+  border-radius:10px;
   outline:none;
-  background:rgba(255,255,255,.05);
-  color:#f0f0f2;
+  background:rgba(234,244,247,.05);
+  color:#fff;
   box-sizing:border-box;
   transition:border-color .15s,box-shadow .15s;
 }
 .mstr-code-input:focus{
-  border-color:var(--accent);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent);
+  border-color:#29a8cc;
+  box-shadow:0 0 0 3px rgba(41,168,204,.2);
 }
-
-/* ── Logo ──────────────────────────────────────────────────────────────────── */
-.mstr-logo{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  text-decoration:none;
-  margin-bottom:36px;
-}
-.mstr-logo img{height:40px}
-.mstr-logo-text{
-  font-family:var(--ff);
-  font-weight:700;
-  font-size:19px;
-  color:#f0f0f2;
-}
-.mstr-logo-text b{color:#f0f0f2}
-.mstr-logo-text span{color:var(--accent)}
 
 @media(max-width:520px){
-  .mstr-card{padding:32px 24px;border-radius:16px}
+  .mstr-wrap{padding:32px 20px}
   .mstr-code-input{width:44px;height:52px;font-size:22px}
 }

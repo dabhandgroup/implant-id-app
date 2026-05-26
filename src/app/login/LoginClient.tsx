@@ -406,7 +406,7 @@ export default function LoginClient() {
                       )}
                     </div>
                   </div>
-                  <button type="button" className="btn btn-s btn-lg btn-block" onClick={sendPhoneOtp} disabled={loading}>
+                  <button type="button" className="btn btn-s btn-lg btn-block" style={{ marginTop: 16 }} onClick={sendPhoneOtp} disabled={loading}>
                     {loading ? 'Sending…' : 'Send verification code →'}
                   </button>
                   <div className="bio-option">

@@ -26,21 +26,34 @@ export interface EmailContent {
     label: string
     value: string
   }[]
-  /** Small muted note below the CTA (e.g. "If you didn't request this, ignore.") */
+  /** Small muted note below the CTA (e.g. security / fraud warning) */
   footerNote?: string
+  /** Whether to include the unsubscribe link in the footer (default true; set false for admin-only emails) */
+  includeUnsubscribe?: boolean
 }
 
-const LOGO_URL = 'https://app.implantid.com/images/email-logo.png'
-const PRIMARY  = '#29869F'
-const DEEP     = '#1a6a80'
-const TEXT     = '#0e2a33'
-const MUTED    = '#64748b'
-const BORDER   = '#e2e8f0'
-const BG       = '#f8fafc'
-const CARD     = '#ffffff'
+const LOGO_URL  = 'https://portal.implantid.io/images/email-logo.png'
+const PRIMARY   = '#29869F'
+const DEEP      = '#1a6a80'
+const TEXT      = '#0e2a33'
+const MUTED     = '#64748b'
+const BORDER    = '#e2e8f0'
+const BG        = '#f8fafc'
+const CARD      = '#ffffff'
+const FOOTER_C  = '#94a3b8'
+const LEGAL_C   = '#94a3b8'
 
 export function buildEmail(opts: EmailContent): string {
-  const { title, heading, body, cta, highlightBox, tableRows, footerNote } = opts
+  const {
+    title,
+    heading,
+    body,
+    cta,
+    highlightBox,
+    tableRows,
+    footerNote,
+    includeUnsubscribe = true,
+  } = opts
 
   // ── Table rows section ──────────────────────────────────────────────────────
   const tableSection = tableRows && tableRows.length > 0
@@ -78,10 +91,33 @@ export function buildEmail(opts: EmailContent): string {
       </div>`
     : ''
 
-  // ── Footer note ─────────────────────────────────────────────────────────────
+  // ── Footer note (security/fraud notice) ────────────────────────────────────
   const footerNoteSection = footerNote
-    ? `<p style="color:#94a3b8;font-size:12px;margin:28px 0 0;line-height:1.6;">${footerNote}</p>`
+    ? `<p style="color:${FOOTER_C};font-size:12px;margin:28px 0 0;line-height:1.6;">${footerNote}</p>`
     : ''
+
+  // ── Legal compliance section ────────────────────────────────────────────────
+  const legalSection = `
+          <tr>
+            <td style="padding:20px 40px 0;text-align:center;border-top:1px solid ${BORDER};">
+              <p style="margin:0 0 8px;font-size:11px;color:${LEGAL_C};line-height:1.75;">
+                You are receiving this email because you, or your clinic, opted in to receive
+                notifications from Implant ID.
+              </p>
+              ${includeUnsubscribe ? `
+              <p style="margin:0;font-size:11px;color:${LEGAL_C};line-height:1.75;">
+                To opt out of email alerts, log in to your account and
+                <a href="https://portal.implantid.io/settings/notifications"
+                   style="color:${LEGAL_C};text-decoration:underline;">manage your notification preferences</a>,
+                or contact
+                <a href="mailto:support@implantid.io"
+                   style="color:${LEGAL_C};text-decoration:underline;">support@implantid.io</a>.
+              </p>` : `
+              <p style="margin:0;font-size:11px;color:${LEGAL_C};line-height:1.75;">
+                This is an automated system notification sent to Implant ID administrators.
+              </p>`}
+            </td>
+          </tr>`
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -108,7 +144,7 @@ export function buildEmail(opts: EmailContent): string {
             <td style="background-color:${CARD};border-radius:12px 12px 0 0;
                         padding:32px 40px 28px;text-align:center;
                         border-bottom:1px solid ${BORDER};">
-              <a href="https://app.implantid.com" style="display:inline-block;text-decoration:none;">
+              <a href="https://portal.implantid.io" style="display:inline-block;text-decoration:none;">
                 <img src="${LOGO_URL}"
                      alt="Implant ID"
                      width="200"
@@ -146,18 +182,23 @@ export function buildEmail(opts: EmailContent): string {
             </td>
           </tr>
 
+          <!-- ── LEGAL COMPLIANCE ───────────────────────────────────────── -->
+          ${legalSection}
+
           <!-- ── FOOTER ─────────────────────────────────────────────────── -->
           <tr>
-            <td style="padding:28px 40px 0;text-align:center;">
-              <p style="margin:0 0 8px;font-size:12px;color:#94a3b8;line-height:1.6;">
-                © ${new Date().getFullYear()} Implant ID. All rights reserved.
+            <td style="padding:16px 40px 0;text-align:center;">
+              <p style="margin:0 0 8px;font-size:12px;color:${FOOTER_C};line-height:1.6;">
+                &copy; ${new Date().getFullYear()} Implant ID Ltd. All rights reserved.
               </p>
-              <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
-                <a href="https://app.implantid.com/help" style="color:#94a3b8;text-decoration:underline;">Help</a>
+              <p style="margin:0;font-size:12px;color:${FOOTER_C};line-height:1.6;">
+                <a href="https://portal.implantid.io/help" style="color:${FOOTER_C};text-decoration:underline;">Help</a>
                 &nbsp;&middot;&nbsp;
-                <a href="https://app.implantid.com/privacy" style="color:#94a3b8;text-decoration:underline;">Privacy</a>
+                <a href="https://portal.implantid.io/privacy" style="color:${FOOTER_C};text-decoration:underline;">Privacy Policy</a>
                 &nbsp;&middot;&nbsp;
-                <a href="https://app.implantid.com/unsubscribe" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a>
+                <a href="https://portal.implantid.io/terms" style="color:${FOOTER_C};text-decoration:underline;">Terms of Service</a>
+                ${includeUnsubscribe ? `&nbsp;&middot;&nbsp;
+                <a href="https://portal.implantid.io/settings/notifications" style="color:${FOOTER_C};text-decoration:underline;">Unsubscribe</a>` : ''}
               </p>
             </td>
           </tr>

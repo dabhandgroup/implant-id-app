@@ -5,7 +5,8 @@ import { Resend } from 'resend'
 import { buildEmail } from './emailTemplate'
 
 const ADMIN_EMAIL = 'harry@dabhandmarketing.com'
-const FROM        = 'Implant ID <noreply@implantid.com>'
+const FROM        = 'Implant ID <noreply@implantid.io>'
+const SUPPORT     = 'support@implantid.io'
 
 function resend() {
   const key = process.env.RESEND_API_KEY
@@ -48,9 +49,10 @@ export const sendClinicApplicationEmail = internalAction({
         ],
         cta: {
           label: 'Review in admin panel →',
-          url:   'https://app.implantid.com/admin',
+          url:   'https://portal.implantid.io/admin',
         },
-        footerNote: 'This is an automated notification.',
+        footerNote: 'This is an automated system notification.',
+        includeUnsubscribe: false,
       }),
     })
   },
@@ -92,9 +94,11 @@ export const sendPatientWelcomeEmail = internalAction({
         },
         cta: {
           label: 'Go to my dashboard →',
-          url:   'https://app.implantid.com/patients/dashboard',
+          url:   'https://portal.implantid.io/patients/dashboard',
         },
-        footerNote: "If you didn't create this account, please ignore this email.",
+        footerNote: `If you didn't do this, please do not ignore this email —
+          contact <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> urgently.`,
+        includeUnsubscribe: true,
       }),
     })
   },

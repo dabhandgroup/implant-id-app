@@ -1,15 +1,15 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useUser }                      from '@clerk/nextjs'
-import { useMutation, useQuery }        from 'convex/react'
-import { api }                          from '../../../../convex/_generated/api'
-import { useRouter }                    from 'next/navigation'
-import { CustomSelect, InlineSelect }   from '@/components/ui/CustomSelect'
-import { ALL_DEVICES, MANUFACTURERS }   from '@/data/devices'
+import { useUser }       from '@clerk/nextjs'
+import { useMutation, useQuery } from 'convex/react'
+import { api }           from '../../../../convex/_generated/api'
+import { useRouter }     from 'next/navigation'
+import { ALL_DEVICES, MANUFACTURERS } from '@/data/devices'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Step = 'details' | 'implant' | 'emergency' | 'summary'
+type Step = 'details' | 'implant' | 'implantDetails' | 'success'
+const STEPS: Step[] = ['details', 'implant', 'implantDetails', 'success']
 
 interface SelectedDevice {
   device_id:    string
@@ -19,101 +19,203 @@ interface SelectedDevice {
   device_type:  string
 }
 
-interface AdditionalImplant {
-  id:          string  // local uuid
-  deviceName:  string
-  deviceType:  string
+interface ExtraImplant {
+  id:          string
   hospital:    string
-  month:       string
-  year:        string
+  surgeon:     string
+  surgeryDate: string
+  notes:       string
 }
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Data ──────────────────────────────────────────────────────────────────────
 
-const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December',
+const PHONE_COUNTRIES = [
+  { flag: '🇬🇧', dial: '+44',  placeholder: '7700 900123',    name: 'United Kingdom' },
+  { flag: '🇦🇺', dial: '+61',  placeholder: '412 345 678',    name: 'Australia' },
+  { flag: '🇺🇸', dial: '+1',   placeholder: '(201) 555-0123', name: 'United States' },
+  { flag: '🇨🇦', dial: '+1',   placeholder: '(204) 555-0123', name: 'Canada' },
+  { flag: '🇮🇪', dial: '+353', placeholder: '85 012 3456',    name: 'Ireland' },
+  { flag: '🇳🇿', dial: '+64',  placeholder: '21 123 4567',    name: 'New Zealand' },
+  { flag: '🇩🇪', dial: '+49',  placeholder: '151 12345678',   name: 'Germany' },
+  { flag: '🇫🇷', dial: '+33',  placeholder: '6 12 34 56 78',  name: 'France' },
+  { flag: '🇮🇳', dial: '+91',  placeholder: '98765 43210',    name: 'India' },
+  { flag: '🇸🇬', dial: '+65',  placeholder: '9123 4567',      name: 'Singapore' },
+  { flag: '🇦🇪', dial: '+971', placeholder: '50 123 4567',    name: 'UAE' },
+  { flag: '🇿🇦', dial: '+27',  placeholder: '71 123 4567',    name: 'South Africa' },
 ]
 
-const DEVICE_TYPES = [
-  'Pacemaker',
-  'ICD / Defibrillator',
-  'CRT-P / CRT-D',
-  'Cochlear implant',
-  'Deep brain stimulator',
-  'Spinal cord stimulator',
-  'Hip replacement',
-  'Knee replacement',
-  'Spinal implant / disc',
-  'Insulin pump',
-  'Vascular stent',
-  'Biliary stent',
-  'Other',
-]
-
-const RELATIONS = [
-  'Partner / Spouse','Parent','Child','Sibling','Friend','Carer','Other',
-]
-
-const COUNTRIES = [
-  'United Kingdom','United States','Australia','Canada','Ireland',
-  'New Zealand','Germany','France','Spain','Italy','Netherlands',
-  'Belgium','Sweden','Norway','Denmark','Finland','Switzerland',
-  'Austria','Poland','Czech Republic','Portugal','Greece','Other',
-]
-
-const STEP_META = [
-  { id: 'details'   as Step, label: 'About you',      desc: 'Personal details'         },
-  { id: 'implant'   as Step, label: 'Your implant',   desc: 'Device information'        },
-  { id: 'emergency' as Step, label: 'Emergency',       desc: 'Emergency contact'         },
-  { id: 'summary'   as Step, label: 'Review',          desc: 'Confirm & submit'          },
+const BIRTH_COUNTRIES = [
+  { flag: '🇬🇧', name: 'United Kingdom' },
+  { flag: '🇦🇺', name: 'Australia' },
+  { flag: '🇺🇸', name: 'United States' },
+  { flag: '🇨🇦', name: 'Canada' },
+  { flag: '🇮🇪', name: 'Ireland' },
+  { flag: '🇳🇿', name: 'New Zealand' },
+  { flag: '🇮🇳', name: 'India' },
+  { flag: '🇩🇪', name: 'Germany' },
+  { flag: '🇫🇷', name: 'France' },
+  { flag: '🇮🇹', name: 'Italy' },
+  { flag: '🇪🇸', name: 'Spain' },
+  { flag: '🇳🇱', name: 'Netherlands' },
+  { flag: '🇧🇷', name: 'Brazil' },
+  { flag: '🇿🇦', name: 'South Africa' },
+  { flag: '🇯🇵', name: 'Japan' },
+  { flag: '🇰🇷', name: 'South Korea' },
+  { flag: '🇸🇬', name: 'Singapore' },
+  { flag: '🇦🇪', name: 'UAE' },
+  { flag: '🇵🇰', name: 'Pakistan' },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function uid() {
-  return Math.random().toString(36).slice(2)
-}
+function uid() { return Math.random().toString(36).slice(2) }
 
-function getManufacturerName(mfrId: string) {
+function getMfrName(mfrId: string) {
   return MANUFACTURERS.find(m => m.manufacturer_id === mfrId)?.common_name ?? mfrId
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Phone country picker ──────────────────────────────────────────────────────
 
-function DobPicker({ day, month, year, onDay, onMonth, onYear }: {
-  day: string; month: string; year: string
-  onDay: (v:string)=>void; onMonth: (v:string)=>void; onYear: (v:string)=>void
+function PhonePicker({
+  flag, dial, phoneNum, placeholder,
+  onCountryChange, onPhoneChange,
+}: {
+  flag: string; dial: string; phoneNum: string; placeholder: string
+  onCountryChange: (c: typeof PHONE_COUNTRIES[0]) => void
+  onPhoneChange:   (v: string) => void
 }) {
-  const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 110 }, (_, i) => String(currentYear - i))
-  const days  = Array.from({ length: 31 },  (_, i) => String(i + 1).padStart(2, '0'))
+  const [open,   setOpen]   = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  const filtered = PHONE_COUNTRIES.filter(c =>
+    !search || c.name.toLowerCase().includes(search.toLowerCase())
+  )
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
   return (
-    <div className="field">
-      <label>Date of birth<span style={{ color:'var(--err)',marginLeft:3 }}>*</span></label>
-      <div style={{ display:'grid', gridTemplateColumns:'80px 1fr 100px', gap:8 }}>
-        <InlineSelect value={day}   onChange={onDay}   placeholder="Day"   options={days} />
-        <InlineSelect value={month} onChange={onMonth} placeholder="Month"
-          options={MONTHS.map((m,i)=>({ label:m, value:String(i+1).padStart(2,'0') }))} />
-        <InlineSelect value={year}  onChange={onYear}  placeholder="Year"  options={years} />
-      </div>
-      <span className="hint">Used to generate your unique Implant ID — never shared without consent</span>
+    <div className="phone-row" ref={ref}>
+      <button
+        type="button"
+        className="phone-code"
+        onClick={() => setOpen(o => !o)}
+      >
+        <span className="flag-circle">{flag}</span>
+        <span className="dial">{dial}</span>
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      <input
+        className="input"
+        type="tel"
+        placeholder={placeholder}
+        value={phoneNum}
+        onChange={e => onPhoneChange(e.target.value)}
+        style={{ flex: 1 }}
+      />
+
+      {open && (
+        <div className="phone-dd open">
+          <div className="phone-dd-search">
+            <input
+              placeholder="Search countries…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="phone-dd-list">
+            {filtered.map(c => (
+              <button
+                key={c.name}
+                type="button"
+                onClick={() => { onCountryChange(c); setOpen(false); setSearch('') }}
+              >
+                <span className="flag-circle">{c.flag}</span>
+                {c.name}
+                <span className="dial-r">{c.dial}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function ImplantDatePicker({ month, year, onMonth, onYear }: {
-  month: string; year: string; onMonth:(v:string)=>void; onYear:(v:string)=>void
+// ── Country of birth select ───────────────────────────────────────────────────
+
+function CountrySelect({
+  flag, country, onChange,
+}: {
+  flag: string; country: string
+  onChange: (flag: string, name: string) => void
 }) {
-  const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 30 }, (_, i) => String(currentYear - i))
+  const [open,   setOpen]   = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  const filtered = BIRTH_COUNTRIES.filter(c =>
+    !search || c.name.toLowerCase().includes(search.toLowerCase())
+  )
+
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
   return (
-    <div className="field">
-      <label>Approximate date of implant <span style={{ fontWeight:400,opacity:.6 }}>(optional)</span></label>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 100px', gap:8 }}>
-        <InlineSelect value={month} onChange={onMonth} placeholder="Month"
-          options={MONTHS.map((m,i)=>({ label:m, value:String(i+1).padStart(2,'0') }))} />
-        <InlineSelect value={year}  onChange={onYear}  placeholder="Year"  options={years} />
+    <div className={`custom-select${open ? ' open' : ''}`} ref={ref}>
+      <button
+        type="button"
+        className="custom-select-btn"
+        onClick={() => setOpen(o => !o)}
+      >
+        <span className="custom-select-val">
+          {flag
+            ? <><span className="flag-circle" style={{ width: 18, height: 18, fontSize: 12 }}>{flag}</span> {country}</>
+            : <span style={{ color: 'var(--muted2)' }}>Select country</span>
+          }
+        </span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      <div className="custom-select-dd">
+        <div className="custom-select-search">
+          <input
+            placeholder="Search countries…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="custom-select-list">
+          {filtered.map(c => (
+            <button
+              key={c.name}
+              type="button"
+              onClick={() => { onChange(c.flag, c.name); setOpen(false); setSearch('') }}
+            >
+              <span className="flag-circle">{c.flag}</span>
+              {c.name}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -122,11 +224,13 @@ function ImplantDatePicker({ month, year, onMonth, onYear }: {
 // ── Device search ─────────────────────────────────────────────────────────────
 
 function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => void }) {
-  const [query,    setQuery]    = useState('')
-  const [open,     setOpen]     = useState(false)
-  const [selected, setSelected] = useState<SelectedDevice | null>(null)
-  const [manual,   setManual]   = useState(false)
+  const [query,      setQuery]      = useState('')
+  const [open,       setOpen]       = useState(false)
+  const [selected,   setSelected]   = useState<SelectedDevice | null>(null)
+  const [showManual, setShowManual] = useState(false)
+  const [manualMfr,  setManualMfr]  = useState('')
   const [manualName, setManualName] = useState('')
+  const [manualMdl,  setManualMdl]  = useState('')
   const ref = useRef<HTMLDivElement>(null)
 
   const results = query.trim().length >= 2
@@ -135,26 +239,25 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
         return (
           d.device_name.toLowerCase().includes(q) ||
           d.model_number.toLowerCase().includes(q) ||
-          getManufacturerName(d.manufacturer_id).toLowerCase().includes(q) ||
-          d.device_type.toLowerCase().includes(q)
+          getMfrName(d.manufacturer_id).toLowerCase().includes(q)
         )
       }).slice(0, 8)
     : []
 
   useEffect(() => {
     if (!open) return
-    function onDown(e: MouseEvent) {
+    function handler(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
   function pick(d: typeof ALL_DEVICES[0]) {
     const sel: SelectedDevice = {
       device_id:    d.device_id,
       device_name:  d.device_name,
-      manufacturer: getManufacturerName(d.manufacturer_id),
+      manufacturer: getMfrName(d.manufacturer_id),
       model_number: d.model_number,
       device_type:  d.device_type,
     }
@@ -164,206 +267,134 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
     onSelect(sel)
   }
 
-  function clear() {
+  function clearDevice() {
     setSelected(null)
-    setManual(false)
-    setManualName('')
     onSelect(null)
   }
 
-  function commitManual() {
-    if (!manualName.trim()) return
-    onSelect({
-      device_id:    '',
-      device_name:  manualName.trim(),
-      manufacturer: '',
-      model_number: '',
-      device_type:  '',
-    })
-  }
-
-  if (selected) {
-    return (
-      <div className="dev-chip">
-        <div className="dev-chip-inner">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ flexShrink:0, color:'var(--ok)' }}>
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
-          <div>
-            <div style={{ fontWeight:600, fontSize:14, color:'var(--text)' }}>{selected.device_name}</div>
-            {selected.manufacturer && (
-              <div style={{ fontSize:12, color:'var(--muted)', marginTop:1 }}>
-                {selected.manufacturer}{selected.model_number ? ` · ${selected.model_number}` : ''}
-              </div>
-            )}
-          </div>
-        </div>
-        <button type="button" onClick={clear} className="dev-chip-remove" aria-label="Remove device">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
-      </div>
-    )
-  }
-
-  if (manual) {
-    return (
-      <div>
-        <div className="field" style={{ marginBottom:10 }}>
-          <input
-            className="input"
-            type="text"
-            placeholder="e.g. Medtronic Azure XT DR, ceramic hip…"
-            value={manualName}
-            onChange={e => { setManualName(e.target.value); commitManual() }}
-            autoFocus
-          />
-          <span className="hint">As much or as little detail as you know is fine</span>
-        </div>
-        <button type="button" onClick={() => setManual(false)}
-          style={{ fontSize:13, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', padding:0 }}>
-          ← Search the database instead
-        </button>
-      </div>
-    )
+  function notifyManual() {
+    if (manualName.trim() || manualMfr.trim()) {
+      onSelect({
+        device_id:    '',
+        device_name:  manualName.trim() || manualMfr.trim(),
+        manufacturer: manualMfr.trim(),
+        model_number: manualMdl.trim(),
+        device_type:  '',
+      })
+    }
   }
 
   return (
-    <div ref={ref} style={{ position:'relative' }}>
+    <div ref={ref}>
+      {/* Search bar */}
       <div className="dev-search-wrap">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ position:'absolute', left:13, top:'50%', transform:'translateY(-50%)', color:'var(--muted2)', pointerEvents:'none' }}>
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
-        <input
-          className="input dev-search"
-          type="text"
-          placeholder="Search by name, model number or manufacturer…"
-          value={query}
-          onChange={e => { setQuery(e.target.value); setOpen(true) }}
-          onFocus={() => setOpen(true)}
-          autoComplete="off"
-        />
-      </div>
-
-      {open && results.length > 0 && (
-        <ul className="dev-results">
-          {results.map(d => (
-            <li key={d.device_id}>
-              <button type="button" onClick={() => pick(d)} className="dev-result-btn">
-                <div className="dev-result-name">{d.device_name}</div>
-                <div className="dev-result-meta">
-                  {getManufacturerName(d.manufacturer_id)} · {d.model_number} · {d.device_type}
+        <div className="dev-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            id="dev-q"
+            className="input"
+            placeholder="Search by device name or model number"
+            autoComplete="off"
+            value={query}
+            onChange={e => { setQuery(e.target.value); setOpen(true) }}
+            onFocus={() => setOpen(true)}
+            style={{ border: 0, padding: '11px 0', boxShadow: 'none' }}
+          />
+        </div>
+        {open && results.length > 0 && (
+          <div className="dev-results on">
+            {results.map(d => (
+              <a
+                key={d.device_id}
+                href="#"
+                onClick={e => { e.preventDefault(); pick(d) }}
+              >
+                <div>
+                  <div className="nm">{d.device_name}</div>
+                  <div className="mn">
+                    {getMfrName(d.manufacturer_id)} · {d.model_number} · {d.device_type}
+                  </div>
                 </div>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {open && query.trim().length >= 2 && results.length === 0 && (
-        <div className="dev-warn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-          No matches for "{query}" — try a different name or model number
-        </div>
-      )}
-
-      <button type="button" onClick={() => setManual(true)} className="dev-manual-link">
-        Can't find your device? Enter it manually →
-      </button>
-    </div>
-  )
-}
-
-// ── Additional implant block ───────────────────────────────────────────────────
-
-function AdditionalImplantBlock({
-  implant, onChange, onRemove,
-}: {
-  implant: AdditionalImplant
-  onChange: (id: string, field: keyof AdditionalImplant, val: string) => void
-  onRemove: (id: string) => void
-}) {
-  const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 30 }, (_, i) => String(currentYear - i))
-
-  return (
-    <div className="implant-block">
-      <div className="implant-block-header">
-        <span className="implant-block-label">Additional implant</span>
-        <button type="button" onClick={() => onRemove(implant.id)} className="implant-block-remove" aria-label="Remove implant">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
+              </a>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="field" style={{ marginBottom:10 }}>
-        <label>Device name / description<span style={{ color:'var(--err)',marginLeft:3 }}>*</span></label>
-        <input className="input" type="text" placeholder="e.g. ceramic hip, cochlear implant…"
-          value={implant.deviceName}
-          onChange={e => onChange(implant.id, 'deviceName', e.target.value)} />
-      </div>
-
-      <CustomSelect
-        label="Type of implant"
-        value={implant.deviceType}
-        onChange={v => onChange(implant.id, 'deviceType', v)}
-        options={DEVICE_TYPES}
-        placeholder="Select type"
-      />
-
-      <div className="field" style={{ marginTop:10 }}>
-        <label>Hospital / clinic <span style={{ fontWeight:400,opacity:.6 }}>(optional)</span></label>
-        <input className="input" type="text" placeholder="e.g. St Vincent's Hospital"
-          value={implant.hospital}
-          onChange={e => onChange(implant.id, 'hospital', e.target.value)} />
-      </div>
-
-      <div className="field" style={{ marginTop:10 }}>
-        <label>Approximate date <span style={{ fontWeight:400,opacity:.6 }}>(optional)</span></label>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 100px', gap:8 }}>
-          <InlineSelect value={implant.month} onChange={v => onChange(implant.id,'month',v)} placeholder="Month"
-            options={MONTHS.map((m,i)=>({ label:m, value:String(i+1).padStart(2,'0') }))} />
-          <InlineSelect value={implant.year} onChange={v => onChange(implant.id,'year',v)} placeholder="Year" options={years} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Summary row ───────────────────────────────────────────────────────────────
-
-function SumRow({ label, value }: { label: string; value?: string }) {
-  return (
-    <div style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'8px 0', borderBottom:'1px solid var(--border)' }}>
-      <span style={{ fontSize:13, color:'var(--muted)', flexShrink:0 }}>{label}</span>
-      <span style={{ fontSize:13.5, fontWeight:500, textAlign:'right' }}>
-        {value || <span style={{ color:'var(--muted2)', fontWeight:400 }}>Not provided</span>}
-      </span>
-    </div>
-  )
-}
-
-// ── Side panel steps ──────────────────────────────────────────────────────────
-
-function SideSteps({ current }: { current: Step }) {
-  const idx = STEP_META.findIndex(s => s.id === current)
-  return (
-    <div className="reg-side-steps">
-      {STEP_META.map((s, i) => {
-        const state = i === idx ? 'active' : i < idx ? 'done' : 'future'
-        return (
-          <div key={s.id} className={`reg-side-step ${state}`}>
-            <div className="reg-side-step-num">
-              {state === 'done'
-                ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
-                : i + 1
-              }
+      {/* Selected card */}
+      {selected && (
+        <div className="dev-selected" style={{ marginTop: 10 }}>
+          <div className="dev-sel-card">
+            <div className="dev-sel-info">
+              <div className="nm">{selected.device_name}</div>
+              <div className="mn">
+                {selected.manufacturer}
+                {selected.model_number ? ` · ${selected.model_number}` : ''}
+              </div>
             </div>
-            <div>
-              <div className="reg-side-step-title">{s.label}</div>
-              <div className="reg-side-step-desc">{s.desc}</div>
+            <button className="dev-sel-x" type="button" onClick={clearDevice} title="Remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Warning note */}
+      <div className="dev-warn" style={{ marginTop: 12 }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+          <circle cx="12" cy="12" r="9" /><path d="M12 7v5M12 16h.01" />
+        </svg>
+        <span>
+          Your device selection will be verified before your record is marked as confirmed.
+          If you're unsure, select the closest match — your clinic can correct it.
+        </span>
+      </div>
+
+      {/* Manual entry */}
+      <div className="field" style={{ marginTop: 16 }}>
+        <label>Don't know your device?</label>
+        {!showManual ? (
+          <button
+            className="btn btn-lg btn-block"
+            type="button"
+            onClick={() => setShowManual(true)}
+            style={{ textAlign: 'left' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="1.8" style={{ marginRight: 6 }}>
+              <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </svg>
+            Enter details manually
+          </button>
+        ) : (
+          <div style={{ marginTop: 4 }}>
+            <div className="field">
+              <label>Implant manufacturer</label>
+              <input className="input" placeholder="e.g. Medtronic, Boston Scientific, Abbott"
+                value={manualMfr}
+                onChange={e => { setManualMfr(e.target.value); notifyManual() }} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 12 }}>
+              <div className="field">
+                <label>Device name</label>
+                <input className="input" placeholder="e.g. Azure XT DR"
+                  value={manualName}
+                  onChange={e => { setManualName(e.target.value); notifyManual() }} />
+              </div>
+              <div className="field">
+                <label>Model number (if known)</label>
+                <input className="input" placeholder="e.g. W3DR01"
+                  value={manualMdl}
+                  onChange={e => { setManualMdl(e.target.value); notifyManual() }} />
+              </div>
             </div>
           </div>
-        )
-      })}
+        )}
+      </div>
     </div>
   )
 }
@@ -376,43 +407,42 @@ export default function RegisterClient() {
   const router          = useRouter()
   const existingPatient = useQuery(api.patients.getMyPatient)
 
-  // Step 1 — personal details
-  const [firstName,   setFirstName]   = useState(user?.firstName ?? '')
-  const [lastName,    setLastName]    = useState(user?.lastName  ?? '')
-  const [dobDay,      setDobDay]      = useState('')
-  const [dobMonth,    setDobMonth]    = useState('')
-  const [dobYear,     setDobYear]     = useState('')
-  const [phone,       setPhone]       = useState(user?.primaryPhoneNumber?.phoneNumber ?? '')
-  const [country,     setCountry]     = useState('')
+  // Step
+  const [step,    setStep]    = useState<Step>('details')
+  const stepIdx = STEPS.indexOf(step)
 
-  // Step 2 — implant
+  // Step 1: personal details
+  const [firstName,     setFirstName]     = useState('')
+  const [lastName,      setLastName]      = useState('')
+  const [dob,           setDob]           = useState('')
+  const [countryFlag,   setCountryFlag]   = useState('')
+  const [countryName,   setCountryName]   = useState('')
+  const [phoneFlag,     setPhoneFlag]     = useState('🇬🇧')
+  const [phoneDial,     setPhoneDial]     = useState('+44')
+  const [phonePH,       setPhonePH]       = useState('7700 900123')
+  const [phoneNum,      setPhoneNum]      = useState('')
+
+  // Step 2: implant search
   const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null)
-  const [deviceType,     setDeviceType]     = useState('')
-  const [implantMonth,   setImplantMonth]   = useState('')
-  const [implantYear,    setImplantYear]    = useState('')
-  const [hospital,       setHospital]       = useState('')
-  const [surgeon,        setSurgeon]        = useState('')
-  const [additionalImplants, setAdditionalImplants] = useState<AdditionalImplant[]>([])
 
-  // Step 3 — emergency contact
-  const [ecName,     setEcName]     = useState('')
-  const [ecPhone,    setEcPhone]    = useState('')
-  const [ecRelation, setEcRelation] = useState('')
+  // Step 3: implant details
+  const [hospital,     setHospital]     = useState('')
+  const [surgeon,      setSurgeon]      = useState('')
+  const [surgeryDate,  setSurgeryDate]  = useState('')
+  const [notes,        setNotes]        = useState('')
+  const [extras,       setExtras]       = useState<ExtraImplant[]>([])
 
-  // Step 4 — summary / notes
-  const [notes, setNotes] = useState('')
+  // Step 4: success data
+  const [iidCode, setIidCode] = useState('')
 
   // UI
-  const [step,    setStep]    = useState<Step>('details')
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
-  // Pre-fill from Clerk once loaded
+  // Pre-fill from Clerk once available
   useEffect(() => {
     if (user?.firstName && !firstName) setFirstName(user.firstName)
     if (user?.lastName  && !lastName)  setLastName(user.lastName)
-    if (user?.primaryPhoneNumber?.phoneNumber && !phone)
-      setPhone(user.primaryPhoneNumber.phoneNumber)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
@@ -423,49 +453,49 @@ export default function RegisterClient() {
 
   if (existingPatient === undefined || existingPatient) return null
 
-  const clerkPhone = user?.primaryPhoneNumber?.phoneNumber ?? ''
+  const clerkEmail = user?.primaryEmailAddress?.emailAddress ?? ''
 
-  function err(msg: string) { setError(msg); setLoading(false) }
-  function clearErr()        { setError('') }
+  function err(msg: string) {
+    setError(msg)
+    document.querySelector('.auth-main')?.scrollTo(0, 0)
+  }
+
+  function goStep(s: Step) {
+    setError('')
+    setStep(s)
+    document.querySelector('.auth-main')?.scrollTo(0, 0)
+  }
 
   // ── Step handlers ────────────────────────────────────────────────────────
 
   function goToImplant(e: React.FormEvent) {
-    e.preventDefault(); clearErr()
-    if (!firstName.trim()) return err('Enter your first name')
-    if (!lastName.trim())  return err('Enter your last name')
-    if (!dobDay || !dobMonth || !dobYear) return err('Select your full date of birth')
-    const dob = new Date(`${dobYear}-${dobMonth}-${dobDay}`)
-    if (isNaN(dob.getTime())) return err('Enter a valid date of birth')
-    if (dob > new Date())     return err('Date of birth cannot be in the future')
-    setStep('implant')
+    e.preventDefault()
+    if (!firstName.trim()) return err('Please enter your first name')
+    if (!lastName.trim())  return err('Please enter your last name')
+    if (!dob)              return err('Please enter your date of birth')
+    const parsed = new Date(dob)
+    if (isNaN(parsed.getTime())) return err('Please enter a valid date of birth')
+    if (parsed > new Date())     return err('Date of birth cannot be in the future')
+    goStep('implant')
   }
 
-  function goToEmergency(e: React.FormEvent) {
-    e.preventDefault(); clearErr()
-    if (!selectedDevice?.device_name && !selectedDevice) return err('Search for your implant device or enter it manually')
-    setStep('emergency')
-  }
-
-  function goToSummary(e: React.FormEvent) {
-    e.preventDefault(); clearErr()
-    if (!ecName.trim())  return err("Enter your emergency contact's name")
-    if (!ecPhone.trim()) return err('Enter their phone number')
-    if (!ecRelation)     return err('Select their relationship to you')
-    setStep('summary')
+  function goToImplantDetails(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    goStep('implantDetails')
   }
 
   async function submit(e: React.FormEvent) {
-    e.preventDefault(); clearErr(); setLoading(true)
+    e.preventDefault()
+    setError('')
+    setLoading(true)
     try {
-      const dob    = `${dobYear}-${dobMonth}-${dobDay}`
-      const extras = additionalImplants.length > 0
-        ? JSON.stringify(additionalImplants.map(a => ({
-            deviceName: a.deviceName,
-            deviceType: a.deviceType,
-            hospital:   a.hospital,
-            month:      a.month,
-            year:       a.year,
+      const extraJson = extras.length > 0
+        ? JSON.stringify(extras.map(a => ({
+            hospital:    a.hospital,
+            surgeon:     a.surgeon,
+            surgeryDate: a.surgeryDate,
+            notes:       a.notes,
           })))
         : undefined
 
@@ -473,360 +503,429 @@ export default function RegisterClient() {
         firstName: firstName.trim(),
         lastName:  lastName.trim(),
         dob,
-        phone:          phone.trim() || undefined,
-        countryOfBirth: country || undefined,
+        phone: phoneNum.trim() ? `${phoneDial} ${phoneNum.trim()}` : undefined,
+        countryOfBirth: countryName || undefined,
 
         selfReportedDevice:       selectedDevice?.device_name || undefined,
         selfReportedDeviceId:     selectedDevice?.device_id   || undefined,
         selfReportedManufacturer: selectedDevice?.manufacturer || undefined,
         selfReportedModelNumber:  selectedDevice?.model_number || undefined,
-        selfReportedDeviceType:   deviceType || selectedDevice?.device_type || undefined,
-        selfReportedImplantMonth: implantMonth || undefined,
-        selfReportedImplantYear:  implantYear  || undefined,
-        selfReportedHospital:     hospital.trim() || undefined,
-        selfReportedSurgeon:      surgeon.trim()  || undefined,
-        selfReportedImplants:     extras,
-
-        emergencyContactName:     ecName.trim(),
-        emergencyContactPhone:    ecPhone.trim(),
-        emergencyContactRelation: ecRelation,
+        selfReportedDeviceType:   selectedDevice?.device_type  || undefined,
+        selfReportedHospital:     hospital.trim()  || undefined,
+        selfReportedSurgeon:      surgeon.trim()   || undefined,
+        selfReportedImplantMonth: surgeryDate ? surgeryDate.slice(5, 7) : undefined,
+        selfReportedImplantYear:  surgeryDate ? surgeryDate.slice(0, 4) : undefined,
+        selfReportedImplants:     extraJson,
         additionalNotes:          notes.trim() || undefined,
       })
 
-      if (typeof sessionStorage !== 'undefined') {
-        const code = result && typeof result === 'object' && 'implantIdCode' in result
-          ? (result as { implantIdCode: string }).implantIdCode : ''
-        sessionStorage.setItem('iid_just_registered', code)
-      }
-      router.replace('/patients/dashboard')
-    } catch (e) {
-      err((e as { message?: string })?.message ?? 'Something went wrong — please try again')
+      const code = result && typeof result === 'object' && 'implantIdCode' in result
+        ? (result as { implantIdCode: string }).implantIdCode : ''
+      setIidCode(code)
+      goStep('success')
+    } catch (ex) {
+      err((ex as { message?: string })?.message ?? 'Something went wrong — please try again')
     } finally {
       setLoading(false)
     }
   }
 
-  // ── Additional implant helpers ───────────────────────────────────────────
+  // ── Extra implant helpers ────────────────────────────────────────────────
 
-  function addImplant() {
-    setAdditionalImplants(prev => [
-      ...prev,
-      { id: uid(), deviceName:'', deviceType:'', hospital:'', month:'', year:'' },
-    ])
+  function addExtra() {
+    setExtras(p => [...p, { id: uid(), hospital: '', surgeon: '', surgeryDate: '', notes: '' }])
   }
 
-  function updateImplant(id: string, field: keyof AdditionalImplant, val: string) {
-    setAdditionalImplants(prev => prev.map(a => a.id === id ? { ...a, [field]: val } : a))
+  function updateExtra(id: string, field: keyof ExtraImplant, val: string) {
+    setExtras(p => p.map(a => a.id === id ? { ...a, [field]: val } : a))
   }
 
-  function removeImplant(id: string) {
-    setAdditionalImplants(prev => prev.filter(a => a.id !== id))
+  function removeExtra(id: string) {
+    setExtras(p => p.filter(a => a.id !== id))
   }
 
-  // ── Formatted display values ─────────────────────────────────────────────
+  // ── Dot class ────────────────────────────────────────────────────────────
 
-  const dobFormatted = dobDay && dobMonth && dobYear
-    ? `${parseInt(dobDay, 10)} ${MONTHS[parseInt(dobMonth) - 1]} ${dobYear}` : ''
-  const implantDateFormatted = implantYear
-    ? (implantMonth ? `${MONTHS[parseInt(implantMonth) - 1]} ${implantYear}` : implantYear) : ''
-  const stepIdx = STEP_META.findIndex(s => s.id === step)
+  function dotCls(i: number) {
+    const c = ['dot']
+    if (i <= stepIdx) c.push('on')
+    if (i < stepIdx)  c.push('done')
+    return c.join(' ')
+  }
 
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="reg-split">
+    <main className="auth">
 
-      {/* ── Left panel ──────────────────────────────────────────────────── */}
-      <div className="reg-side">
-        <a href="/" className="reg-side-logo">
+      {/* ── Left panel ────────────────────────────────────────────────────── */}
+      <aside className="auth-side">
+        <a href="/" className="logo">
           <img src="/icon.svg" alt="" />
           <span className="logo-text"><b>Implant</b><span>ID</span></span>
         </a>
 
-        <div className="reg-side-copy">
-          <h1>Your implant.<br/>Always with you.</h1>
+        <div>
+          <h2>Be prepared for<br />your next appointment.</h2>
           <p>
-            Create your secure digital implant record in minutes. Clinicians and
-            radiographers can instantly access the information they need — safely.
+            Get your implant record on your phone in under 60 seconds.
+            Free forever — always synced with the manufacturer so your
+            clinician has what they need.
           </p>
+          <ul className="list">
+            <li>Apple Wallet + Google Wallet pass</li>
+            <li>MRI safety status, always up to date</li>
+            <li>Manufacturer manuals in one tap</li>
+            <li>Share with any clinic in seconds</li>
+          </ul>
         </div>
 
-        <SideSteps current={step} />
-
-        <div className="reg-side-trust">
-          <span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            Encrypted &amp; secure
-          </span>
-          <span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            Clinician verified
-          </span>
-          <span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-            Wallet pass ready
-          </span>
+        <div className="quote">
+          <p>"I used to carry a folder to every appointment. Now I just tap my phone."</p>
+          <cite>R. Tan · Pacemaker patient since 2021</cite>
         </div>
-      </div>
+      </aside>
 
-      {/* ── Right panel ─────────────────────────────────────────────────── */}
-      <div className="reg-main">
-        <div className="reg-box">
+      {/* ── Right panel ───────────────────────────────────────────────────── */}
+      <section className="auth-main">
+        <div className="auth-box" style={{ maxWidth: 520 }}>
 
-          {/* Progress dots */}
-          <div className="reg-dots">
-            {STEP_META.map((s, i) => (
-              <div key={s.id} className={`reg-dot${i === stepIdx ? ' active' : i < stepIdx ? ' done' : ''}`} />
-            ))}
+          <div className="ey" style={{ marginBottom: 14 }}>Register as a patient</div>
+          <h1>Create your record</h1>
+          <p className="sub">Free forever. Takes about 60 seconds.</p>
+
+          {/* Stepper dots */}
+          <div className="stepper">
+            {STEPS.map((_, i) => <div key={i} className={dotCls(i)} />)}
           </div>
 
-          {/* Step label */}
-          <div className="reg-step-label">
-            Step {stepIdx + 1} of {STEP_META.length} — {STEP_META[stepIdx].label}
-          </div>
-
-          {/* Error */}
+          {/* Error banner */}
           {error && (
-            <div className="reg-error">{error}</div>
+            <div style={{
+              background: 'color-mix(in srgb,var(--err) 10%,transparent)',
+              border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)',
+              borderRadius: 10,
+              padding: '10px 14px',
+              fontSize: 13.5,
+              color: 'var(--err)',
+              marginBottom: 20,
+            }}>
+              {error}
+            </div>
           )}
 
-          {/* ── Step 1: About you ──────────────────────────────────────── */}
-          {step === 'details' && (
-            <>
-              <h2 className="reg-h2">Create your patient record</h2>
-              <p className="reg-sub">
-                We'll use your name and date of birth to generate your unique Implant ID.
-                These cannot be changed later, so please be accurate.
-              </p>
-              <form onSubmit={goToImplant}>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                  <div className="field">
-                    <label>First name<span style={{ color:'var(--err)',marginLeft:3 }}>*</span></label>
-                    <input className="input" type="text" placeholder="Jane" autoComplete="given-name"
-                      value={firstName} onChange={e => setFirstName(e.target.value)} />
-                  </div>
-                  <div className="field">
-                    <label>Last name<span style={{ color:'var(--err)',marginLeft:3 }}>*</span></label>
-                    <input className="input" type="text" placeholder="Smith" autoComplete="family-name"
-                      value={lastName} onChange={e => setLastName(e.target.value)} />
-                  </div>
-                </div>
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* STEP 1: Your details                                            */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          <div className={`step-pane${step === 'details' ? ' on' : ''}`} id="pane-1">
+            <h3 style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, marginBottom: 14 }}>
+              Your details
+            </h3>
+            <form onSubmit={goToImplant}>
 
-                <DobPicker
-                  day={dobDay} month={dobMonth} year={dobYear}
-                  onDay={setDobDay} onMonth={setDobMonth} onYear={setDobYear}
-                />
-
-                <CustomSelect
-                  label="Country of birth"
-                  value={country} onChange={setCountry}
-                  options={COUNTRIES}
-                  placeholder="Select country"
-                />
-
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="field">
-                  <label>Phone number <span style={{ fontWeight:400,opacity:.6 }}>(optional)</span></label>
-                  <input className="input" type="tel" placeholder="+44 7700 900000"
-                    autoComplete="tel" value={phone}
-                    onChange={e => setPhone(e.target.value)}
-                    readOnly={!!clerkPhone}
-                    style={clerkPhone ? { background:'var(--bg)', color:'var(--muted)' } : undefined}
-                  />
-                  {clerkPhone && <span className="hint">From your sign-up — contact support to change</span>}
+                  <label>First name</label>
+                  <input className="input" placeholder="First name" required
+                    value={firstName} onChange={e => setFirstName(e.target.value)} />
                 </div>
+                <div className="field">
+                  <label>Last name</label>
+                  <input className="input" placeholder="Last name" required
+                    value={lastName} onChange={e => setLastName(e.target.value)} />
+                </div>
+              </div>
 
-                <button type="submit" className="btn btn-s btn-lg btn-block" style={{ marginTop:8 }}>
-                  Continue →
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field">
+                  <label>Date of birth</label>
+                  <input className="input" type="date"
+                    value={dob} onChange={e => setDob(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Country of birth</label>
+                  <CountrySelect
+                    flag={countryFlag}
+                    country={countryName}
+                    onChange={(f, n) => { setCountryFlag(f); setCountryName(n) }}
+                  />
+                </div>
+              </div>
+
+              <div className="field">
+                <label>Email</label>
+                <input className="input" type="email" value={clerkEmail} readOnly
+                  style={{ background: 'var(--bg)', color: 'var(--muted)' }} />
+              </div>
+
+              <div className="field">
+                <label>
+                  Phone number{' '}
+                  <span style={{ color: 'var(--accent)', fontWeight: 700 }}>*</span>
+                </label>
+                <PhonePicker
+                  flag={phoneFlag}
+                  dial={phoneDial}
+                  phoneNum={phoneNum}
+                  placeholder={phonePH}
+                  onCountryChange={c => {
+                    setPhoneFlag(c.flag)
+                    setPhoneDial(c.dial)
+                    setPhonePH(c.placeholder)
+                  }}
+                  onPhoneChange={setPhoneNum}
+                />
+                <span style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
+                  We'll use this for urgent clinical notifications
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                <button className="btn btn-s btn-lg" type="submit" style={{ flex: 1 }}>
+                  Continue
                 </button>
-              </form>
-            </>
-          )}
+              </div>
+            </form>
+          </div>
 
-          {/* ── Step 2: Your implant ───────────────────────────────────── */}
-          {step === 'implant' && (
-            <>
-              <h2 className="reg-h2">Tell us about your implant</h2>
-              <p className="reg-sub">
-                Search for your device in our database, or enter it manually.
-                A clinician will verify the details before your record goes live.
-              </p>
-              <form onSubmit={goToEmergency}>
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* STEP 2: Find your implant                                       */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          <div className={`step-pane${step === 'implant' ? ' on' : ''}`} id="pane-2">
+            <h3 style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
+              Find your implant
+            </h3>
+            <p style={{ color: 'var(--muted)', fontSize: 13.5, marginBottom: 16, lineHeight: 1.55 }}>
+              Search for your device below. If you're not sure, that's OK — your clinic can
+              verify it later.
+            </p>
+            <form onSubmit={goToImplantDetails}>
+              <DeviceSearch onSelect={setSelectedDevice} />
+              <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+                <button className="btn btn-lg" type="button"
+                  onClick={() => goStep('details')} style={{ flex: 0 }}>
+                  ← Back
+                </button>
+                <button className="btn btn-s btn-lg" type="submit" style={{ flex: 1 }}>
+                  Continue
+                </button>
+              </div>
+            </form>
+          </div>
 
-                <div className="field">
-                  <label>Find your device<span style={{ color:'var(--err)',marginLeft:3 }}>*</span></label>
-                  <DeviceSearch onSelect={dev => {
-                    setSelectedDevice(dev)
-                    if (dev?.device_type) setDeviceType(dev.device_type)
-                  }} />
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* STEP 3: Implant details                                         */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          <div className={`step-pane${step === 'implantDetails' ? ' on' : ''}`} id="pane-3">
+            <h3 style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
+              Implant details
+            </h3>
+            <p style={{ color: 'var(--muted)', fontSize: 13.5, marginBottom: 16, lineHeight: 1.55 }}>
+              Where and when was your device implanted? This helps us verify your record.
+            </p>
+            <form onSubmit={submit}>
+
+              <div id="implant-blocks">
+
+                {/* Primary implant block */}
+                <div className="implant-block">
+                  <div className="implant-block-hd" style={{
+                    fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600,
+                    color: 'var(--accent)', marginBottom: 10,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="9" /><path d="M8 12h8M12 8v8" />
+                    </svg>
+                    Implant 1
+                  </div>
+
+                  <div className="field">
+                    <label>Hospital / clinic where implanted</label>
+                    <input className="input" placeholder="e.g. Royal Melbourne Hospital"
+                      value={hospital} onChange={e => setHospital(e.target.value)} />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div className="field">
+                      <label>Surgeon name (if known)</label>
+                      <input className="input" placeholder="e.g. Dr Sarah Chen"
+                        value={surgeon} onChange={e => setSurgeon(e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>Date of surgery</label>
+                      <input className="input" type="date"
+                        value={surgeryDate} onChange={e => setSurgeryDate(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="field" style={{ marginTop: 4 }}>
+                    <label>Additional information</label>
+                    <textarea className="input" rows={2}
+                      placeholder="Anything else — allergies, previous devices, lead changes…"
+                      value={notes} onChange={e => setNotes(e.target.value)} />
+                  </div>
                 </div>
 
-                <CustomSelect
-                  label="Type of implant"
-                  value={deviceType} onChange={setDeviceType}
-                  options={DEVICE_TYPES}
-                  placeholder="Select device type"
-                />
+                {/* Extra implant blocks */}
+                {extras.map((a, idx) => (
+                  <div key={a.id} className="implant-block">
+                    <div style={{
+                      fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600,
+                      color: 'var(--accent)', marginBottom: 10,
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="9" /><path d="M8 12h8M12 8v8" />
+                        </svg>
+                        Implant {idx + 2}
+                      </span>
+                      <button type="button"
+                        style={{ background: 'none', border: 0, color: 'var(--muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--ff)' }}
+                        onClick={() => removeExtra(a.id)}>
+                        Remove
+                      </button>
+                    </div>
 
-                <ImplantDatePicker
-                  month={implantMonth} year={implantYear}
-                  onMonth={setImplantMonth} onYear={setImplantYear}
-                />
-
-                <div className="field">
-                  <label>Hospital or clinic <span style={{ fontWeight:400,opacity:.6 }}>(optional)</span></label>
-                  <input className="input" type="text"
-                    placeholder="e.g. St Vincent's Hospital, London"
-                    value={hospital} onChange={e => setHospital(e.target.value)} />
-                </div>
-
-                <div className="field">
-                  <label>Implanting surgeon <span style={{ fontWeight:400,opacity:.6 }}>(optional)</span></label>
-                  <input className="input" type="text"
-                    placeholder="e.g. Mr James Holt"
-                    value={surgeon} onChange={e => setSurgeon(e.target.value)} />
-                </div>
-
-                {/* Additional implants */}
-                {additionalImplants.map(a => (
-                  <AdditionalImplantBlock
-                    key={a.id}
-                    implant={a}
-                    onChange={updateImplant}
-                    onRemove={removeImplant}
-                  />
+                    <div className="field">
+                      <label>Hospital / clinic where implanted</label>
+                      <input className="input" placeholder="e.g. Royal Melbourne Hospital"
+                        value={a.hospital} onChange={e => updateExtra(a.id, 'hospital', e.target.value)} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div className="field">
+                        <label>Surgeon name (if known)</label>
+                        <input className="input" placeholder="e.g. Dr Sarah Chen"
+                          value={a.surgeon} onChange={e => updateExtra(a.id, 'surgeon', e.target.value)} />
+                      </div>
+                      <div className="field">
+                        <label>Date of surgery</label>
+                        <input className="input" type="date"
+                          value={a.surgeryDate} onChange={e => updateExtra(a.id, 'surgeryDate', e.target.value)} />
+                      </div>
+                    </div>
+                    <div className="field" style={{ marginTop: 4 }}>
+                      <label>Additional information</label>
+                      <textarea className="input" rows={2}
+                        placeholder="Anything else…"
+                        value={a.notes} onChange={e => updateExtra(a.id, 'notes', e.target.value)} />
+                    </div>
+                  </div>
                 ))}
+              </div>
 
-                <button type="button" onClick={addImplant} className="add-implant-btn">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                  Add another implant
+              <button type="button" className="btn btn-lg btn-block" id="add-implant-btn"
+                onClick={addExtra}
+                style={{ marginTop: 14, textAlign: 'left', borderStyle: 'dashed' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}>
+                  <circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" />
+                </svg>
+                Add another implant
+              </button>
+
+              <div className="dev-warn" style={{ marginTop: 16 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+                <span>
+                  This information is provided by you and will be marked as unverified until
+                  confirmed by your clinic or hospital.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+                <button className="btn btn-lg" type="button"
+                  onClick={() => goStep('implant')} style={{ flex: 0 }}>
+                  ← Back
                 </button>
+                <button className="btn btn-s btn-lg" type="submit"
+                  style={{ flex: 1 }} disabled={loading}>
+                  {loading ? 'Submitting…' : 'Submit & verify'}
+                </button>
+              </div>
+            </form>
+          </div>
 
-                <div className="reg-info-box" style={{ marginTop:16 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ flexShrink:0, marginTop:1 }}>
-                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* STEP 4: Success                                                 */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          <div className={`step-pane${step === 'success' ? ' on' : ''}`} id="pane-4">
+            <div style={{ textAlign: 'center', padding: '20px 0 10px' }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: '50%',
+                background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                color: 'var(--accent)',
+                display: 'grid', placeItems: 'center',
+                margin: '0 auto 20px',
+              }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" strokeWidth="1.7">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: 22, marginBottom: 10, letterSpacing: '-.02em' }}>
+                We're verifying your implant
+              </h3>
+              <p style={{ color: 'var(--muted)', maxWidth: 380, margin: '0 auto 8px', lineHeight: 1.6, fontSize: 14.5 }}>
+                We're contacting your hospital to confirm your implant details.
+                This usually takes 1–2 working days.
+              </p>
+              <p style={{ color: 'var(--muted2)', fontSize: 13, marginBottom: 28 }}>
+                You'll receive an email once your record is verified.
+              </p>
+            </div>
+
+            <div className="summary">
+              <div className="row">
+                <span className="k">Name</span>
+                <span className="v">{firstName} {lastName}</span>
+              </div>
+              <div className="row">
+                <span className="k">Patient ID</span>
+                <span className="v">{iidCode || '—'}</span>
+              </div>
+              <div className="row">
+                <span className="k">Implant</span>
+                <span className="v">{selectedDevice?.device_name || 'Pending verification'}</span>
+              </div>
+              <div className="row">
+                <span className="k">Status</span>
+                <span className="v" style={{ color: 'var(--warn)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
                   </svg>
-                  <span>
-                    Your details will be sent to your clinical team for verification.
-                    They'll contact your hospital before your full record and wallet pass are activated.
-                  </span>
-                </div>
+                  Pending hospital verification
+                </span>
+              </div>
+            </div>
 
-                <div style={{ display:'flex', gap:10, marginTop:20 }}>
-                  <button type="button" className="btn btn-lg" onClick={() => { setStep('details'); clearErr() }}>← Back</button>
-                  <button type="submit" className="btn btn-s btn-lg" style={{ flex:1 }}>Continue →</button>
-                </div>
-              </form>
-            </>
-          )}
+            <a href="/patients/dashboard" className="btn btn-s btn-lg btn-block"
+              style={{ marginTop: 18, marginBottom: 10 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="1.8" style={{ marginRight: 6 }}>
+                <rect x="3" y="6" width="18" height="14" rx="2" /><path d="M3 10h18" />
+              </svg>
+              Add to Apple Wallet
+            </a>
+            <a href="/patients/dashboard" className="btn btn-lg btn-block">
+              Open my record →
+            </a>
+            <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--muted2)', marginTop: 14 }}>
+              Your Wallet pass will update automatically once verified.
+            </p>
+          </div>
 
-          {/* ── Step 3: Emergency contact ──────────────────────────────── */}
-          {step === 'emergency' && (
-            <>
-              <h2 className="reg-h2">Emergency contact</h2>
-              <p className="reg-sub">
-                This person can be contacted in a medical emergency and their details
-                will be visible to clinicians when you share your record.
-              </p>
-              <form onSubmit={goToSummary}>
-                <div className="field">
-                  <label>Full name<span style={{ color:'var(--err)',marginLeft:3 }}>*</span></label>
-                  <input className="input" type="text" placeholder="e.g. Sarah Smith"
-                    value={ecName} onChange={e => setEcName(e.target.value)} />
-                </div>
-
-                <CustomSelect
-                  label="Relationship to you" required
-                  value={ecRelation} onChange={setEcRelation}
-                  options={RELATIONS}
-                  placeholder="Select relationship"
-                />
-
-                <div className="field">
-                  <label>Their phone number<span style={{ color:'var(--err)',marginLeft:3 }}>*</span></label>
-                  <input className="input" type="tel" placeholder="+44 7700 900000"
-                    value={ecPhone} onChange={e => setEcPhone(e.target.value)} />
-                </div>
-
-                <div style={{ display:'flex', gap:10, marginTop:8 }}>
-                  <button type="button" className="btn btn-lg" onClick={() => { setStep('implant'); clearErr() }}>← Back</button>
-                  <button type="submit" className="btn btn-s btn-lg" style={{ flex:1 }}>Continue →</button>
-                </div>
-              </form>
-            </>
-          )}
-
-          {/* ── Step 4: Summary ────────────────────────────────────────── */}
-          {step === 'summary' && (
-            <>
-              <h2 className="reg-h2">Review your record</h2>
-              <p className="reg-sub">
-                Double-check everything before we create your Implant ID.
-                Your name and date of birth cannot be changed later.
-              </p>
-              <form onSubmit={submit}>
-
-                {/* Personal */}
-                <div style={{ marginBottom:20 }}>
-                  <div className="sum-section-header">
-                    <span className="sum-section-label">About you</span>
-                    <button type="button" className="sum-edit-btn" onClick={() => { setStep('details'); clearErr() }}>Edit</button>
-                  </div>
-                  <SumRow label="Name"          value={`${firstName} ${lastName}`} />
-                  <SumRow label="Date of birth" value={dobFormatted} />
-                  <SumRow label="Country"       value={country || undefined} />
-                  <SumRow label="Phone"         value={phone || undefined} />
-                </div>
-
-                {/* Implant */}
-                <div style={{ marginBottom:20 }}>
-                  <div className="sum-section-header">
-                    <span className="sum-section-label">Your implant</span>
-                    <button type="button" className="sum-edit-btn" onClick={() => { setStep('implant'); clearErr() }}>Edit</button>
-                  </div>
-                  <SumRow label="Device"       value={selectedDevice?.device_name || undefined} />
-                  <SumRow label="Manufacturer" value={selectedDevice?.manufacturer || undefined} />
-                  <SumRow label="Type"         value={deviceType || undefined} />
-                  <SumRow label="Date"         value={implantDateFormatted || undefined} />
-                  <SumRow label="Hospital"     value={hospital || undefined} />
-                  <SumRow label="Surgeon"      value={surgeon  || undefined} />
-                  {additionalImplants.length > 0 && (
-                    <SumRow label={`+ ${additionalImplants.length} more`}
-                      value={additionalImplants.map(a => a.deviceName).filter(Boolean).join(', ')} />
-                  )}
-                </div>
-
-                {/* Emergency */}
-                <div style={{ marginBottom:20 }}>
-                  <div className="sum-section-header">
-                    <span className="sum-section-label">Emergency contact</span>
-                    <button type="button" className="sum-edit-btn" onClick={() => { setStep('emergency'); clearErr() }}>Edit</button>
-                  </div>
-                  <SumRow label="Name"         value={ecName} />
-                  <SumRow label="Relationship" value={ecRelation} />
-                  <SumRow label="Phone"        value={ecPhone} />
-                </div>
-
-                {/* Notes */}
-                <div className="field">
-                  <label>Additional notes <span style={{ fontWeight:400,opacity:.6 }}>(optional)</span></label>
-                  <textarea className="input" rows={3}
-                    placeholder="Allergies, blood type, other conditions a clinician should know…"
-                    value={notes} onChange={e => setNotes(e.target.value)} />
-                  <span className="hint">Only visible to clinicians you explicitly share with</span>
-                </div>
-
-                <div style={{ display:'flex', gap:10, marginTop:8 }}>
-                  <button type="button" className="btn btn-lg" onClick={() => { setStep('emergency'); clearErr() }}>← Back</button>
-                  <button type="submit" className="btn btn-s btn-lg" style={{ flex:1 }} disabled={loading}>
-                    {loading ? 'Creating your record…' : 'Create my Implant ID →'}
-                  </button>
-                </div>
-              </form>
-            </>
-          )}
+          <p className="auth-alt">Already have an account? <a href="/login">Log in</a></p>
 
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   )
 }

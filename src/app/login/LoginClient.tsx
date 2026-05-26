@@ -197,6 +197,24 @@ export default function LoginClient() {
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
+  // ── Patient: passkey (Face ID / Touch ID / device PIN) ────────────────────
+
+  async function passkeyLogin() {
+    setLoading(true); setError('')
+    try {
+      // flow:'discoverable' = no email needed — OS presents all passkeys for this domain
+      const { error: pe } = await signIn!.passkey({ flow: 'discoverable' })
+      if (pe) return err(pe.message ?? 'Passkey authentication failed')
+      if (signIn!.status === 'complete') await finalizeAndGo('/patients/dashboard')
+      else err('Could not complete passkey sign-in — please try again')
+    } catch (e: unknown) {
+      const msg = clerkErr(e)
+      // User dismissed the biometric sheet — reset quietly, no error shown
+      if (/cancel|abort|not allowed/i.test(msg)) { setLoading(false); return }
+      err(msg)
+    } finally { setLoading(false) }
+  }
+
   // ── SSO (Google / Microsoft) ───────────────────────────────────────────────
 
   async function ssoLogin(strategy: 'oauth_google' | 'oauth_microsoft') {
@@ -352,9 +370,9 @@ export default function LoginClient() {
                     {loading ? 'Sending…' : 'Send verification code →'}
                   </button>
                   <div className="bio-option">
-                    <button type="button" className="bio-btn" onClick={() => router.push('/patients/dashboard')}>
+                    <button type="button" className="bio-btn" onClick={passkeyLogin} disabled={loading}>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="5" y="2" width="14" height="20" rx="3" /><circle cx="12" cy="15" r="3" /><path d="M12 12v-2" /></svg>
-                      <span>Use Face ID or fingerprint</span>
+                      <span>{loading ? 'Authenticating…' : 'Use Face ID or fingerprint'}</span>
                     </button>
                   </div>
                   <div className="divider">or use email</div>

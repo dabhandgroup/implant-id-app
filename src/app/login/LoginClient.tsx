@@ -4,6 +4,75 @@ import { useSignIn } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { setUserRoleIfNew } from '../actions/setUserRole'
 
+// ── OTP input row ─────────────────────────────────────────────────────────────
+// MUST live at module level — not inside LoginClient.
+// If defined inside LoginClient, React creates a new function reference on every
+// render (triggered by setOtp), treats it as a new component type, unmounts and
+// remounts all inputs, and focus is lost after every keystroke.
+
+interface OtpInputsProps {
+  otp: string[]
+  setOtp: (v: string[]) => void
+  onComplete: (code: string) => void
+}
+
+function OtpInputs({ otp, setOtp, onComplete }: OtpInputsProps) {
+
+  function handleChange(i: number, raw: string) {
+    // Strip non-digits; take only the last character (handles browser autofill)
+    const digit = raw.replace(/\D/g, '').slice(-1)
+    const next  = [...otp]; next[i] = digit; setOtp(next)
+    if (digit && i < 5) {
+      const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
+      inputs[i + 1]?.focus()
+    }
+    if (i === 5 && digit) {
+      const code = [...otp.slice(0, 5), digit].join('')
+      if (code.length === 6) onComplete(code)
+    }
+  }
+
+  function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Backspace' && !otp[i] && i > 0) {
+      const next = [...otp]; next[i - 1] = ''; setOtp(next)
+      const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
+      inputs[i - 1]?.focus()
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    e.preventDefault()
+    const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    if (!digits) return
+    const next = ['', '', '', '', '', '']
+    for (let i = 0; i < digits.length; i++) next[i] = digits[i]
+    setOtp(next)
+    const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
+    inputs[Math.min(digits.length - 1, 5)]?.focus()
+    if (digits.length === 6) onComplete(digits)
+  }
+
+  return (
+    <div className="code-row">
+      {otp.map((v, i) => (
+        <input
+          key={i}
+          maxLength={2}
+          inputMode="numeric"
+          pattern="[0-9]*"
+          autoComplete={i === 0 ? 'one-time-code' : 'off'}
+          className="code-input"
+          value={v}
+          onChange={e => handleChange(i, e.target.value)}
+          onKeyDown={e => handleKeyDown(i, e)}
+          onPaste={handlePaste}
+          onFocus={e => e.target.select()}
+        />
+      ))}
+    </div>
+  )
+}
+
 // ─── country list ────────────────────────────────────────────────────────────
 
 const COUNTRIES = [
@@ -75,9 +144,6 @@ export default function LoginClient() {
 
   function err(msg: string) { setError(msg); setLoading(false) }
   function otpVal() { return otp.join('') }
-
-  // kept for backward compat; OtpInputs now handles everything internally
-  function _unusedOtpInput() { /* replaced by OtpInputs internal handler */ }
 
   // Called after every successful primary factor. If the account has TOTP enabled,
   // Clerk sets status 'needs_second_factor' instead of 'complete' — we intercept
@@ -269,71 +335,6 @@ export default function LoginClient() {
     } catch (e) { err(clerkErr(e)); setLoading(false) }
   }
 
-  // ── shared OTP input row ───────────────────────────────────────────────────
-  // onComplete receives the full 6-digit string — called on paste OR when the
-  // last digit is typed, so users never have to click Verify manually.
-
-  function OtpInputs({ onComplete }: { onComplete: (code: string) => void }) {
-
-    function handleChange(i: number, val: string) {
-      const digit = val.slice(-1)
-      const next  = [...otp]; next[i] = digit; setOtp(next)
-      // Advance focus to next box while typing
-      if (digit && i < 5) {
-        const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
-        inputs[i + 1]?.focus()
-      }
-      // Auto-submit when the last box is filled by typing
-      if (i === 5 && digit) {
-        const code = [...otp.slice(0, 5), digit].join('')
-        if (code.length === 6) onComplete(code)
-      }
-    }
-
-    function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
-      e.preventDefault()
-      // Strip non-digits, take first 6
-      const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-      if (!digits) return
-      // Spread across all boxes
-      const next = ['', '', '', '', '', '']
-      for (let i = 0; i < digits.length; i++) next[i] = digits[i]
-      setOtp(next)
-      // Focus the last filled box
-      const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
-      inputs[Math.min(digits.length - 1, 5)]?.focus()
-      // Auto-submit if we got a full code
-      if (digits.length === 6) onComplete(digits)
-    }
-
-    function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
-      // Backspace on empty box — jump back
-      if (e.key === 'Backspace' && !otp[i] && i > 0) {
-        const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
-        inputs[i - 1]?.focus()
-      }
-    }
-
-    return (
-      <div className="code-row">
-        {otp.map((v, i) => (
-          <input
-            key={i}
-            maxLength={1}
-            inputMode="numeric"
-            pattern="[0-9]*"
-            className="code-input"
-            value={v}
-            onChange={e => handleChange(i, e.target.value)}
-            onPaste={handlePaste}
-            onKeyDown={e => handleKeyDown(i, e)}
-            onFocus={e => e.target.select()}
-          />
-        ))}
-      </div>
-    )
-  }
-
   // ── render ─────────────────────────────────────────────────────────────────
 
   const filteredCountries = COUNTRIES.filter(c =>
@@ -428,7 +429,7 @@ export default function LoginClient() {
                   <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 18, lineHeight: 1.55 }}>
                     We've sent a 6-digit code to your phone. Enter it below.
                   </p>
-                  <OtpInputs onComplete={verifyPhoneOtp} />
+                  <OtpInputs otp={otp} setOtp={setOtp} onComplete={verifyPhoneOtp} />
                   <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '16px 0' }}>
                     Didn't get it? <button type="button" className="link-btn" onClick={sendPhoneOtp}>Resend code</button>
                   </p>
@@ -470,7 +471,7 @@ export default function LoginClient() {
                   <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 18, lineHeight: 1.55 }}>
                     We've sent a 6-digit code to <strong>{ptEmail}</strong>. Enter it below.
                   </p>
-                  <OtpInputs onComplete={verifyPatientEmailOtp} />
+                  <OtpInputs otp={otp} setOtp={setOtp} onComplete={verifyPatientEmailOtp} />
                   <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '16px 0' }}>
                     Didn't get it? <button type="button" className="link-btn" onClick={sendPatientEmailOtp}>Resend code</button>
                   </p>
@@ -531,7 +532,7 @@ export default function LoginClient() {
                       <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Open your authenticator app for the code</div>
                     </div>
                   </div>
-                  <OtpInputs onComplete={verifyMfaTotp} />
+                  <OtpInputs otp={otp} setOtp={setOtp} onComplete={verifyMfaTotp} />
                   <button type="button" className="btn btn-s btn-lg btn-block" onClick={() => verifyMfaTotp()} disabled={loading || otpVal().length < 6} style={{ marginBottom:10, marginTop:16 }}>
                     {loading ? 'Verifying…' : 'Verify →'}
                   </button>
@@ -587,7 +588,7 @@ export default function LoginClient() {
                   <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 18, lineHeight: 1.55 }}>
                     We've sent a 6-digit verification code to your email.
                   </p>
-                  <OtpInputs onComplete={verifyClinicOtp} />
+                  <OtpInputs otp={otp} setOtp={setOtp} onComplete={verifyClinicOtp} />
                   <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '16px 0' }}>
                     Didn't get it? <button type="button" className="link-btn" onClick={sendClinicOtp}>Resend code</button>
                   </p>
@@ -647,7 +648,7 @@ export default function LoginClient() {
                       <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Open your authenticator app for the code</div>
                     </div>
                   </div>
-                  <OtpInputs onComplete={verifyMfaTotp} />
+                  <OtpInputs otp={otp} setOtp={setOtp} onComplete={verifyMfaTotp} />
                   <button type="button" className="btn btn-s btn-lg btn-block" onClick={() => verifyMfaTotp()} disabled={loading || otpVal().length < 6} style={{ marginBottom:10, marginTop:16 }}>
                     {loading ? 'Verifying…' : 'Verify →'}
                   </button>

@@ -1,10 +1,8 @@
-import nextDynamic from 'next/dynamic'
+import SSOCallbackClient from './SSOCallbackClient'
 
-// Prevent static pre-rendering — Clerk OAuth callback requires runtime context
+// Prevent static pre-rendering — Clerk OAuth callback requires runtime context.
+// force-dynamic stops build-time pre-render; ClerkProvider is present at request time.
 export const dynamic = 'force-dynamic'
-
-// Skip SSR entirely — AuthenticateWithRedirectCallback must run in the browser
-const SSOCallbackClient = nextDynamic(() => import('./SSOCallbackClient'), { ssr: false })
 
 // Clerk redirects back here after Google/Microsoft OAuth.
 // SSOCallbackClient completes the flow, then redirects to

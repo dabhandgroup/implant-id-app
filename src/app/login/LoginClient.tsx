@@ -30,8 +30,8 @@ const COUNTRIES = [
 ]
 
 type Tab          = 'patient' | 'clinic'
-type PatientPhase = 'phone' | 'phone-otp' | 'email' | 'email-otp' | 'email-pw'
-type ClinicPhase  = 'email' | 'email-otp' | 'password'
+type PatientPhase = 'phone' | 'phone-otp' | 'email' | 'email-otp' | 'email-pw' | 'mfa-totp'
+type ClinicPhase  = 'email' | 'email-otp' | 'password' | 'mfa-totp'
 
 // ─── component ───────────────────────────────────────────────────────────────
 
@@ -68,6 +68,10 @@ export default function LoginClient() {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
+  // MFA — TOTP second factor
+  const [mfaCode,    setMfaCode]    = useState('')
+  const [mfaDest,    setMfaDest]    = useState('')   // remembered so verify can redirect
+
   // ── helpers ────────────────────────────────────────────────────────────────
 
   function err(msg: string) { setError(msg); setLoading(false) }
@@ -76,13 +80,40 @@ export default function LoginClient() {
   // kept for backward compat; OtpInputs now handles everything internally
   function _unusedOtpInput() { /* replaced by OtpInputs internal handler */ }
 
+  // Called after every successful primary factor. If the account has TOTP enabled,
+  // Clerk sets status 'needs_second_factor' instead of 'complete' — we intercept
+  // that and show the TOTP screen. Otherwise we finalize and navigate as normal.
   async function finalizeAndGo(dest: string) {
+    if (signIn!.status === 'needs_second_factor') {
+      setMfaDest(dest)
+      setMfaCode('')
+      setError('')
+      if (tab === 'patient') setPatPhase('mfa-totp')
+      else setClPhase('mfa-totp')
+      setLoading(false)
+      return
+    }
     const { error: fe } = await signIn!.finalize()
     if (fe) return err(fe.message ?? 'Could not complete sign-in')
     // Stamp the role onto Clerk publicMetadata (no-op for existing users)
     const role = tab === 'patient' ? 'patient' : 'clinic_staff'
     await setUserRoleIfNew(role).catch(() => { /* non-fatal */ })
     router.push(dest)
+  }
+
+  async function verifyMfaTotp(code?: string) {
+    const c = code ?? mfaCode
+    if (c.length < 6) return err('Enter the 6-digit code from your authenticator app')
+    setLoading(true); setError('')
+    try {
+      const { error: ve } = await signIn!.mfa.verifyTOTP({ code: c })
+      if (ve) return err(ve.message ?? 'Incorrect code — try again')
+      const { error: fe } = await signIn!.finalize()
+      if (fe) return err(fe.message ?? 'Could not complete sign-in')
+      const role = tab === 'patient' ? 'patient' : 'clinic_staff'
+      await setUserRoleIfNew(role).catch(() => { /* non-fatal */ })
+      router.push(mfaDest)
+    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
   function clerkErr(e: unknown) {
@@ -479,6 +510,44 @@ export default function LoginClient() {
                   </button>
                 </div>
               )}
+
+              {/* MFA — TOTP second factor (only shown when account has 2FA enabled) */}
+              {patPhase === 'mfa-totp' && (
+                <div className="tab-view active">
+                  <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+                    <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:'color-mix(in srgb,var(--accent) 10%,transparent)', display:'grid', placeItems:'center' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.2" fill="var(--accent)" stroke="none"/></svg>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:15, color:'var(--text)', lineHeight:1.2 }}>Two-factor authentication</div>
+                      <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Open your authenticator app for the code</div>
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label>6-digit code</label>
+                    <input
+                      className="input"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="000000"
+                      value={mfaCode}
+                      autoFocus
+                      onChange={e => {
+                        const v = e.target.value.replace(/\D/g,'').slice(0,6)
+                        setMfaCode(v)
+                        if (v.length === 6) verifyMfaTotp(v)
+                      }}
+                      style={{ fontFamily:'var(--ff)', letterSpacing:'0.2em', fontSize:20, textAlign:'center' }}
+                    />
+                  </div>
+                  <button type="button" className="btn btn-s btn-lg btn-block" onClick={() => verifyMfaTotp()} disabled={loading || mfaCode.length < 6} style={{ marginBottom:10 }}>
+                    {loading ? 'Verifying…' : 'Verify →'}
+                  </button>
+                  <button type="button" className="link-btn" style={{ display:'block', textAlign:'center', width:'100%' }} onClick={() => { setPatPhase('phone'); setError(''); setMfaCode('') }}>
+                    ← Start over
+                  </button>
+                </div>
+              )}
             </>
           )}
 
@@ -564,6 +633,44 @@ export default function LoginClient() {
                   </form>
                   <button type="button" className="link-btn" style={{ display: 'block', textAlign: 'center', marginTop: 14, width: '100%' }} onClick={() => { setClPhase('email'); setError('') }}>
                     ← Back to email verification
+                  </button>
+                </div>
+              )}
+
+              {/* MFA — TOTP second factor */}
+              {clPhase === 'mfa-totp' && (
+                <div className="tab-view active">
+                  <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+                    <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:'color-mix(in srgb,var(--accent) 10%,transparent)', display:'grid', placeItems:'center' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.2" fill="var(--accent)" stroke="none"/></svg>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:15, color:'var(--text)', lineHeight:1.2 }}>Two-factor authentication</div>
+                      <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Open your authenticator app for the code</div>
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label>6-digit code</label>
+                    <input
+                      className="input"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="000000"
+                      value={mfaCode}
+                      autoFocus
+                      onChange={e => {
+                        const v = e.target.value.replace(/\D/g,'').slice(0,6)
+                        setMfaCode(v)
+                        if (v.length === 6) verifyMfaTotp(v)
+                      }}
+                      style={{ fontFamily:'var(--ff)', letterSpacing:'0.2em', fontSize:20, textAlign:'center' }}
+                    />
+                  </div>
+                  <button type="button" className="btn btn-s btn-lg btn-block" onClick={() => verifyMfaTotp()} disabled={loading || mfaCode.length < 6} style={{ marginBottom:10 }}>
+                    {loading ? 'Verifying…' : 'Verify →'}
+                  </button>
+                  <button type="button" className="link-btn" style={{ display:'block', textAlign:'center', width:'100%' }} onClick={() => { setClPhase('email'); setError(''); setMfaCode('') }}>
+                    ← Start over
                   </button>
                 </div>
               )}

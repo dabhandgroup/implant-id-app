@@ -230,6 +230,12 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-link.active{background:var(--text);color:var(--bg)}
 .sb-link svg{width:17px;height:17px;opacity:.75;flex-shrink:0}
 .sb-link.active svg{opacity:1}
+/* Locked sidebar links */
+.sb-link--locked{cursor:default;opacity:.55}
+.sb-link--locked:hover{background:transparent!important;color:var(--muted)!important}
+.sb-lock{width:13px!important;height:13px!important;flex-shrink:0;opacity:.5;overflow:hidden;max-width:20px;transition:max-width .3s cubic-bezier(.4,0,.2,1),opacity .18s ease-out,margin .3s}
+/* Hide the lock badge when rail is collapsed (icon only) — reappears on hover */
+.app.collapsed .sidebar:not(:hover) .sb-lock{max-width:0;opacity:0;margin-left:-4px}
 .sb-bot{margin-top:auto;padding:16px 10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
 .sb-bot{cursor:pointer;padding:10px;border-radius:10px;transition:background .15s, padding .3s cubic-bezier(.4,0,.2,1), gap .3s cubic-bezier(.4,0,.2,1);margin-top:auto;margin-bottom:4px;border:1px solid transparent;position:relative}
 .sb-bot:hover{background:color-mix(in srgb,var(--text) 4%,transparent);border-color:var(--border)}

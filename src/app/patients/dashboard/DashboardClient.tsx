@@ -110,9 +110,12 @@ export default function DashboardClient() {
   }, [])
 
   // Redirect to registration if no patient record
+  // Only redirect to register when genuinely logged-in with no patient record.
+  // Do NOT redirect during logout — Convex returns null as the session clears,
+  // which would race against signOut's own redirectUrl and flash /patients/register.
   useEffect(() => {
-    if (patient === null) router.replace('/patients/register')
-  }, [patient, router])
+    if (patient === null && isLoaded && user) router.replace('/patients/register')
+  }, [patient, router, isLoaded, user])
 
   // Confetti on first visit after registration
   useEffect(() => {

@@ -405,6 +405,65 @@
 .summary .k { color: var(--muted); font-family: var(--ff); font-size: 13px; }
 .summary .v { font-family: var(--ff); font-weight: 500; }
 
+/* ── Step typography helpers ─────────────────────────────────────────────── */
+
+.step-title {
+  font-family: var(--ff);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.step-sub {
+  color: var(--muted);
+  font-size: 13.5px;
+  margin-bottom: 20px;
+  line-height: 1.55;
+}
+
+/* ── Required asterisk & field hint ──────────────────────────────────────── */
+
+.req {
+  color: var(--accent);
+  font-weight: 700;
+}
+.field-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--muted2);
+  margin-top: 5px;
+}
+
+/* ── Resend row + link button ────────────────────────────────────────────── */
+
+.resend-row {
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+  margin: 16px 0 20px;
+}
+.link-btn {
+  background: none;
+  border: 0;
+  color: var(--accent);
+  font-weight: 600;
+  font-family: var(--ff);
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.link-btn:hover { text-decoration: underline; }
+
+/* ── Date of birth picker row ────────────────────────────────────────────── */
+
+.dob-row {
+  display: flex;
+  gap: 6px;
+}
+.dob-row .custom-select-btn {
+  padding: 10px 10px;
+  font-size: 13.5px;
+}
+
 /* ── OTP code inputs ─────────────────────────────────────────────────────── */
 
 .code-row {

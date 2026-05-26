@@ -1,16 +1,16 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useUser, useSignUp }  from '@clerk/nextjs'
-import { useMutation, useQuery } from 'convex/react'
-import { api }                 from '../../../../convex/_generated/api'
-import { useRouter }           from 'next/navigation'
-import { ALL_DEVICES, MANUFACTURERS } from '@/data/devices'
-import { setUserRoleIfNew }    from '../../actions/setUserRole'
+import { useUser, useSignUp }           from '@clerk/nextjs'
+import { useMutation, useQuery }        from 'convex/react'
+import { api }                          from '../../../../convex/_generated/api'
+import { useRouter }                    from 'next/navigation'
+import { ALL_DEVICES, MANUFACTURERS }   from '@/data/devices'
+import { setUserRoleIfNew }             from '../../actions/setUserRole'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Step = 'details' | 'verify' | 'implant' | 'implantDetails' | 'success'
-const STEPS: Step[] = ['details', 'verify', 'implant', 'implantDetails', 'success']
+type Step = 'details' | 'verifyEmail' | 'verifyPhone' | 'implant' | 'summary'
+const STEPS: Step[] = ['details', 'verifyEmail', 'verifyPhone', 'implant', 'summary']
 
 interface SelectedDevice {
   device_id:    string
@@ -20,15 +20,9 @@ interface SelectedDevice {
   device_type:  string
 }
 
-interface ExtraImplant {
-  id:          string
-  hospital:    string
-  surgeon:     string
-  surgeryDate: string
-  notes:       string
-}
+interface SelectOption { value: string; label: string; icon?: string }
 
-// ── Data ──────────────────────────────────────────────────────────────────────
+// ── Static data ───────────────────────────────────────────────────────────────
 
 const PHONE_COUNTRIES = [
   { flag: '🇬🇧', dial: '+44',  placeholder: '7700 900123',    name: 'United Kingdom' },
@@ -67,17 +61,194 @@ const BIRTH_COUNTRIES = [
   { flag: '🇵🇰', name: 'Pakistan' },
 ]
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+const MONTHS: SelectOption[] = [
+  { value: '01', label: 'January' },  { value: '02', label: 'February' },
+  { value: '03', label: 'March' },    { value: '04', label: 'April' },
+  { value: '05', label: 'May' },      { value: '06', label: 'June' },
+  { value: '07', label: 'July' },     { value: '08', label: 'August' },
+  { value: '09', label: 'September' },{ value: '10', label: 'October' },
+  { value: '11', label: 'November' }, { value: '12', label: 'December' },
+]
 
-function uid() { return Math.random().toString(36).slice(2) }
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getMfrName(mfrId: string) {
   return MANUFACTURERS.find(m => m.manufacturer_id === mfrId)?.common_name ?? mfrId
 }
 
-function clerkErr(e: unknown) {
-  return (e as { errors?: { message?: string }[] })?.errors?.[0]?.message
-    ?? (e instanceof Error ? e.message : 'Something went wrong — please try again')
+function clerkErr(e: unknown): string {
+  const errs = (e as { errors?: { longMessage?: string; message?: string }[] })?.errors
+  if (errs?.[0]) return errs[0].longMessage || errs[0].message || 'Something went wrong'
+  return e instanceof Error ? e.message : 'Something went wrong — please try again'
+}
+
+// ── Generic custom dropdown ───────────────────────────────────────────────────
+
+function CompactSelect({
+  options, value, placeholder, onChange, searchable, style,
+}: {
+  options:     SelectOption[]
+  value:       string
+  placeholder: string
+  onChange:    (v: string) => void
+  searchable?: boolean
+  style?:      React.CSSProperties
+}) {
+  const [open,   setOpen]   = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  const selected = options.find(o => o.value === value)
+  const filtered = searchable && search.trim()
+    ? options.filter(o =>
+        o.label.toLowerCase().includes(search.toLowerCase()) ||
+        o.value.includes(search))
+    : options
+
+  useEffect(() => {
+    if (!open) return
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  return (
+    <div className={`custom-select${open ? ' open' : ''}`} ref={ref} style={style}>
+      <button type="button" className="custom-select-btn" onClick={() => setOpen(o => !o)}>
+        <span className="custom-select-val"
+          style={{ color: value ? 'var(--text)' : 'var(--muted2)' }}>
+          {selected?.icon && <span style={{ marginRight: 6 }}>{selected.icon}</span>}
+          {selected?.label ?? placeholder}
+        </span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <div className="custom-select-dd">
+        {searchable && (
+          <div className="custom-select-search">
+            <input
+              placeholder="Search…" value={search}
+              onChange={e => setSearch(e.target.value)}
+              autoFocus
+            />
+          </div>
+        )}
+        <div className="custom-select-list">
+          {filtered.map(o => (
+            <button key={o.value} type="button"
+              onClick={() => { onChange(o.value); setOpen(false); setSearch('') }}>
+              {o.icon && <span style={{ marginRight: 8 }}>{o.icon}</span>}
+              {o.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Date-of-birth picker (day / month / year) ─────────────────────────────────
+
+function DobPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const parts  = value ? value.split('-') : ['', '', '']
+  const [yr,  setYr]  = useState(parts[0] || '')
+  const [mo,  setMo]  = useState(parts[1] || '')
+  const [day, setDay] = useState(parts[2] || '')
+
+  const CURRENT_YEAR = new Date().getFullYear()
+  const years: SelectOption[] = Array.from({ length: 110 }, (_, i) => {
+    const y = String(CURRENT_YEAR - 10 - i)
+    return { value: y, label: y }
+  })
+
+  function daysInMonth(m: string, y: string) {
+    if (!m || !y) return 31
+    return new Date(parseInt(y), parseInt(m), 0).getDate()
+  }
+
+  function dayOptions(m: string, y: string): SelectOption[] {
+    return Array.from({ length: daysInMonth(m, y) }, (_, i) => {
+      const d = String(i + 1).padStart(2, '0')
+      return { value: d, label: String(i + 1) }
+    })
+  }
+
+  function commit(d: string, m: string, y: string) {
+    if (!d || !m || !y) { onChange(''); return }
+    const max     = daysInMonth(m, y)
+    const clamped = String(Math.min(parseInt(d), max)).padStart(2, '0')
+    onChange(`${y}-${m}-${clamped}`)
+  }
+
+  return (
+    <div className="dob-row">
+      <CompactSelect
+        style={{ flex: '0 0 78px', minWidth: 0 }}
+        options={dayOptions(mo, yr)}
+        value={day}
+        placeholder="Day"
+        onChange={d => { setDay(d); commit(d, mo, yr) }}
+      />
+      <CompactSelect
+        style={{ flex: '1', minWidth: 0 }}
+        options={MONTHS}
+        value={mo}
+        placeholder="Month"
+        onChange={m => {
+          setMo(m)
+          const max = daysInMonth(m, yr || '2000')
+          const d2  = day ? String(Math.min(parseInt(day), max)).padStart(2, '0') : ''
+          setDay(d2)
+          commit(d2 || day, m, yr)
+        }}
+      />
+      <CompactSelect
+        style={{ flex: '0 0 90px', minWidth: 0 }}
+        options={years}
+        value={yr}
+        placeholder="Year"
+        onChange={y => { setYr(y); commit(day, mo, y) }}
+        searchable
+      />
+    </div>
+  )
+}
+
+// ── Surgery date picker (month + year only) ───────────────────────────────────
+
+function SurgeryDatePicker({ month, year, onMonthChange, onYearChange }: {
+  month: string; year: string
+  onMonthChange: (m: string) => void
+  onYearChange:  (y: string) => void
+}) {
+  const CURRENT_YEAR = new Date().getFullYear()
+  const years: SelectOption[] = Array.from({ length: 60 }, (_, i) => {
+    const y = String(CURRENT_YEAR - i)
+    return { value: y, label: y }
+  })
+
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      <CompactSelect
+        style={{ flex: 1 }}
+        options={MONTHS}
+        value={month}
+        placeholder="Month"
+        onChange={onMonthChange}
+      />
+      <CompactSelect
+        style={{ flex: '0 0 96px' }}
+        options={years}
+        value={year}
+        placeholder="Year"
+        onChange={onYearChange}
+      />
+    </div>
+  )
 }
 
 // ── Phone country picker ──────────────────────────────────────────────────────
@@ -100,11 +271,11 @@ function PhonePicker({
 
   useEffect(() => {
     if (!open) return
-    function handler(e: MouseEvent) {
+    function h(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [open])
 
   return (
@@ -112,17 +283,23 @@ function PhonePicker({
       <button type="button" className="phone-code" onClick={() => setOpen(o => !o)}>
         <span className="flag-circle">{flag}</span>
         <span className="dial">{dial}</span>
-        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="3">
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-      <input className="input" type="tel" placeholder={placeholder} value={phoneNum}
-        onChange={e => onPhoneChange(e.target.value)} style={{ flex: 1 }} />
+      <input
+        className="input" type="tel" placeholder={placeholder}
+        value={phoneNum} onChange={e => onPhoneChange(e.target.value)}
+        style={{ flex: 1 }}
+      />
       {open && (
         <div className="phone-dd open">
           <div className="phone-dd-search">
-            <input placeholder="Search countries…" value={search}
-              onChange={e => setSearch(e.target.value)} autoFocus />
+            <input
+              placeholder="Search countries…" value={search}
+              onChange={e => setSearch(e.target.value)} autoFocus
+            />
           </div>
           <div className="phone-dd-list">
             {filtered.map(c => (
@@ -148,64 +325,32 @@ function CountrySelect({
   flag: string; country: string
   onChange: (flag: string, name: string) => void
 }) {
-  const [open,   setOpen]   = useState(false)
-  const [search, setSearch] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
-
-  const filtered = BIRTH_COUNTRIES.filter(c =>
-    !search || c.name.toLowerCase().includes(search.toLowerCase())
-  )
-
-  useEffect(() => {
-    if (!open) return
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+  const options: SelectOption[] = BIRTH_COUNTRIES.map(c => ({
+    value: c.name,
+    label: c.name,
+    icon:  c.flag,
+  }))
 
   return (
-    <div className={`custom-select${open ? ' open' : ''}`} ref={ref}>
-      <button type="button" className="custom-select-btn" onClick={() => setOpen(o => !o)}>
-        <span className="custom-select-val">
-          {flag
-            ? <><span className="flag-circle" style={{ width: 18, height: 18, fontSize: 12 }}>{flag}</span> {country}</>
-            : <span style={{ color: 'var(--muted2)' }}>Select country</span>
-          }
-        </span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-      <div className="custom-select-dd">
-        <div className="custom-select-search">
-          <input placeholder="Search countries…" value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <div className="custom-select-list">
-          {filtered.map(c => (
-            <button key={c.name} type="button"
-              onClick={() => { onChange(c.flag, c.name); setOpen(false); setSearch('') }}>
-              <span className="flag-circle">{c.flag}</span>
-              {c.name}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
+    <CompactSelect
+      options={options}
+      value={country}
+      placeholder="Select country"
+      onChange={v => {
+        const c = BIRTH_COUNTRIES.find(x => x.name === v)
+        onChange(c?.flag ?? '', v)
+      }}
+      searchable
+    />
   )
 }
 
 // ── Device search ─────────────────────────────────────────────────────────────
 
 function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => void }) {
-  const [query,      setQuery]      = useState('')
-  const [open,       setOpen]       = useState(false)
-  const [selected,   setSelected]   = useState<SelectedDevice | null>(null)
-  const [showManual, setShowManual] = useState(false)
-  const [manualMfr,  setManualMfr]  = useState('')
-  const [manualName, setManualName] = useState('')
-  const [manualMdl,  setManualMdl]  = useState('')
+  const [query,    setQuery]    = useState('')
+  const [open,     setOpen]     = useState(false)
+  const [selected, setSelected] = useState<SelectedDevice | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
   const results = query.trim().length >= 2
@@ -219,11 +364,11 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
 
   useEffect(() => {
     if (!open) return
-    function handler(e: MouseEvent) {
+    function h(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [open])
 
   function pick(d: typeof ALL_DEVICES[0]) {
@@ -238,98 +383,99 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
     onSelect(sel)
   }
 
-  function clearDevice() { setSelected(null); onSelect(null) }
-
-  function notifyManual(mfr: string, name: string, mdl: string) {
-    if (name.trim() || mfr.trim()) {
-      onSelect({ device_id: '', device_name: name.trim() || mfr.trim(), manufacturer: mfr.trim(), model_number: mdl.trim(), device_type: '' })
-    }
-  }
+  function clear() { setSelected(null); onSelect(null) }
 
   return (
     <div ref={ref}>
-      <div className="dev-search-wrap">
-        <div className="dev-search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
-          </svg>
-          <input id="dev-q" className="input" placeholder="Search by device name or model number"
-            autoComplete="off" value={query}
-            onChange={e => { setQuery(e.target.value); setOpen(true) }}
-            onFocus={() => setOpen(true)}
-            style={{ border: 0, padding: '11px 0', boxShadow: 'none' }} />
-        </div>
-        {open && results.length > 0 && (
-          <div className="dev-results on">
-            {results.map(d => (
-              <a key={d.device_id} href="#" onClick={e => { e.preventDefault(); pick(d) }}>
-                <div>
-                  <div className="nm">{d.device_name}</div>
-                  <div className="mn">{getMfrName(d.manufacturer_id)} · {d.model_number} · {d.device_type}</div>
-                </div>
-              </a>
-            ))}
+      {!selected ? (
+        <div className="dev-search-wrap">
+          <div className="dev-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              className="input"
+              placeholder="Search by device name or model number"
+              autoComplete="off"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setOpen(true) }}
+              onFocus={() => setOpen(true)}
+              style={{ border: 0, padding: '11px 0', boxShadow: 'none' }}
+            />
           </div>
-        )}
-      </div>
-
-      {selected && (
-        <div className="dev-selected" style={{ marginTop: 10 }}>
-          <div className="dev-sel-card">
-            <div className="dev-sel-info">
-              <div className="nm">{selected.device_name}</div>
-              <div className="mn">{selected.manufacturer}{selected.model_number ? ` · ${selected.model_number}` : ''}</div>
+          {open && results.length > 0 && (
+            <div className="dev-results on">
+              {results.map(d => (
+                <a key={d.device_id} href="#"
+                  onClick={e => { e.preventDefault(); pick(d) }}>
+                  <div>
+                    <div className="nm">{d.device_name}</div>
+                    <div className="mn">
+                      {getMfrName(d.manufacturer_id)} · {d.model_number} · {d.device_type}
+                    </div>
+                  </div>
+                </a>
+              ))}
             </div>
-            <button className="dev-sel-x" type="button" onClick={clearDevice} title="Remove">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
+          )}
+        </div>
+      ) : (
+        <div className="dev-sel-card">
+          <div className="dev-sel-info">
+            <div className="nm">{selected.device_name}</div>
+            <div className="mn">
+              {selected.manufacturer}
+              {selected.model_number ? ` · ${selected.model_number}` : ''}
+            </div>
           </div>
+          <button className="dev-sel-x" type="button" onClick={clear} title="Change device">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
 
-      <div className="dev-warn" style={{ marginTop: 12 }}>
+      <div className="dev-warn" style={{ marginTop: 10 }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
           <circle cx="12" cy="12" r="9" /><path d="M12 7v5M12 16h.01" />
         </svg>
-        <span>Your device selection will be verified before your record is marked as confirmed. If you're unsure, select the closest match — your clinic can correct it.</span>
+        <span>
+          Your selection will be verified before your record is confirmed.
+          If you're unsure, pick the closest match — your clinic can correct it.
+        </span>
       </div>
+    </div>
+  )
+}
 
-      <div className="field" style={{ marginTop: 16 }}>
-        <label>Don't know your device?</label>
-        {!showManual ? (
-          <button className="btn btn-lg btn-block" type="button" onClick={() => setShowManual(true)} style={{ textAlign: 'left' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ marginRight: 6 }}>
-              <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-            </svg>
-            Enter details manually
-          </button>
-        ) : (
-          <div style={{ marginTop: 4 }}>
-            <div className="field">
-              <label>Implant manufacturer</label>
-              <input className="input" placeholder="e.g. Medtronic, Boston Scientific, Abbott"
-                value={manualMfr}
-                onChange={e => { setManualMfr(e.target.value); notifyManual(e.target.value, manualName, manualMdl) }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 12 }}>
-              <div className="field">
-                <label>Device name</label>
-                <input className="input" placeholder="e.g. Azure XT DR"
-                  value={manualName}
-                  onChange={e => { setManualName(e.target.value); notifyManual(manualMfr, e.target.value, manualMdl) }} />
-              </div>
-              <div className="field">
-                <label>Model number (if known)</label>
-                <input className="input" placeholder="e.g. W3DR01"
-                  value={manualMdl}
-                  onChange={e => { setManualMdl(e.target.value); notifyManual(manualMfr, manualName, e.target.value) }} />
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+// ── OTP input row ─────────────────────────────────────────────────────────────
+
+function OtpRow({
+  otp, refs, onChange, onKeyDown, onPaste,
+}: {
+  otp:      string[]
+  refs:     React.MutableRefObject<(HTMLInputElement | null)[]>
+  onChange: (idx: number, val: string) => void
+  onKeyDown:(idx: number, e: React.KeyboardEvent<HTMLInputElement>) => void
+  onPaste:  (e: React.ClipboardEvent) => void
+}) {
+  return (
+    <div className="code-row" onPaste={onPaste}>
+      {otp.map((digit, i) => (
+        <input
+          key={i}
+          ref={el => { refs.current[i] = el }}
+          maxLength={1}
+          className="code-input"
+          value={digit}
+          inputMode="numeric"
+          onChange={e => onChange(i, e.target.value)}
+          onKeyDown={e => onKeyDown(i, e)}
+          onFocus={e => e.target.select()}
+        />
+      ))}
     </div>
   )
 }
@@ -338,16 +484,16 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
 
 export default function RegisterClient() {
   const { isLoaded, isSignedIn, user } = useUser()
-  const { signUp }      = useSignUp()
-  const createPatient   = useMutation(api.patients.createPatient)
-  const router          = useRouter()
-  const existingPatient = useQuery(api.patients.getMyPatient)  // returns null if unauthed
+  const { signUp }    = useSignUp()
+  const createPatient = useMutation(api.patients.createPatient)
+  const router        = useRouter()
+  const existingPatient = useQuery(api.patients.getMyPatient)
 
-  // Step state
-  const [step,    setStep]    = useState<Step>('details')
+  // ── Step ──────────────────────────────────────────────────────────────────
+  const [step, setStep] = useState<Step>('details')
   const stepIdx = STEPS.indexOf(step)
 
-  // Step 1: personal details + Clerk sign-up
+  // ── Step 1: personal details ──────────────────────────────────────────────
   const [firstName,   setFirstName]   = useState('')
   const [lastName,    setLastName]    = useState('')
   const [dob,         setDob]         = useState('')
@@ -359,38 +505,43 @@ export default function RegisterClient() {
   const [phonePH,     setPhonePH]     = useState('7700 900123')
   const [phoneNum,    setPhoneNum]    = useState('')
 
-  // Step 2: OTP verification
-  const [otp, setOtp] = useState(['', '', '', '', '', ''])
-  const codeRefs = useRef<(HTMLInputElement | null)[]>([])
+  // ── Step 2: email OTP ─────────────────────────────────────────────────────
+  const [emailOtp,  setEmailOtp]  = useState(['', '', '', '', '', ''])
+  const emailRefs = useRef<(HTMLInputElement | null)[]>([])
 
-  // Steps 3–4: implant data
+  // ── Step 3: phone OTP ─────────────────────────────────────────────────────
+  const [phoneOtp,  setPhoneOtp]  = useState(['', '', '', '', '', ''])
+  const phoneRefs = useRef<(HTMLInputElement | null)[]>([])
+
+  // ── Step 4: implant details ───────────────────────────────────────────────
   const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null)
-  const [hospital,     setHospital]     = useState('')
-  const [surgeon,      setSurgeon]      = useState('')
-  const [surgeryDate,  setSurgeryDate]  = useState('')
-  const [notes,        setNotes]        = useState('')
-  const [extras,       setExtras]       = useState<ExtraImplant[]>([])
+  const [hospital,      setHospital]      = useState('')
+  const [surgeon,       setSurgeon]       = useState('')
+  const [surgeryMonth,  setSurgeryMonth]  = useState('')
+  const [surgeryYear,   setSurgeryYear]   = useState('')
 
-  // Step 5: success data
+  // ── Step 5: summary ───────────────────────────────────────────────────────
+  const [notes,   setNotes]   = useState('')
   const [iidCode, setIidCode] = useState('')
 
-  // UI
+  // ── UI ────────────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
-  // If user lands already signed in, jump past auth steps
+  // If already signed in, jump past auth steps
   useEffect(() => {
-    if (isLoaded && isSignedIn && (step === 'details' || step === 'verify')) {
+    if (isLoaded && isSignedIn && (step === 'details' || step === 'verifyEmail' || step === 'verifyPhone')) {
       setStep('implant')
     }
-  }, [isLoaded, isSignedIn]) // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn])
 
   // If already has patient profile, redirect to dashboard
   useEffect(() => {
     if (existingPatient) router.replace('/patients/dashboard')
   }, [existingPatient, router])
 
-  // Pre-fill name from Clerk if already signed in
+  // Pre-fill from existing Clerk session
   useEffect(() => {
     if (user?.firstName && !firstName) setFirstName(user.firstName)
     if (user?.lastName  && !lastName)  setLastName(user.lastName)
@@ -402,7 +553,9 @@ export default function RegisterClient() {
   if (!isLoaded || existingPatient === undefined) return null
   if (existingPatient) return null
 
-  function err(msg: string) {
+  // ── Utilities ─────────────────────────────────────────────────────────────
+
+  function showErr(msg: string) {
     setError(msg)
     document.querySelector('.auth-main')?.scrollTo(0, 0)
   }
@@ -413,153 +566,6 @@ export default function RegisterClient() {
     document.querySelector('.auth-main')?.scrollTo(0, 0)
   }
 
-  // ── Step 1 → 2: create Clerk account + send OTP ─────────────────────────
-
-  async function goToVerify(e: React.FormEvent) {
-    e.preventDefault()
-    if (!firstName.trim()) return err('Please enter your first name')
-    if (!lastName.trim())  return err('Please enter your last name')
-    if (!dob)              return err('Please enter your date of birth')
-    const parsed = new Date(dob)
-    if (isNaN(parsed.getTime())) return err('Please enter a valid date of birth')
-    if (parsed > new Date())     return err('Date of birth cannot be in the future')
-    if (!email.trim() || !email.includes('@')) return err('Please enter a valid email address')
-
-    setLoading(true)
-    try {
-      const { error: ce } = await signUp!.create({
-        emailAddress: email.trim().toLowerCase(),
-        firstName:    firstName.trim(),
-        lastName:     lastName.trim(),
-      })
-      if (ce) return err(ce.message ?? 'Could not create account')
-
-      const { error: se } = await signUp!.verifications.sendEmailCode()
-      if (se) return err(se.message ?? 'Could not send verification code')
-
-      setOtp(['', '', '', '', '', ''])
-      goStep('verify')
-    } catch (ex) {
-      err(clerkErr(ex))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── Step 2: verify OTP + finish Clerk sign-in ────────────────────────────
-
-  async function verifyOtp(code?: string) {
-    const c = code ?? otp.join('')
-    if (c.length < 6) return err('Enter the full 6-digit code')
-
-    setLoading(true)
-    try {
-      const { error: ve } = await signUp!.verifications.verifyEmailCode({ code: c })
-      if (ve) return err(ve.message ?? 'Incorrect code — please try again')
-
-      await signUp!.finalize()
-      await setUserRoleIfNew('patient')
-      goStep('implant')
-    } catch (ex) {
-      err(clerkErr(ex))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function handleCodeInput(idx: number, val: string) {
-    const digit = val.replace(/\D/g, '').slice(-1)
-    const next  = [...otp]; next[idx] = digit; setOtp(next)
-    if (digit && idx < 5) codeRefs.current[idx + 1]?.focus()
-    if (next.every(d => d) && next.join('').length === 6) verifyOtp(next.join(''))
-  }
-
-  function handleCodeKeyDown(idx: number, e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
-      codeRefs.current[idx - 1]?.focus()
-    }
-  }
-
-  function handleCodePaste(e: React.ClipboardEvent) {
-    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
-    if (!text) return
-    e.preventDefault()
-    const next = [...otp]
-    text.split('').forEach((d, i) => { if (i < 6) next[i] = d })
-    setOtp(next)
-    codeRefs.current[Math.min(text.length, 5)]?.focus()
-    if (text.length === 6) verifyOtp(text)
-  }
-
-  // ── Step 3 → 4 ───────────────────────────────────────────────────────────
-
-  function goToImplantDetails(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    goStep('implantDetails')
-  }
-
-  // ── Step 4 → 5: create patient record ────────────────────────────────────
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    try {
-      const extraJson = extras.length > 0
-        ? JSON.stringify(extras.map(a => ({
-            hospital:    a.hospital,
-            surgeon:     a.surgeon,
-            surgeryDate: a.surgeryDate,
-            notes:       a.notes,
-          })))
-        : undefined
-
-      const result = await createPatient({
-        firstName: firstName.trim(),
-        lastName:  lastName.trim(),
-        dob,
-        phone:          phoneNum.trim() ? `${phoneDial} ${phoneNum.trim()}` : undefined,
-        countryOfBirth: countryName || undefined,
-
-        selfReportedDevice:       selectedDevice?.device_name || undefined,
-        selfReportedDeviceId:     selectedDevice?.device_id   || undefined,
-        selfReportedManufacturer: selectedDevice?.manufacturer || undefined,
-        selfReportedModelNumber:  selectedDevice?.model_number || undefined,
-        selfReportedDeviceType:   selectedDevice?.device_type  || undefined,
-        selfReportedHospital:     hospital.trim()  || undefined,
-        selfReportedSurgeon:      surgeon.trim()   || undefined,
-        selfReportedImplantMonth: surgeryDate ? surgeryDate.slice(5, 7) : undefined,
-        selfReportedImplantYear:  surgeryDate ? surgeryDate.slice(0, 4) : undefined,
-        selfReportedImplants:     extraJson,
-        additionalNotes:          notes.trim() || undefined,
-      })
-
-      const code = result && typeof result === 'object' && 'implantIdCode' in result
-        ? (result as { implantIdCode: string }).implantIdCode : ''
-      setIidCode(code)
-      goStep('success')
-    } catch (ex) {
-      err((ex as { message?: string })?.message ?? 'Something went wrong — please try again')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── Extra implant helpers ─────────────────────────────────────────────────
-
-  function addExtra() {
-    setExtras(p => [...p, { id: uid(), hospital: '', surgeon: '', surgeryDate: '', notes: '' }])
-  }
-  function updateExtra(id: string, field: keyof ExtraImplant, val: string) {
-    setExtras(p => p.map(a => a.id === id ? { ...a, [field]: val } : a))
-  }
-  function removeExtra(id: string) {
-    setExtras(p => p.filter(a => a.id !== id))
-  }
-
-  // ── Dot class helper ──────────────────────────────────────────────────────
-
   function dotCls(i: number) {
     const c = ['dot']
     if (i <= stepIdx) c.push('on')
@@ -567,7 +573,175 @@ export default function RegisterClient() {
     return c.join(' ')
   }
 
+  // ── Step 1 → 2: create Clerk account, send email OTP ─────────────────────
+
+  async function goToVerifyEmail(e: React.FormEvent) {
+    e.preventDefault()
+    if (!firstName.trim())  return showErr('Please enter your first name')
+    if (!lastName.trim())   return showErr('Please enter your last name')
+    if (!dob)               return showErr('Please enter your date of birth')
+    const dobDate = new Date(dob)
+    if (isNaN(dobDate.getTime())) return showErr('Please enter a valid date of birth')
+    if (dobDate > new Date())     return showErr('Date of birth cannot be in the future')
+    if (!countryName)       return showErr('Please select your country of birth')
+    if (!email.trim() || !email.includes('@'))
+      return showErr('Please enter a valid email address')
+    if (!phoneNum.trim())   return showErr('Please enter your phone number')
+
+    const phone = `${phoneDial}${phoneNum.replace(/[\s\-().]/g, '')}`
+
+    setLoading(true)
+    try {
+      const { error: createErr } = await signUp!.create({
+        firstName:    firstName.trim(),
+        lastName:     lastName.trim(),
+        emailAddress: email.trim().toLowerCase(),
+        phoneNumber:  phone,
+      })
+      if (createErr) return showErr(createErr.longMessage || createErr.message)
+
+      const { error: sendErr } = await signUp!.verifications.sendEmailCode()
+      if (sendErr) return showErr(sendErr.longMessage || sendErr.message)
+
+      setEmailOtp(['', '', '', '', '', ''])
+      goStep('verifyEmail')
+    } catch (ex) {
+      showErr(clerkErr(ex))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Step 2 → 3: verify email OTP, send SMS OTP ───────────────────────────
+
+  async function verifyEmail(code?: string) {
+    const c = code ?? emailOtp.join('')
+    if (c.length < 6) return showErr('Enter the full 6-digit code')
+    setLoading(true)
+    try {
+      const { error: verErr } = await signUp!.verifications.verifyEmailCode({ code: c })
+      if (verErr) return showErr(verErr.longMessage || verErr.message)
+
+      const { error: smsErr } = await signUp!.verifications.sendPhoneCode()
+      if (smsErr) return showErr(smsErr.longMessage || smsErr.message)
+
+      setPhoneOtp(['', '', '', '', '', ''])
+      goStep('verifyPhone')
+    } catch (ex) {
+      showErr(clerkErr(ex))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Step 3 → 4: verify phone OTP, finalize, set patient role ─────────────
+
+  async function verifyPhone(code?: string) {
+    const c = code ?? phoneOtp.join('')
+    if (c.length < 6) return showErr('Enter the full 6-digit code')
+    setLoading(true)
+    try {
+      const { error: verErr } = await signUp!.verifications.verifyPhoneCode({ code: c })
+      if (verErr) return showErr(verErr.longMessage || verErr.message)
+
+      // Finalize converts the complete sign-up into an active session
+      const { error: finErr } = await signUp!.finalize()
+      if (finErr) return showErr(finErr.longMessage || finErr.message)
+
+      await setUserRoleIfNew('patient')
+      goStep('implant')
+    } catch (ex) {
+      showErr(clerkErr(ex))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Step 4 → 5: move to summary ──────────────────────────────────────────
+
+  function goToSummary(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    goStep('summary')
+  }
+
+  // ── Step 5: submit → create patient → redirect ────────────────────────────
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const result = await createPatient({
+        firstName: firstName.trim(),
+        lastName:  lastName.trim(),
+        dob,
+        phone:          phoneNum.trim() ? `${phoneDial} ${phoneNum.trim()}` : undefined,
+        countryOfBirth: countryName || undefined,
+
+        selfReportedDevice:       selectedDevice?.device_name   || undefined,
+        selfReportedDeviceId:     selectedDevice?.device_id     || undefined,
+        selfReportedManufacturer: selectedDevice?.manufacturer  || undefined,
+        selfReportedModelNumber:  selectedDevice?.model_number  || undefined,
+        selfReportedDeviceType:   selectedDevice?.device_type   || undefined,
+        selfReportedImplantMonth: surgeryMonth || undefined,
+        selfReportedImplantYear:  surgeryYear  || undefined,
+        selfReportedHospital:     hospital.trim() || undefined,
+        selfReportedSurgeon:      surgeon.trim()  || undefined,
+        additionalNotes:          notes.trim()    || undefined,
+      })
+
+      const code = result && typeof result === 'object' && 'implantIdCode' in result
+        ? (result as { implantIdCode: string }).implantIdCode
+        : ''
+
+      setIidCode(code)
+      router.replace('/patients/dashboard')
+    } catch (ex) {
+      showErr((ex as { message?: string })?.message ?? 'Something went wrong — please try again')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── OTP helpers (shared logic for email + phone) ──────────────────────────
+
+  function makeOtpHandlers(
+    otp: string[],
+    setOtp: React.Dispatch<React.SetStateAction<string[]>>,
+    refs:   React.MutableRefObject<(HTMLInputElement | null)[]>,
+    verify: (code: string) => void,
+  ) {
+    function onChange(idx: number, val: string) {
+      const digit = val.replace(/\D/g, '').slice(-1)
+      const next  = [...otp]; next[idx] = digit; setOtp(next)
+      if (digit && idx < 5) refs.current[idx + 1]?.focus()
+      if (next.every(d => d) && next.join('').length === 6) verify(next.join(''))
+    }
+    function onKeyDown(idx: number, e: React.KeyboardEvent<HTMLInputElement>) {
+      if (e.key === 'Backspace' && !otp[idx] && idx > 0) {
+        refs.current[idx - 1]?.focus()
+      }
+    }
+    function onPaste(e: React.ClipboardEvent) {
+      const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+      if (!text) return
+      e.preventDefault()
+      const next = ['', '', '', '', '', '']
+      text.split('').forEach((d, i) => { if (i < 6) next[i] = d })
+      setOtp(next)
+      refs.current[Math.min(text.length, 5)]?.focus()
+      if (text.length === 6) verify(text)
+    }
+    return { onChange, onKeyDown, onPaste }
+  }
+
+  const emailOtpHandlers = makeOtpHandlers(emailOtp, setEmailOtp, emailRefs, verifyEmail)
+  const phoneOtpHandlers = makeOtpHandlers(phoneOtp, setPhoneOtp, phoneRefs, verifyPhone)
+
   // ── Render ────────────────────────────────────────────────────────────────
+
+  const phoneDisplay = phoneNum ? `${phoneDial} ${phoneNum}` : '—'
 
   return (
     <main className="auth">
@@ -580,7 +754,11 @@ export default function RegisterClient() {
         </a>
         <div>
           <h2>Be prepared for<br />your next appointment.</h2>
-          <p>Get your implant record on your phone in under 60 seconds. Free forever — always synced with the manufacturer so your clinician has what they need.</p>
+          <p>
+            Get your implant record on your phone in under 60 seconds.
+            Free forever — always synced with the manufacturer so your
+            clinician has what they need.
+          </p>
           <ul className="list">
             <li>Apple Wallet + Google Wallet pass</li>
             <li>MRI safety status, always up to date</li>
@@ -602,7 +780,7 @@ export default function RegisterClient() {
           <h1>Create your record</h1>
           <p className="sub">Free forever. Takes about 60 seconds.</p>
 
-          {/* Stepper — 5 dots matching original design */}
+          {/* Stepper */}
           <div className="stepper">
             {STEPS.map((_, i) => <div key={i} className={dotCls(i)} />)}
           </div>
@@ -619,285 +797,334 @@ export default function RegisterClient() {
             </div>
           )}
 
-          {/* ───────────────────────────────────────────────────────────── */}
-          {/* STEP 1: Your details                                          */}
-          {/* ───────────────────────────────────────────────────────────── */}
-          <div className={`step-pane${step === 'details' ? ' on' : ''}`} id="pane-1">
-            <h3 style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, marginBottom: 14 }}>
-              Your details
-            </h3>
-            <form onSubmit={goToVerify}>
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* STEP 1: Your details                                            */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          <div className={`step-pane${step === 'details' ? ' on' : ''}`}>
+            <h3 className="step-title">Your details</h3>
+            <form onSubmit={goToVerifyEmail}>
+
+              {/* Name row */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="field">
-                  <label>First name</label>
+                  <label>First name <span className="req">*</span></label>
                   <input className="input" placeholder="First name" required
                     value={firstName} onChange={e => setFirstName(e.target.value)} />
                 </div>
                 <div className="field">
-                  <label>Last name</label>
+                  <label>Last name <span className="req">*</span></label>
                   <input className="input" placeholder="Last name" required
                     value={lastName} onChange={e => setLastName(e.target.value)} />
                 </div>
               </div>
+
+              {/* DOB + Country row */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div className="field">
-                  <label>Date of birth</label>
-                  <input className="input" type="date" value={dob} onChange={e => setDob(e.target.value)} />
+                  <label>Date of birth <span className="req">*</span></label>
+                  <DobPicker value={dob} onChange={setDob} />
                 </div>
                 <div className="field">
-                  <label>Country of birth</label>
+                  <label>Country of birth <span className="req">*</span></label>
                   <CountrySelect flag={countryFlag} country={countryName}
                     onChange={(f, n) => { setCountryFlag(f); setCountryName(n) }} />
                 </div>
               </div>
+
+              {/* Email */}
               <div className="field">
-                <label>Email</label>
-                <input className="input" type="email" placeholder="you@example.com"
+                <label>Email <span className="req">*</span></label>
+                <input className="input" type="email" placeholder="you@example.com" required
                   value={email} onChange={e => setEmail(e.target.value)} />
               </div>
+
+              {/* Phone */}
               <div className="field">
-                <label>Phone number <span style={{ color: 'var(--accent)', fontWeight: 700 }}>*</span></label>
-                <PhonePicker flag={phoneFlag} dial={phoneDial} phoneNum={phoneNum} placeholder={phonePH}
-                  onCountryChange={c => { setPhoneFlag(c.flag); setPhoneDial(c.dial); setPhonePH(c.placeholder) }}
-                  onPhoneChange={setPhoneNum} />
-                <span style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, display: 'block' }}>
-                  We'll send a verification code to your email
+                <label>Phone number <span className="req">*</span></label>
+                <PhonePicker
+                  flag={phoneFlag} dial={phoneDial} phoneNum={phoneNum} placeholder={phonePH}
+                  onCountryChange={c => {
+                    setPhoneFlag(c.flag); setPhoneDial(c.dial); setPhonePH(c.placeholder)
+                  }}
+                  onPhoneChange={setPhoneNum}
+                />
+                <span className="field-hint">
+                  We'll verify your email first, then send an SMS to this number.
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-                <button className="btn btn-s btn-lg" type="submit" style={{ flex: 1 }} disabled={loading}>
-                  {loading ? 'Sending code…' : 'Continue'}
-                </button>
-              </div>
+
+              <button className="btn btn-s btn-lg btn-block" type="submit"
+                style={{ marginTop: 14 }} disabled={loading}>
+                {loading ? 'Sending code…' : 'Continue →'}
+              </button>
             </form>
           </div>
 
-          {/* ───────────────────────────────────────────────────────────── */}
-          {/* STEP 2: Verify your email                                     */}
-          {/* ───────────────────────────────────────────────────────────── */}
-          <div className={`step-pane${step === 'verify' ? ' on' : ''}`} id="pane-2">
-            <h3 style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
-              Verify your email
-            </h3>
-            <p style={{ color: 'var(--muted)', fontSize: 13.5, marginBottom: 20, lineHeight: 1.55 }}>
-              We've sent a 6-digit code to <strong>{email}</strong>. Enter it below to verify your account.
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* STEP 2: Verify email                                            */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          <div className={`step-pane${step === 'verifyEmail' ? ' on' : ''}`}>
+            <h3 className="step-title">Check your email</h3>
+            <p className="step-sub">
+              We've sent a 6-digit code to <strong>{email}</strong>.
+              Enter it below to verify your email address.
             </p>
-            <div className="code-row" onPaste={handleCodePaste}>
-              {otp.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={el => { codeRefs.current[i] = el }}
-                  maxLength={1}
-                  className="code-input"
-                  value={digit}
-                  onChange={e => handleCodeInput(i, e.target.value)}
-                  onKeyDown={e => handleCodeKeyDown(i, e)}
-                  onFocus={e => e.target.select()}
-                  inputMode="numeric"
-                />
-              ))}
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '16px 0' }}>
-              Didn't receive a code?{' '}
-              <button type="button" disabled={loading}
-                style={{ background: 'none', border: 0, color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13 }}
+
+            <OtpRow
+              otp={emailOtp} refs={emailRefs}
+              onChange={emailOtpHandlers.onChange}
+              onKeyDown={emailOtpHandlers.onKeyDown}
+              onPaste={emailOtpHandlers.onPaste}
+            />
+
+            <p className="resend-row">
+              Didn't receive it?{' '}
+              <button type="button" disabled={loading} className="link-btn"
                 onClick={async () => {
                   setLoading(true)
-                  try { await signUp!.verifications.sendEmailCode() } catch {}
+                  try {
+                    await signUp!.verifications.sendEmailCode()
+                  } catch {}
                   setLoading(false)
                 }}>
-                Resend
+                Resend code
               </button>
             </p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className="btn btn-lg" type="button" onClick={() => goStep('details')} style={{ flex: 0 }}>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+              <button className="btn btn-lg" type="button"
+                onClick={() => goStep('details')} style={{ flex: '0 0 auto' }}>
                 ← Back
               </button>
-              <button className="btn btn-s btn-lg" type="button" disabled={loading}
-                onClick={() => verifyOtp()} style={{ flex: 1 }}>
-                {loading ? 'Verifying…' : 'Verify & continue'}
+              <button className="btn btn-s btn-lg" type="button"
+                style={{ flex: 1 }} disabled={loading}
+                onClick={() => verifyEmail()}>
+                {loading ? 'Verifying…' : 'Verify email →'}
               </button>
             </div>
           </div>
 
-          {/* ───────────────────────────────────────────────────────────── */}
-          {/* STEP 3: Find your implant                                     */}
-          {/* ───────────────────────────────────────────────────────────── */}
-          <div className={`step-pane${step === 'implant' ? ' on' : ''}`} id="pane-3">
-            <h3 style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
-              Find your implant
-            </h3>
-            <p style={{ color: 'var(--muted)', fontSize: 13.5, marginBottom: 16, lineHeight: 1.55 }}>
-              Search for your device below. If you're not sure, that's OK — your clinic can verify it later.
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* STEP 3: Verify phone                                            */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          <div className={`step-pane${step === 'verifyPhone' ? ' on' : ''}`}>
+            <h3 className="step-title">Verify your phone</h3>
+            <p className="step-sub">
+              We've sent a 6-digit SMS code to <strong>{phoneDisplay}</strong>.
+              Enter it below.
             </p>
-            <form onSubmit={goToImplantDetails}>
-              <DeviceSearch onSelect={setSelectedDevice} />
+
+            <OtpRow
+              otp={phoneOtp} refs={phoneRefs}
+              onChange={phoneOtpHandlers.onChange}
+              onKeyDown={phoneOtpHandlers.onKeyDown}
+              onPaste={phoneOtpHandlers.onPaste}
+            />
+
+            <p className="resend-row">
+              Didn't receive it?{' '}
+              <button type="button" disabled={loading} className="link-btn"
+                onClick={async () => {
+                  setLoading(true)
+                  try {
+                    await signUp!.verifications.sendPhoneCode()
+                  } catch {}
+                  setLoading(false)
+                }}>
+                Resend SMS
+              </button>
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+              <button className="btn btn-lg" type="button"
+                onClick={() => goStep('verifyEmail')} style={{ flex: '0 0 auto' }}>
+                ← Back
+              </button>
+              <button className="btn btn-s btn-lg" type="button"
+                style={{ flex: 1 }} disabled={loading}
+                onClick={() => verifyPhone()}>
+                {loading ? 'Verifying…' : 'Verify phone →'}
+              </button>
+            </div>
+          </div>
+
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* STEP 4: Add your implant                                        */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          <div className={`step-pane${step === 'implant' ? ' on' : ''}`}>
+            <h3 className="step-title">Add your implant</h3>
+            <p className="step-sub">
+              Search for your device below, then add your procedure details.
+            </p>
+            <form onSubmit={goToSummary}>
+
+              {/* Device search — at top, per user spec */}
+              <div className="field">
+                <label>Search for your device</label>
+                <DeviceSearch onSelect={setSelectedDevice} />
+              </div>
+
+              {/* Implant block */}
+              <div className="implant-block" style={{ marginTop: 16 }}>
+                <div className="implant-block-hd">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                  Procedure details
+                </div>
+
+                <div className="field">
+                  <label>Hospital / clinic where implanted</label>
+                  <input className="input" placeholder="e.g. Royal Melbourne Hospital"
+                    value={hospital} onChange={e => setHospital(e.target.value)} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className="field">
+                    <label>Surgeon name (if known)</label>
+                    <input className="input" placeholder="e.g. Dr Sarah Chen"
+                      value={surgeon} onChange={e => setSurgeon(e.target.value)} />
+                  </div>
+                  <div className="field">
+                    <label>Date of surgery</label>
+                    <SurgeryDatePicker
+                      month={surgeryMonth} year={surgeryYear}
+                      onMonthChange={setSurgeryMonth}
+                      onYearChange={setSurgeryYear}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
                 {!isSignedIn && (
-                  <button className="btn btn-lg" type="button" onClick={() => goStep('verify')} style={{ flex: 0 }}>
+                  <button className="btn btn-lg" type="button"
+                    onClick={() => goStep('verifyPhone')} style={{ flex: '0 0 auto' }}>
                     ← Back
                   </button>
                 )}
                 <button className="btn btn-s btn-lg" type="submit" style={{ flex: 1 }}>
-                  Continue
+                  Review & submit →
                 </button>
               </div>
             </form>
           </div>
 
-          {/* ───────────────────────────────────────────────────────────── */}
-          {/* STEP 4: Implant details                                       */}
-          {/* ───────────────────────────────────────────────────────────── */}
-          <div className={`step-pane${step === 'implantDetails' ? ' on' : ''}`} id="pane-4">
-            <h3 style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, marginBottom: 6 }}>
-              Implant details
-            </h3>
-            <p style={{ color: 'var(--muted)', fontSize: 13.5, marginBottom: 16, lineHeight: 1.55 }}>
-              Where and when was your device implanted? This helps us verify your record.
+          {/* ─────────────────────────────────────────────────────────────── */}
+          {/* STEP 5: Summary + submit                                        */}
+          {/* ─────────────────────────────────────────────────────────────── */}
+          <div className={`step-pane${step === 'summary' ? ' on' : ''}`}>
+            <h3 className="step-title">Review your record</h3>
+            <p className="step-sub">
+              Check your details below, add any notes, and submit to create your record.
             </p>
-            <form onSubmit={submit}>
-              <div id="implant-blocks">
-                <div className="implant-block">
-                  <div className="implant-block-hd" style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, color: 'var(--accent)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="9" /><path d="M8 12h8M12 8v8" />
-                    </svg>
-                    Implant 1
-                  </div>
-                  <div className="field">
-                    <label>Hospital / clinic where implanted</label>
-                    <input className="input" placeholder="e.g. Royal Melbourne Hospital"
-                      value={hospital} onChange={e => setHospital(e.target.value)} />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div className="field">
-                      <label>Surgeon name (if known)</label>
-                      <input className="input" placeholder="e.g. Dr Sarah Chen"
-                        value={surgeon} onChange={e => setSurgeon(e.target.value)} />
-                    </div>
-                    <div className="field">
-                      <label>Date of surgery</label>
-                      <input className="input" type="date"
-                        value={surgeryDate} onChange={e => setSurgeryDate(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="field" style={{ marginTop: 4 }}>
-                    <label>Additional information</label>
-                    <textarea className="input" rows={2}
-                      placeholder="Anything else — allergies, previous devices, lead changes…"
-                      value={notes} onChange={e => setNotes(e.target.value)} />
-                  </div>
-                </div>
 
-                {extras.map((a, idx) => (
-                  <div key={a.id} className="implant-block">
-                    <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, color: 'var(--accent)', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="9" /><path d="M8 12h8M12 8v8" />
-                        </svg>
-                        Implant {idx + 2}
-                      </span>
-                      <button type="button" onClick={() => removeExtra(a.id)}
-                        style={{ background: 'none', border: 0, color: 'var(--muted)', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--ff)' }}>
-                        Remove
-                      </button>
-                    </div>
-                    <div className="field">
-                      <label>Hospital / clinic where implanted</label>
-                      <input className="input" placeholder="e.g. Royal Melbourne Hospital"
-                        value={a.hospital} onChange={e => updateExtra(a.id, 'hospital', e.target.value)} />
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                      <div className="field">
-                        <label>Surgeon name (if known)</label>
-                        <input className="input" placeholder="e.g. Dr Sarah Chen"
-                          value={a.surgeon} onChange={e => updateExtra(a.id, 'surgeon', e.target.value)} />
-                      </div>
-                      <div className="field">
-                        <label>Date of surgery</label>
-                        <input className="input" type="date"
-                          value={a.surgeryDate} onChange={e => updateExtra(a.id, 'surgeryDate', e.target.value)} />
-                      </div>
-                    </div>
-                    <div className="field" style={{ marginTop: 4 }}>
-                      <label>Additional information</label>
-                      <textarea className="input" rows={2} placeholder="Anything else…"
-                        value={a.notes} onChange={e => updateExtra(a.id, 'notes', e.target.value)} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button type="button" className="btn btn-lg btn-block" id="add-implant-btn"
-                onClick={addExtra}
-                style={{ marginTop: 14, textAlign: 'left', borderStyle: 'dashed' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}>
-                  <circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" />
-                </svg>
-                Add another implant
-              </button>
-
-              <div className="dev-warn" style={{ marginTop: 16 }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" />
-                </svg>
-                <span>This information is provided by you and will be marked as unverified until confirmed by your clinic or hospital.</span>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-                <button className="btn btn-lg" type="button" onClick={() => goStep('implant')} style={{ flex: 0 }}>
-                  ← Back
-                </button>
-                <button className="btn btn-s btn-lg" type="submit" style={{ flex: 1 }} disabled={loading}>
-                  {loading ? 'Submitting…' : 'Submit & verify'}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* ───────────────────────────────────────────────────────────── */}
-          {/* STEP 5: Success                                               */}
-          {/* ───────────────────────────────────────────────────────────── */}
-          <div className={`step-pane${step === 'success' ? ' on' : ''}`} id="pane-5">
-            <div style={{ textAlign: 'center', padding: '20px 0 10px' }}>
-              <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 10%,transparent)', color: 'var(--accent)', display: 'grid', placeItems: 'center', margin: '0 auto 20px' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" />
-                </svg>
-              </div>
-              <h3 style={{ fontSize: 22, marginBottom: 10, letterSpacing: '-.02em' }}>We're verifying your implant</h3>
-              <p style={{ color: 'var(--muted)', maxWidth: 380, margin: '0 auto 8px', lineHeight: 1.6, fontSize: 14.5 }}>
-                We're contacting your hospital to confirm your implant details. This usually takes 1–2 working days.
-              </p>
-              <p style={{ color: 'var(--muted2)', fontSize: 13, marginBottom: 28 }}>
-                You'll receive an email once your record is verified.
-              </p>
-            </div>
             <div className="summary">
-              <div className="row"><span className="k">Name</span><span className="v">{firstName} {lastName}</span></div>
-              <div className="row"><span className="k">Patient ID</span><span className="v">{iidCode || '—'}</span></div>
-              <div className="row"><span className="k">Implant</span><span className="v">{selectedDevice?.device_name || 'Pending verification'}</span></div>
+              <div className="row">
+                <span className="k">Name</span>
+                <span className="v">{firstName} {lastName}</span>
+              </div>
+              <div className="row">
+                <span className="k">Date of birth</span>
+                <span className="v">
+                  {dob
+                    ? new Date(dob + 'T00:00:00').toLocaleDateString('en-GB', {
+                        day: 'numeric', month: 'long', year: 'numeric',
+                      })
+                    : '—'}
+                </span>
+              </div>
+              <div className="row">
+                <span className="k">Country of birth</span>
+                <span className="v">
+                  {countryFlag && <span style={{ marginRight: 6 }}>{countryFlag}</span>}
+                  {countryName || '—'}
+                </span>
+              </div>
+              <div className="row">
+                <span className="k">Phone</span>
+                <span className="v">{phoneDisplay}</span>
+              </div>
+              <div className="row">
+                <span className="k">Device</span>
+                <span className="v">{selectedDevice?.device_name || 'Not specified'}</span>
+              </div>
+              {selectedDevice?.manufacturer && (
+                <div className="row">
+                  <span className="k">Manufacturer</span>
+                  <span className="v">{selectedDevice.manufacturer}</span>
+                </div>
+              )}
+              {hospital && (
+                <div className="row">
+                  <span className="k">Hospital</span>
+                  <span className="v">{hospital}</span>
+                </div>
+              )}
+              {surgeon && (
+                <div className="row">
+                  <span className="k">Surgeon</span>
+                  <span className="v">{surgeon}</span>
+                </div>
+              )}
+              {(surgeryMonth || surgeryYear) && (
+                <div className="row">
+                  <span className="k">Surgery date</span>
+                  <span className="v">
+                    {surgeryMonth
+                      ? MONTHS.find(m => m.value === surgeryMonth)?.label
+                      : ''}{' '}
+                    {surgeryYear}
+                  </span>
+                </div>
+              )}
               <div className="row">
                 <span className="k">Status</span>
-                <span className="v" style={{ color: 'var(--warn)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <span className="v" style={{
+                  color: 'var(--warn)',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
                   </svg>
                   Pending hospital verification
                 </span>
               </div>
             </div>
-            <a href="/patients/dashboard" className="btn btn-s btn-lg btn-block" style={{ marginTop: 18, marginBottom: 10 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ marginRight: 6 }}>
-                <rect x="3" y="6" width="18" height="14" rx="2" /><path d="M3 10h18" />
-              </svg>
-              Add to Apple Wallet
-            </a>
-            <a href="/patients/dashboard" className="btn btn-lg btn-block">Open my record →</a>
-            <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--muted2)', marginTop: 14 }}>
-              Your Wallet pass will update automatically once verified.
-            </p>
+
+            {/* Additional notes */}
+            <form onSubmit={submit} style={{ marginTop: 16 }}>
+              <div className="field">
+                <label>Additional notes <span style={{ color: 'var(--muted2)', fontWeight: 400 }}>(optional)</span></label>
+                <textarea className="input" rows={3}
+                  placeholder="Allergies, previous devices, special instructions…"
+                  value={notes} onChange={e => setNotes(e.target.value)} />
+              </div>
+
+              <div className="dev-warn" style={{ marginTop: 12 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="m9 12 2 2 4-4" />
+                </svg>
+                <span>
+                  This information is provided by you and will be marked as unverified
+                  until confirmed by your clinic or hospital.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+                <button className="btn btn-lg" type="button"
+                  onClick={() => goStep('implant')} style={{ flex: '0 0 auto' }}>
+                  ← Back
+                </button>
+                <button className="btn btn-s btn-lg" type="submit"
+                  style={{ flex: 1 }} disabled={loading}>
+                  {loading ? 'Creating your record…' : 'Submit record →'}
+                </button>
+              </div>
+            </form>
           </div>
 
           <p className="auth-alt">Already have an account? <a href="/login">Log in</a></p>

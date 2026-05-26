@@ -15,7 +15,7 @@ export const submitClinicApplication = mutation({
     facilityName:    v.string(),
     facilityType:    v.string(),
     facilityAddress: v.string(),
-    facilityCity:    v.string(),
+    facilityCity:    v.optional(v.string()),
     facilityCountry: v.string(),
     facilityWebsite: v.optional(v.string()),
     facilityPhone:   v.optional(v.string()),

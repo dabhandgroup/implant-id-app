@@ -177,7 +177,7 @@ export default defineSchema({
     facilityName:     v.string(),
     facilityType:     v.string(),  // "Hospital", "Private clinic", etc.
     facilityAddress:  v.string(),
-    facilityCity:     v.string(),
+    facilityCity:     v.optional(v.string()),
     facilityCountry:  v.string(),
     facilityWebsite:  v.optional(v.string()),
     facilityPhone:    v.optional(v.string()),

@@ -1,12 +1,18 @@
 /* Master admin — page-level styles */
 
-/* Topbar */
+/* Override login page CSS which sets body to dark — reset to light theme */
+body{background:var(--bg);color:var(--text)}
+
+/* Topbar h1 — page title + badge */
+.app-top h1{font-family:var(--ff);font-size:18px;font-weight:500;letter-spacing:-.015em;display:flex;align-items:center;gap:10px;color:var(--text)}
+
+/* Master badge (teal pill next to page title) */
+.m-badge{display:inline-flex;align-items:center;font-family:var(--ff);font-size:10.5px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);padding:3px 8px;border-radius:4px}
+
+/* Legacy topbar classes */
 .m-top{display:flex;align-items:center;justify-content:space-between;padding:14px 32px;background:color-mix(in srgb,var(--bg2) 92%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;gap:16px}
 .m-top-title{font-family:var(--ff);font-size:18px;font-weight:500;letter-spacing:-.015em;display:flex;align-items:center;gap:10px;color:var(--text)}
-.m-badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--ff);font-size:10.5px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);padding:3px 8px;border-radius:4px}
 .m-top-r{display:flex;gap:10px;align-items:center}
-
-/* Icon buttons in topbar */
 .m-icon-btn{background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);cursor:pointer;width:36px;height:36px;display:grid;place-items:center;transition:all .15s}
 .m-icon-btn:hover{border-color:var(--accent);color:var(--accent)}
 .m-icon-btn svg{width:16px;height:16px}

@@ -178,19 +178,12 @@ export default function MasterLoginClient() {
           </span>
         </a>
 
-        {/* Eyebrow */}
-        <div className="mstr-ey">Master portal</div>
-
         {error && <div className="mstr-err">{error}</div>}
 
         {/* ── Password phase ─────────────────────────────────────────────── */}
         {phase === 'password' && (
           <>
-            <h1 className="mstr-h1">Sign in to your portal</h1>
-            <p className="mstr-sub">
-              Manage clinic approvals, device oversight and platform administration.
-              All actions are logged.
-            </p>
+            <h1 className="mstr-h1">master login</h1>
 
             <form onSubmit={passwordLogin} noValidate>
               <div className="mstr-field">

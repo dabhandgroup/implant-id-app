@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server'
 const isPublicRoute = createRouteMatcher([
   '/login(.*)',
   '/master/login(.*)',         // master portal login — no prior auth required
+  '/admin/login(.*)',          // manufacturer/admin login — no prior auth required
   '/patients/register(.*)',    // full sign-up flow lives here — handles its own auth
   '/sign-up(.*)',              // kept only to redirect legacy links → /patients/register
   '/forgot(.*)',

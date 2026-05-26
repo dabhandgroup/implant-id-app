@@ -191,7 +191,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button className="btn">Edit</button>
+          <a href={`/master/devices/${id}/edit`} className="btn">Edit</a>
           {device.status === 'active' ? (
             <button className="btn btn-danger" onClick={openUnpublish}>Unpublish</button>
           ) : (

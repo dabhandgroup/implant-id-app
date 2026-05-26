@@ -260,7 +260,7 @@ export default function MasterShell({ children }: MasterShellProps) {
           {/* Notifications — uses .sb-notif for proper collapse behaviour */}
           <button
             className="sb-notif"
-            onClick={(e) => { e.stopPropagation(); setNotifOpen(true) }}
+            onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setNotifOpen(true) }}
             aria-label="Notifications"
           >
             <span className="sb-notif-ic">
@@ -279,7 +279,7 @@ export default function MasterShell({ children }: MasterShellProps) {
           {/* ── Profile ── */}
           <div
             className="sb-bot"
-            onClick={(e) => { e.stopPropagation(); setProfileOpen(p => !p) }}
+            onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setProfileOpen(p => !p) }}
           >
             <div className="av">MA</div>
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -313,10 +313,19 @@ export default function MasterShell({ children }: MasterShellProps) {
               <img src="/icon.svg" alt="" />
               <span className="logo-text"><b>Implant</b><span>ID</span></span>
             </a>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              className="ibtn notif-btn"
+              aria-label="Notifications"
+              onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setNotifOpen(true) }}
+              style={{ width: 38, height: 38 }}
+            >
+              <IconBell />
+            </button>
             <div className="mob-hdr-profile">
               <button
                 className="mob-hdr-av"
-                onClick={(e) => { e.stopPropagation(); setMobProfileOpen(p => !p) }}
+                onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setMobProfileOpen(p => !p) }}
                 aria-label="Profile menu"
               >
                 MA
@@ -327,9 +336,11 @@ export default function MasterShell({ children }: MasterShellProps) {
                   <span>Implant ID</span>
                 </div>
                 <hr />
+                <a href="/master/settings">Account settings</a>
                 <button className="danger" onClick={handleSignOut}>Sign out</button>
               </div>
             </div>
+          </div>
           </div>
 
           {/* Desktop topbar */}
@@ -345,7 +356,7 @@ export default function MasterShell({ children }: MasterShellProps) {
               <button
                 className="ibtn notif-btn"
                 aria-label="Notifications"
-                onClick={(e) => { e.stopPropagation(); setNotifOpen(true) }}
+                onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setNotifOpen(true) }}
               >
                 <IconBell />
               </button>

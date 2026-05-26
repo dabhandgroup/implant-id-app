@@ -63,12 +63,12 @@ export default function MasterLoginClient() {
   const { signIn }               = useSignIn()
   const { isSignedIn, isLoaded } = useAuth()
 
-  // Redirect already-authenticated users straight to the dashboard
+  // Redirect already-authenticated users straight to the dashboard (hard nav so layout re-evaluates)
   useEffect(() => {
     if (isLoaded && isSignedIn) {
-      router.replace('/master/dashboard')
+      window.location.assign('/master/dashboard')
     }
-  }, [isLoaded, isSignedIn, router])
+  }, [isLoaded, isSignedIn])
 
   const [email,   setEmail]   = useState('')
   const [otp,     setOtp]     = useState(['', '', '', '', '', ''])
@@ -93,7 +93,8 @@ export default function MasterLoginClient() {
     }
     const { error: fe } = await signIn!.finalize()
     if (fe) return err(fe.message ?? 'Could not complete sign-in')
-    router.push('/master/dashboard')
+    // Hard navigation so the server layout re-evaluates and renders MasterShell
+    window.location.assign('/master/dashboard')
   }
 
   async function sendEmailOtp(e?: React.FormEvent) {
@@ -155,7 +156,7 @@ export default function MasterLoginClient() {
       if (ve) return err(ve.message ?? 'Incorrect code — try again')
       const { error: fe } = await signIn!.finalize()
       if (fe) return err(fe.message ?? 'Could not complete sign-in')
-      router.push(mfaDest || '/master/dashboard')
+      window.location.assign(mfaDest || '/master/dashboard')
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 

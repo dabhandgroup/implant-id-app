@@ -554,7 +554,7 @@ export default function LoginClient() {
 
           <p className="auth-alt">
             {tab === 'patient'
-              ? <>Don't have an account? <a href="/sign-up">Sign up as a patient</a></>
+              ? <>Don't have an account? <a href="/patients/register">Sign up as a patient</a></>
               : <>New clinic? <a href="/clinics/onboarding">Apply to join →</a></>
             }
           </p>

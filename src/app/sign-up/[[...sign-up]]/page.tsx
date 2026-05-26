@@ -1,11 +1,9 @@
-import './page.css'
-import type { Metadata } from 'next'
-import SignUpClient from './SignUpClient'
+import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = {
-  title: 'Create your account · Implant ID',
-}
-
+/**
+ * Legacy /sign-up route — permanently redirect to the patient registration flow.
+ * All new sign-ups happen at /patients/register which handles the full Clerk flow inline.
+ */
 export default function SignUpPage() {
-  return <SignUpClient />
+  redirect('/patients/register')
 }

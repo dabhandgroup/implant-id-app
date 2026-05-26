@@ -405,6 +405,32 @@
 .summary .k { color: var(--muted); font-family: var(--ff); font-size: 13px; }
 .summary .v { font-family: var(--ff); font-weight: 500; }
 
+/* ── OTP code inputs ─────────────────────────────────────────────────────── */
+
+.code-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.code-input {
+  width: 48px;
+  height: 56px;
+  text-align: center;
+  font-family: var(--ff);
+  font-size: 24px;
+  font-weight: 600;
+  border: 1.5px solid var(--border2);
+  border-radius: 10px;
+  background: var(--bg2);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .15s, box-shadow .15s;
+}
+.code-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
 /* ── Mobile ──────────────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {

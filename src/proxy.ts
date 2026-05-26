@@ -3,11 +3,12 @@ import { NextResponse } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
   '/login(.*)',
-  '/sign-up(.*)',             // patient account creation — unauthenticated users land here
+  '/patients/register(.*)',    // full sign-up flow lives here — handles its own auth
+  '/sign-up(.*)',              // kept only to redirect legacy links → /patients/register
   '/forgot(.*)',
-  '/sso-callback(.*)',        // OAuth return leg — must be public
-  '/api/webhooks/(.*)',       // Clerk webhook delivery — no browser session
-  '/clinics/onboarding(.*)', // clinic application form — no auth required to apply
+  '/sso-callback(.*)',         // OAuth return leg — must be public
+  '/api/webhooks/(.*)',        // Clerk webhook delivery — no browser session
+  '/clinics/onboarding(.*)',   // clinic application form — no auth required to apply
 ])
 
 // Hard-fail at startup if Clerk isn't configured — never silently open all routes
@@ -25,9 +26,6 @@ export default clerkMiddleware(async (auth, req) => {
 
   // 2. Role-based route enforcement (only when signed in)
   const { sessionClaims } = await auth()
-  // Role lives in publicMetadata, surfaced via JWT template:
-  // Clerk dashboard → Configure → Sessions → Customize session token
-  // Add: { "role": "{{user.public_metadata.role}}" }
   const role = (sessionClaims as { role?: string } | null)?.role
   const path = req.nextUrl.pathname
 
@@ -37,8 +35,9 @@ export default clerkMiddleware(async (auth, req) => {
         && role !== 'clinic_staff' && role !== 'admin') {
       return NextResponse.redirect(new URL('/patients/dashboard', req.url))
     }
-    // Patient routes — only patient and admin
-    if (path.startsWith('/patients') && role !== 'patient' && role !== 'admin') {
+    // Patient routes — only patient and admin; register is public so skip it
+    if (path.startsWith('/patients') && !path.startsWith('/patients/register')
+        && role !== 'patient' && role !== 'admin') {
       return NextResponse.redirect(new URL('/clinics/dashboard', req.url))
     }
     // Admin routes — only admin
@@ -46,6 +45,14 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL('/login', req.url))
     }
   }
+
+  // 3. Forward the request pathname as a header so server layouts can read it
+  //    (Next.js server components don't have direct access to the URL otherwise)
+  const requestHeaders = new Headers(req.headers)
+  requestHeaders.set('x-pathname', path)
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  })
 })
 
 export const config = {

@@ -143,8 +143,7 @@ export default function LoginClient() {
     try {
       const { error: ve } = await signIn!.phoneCode.verifyCode({ code: c })
       if (ve) return err(ve.message ?? 'Invalid code')
-      if (signIn!.status === 'complete') await finalizeAndGo('/patients/dashboard')
-      else err('Verification incomplete — contact support')
+      await finalizeAndGo('/patients/dashboard')
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
@@ -157,8 +156,7 @@ export default function LoginClient() {
     try {
       const { error: ce } = await signIn!.password({ identifier: ptEmail, password: ptPassword })
       if (ce) return err(ce.message ?? 'Invalid credentials')
-      if (signIn!.status === 'complete') await finalizeAndGo('/patients/dashboard')
-      else err('Sign-in incomplete — contact support')
+      await finalizeAndGo('/patients/dashboard')
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
@@ -183,8 +181,7 @@ export default function LoginClient() {
     try {
       const { error: ve } = await signIn!.emailCode.verifyCode({ code: c })
       if (ve) return err(ve.message ?? 'Invalid code')
-      if (signIn!.status === 'complete') await finalizeAndGo('/patients/dashboard')
-      else err('Verification incomplete — contact support')
+      await finalizeAndGo('/patients/dashboard')
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
@@ -209,8 +206,7 @@ export default function LoginClient() {
     try {
       const { error: ve } = await signIn!.emailCode.verifyCode({ code: c })
       if (ve) return err(ve.message ?? 'Invalid code')
-      if (signIn!.status === 'complete') await finalizeAndGo('/clinics/dashboard')
-      else err('Verification incomplete — contact support')
+      await finalizeAndGo('/clinics/dashboard')
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
@@ -223,8 +219,7 @@ export default function LoginClient() {
     try {
       const { error: pe } = await signIn!.password({ identifier: clEmail, password: clPassword })
       if (pe) return err(pe.message ?? 'Invalid credentials')
-      if (signIn!.status === 'complete') await finalizeAndGo('/clinics/dashboard')
-      else err('Sign-in incomplete — contact support')
+      await finalizeAndGo('/clinics/dashboard')
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
@@ -236,8 +231,7 @@ export default function LoginClient() {
       // flow:'discoverable' = no email needed — OS presents all passkeys for this domain
       const { error: pe } = await signIn!.passkey({ flow: 'discoverable' })
       if (pe) return err(pe.message ?? 'Passkey authentication failed')
-      if (signIn!.status === 'complete') await finalizeAndGo('/patients/dashboard')
-      else err('Could not complete passkey sign-in — please try again')
+      await finalizeAndGo('/patients/dashboard')
     } catch (e: unknown) {
       const msg = clerkErr(e)
       // User dismissed the biometric sheet — reset quietly, no error shown

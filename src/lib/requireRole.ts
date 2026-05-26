@@ -21,7 +21,7 @@ export async function requireRole(...allowed: UserRole[]) {
 
   if (!allowed.includes(role)) {
     // Redirect to the section they actually belong to
-    if (role === 'admin')        redirect('/admin/dashboard')
+    if (role === 'admin')        redirect('/master/dashboard')
     if (role === 'clinic_staff') redirect('/clinics/dashboard')
     redirect('/patients/dashboard')   // patient (or unknown — safest default)
   }

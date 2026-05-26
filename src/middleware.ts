@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
   '/login(.*)',
+  '/master/login(.*)',         // master portal login — no prior auth required
   '/patients/register(.*)',    // full sign-up flow lives here — handles its own auth
   '/sign-up(.*)',              // kept only to redirect legacy links → /patients/register
   '/forgot(.*)',
@@ -42,6 +43,10 @@ export default clerkMiddleware(async (auth, req) => {
     }
     // Admin routes — only admin
     if (path.startsWith('/admin') && role !== 'admin') {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+    // Master portal — only admin; login page is already in publicRoutes above
+    if (path.startsWith('/master') && !path.startsWith('/master/login') && role !== 'admin') {
       return NextResponse.redirect(new URL('/login', req.url))
     }
   }

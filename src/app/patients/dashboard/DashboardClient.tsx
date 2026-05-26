@@ -79,12 +79,15 @@ export default function DashboardClient() {
   const [wEmailResent,      setWEmailResent]      = useState(false)
   const [wResendAt,         setWResendAt]         = useState(0)
   const [wResendCountdown,  setWResendCountdown]  = useState(0)
+  const [wEmailDone,        setWEmailDone]        = useState(false)
   const [wPasskeyErr,       setWPasskeyErr]       = useState('')
   const [wPasskeyLoading,   setWPasskeyLoading]   = useState(false)
 
   const sbBotRef        = useRef<HTMLDivElement>(null)
   const mobProfileRef   = useRef<HTMLDivElement>(null)
   const wCodeRefs       = useRef<(HTMLInputElement | null)[]>([])
+  // Prevents the welcome init effect from re-running when Clerk updates the user object mid-flow
+  const welcomeShownRef = useRef(false)
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -124,14 +127,15 @@ export default function DashboardClient() {
     }
   }, [patient])
 
-  // Welcome overlay — shown once per patient (tracked in Convex so it persists across devices)
+  // Welcome overlay — shown once per patient (tracked in Convex so it persists across devices).
+  // welcomeShownRef prevents this from re-running when Clerk updates the user object mid-flow
+  // (e.g. after prepareVerification), which would otherwise reset the current step.
   useEffect(() => {
-    if (!patient || !user) return
+    if (!patient || !user || welcomeShownRef.current) return
     if (!(patient as Record<string, unknown>).welcomeSeen) {
-      // Fall back to first email address if no primary is set (e.g. phone-signup users)
+      welcomeShownRef.current = true
       const emailAddr = user.primaryEmailAddress ?? user.emailAddresses?.[0] ?? null
       const emailVerified = emailAddr?.verification?.status === 'verified'
-      // If no email in Clerk at all, skip straight to passkey step
       setWelcomeStep((!emailAddr || emailVerified) ? 'passkey' : 'welcome')
       setWelcomeOpen(true)
     }
@@ -212,19 +216,22 @@ export default function DashboardClient() {
     setWelcomeOpen(false)
   }
 
-  async function verifyWelcomeEmail() {
-    const code = wEmailCode.join('')
-    if (code.length < 6) { setWEmailErr('Enter the full 6-digit code'); return }
+  // Accepts the code string directly so callers (auto-submit or button) never read stale state
+  async function doVerifyEmail(codeStr: string) {
+    if (codeStr.length < 6) { setWEmailErr('Enter the full 6-digit code'); return }
     const emailAddr = user?.primaryEmailAddress ?? user?.emailAddresses?.[0] ?? null
-    if (!emailAddr) { setWEmailErr('No email address found'); return }
+    if (!emailAddr) { setWEmailErr('No email address found on your account'); return }
     setWEmailLoading(true)
     setWEmailErr('')
     try {
-      await emailAddr.attemptVerification({ code })
-      setWelcomeStep('passkey')
+      await emailAddr.attemptVerification({ code: codeStr })
+      setWEmailDone(true)
+      setTimeout(() => { setWelcomeStep('passkey'); setWEmailDone(false) }, 1600)
     } catch (ex: unknown) {
       const e = ex as { errors?: Array<{ message: string }> }
-      setWEmailErr(e?.errors?.[0]?.message ?? (ex instanceof Error ? ex.message : 'Incorrect code — please try again'))
+      const raw = e?.errors?.[0]?.message ?? (ex instanceof Error ? ex.message : '')
+      // Clerk returns "is incorrect" verbatim — make it readable
+      setWEmailErr(raw === 'is incorrect' ? 'Incorrect code — check your email and try again' : (raw || 'Verification failed — please try again'))
     } finally {
       setWEmailLoading(false)
     }
@@ -235,6 +242,7 @@ export default function DashboardClient() {
     setWEmailSent(false)  // triggers auto-send useEffect
     setWEmailCode(['','','','','',''])
     setWEmailErr('')
+    setWEmailDone(false)
     setWEmailResent(true)
     setTimeout(() => setWEmailResent(false), 2500)
   }
@@ -303,47 +311,47 @@ export default function DashboardClient() {
                   </div>
                 </div>
 
-                {/* Steps */}
-                <div style={{ marginBottom:24 }}>
+                {/* Steps — single vertical line behind all circles */}
+                <div style={{ position:'relative', marginBottom:24 }}>
+                  {/* Line runs from centre of circle 1 down to centre of circle 3 */}
+                  <div style={{ position:'absolute', left:15, top:16, bottom:16, width:2, background:'var(--border2)', zIndex:0 }} />
 
                   {/* 1 — Verify email */}
-                  <div style={{ display:'flex', gap:12, position:'relative' }}>
-                    <div style={{ position:'absolute', left:15, top:34, width:2, height:'calc(100% - 10px)', background:'var(--border2)' }} />
-                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, zIndex:1, background:'color-mix(in srgb,var(--accent) 10%,transparent)', border:'1.5px solid var(--accent)', display:'grid', placeItems:'center' }}>
+                  <div style={{ display:'flex', gap:12, alignItems:'flex-start', marginBottom:14 }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, zIndex:1, position:'relative', background:'color-mix(in srgb,var(--accent) 10%,transparent)', border:'1.5px solid var(--accent)', display:'grid', placeItems:'center' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.2">
                         <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
                         <path d="m22 6-10 7L2 6"/>
                       </svg>
                     </div>
-                    <div style={{ paddingBottom:18 }}>
+                    <div style={{ paddingTop:4 }}>
                       <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>Verify your email</div>
                       <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Confirm your address — takes 30 seconds</div>
                     </div>
                   </div>
 
                   {/* 2 — Approval */}
-                  <div style={{ display:'flex', gap:12, position:'relative' }}>
-                    <div style={{ position:'absolute', left:15, top:34, width:2, height:'calc(100% - 10px)', background:'var(--border2)' }} />
-                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, zIndex:1, background:'var(--bg)', border:'1.5px solid var(--border2)', display:'grid', placeItems:'center' }}>
+                  <div style={{ display:'flex', gap:12, alignItems:'flex-start', marginBottom:14 }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, zIndex:1, position:'relative', background:'var(--bg2)', border:'1.5px solid var(--border2)', display:'grid', placeItems:'center' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.2">
                         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                       </svg>
                     </div>
-                    <div style={{ paddingBottom:18 }}>
+                    <div style={{ paddingTop:4 }}>
                       <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--muted)' }}>Implant ID approved</div>
                       <div style={{ fontSize:12.5, color:'var(--muted2)', marginTop:2 }}>1–3 working days · your clinic verifies your implant details</div>
                     </div>
                   </div>
 
                   {/* 3 — Unlock */}
-                  <div style={{ display:'flex', gap:12 }}>
-                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, background:'var(--bg)', border:'1.5px solid var(--border2)', display:'grid', placeItems:'center' }}>
+                  <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, zIndex:1, position:'relative', background:'var(--bg2)', border:'1.5px solid var(--border2)', display:'grid', placeItems:'center' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2.2">
                         <rect x="3" y="11" width="18" height="11" rx="2"/>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                       </svg>
                     </div>
-                    <div>
+                    <div style={{ paddingTop:4 }}>
                       <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--muted)' }}>Start using Implant ID</div>
                       <div style={{ fontSize:12.5, color:'var(--muted2)', marginTop:2 }}>Wallet pass, clinic sharing &amp; more unlock</div>
                     </div>
@@ -378,6 +386,7 @@ export default function DashboardClient() {
                     </div>
                   </div>
                 </div>
+                {/* Status line */}
                 <p style={{ color: wEmailResent ? 'var(--ok)' : 'var(--muted)', fontSize:13.5, marginBottom:16, transition:'color .2s' }}>
                   {wEmailResent
                     ? '✓ Code resent — check your inbox.'
@@ -387,82 +396,112 @@ export default function DashboardClient() {
                     ? 'Enter the 6-digit code we just sent you.'
                     : 'Preparing…'}
                 </p>
-                <div style={{ display:'flex', justifyContent:'center', gap:6, marginBottom: wEmailErr ? 10 : 16 }}>
-                  {[0,1,2,3,4,5].map(i => (
-                    <input
-                      key={i}
-                      ref={el => { wCodeRefs.current[i] = el }}
-                      type="tel"
-                      inputMode="numeric"
-                      autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                      value={wEmailCode[i]}
-                      className="code-input"
-                      style={{ width:42, height:50, fontSize:22 }}
-                      onKeyDown={e => {
-                        if (/^\d$/.test(e.key)) {
-                          e.preventDefault()
-                          const next = [...wEmailCode]; next[i] = e.key; setWEmailCode(next)
-                          if (i < 5) wCodeRefs.current[i+1]?.focus()
-                        } else if (e.key === 'Backspace') {
-                          e.preventDefault()
-                          if (wEmailCode[i]) {
-                            const next = [...wEmailCode]; next[i] = ''; setWEmailCode(next)
-                          } else if (i > 0) {
-                            const next = [...wEmailCode]; next[i-1] = ''; setWEmailCode(next)
-                            wCodeRefs.current[i-1]?.focus()
-                          }
-                        } else if (e.key === 'ArrowLeft' && i > 0) {
-                          e.preventDefault(); wCodeRefs.current[i-1]?.focus()
-                        } else if (e.key === 'ArrowRight' && i < 5) {
-                          e.preventDefault(); wCodeRefs.current[i+1]?.focus()
-                        }
-                      }}
-                      onChange={e => {
-                        // iOS SMS autofill fills the whole value at once
-                        const raw = e.target.value.replace(/\D/g,'')
-                        if (raw.length > 1) {
-                          const next = ['','','','','','']
-                          raw.slice(0,6).split('').forEach((c,j) => { next[j] = c })
-                          setWEmailCode(next)
-                          wCodeRefs.current[Math.min(raw.length - 1, 5)]?.focus()
-                        }
-                      }}
-                      onPaste={e => {
-                        e.preventDefault()
-                        const pasted = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6)
-                        if (!pasted) return
-                        const next = ['','','','','','']
-                        pasted.split('').forEach((c,j) => { next[j] = c })
-                        setWEmailCode(next)
-                        wCodeRefs.current[Math.min(pasted.length - 1, 5)]?.focus()
-                      }}
-                      onFocus={e => e.target.select()}
-                    />
-                  ))}
-                </div>
-                {wEmailErr && (
-                  <div style={{
-                    background: 'color-mix(in srgb,var(--err) 8%,transparent)',
-                    border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
-                    borderRadius: 10, padding: '10px 14px',
-                    color:'var(--err)', fontSize:13, marginBottom:12, lineHeight:1.4,
-                  }}>{wEmailErr}</div>
+
+                {/* Success state */}
+                {wEmailDone ? (
+                  <div style={{ textAlign:'center', padding:'16px 0 20px' }}>
+                    <div style={{
+                      width:52, height:52, borderRadius:'50%', margin:'0 auto 12px',
+                      background:'color-mix(in srgb,var(--ok) 12%,transparent)',
+                      display:'grid', placeItems:'center',
+                    }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.2">
+                        <path d="M20 6 9 17l-5-5"/>
+                      </svg>
+                    </div>
+                    <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:15, color:'var(--text)', marginBottom:4 }}>Email verified!</div>
+                    <div style={{ fontSize:13, color:'var(--muted)' }}>Setting up your passkey…</div>
+                  </div>
+                ) : (
+                  <>
+                    {/* OTP inputs */}
+                    <div style={{ display:'flex', justifyContent:'center', gap:6, marginBottom: wEmailErr ? 10 : 16 }}>
+                      {[0,1,2,3,4,5].map(i => (
+                        <input
+                          key={i}
+                          ref={el => { wCodeRefs.current[i] = el }}
+                          type="tel"
+                          inputMode="numeric"
+                          autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                          value={wEmailCode[i]}
+                          className="code-input"
+                          style={{ width:42, height:50, fontSize:22 }}
+                          onKeyDown={e => {
+                            if (/^\d$/.test(e.key)) {
+                              e.preventDefault()
+                              const next = [...wEmailCode]; next[i] = e.key; setWEmailCode(next)
+                              if (i < 5) {
+                                wCodeRefs.current[i+1]?.focus()
+                              } else {
+                                // Last box filled — auto-submit with fresh code string
+                                const full = next.join('')
+                                if (full.length === 6) doVerifyEmail(full)
+                              }
+                            } else if (e.key === 'Backspace') {
+                              e.preventDefault()
+                              if (wEmailCode[i]) {
+                                const next = [...wEmailCode]; next[i] = ''; setWEmailCode(next)
+                              } else if (i > 0) {
+                                const next = [...wEmailCode]; next[i-1] = ''; setWEmailCode(next)
+                                wCodeRefs.current[i-1]?.focus()
+                              }
+                            } else if (e.key === 'ArrowLeft' && i > 0) {
+                              e.preventDefault(); wCodeRefs.current[i-1]?.focus()
+                            } else if (e.key === 'ArrowRight' && i < 5) {
+                              e.preventDefault(); wCodeRefs.current[i+1]?.focus()
+                            }
+                          }}
+                          onChange={e => {
+                            // iOS SMS autofill fills the whole value at once
+                            const raw = e.target.value.replace(/\D/g,'')
+                            if (raw.length > 1) {
+                              const next = ['','','','','','']
+                              raw.slice(0,6).split('').forEach((c,j) => { next[j] = c })
+                              setWEmailCode(next)
+                              wCodeRefs.current[Math.min(raw.length - 1, 5)]?.focus()
+                              if (raw.length >= 6) doVerifyEmail(raw.slice(0,6))
+                            }
+                          }}
+                          onPaste={e => {
+                            e.preventDefault()
+                            const pasted = e.clipboardData.getData('text').replace(/\D/g,'').slice(0,6)
+                            if (!pasted) return
+                            const next = ['','','','','','']
+                            pasted.split('').forEach((c,j) => { next[j] = c })
+                            setWEmailCode(next)
+                            wCodeRefs.current[Math.min(pasted.length - 1, 5)]?.focus()
+                            if (pasted.length === 6) doVerifyEmail(pasted)
+                          }}
+                          onFocus={e => e.target.select()}
+                        />
+                      ))}
+                    </div>
+
+                    {wEmailErr && (
+                      <div style={{
+                        background: 'color-mix(in srgb,var(--err) 8%,transparent)',
+                        border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
+                        borderRadius: 10, padding: '10px 14px',
+                        color:'var(--err)', fontSize:13, marginBottom:12, lineHeight:1.4,
+                      }}>{wEmailErr}</div>
+                    )}
+                    <button
+                      className="btn btn-s btn-block btn-lg"
+                      onClick={() => doVerifyEmail(wEmailCode.join(''))}
+                      disabled={wEmailLoading || wEmailCode.join('').length < 6}
+                      style={{ marginBottom:10 }}
+                    >
+                      {wEmailLoading ? 'Verifying…' : 'Verify email'}
+                    </button>
+                    <p style={{ textAlign:'center', fontSize:12.5, color:'var(--muted)' }}>
+                      Didn&apos;t get it?{' '}
+                      {wResendCountdown > 0
+                        ? <span style={{ color:'var(--muted2)' }}>Resend in {wResendCountdown}s</span>
+                        : <button className="link-btn" style={{ fontSize:'inherit' }} onClick={resendWelcomeEmail}>Resend</button>
+                      }
+                    </p>
+                  </>
                 )}
-                <button
-                  className="btn btn-s btn-block btn-lg"
-                  onClick={verifyWelcomeEmail}
-                  disabled={wEmailLoading || wEmailCode.join('').length < 6}
-                  style={{ marginBottom:10 }}
-                >
-                  {wEmailLoading ? 'Verifying…' : 'Verify email'}
-                </button>
-                <p style={{ textAlign:'center', fontSize:12.5, color:'var(--muted)' }}>
-                  Didn&apos;t get it?{' '}
-                  {wResendCountdown > 0
-                    ? <span style={{ color:'var(--muted2)' }}>Resend in {wResendCountdown}s</span>
-                    : <button className="link-btn" style={{ fontSize:'inherit' }} onClick={resendWelcomeEmail}>Resend</button>
-                  }
-                </p>
               </div>
             )}
 

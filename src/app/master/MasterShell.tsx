@@ -16,6 +16,7 @@ function pageTitleFromPathname(pathname: string): string {
   if (pathname.startsWith('/master/devices'))        return 'Devices'
   if (pathname.startsWith('/master/patients'))       return 'Patients'
   if (pathname.startsWith('/master/manufacturers'))  return 'Manufacturers'
+  if (pathname.startsWith('/master/documents'))      return 'Documents'
   if (pathname.startsWith('/master/settings'))       return 'Settings'
   if (pathname.startsWith('/master/audit'))          return 'Audit Log'
   return 'Dashboard'
@@ -161,6 +162,15 @@ export default function MasterShell({ children }: MasterShellProps) {
       <path d="m9 12 2 2 4-4"/>
     </svg>
   )
+  const IconDoc = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+  )
   const IconHamburg = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <line x1="3" y1="6" x2="21" y2="6"/>
@@ -238,6 +248,10 @@ export default function MasterShell({ children }: MasterShellProps) {
 
           {/* ── ADMIN ── */}
           <span className="sb-section">Admin</span>
+
+          <a href="/master/documents" className={`sb-link${isActive('/master/documents') ? ' active' : ''}`}>
+            <IconDoc /><span>Documents</span>
+          </a>
 
           <a href="/master/audit" className={`sb-link${isActive('/master/audit') ? ' active' : ''}`}>
             <IconClock /><span>Audit Log</span>

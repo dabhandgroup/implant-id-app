@@ -2,13 +2,7 @@
 
 import { useState } from 'react'
 
-type Tab = 'all' | 'pending'
-type ActionType = 'approve' | 'reject'
-interface ConfirmAction {
-  type: ActionType
-  clinicId: string
-  clinicName: string
-}
+type Tab = 'pending' | 'all' | 'rejected'
 
 const activeClinics = [
   { id: 'manchester-orthopaedic', name: 'Manchester Orthopaedic Centre', country: 'United Kingdom', status: 'active', staff: 4, patients: 38, joined: '12 Jan 2026' },
@@ -22,31 +16,13 @@ const pendingClinics = [
   { id: 'sydney-cardiac', name: 'Sydney Cardiac Devices', country: 'Australia', submitted: '22 May 2026', email: 'admin@sydneycardiac.au' },
 ]
 
+const rejectedClinics = [
+  { id: 'glasgow-knee', name: 'Glasgow Knee Clinic', country: 'United Kingdom', submitted: '10 May 2026', email: 'admin@glasgowknee.co.uk', rejected: '15 May 2026', reason: 'Incomplete CQC documentation' },
+  { id: 'cape-neuro', name: 'Cape Town Neurology Associates', country: 'South Africa', submitted: '5 May 2026', email: 'info@capeneuro.co.za', rejected: '12 May 2026', reason: 'Outside supported regions' },
+]
+
 export default function ClinicsClient() {
-  const [tab, setTab] = useState<Tab>('all')
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null)
-  const [confirming, setConfirming] = useState(false)
-  const [confirmed, setConfirmed] = useState(false)
-
-  function openConfirm(type: ActionType, clinicId: string, clinicName: string) {
-    setConfirmAction({ type, clinicId, clinicName })
-    setConfirming(false)
-    setConfirmed(false)
-  }
-
-  function closeConfirm() {
-    setConfirmAction(null)
-    setConfirming(false)
-    setConfirmed(false)
-  }
-
-  async function handleConfirm() {
-    setConfirming(true)
-    await new Promise(r => setTimeout(r, 800))
-    setConfirmed(true)
-    await new Promise(r => setTimeout(r, 900))
-    closeConfirm()
-  }
+  const [tab, setTab] = useState<Tab>('pending')
 
   return (
     <div className="m-content">
@@ -60,18 +36,58 @@ export default function ClinicsClient() {
 
       <div className="m-tabs">
         <button
+          className={`m-tab${tab === 'pending' ? ' active' : ''}`}
+          onClick={() => setTab('pending')}
+        >
+          Pending Applications
+          {pendingClinics.length > 0 && (
+            <span style={{ marginLeft: 6, background: 'var(--warn)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+              {pendingClinics.length}
+            </span>
+          )}
+        </button>
+        <button
           className={`m-tab${tab === 'all' ? ' active' : ''}`}
           onClick={() => setTab('all')}
         >
           All Clinics
         </button>
         <button
-          className={`m-tab${tab === 'pending' ? ' active' : ''}`}
-          onClick={() => setTab('pending')}
+          className={`m-tab${tab === 'rejected' ? ' active' : ''}`}
+          onClick={() => setTab('rejected')}
         >
-          Pending Applications (2)
+          Rejected
         </button>
       </div>
+
+      {tab === 'pending' && (
+        <div className="m-tbl-wrap">
+          <table className="m-tbl">
+            <thead>
+              <tr>
+                <th>Clinic Name</th>
+                <th>Country</th>
+                <th>Contact Email</th>
+                <th>Submitted</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingClinics.map(c => (
+                <tr key={c.id}>
+                  <td style={{ fontWeight: 500 }}>{c.name}</td>
+                  <td>{c.country}</td>
+                  <td>{c.email}</td>
+                  <td>{c.submitted}</td>
+                  <td>
+                    <a href={`/master/clinics/${c.id}`} className="m-act">Review Application</a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {tab === 'all' && (
         <div className="m-tbl-wrap">
@@ -90,7 +106,7 @@ export default function ClinicsClient() {
             <tbody>
               {activeClinics.map(c => (
                 <tr key={c.id}>
-                  <td>{c.name}</td>
+                  <td style={{ fontWeight: 500 }}>{c.name}</td>
                   <td>{c.country}</td>
                   <td><span className="m-status active">Active</span></td>
                   <td>{c.staff}</td>
@@ -107,7 +123,7 @@ export default function ClinicsClient() {
         </div>
       )}
 
-      {tab === 'pending' && (
+      {tab === 'rejected' && (
         <div className="m-tbl-wrap">
           <table className="m-tbl">
             <thead>
@@ -116,73 +132,34 @@ export default function ClinicsClient() {
                 <th>Country</th>
                 <th>Contact Email</th>
                 <th>Submitted</th>
+                <th>Rejected</th>
+                <th>Reason</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {pendingClinics.map(c => (
+              {rejectedClinics.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0' }}>
+                    No rejected applications.
+                  </td>
+                </tr>
+              ) : rejectedClinics.map(c => (
                 <tr key={c.id}>
-                  <td>{c.name}</td>
+                  <td style={{ fontWeight: 500 }}>{c.name}</td>
                   <td>{c.country}</td>
                   <td>{c.email}</td>
                   <td>{c.submitted}</td>
-                  <td style={{ display: 'flex', gap: 6 }}>
-                    <a href={`/master/clinics/${c.id}`} className="m-act">Review Application</a>
-                    <button className="m-act approve" onClick={() => openConfirm('approve', c.id, c.name)}>Approve</button>
-                    <button className="m-act reject" onClick={() => openConfirm('reject', c.id, c.name)}>Reject</button>
+                  <td>{c.rejected}</td>
+                  <td style={{ color: 'var(--muted)', fontSize: 13 }}>{c.reason}</td>
+                  <td>
+                    <a href={`/master/clinics/${c.id}`} className="m-act">View</a>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
-
-      {/* Confirmation modal */}
-      {confirmAction && (
-        <>
-          <div className="logout-back open" onClick={closeConfirm} />
-          <div className="logout-modal open">
-            <div className="logout-body">
-              {confirmAction.type === 'approve' ? (
-                <>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2">
-                      <path d="M20 6L9 17l-5-5"/>
-                    </svg>
-                  </div>
-                  <h3>Approve clinic?</h3>
-                  <p><strong>{confirmAction.clinicName}</strong></p>
-                  <p>This will create their account and send them a welcome email.</p>
-                </>
-              ) : (
-                <>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
-                      <line x1="18" y1="6" x2="6" y2="18"/>
-                      <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                  </div>
-                  <h3>Reject application?</h3>
-                  <p><strong>{confirmAction.clinicName}</strong></p>
-                  <p>The clinic will be notified by email.</p>
-                </>
-              )}
-            </div>
-            <div className="logout-actions">
-              <button className="btn" onClick={closeConfirm} disabled={confirming}>Cancel</button>
-              {confirmAction.type === 'approve' ? (
-                <button className="btn btn-s" onClick={handleConfirm} disabled={confirming}>
-                  {confirmed ? 'Approved!' : confirming ? 'Approving…' : 'Approve'}
-                </button>
-              ) : (
-                <button className="btn btn-danger" onClick={handleConfirm} disabled={confirming}>
-                  {confirmed ? 'Rejected' : confirming ? 'Rejecting…' : 'Reject'}
-                </button>
-              )}
-            </div>
-          </div>
-        </>
       )}
     </div>
   )

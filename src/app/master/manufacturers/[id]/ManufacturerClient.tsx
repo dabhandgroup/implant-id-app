@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 
+type DeviceTab = 'active' | 'pending' | 'draft'
+
 interface ManufacturerData {
   name: string
   contact: string
@@ -19,6 +21,7 @@ interface Device {
   category: string
   mri: string
   published: string
+  status: 'active' | 'pending' | 'draft'
 }
 
 const manufacturerData: Record<string, ManufacturerData> = {
@@ -81,35 +84,36 @@ const manufacturerData: Record<string, ManufacturerData> = {
 
 const sampleDevices: Record<string, Device[]> = {
   'medtronic': [
-    { model: 'Micra AV Pacemaker', category: 'Cardiac', mri: 'MR Conditional', published: '12 Jan 2026' },
-    { model: 'Reveal LINQ ICM', category: 'Cardiac', mri: 'MR Conditional', published: '12 Jan 2026' },
-    { model: 'Intrepid TMVR', category: 'Cardiac Valve', mri: 'MR Unsafe', published: '14 Jan 2026' },
-    { model: 'Intellis Spinal Cord Stimulator', category: 'Neuro', mri: 'MR Conditional', published: '15 Jan 2026' },
-    { model: 'SynchroMed II', category: 'Drug Delivery', mri: 'MR Conditional', published: '16 Jan 2026' },
+    { model: 'Micra AV Pacemaker', category: 'Cardiac', mri: 'MR Conditional', published: '12 Jan 2026', status: 'active' },
+    { model: 'Reveal LINQ ICM', category: 'Cardiac', mri: 'MR Conditional', published: '12 Jan 2026', status: 'active' },
+    { model: 'SynchroMed II', category: 'Drug Delivery', mri: 'MR Conditional', published: '16 Jan 2026', status: 'active' },
+    { model: 'Intrepid TMVR', category: 'Cardiac Valve', mri: 'MR Unsafe', published: '—', status: 'pending' },
+    { model: 'Intellis Spinal Cord Stimulator', category: 'Neuro', mri: 'MR Conditional', published: '—', status: 'draft' },
   ],
   'zimmer-biomet': [
-    { model: 'Oxford Knee System', category: 'Knee', mri: 'MR Safe', published: '16 Jan 2026' },
-    { model: 'NexGen Complete Knee', category: 'Knee', mri: 'MR Safe', published: '16 Jan 2026' },
-    { model: 'Trilogy Acetabular System', category: 'Hip', mri: 'MR Safe', published: '17 Jan 2026' },
-    { model: 'Zimmer M/L Taper Hip', category: 'Hip', mri: 'MR Safe', published: '17 Jan 2026' },
-    { model: 'Persona Knee System', category: 'Knee', mri: 'MR Conditional', published: '18 Jan 2026' },
+    { model: 'Oxford Knee System', category: 'Knee', mri: 'MR Safe', published: '16 Jan 2026', status: 'active' },
+    { model: 'NexGen Complete Knee', category: 'Knee', mri: 'MR Safe', published: '16 Jan 2026', status: 'active' },
+    { model: 'Trilogy Acetabular System', category: 'Hip', mri: 'MR Safe', published: '17 Jan 2026', status: 'active' },
+    { model: 'Zimmer M/L Taper Hip', category: 'Hip', mri: 'MR Safe', published: '—', status: 'pending' },
+    { model: 'Persona Knee System', category: 'Knee', mri: 'MR Conditional', published: '—', status: 'draft' },
   ],
   'stryker': [
-    { model: 'Tritanium PL Cage', category: 'Spinal', mri: 'MR Safe', published: '22 Feb 2026' },
-    { model: 'Accolade II Hip Stem', category: 'Hip', mri: 'MR Safe', published: '22 Feb 2026' },
-    { model: 'Triathlon Knee', category: 'Knee', mri: 'MR Conditional', published: '23 Feb 2026' },
-    { model: 'MAKO Robotic Partial Knee', category: 'Knee', mri: 'MR Safe', published: '24 Feb 2026' },
-    { model: 'Rejuvenate Hip', category: 'Hip', mri: 'MR Conditional', published: '25 Feb 2026' },
+    { model: 'Tritanium PL Cage', category: 'Spinal', mri: 'MR Safe', published: '22 Feb 2026', status: 'active' },
+    { model: 'Accolade II Hip Stem', category: 'Hip', mri: 'MR Safe', published: '22 Feb 2026', status: 'active' },
+    { model: 'MAKO Robotic Partial Knee', category: 'Knee', mri: 'MR Safe', published: '24 Feb 2026', status: 'active' },
+    { model: 'Triathlon Knee', category: 'Knee', mri: 'MR Conditional', published: '—', status: 'pending' },
+    { model: 'Rejuvenate Hip', category: 'Hip', mri: 'MR Conditional', published: '—', status: 'draft' },
   ],
 }
 
-function mriClass(mri: string) {
-  if (mri === 'MR Safe') return 'active'
-  if (mri === 'MR Conditional') return 'pending'
-  return 'rejected'
+function mriColour(mri: string) {
+  if (mri === 'MR Safe') return 'var(--ok)'
+  if (mri === 'MR Conditional') return '#d97706'
+  return 'var(--err)'
 }
 
 export default function ManufacturerClient({ id }: { id: string }) {
+  const [deviceTab, setDeviceTab] = useState<DeviceTab>('active')
   const [confirmUnpublish, setConfirmUnpublish] = useState<string | null>(null)
   const [confirmApprove, setConfirmApprove] = useState(false)
   const [confirming, setConfirming] = useState(false)
@@ -144,12 +148,19 @@ export default function ManufacturerClient({ id }: { id: string }) {
     await new Promise(r => setTimeout(r, 800))
     setConfirmed(true)
     await new Promise(r => setTimeout(r, 900))
-    closeUnpublish()
-    closeApprove()
+    setConfirmUnpublish(null)
+    setConfirmApprove(false)
+    setConfirming(false)
+    setConfirmed(false)
   }
 
   const mfr = manufacturerData[id]
-  const devices = sampleDevices[id] ?? []
+  const allDevices = sampleDevices[id] ?? []
+  const filteredDevices = allDevices.filter(d => d.status === deviceTab)
+
+  const activeCount  = allDevices.filter(d => d.status === 'active').length
+  const pendingCount = allDevices.filter(d => d.status === 'pending').length
+  const draftCount   = allDevices.filter(d => d.status === 'draft').length
 
   if (!mfr) {
     return (
@@ -217,8 +228,8 @@ export default function ManufacturerClient({ id }: { id: string }) {
           <div className="v">{mfr.contact}</div>
         </div>
         <div className="m-info-card">
-          <div className="k">Device Count</div>
-          <div className="v">{mfr.devices}</div>
+          <div className="k">Total Devices</div>
+          <div className="v">{mfr.devices > 0 ? mfr.devices : allDevices.length}</div>
         </div>
         <div className="m-info-card" style={{ gridColumn: '1 / -1' }}>
           <div className="k">Address</div>
@@ -226,54 +237,103 @@ export default function ManufacturerClient({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Devices section */}
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h3 style={{ fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+      {/* ── Devices section ── */}
+      <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h3 style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)', margin: 0 }}>
           Devices
-          <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 13, marginLeft: 8 }}>
-            {mfr.devices > 0 ? `${mfr.devices} total` : ''}
-          </span>
         </h3>
       </div>
 
-      {devices.length === 0 ? (
+      {allDevices.length === 0 ? (
         <div className="m-tbl-wrap" style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--fb)', fontSize: 14 }}>
           No devices uploaded yet.
         </div>
       ) : (
-        <div className="m-tbl-wrap">
-          <table className="m-tbl">
-            <thead>
-              <tr>
-                <th>Model</th>
-                <th>Category</th>
-                <th>MRI Status</th>
-                <th>Published</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {devices.map(d => (
-                <tr key={d.model}>
-                  <td>{d.model}</td>
-                  <td>{d.category}</td>
-                  <td><span className={`m-status ${mriClass(d.mri)}`}>{d.mri}</span></td>
-                  <td>{d.published}</td>
-                  <td>
-                    <button className="m-act danger" onClick={() => openUnpublish(d.model)}>Unpublish</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="m-tabs">
+            <button
+              className={`m-tab${deviceTab === 'active' ? ' active' : ''}`}
+              onClick={() => setDeviceTab('active')}
+            >
+              Active
+              <span style={{ marginLeft: 6, background: activeCount > 0 ? 'var(--ok)' : 'var(--muted2)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+                {activeCount}
+              </span>
+            </button>
+            <button
+              className={`m-tab${deviceTab === 'pending' ? ' active' : ''}`}
+              onClick={() => setDeviceTab('pending')}
+            >
+              Pending Review
+              {pendingCount > 0 && (
+                <span style={{ marginLeft: 6, background: '#d97706', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+                  {pendingCount}
+                </span>
+              )}
+            </button>
+            <button
+              className={`m-tab${deviceTab === 'draft' ? ' active' : ''}`}
+              onClick={() => setDeviceTab('draft')}
+            >
+              Draft
+              {draftCount > 0 && (
+                <span style={{ marginLeft: 6, background: 'var(--muted2)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+                  {draftCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {filteredDevices.length === 0 ? (
+            <div className="m-tbl-wrap" style={{ padding: '28px 20px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--fb)', fontSize: 14 }}>
+              No {deviceTab} devices.
+            </div>
+          ) : (
+            <div className="m-tbl-wrap">
+              <table className="m-tbl">
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Category</th>
+                    <th>MRI Status</th>
+                    <th>{deviceTab === 'active' ? 'Published' : 'Submitted'}</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredDevices.map(d => (
+                    <tr key={d.model}>
+                      <td style={{ fontWeight: 500 }}>{d.model}</td>
+                      <td>{d.category}</td>
+                      <td>
+                        <span style={{ color: mriColour(d.mri), fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600 }}>{d.mri}</span>
+                      </td>
+                      <td style={{ color: d.published === '—' ? 'var(--muted)' : 'var(--text)' }}>{d.published}</td>
+                      <td style={{ display: 'flex', gap: 6 }}>
+                        <button className="m-act">View</button>
+                        {deviceTab === 'active' && (
+                          <button className="m-act danger" onClick={() => openUnpublish(d.model)}>Unpublish</button>
+                        )}
+                        {deviceTab === 'pending' && (
+                          <button className="m-act approve">Approve</button>
+                        )}
+                        {deviceTab === 'draft' && (
+                          <button className="m-act">Publish</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Unpublish confirmation modal */}
+      {/* ── Unpublish confirmation modal ── */}
       {confirmUnpublish && (
-        <>
-          <div className="logout-back open" onClick={closeUnpublish} />
-          <div className="logout-modal open">
+        <div className="logout-back open" onClick={closeUnpublish}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
@@ -292,14 +352,13 @@ export default function ManufacturerClient({ id }: { id: string }) {
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
 
-      {/* Approve confirmation modal */}
+      {/* ── Approve manufacturer modal ── */}
       {confirmApprove && (
-        <>
-          <div className="logout-back open" onClick={closeApprove} />
-          <div className="logout-modal open">
+        <div className="logout-back open" onClick={closeApprove}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2">
@@ -317,7 +376,7 @@ export default function ManufacturerClient({ id }: { id: string }) {
               </button>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

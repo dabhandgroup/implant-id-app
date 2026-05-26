@@ -70,7 +70,7 @@ export default function DashboardClient() {
   const [clinicEmail,   setClinicEmail]   = useState('')
   const [showConfetti,  setShowConfetti]  = useState(false)
   const [welcomeOpen,     setWelcomeOpen]     = useState(false)
-  const [welcomeStep,     setWelcomeStep]     = useState<'welcome' | 'verify-email' | 'passkey'>('welcome')
+  const [welcomeStep,     setWelcomeStep]     = useState<'welcome' | 'verify-email'>('welcome')
   const [wEmailSent,        setWEmailSent]        = useState(false)
   const [wEmailSending,     setWEmailSending]     = useState(false)
   const [wEmailCode,        setWEmailCode]        = useState(['','','','','',''])
@@ -80,8 +80,6 @@ export default function DashboardClient() {
   const [wResendAt,         setWResendAt]         = useState(0)
   const [wResendCountdown,  setWResendCountdown]  = useState(0)
   const [wEmailDone,        setWEmailDone]        = useState(false)
-  const [wPasskeyErr,       setWPasskeyErr]       = useState('')
-  const [wPasskeyLoading,   setWPasskeyLoading]   = useState(false)
 
   const sbBotRef        = useRef<HTMLDivElement>(null)
   const mobProfileRef   = useRef<HTMLDivElement>(null)
@@ -136,7 +134,9 @@ export default function DashboardClient() {
       welcomeShownRef.current = true
       const emailAddr = user.primaryEmailAddress ?? user.emailAddresses?.[0] ?? null
       const emailVerified = emailAddr?.verification?.status === 'verified'
-      setWelcomeStep((!emailAddr || emailVerified) ? 'passkey' : 'welcome')
+      // If email already verified (or no email in Clerk), skip the popup entirely
+      if (!emailAddr || emailVerified) { markWelcomeSeen(); return }
+      setWelcomeStep('welcome')
       setWelcomeOpen(true)
     }
   }, [patient, user])
@@ -226,7 +226,8 @@ export default function DashboardClient() {
     try {
       await emailAddr.attemptVerification({ code: codeStr })
       setWEmailDone(true)
-      setTimeout(() => { setWelcomeStep('passkey'); setWEmailDone(false) }, 1600)
+      // Email verified — close the popup after showing success state
+      setTimeout(() => doneWelcome(), 1800)
     } catch (ex: unknown) {
       const e = ex as { errors?: Array<{ message: string }> }
       const raw = e?.errors?.[0]?.message ?? (ex instanceof Error ? ex.message : '')
@@ -245,18 +246,6 @@ export default function DashboardClient() {
     setWEmailDone(false)
     setWEmailResent(true)
     setTimeout(() => setWEmailResent(false), 2500)
-  }
-
-  async function addWelcomePasskey() {
-    setWPasskeyLoading(true)
-    setWPasskeyErr('')
-    try {
-      await user!.createPasskey()
-      doneWelcome()
-    } catch (ex: unknown) {
-      setWPasskeyErr(ex instanceof Error ? ex.message : 'Could not set up passkey — please try again')
-      setWPasskeyLoading(false)
-    }
   }
 
   return (
@@ -280,11 +269,10 @@ export default function DashboardClient() {
 
             {/* Step dots */}
             <div style={{ display:'flex', gap:5, justifyContent:'center', padding:'20px 28px 0' }}>
-              {(['welcome','verify-email','passkey'] as const).map(s => (
+              {(['welcome','verify-email'] as const).map(s => (
                 <div key={s} style={{
                   height: 3, flex: 1, borderRadius: 99,
-                  background: welcomeStep === s || (s === 'welcome' && welcomeStep !== 'welcome')
-                    || (s === 'verify-email' && welcomeStep === 'passkey')
+                  background: welcomeStep === s || (s === 'welcome' && welcomeStep === 'verify-email')
                     ? 'var(--accent)' : 'var(--border2)',
                   transition: 'background .2s',
                 }} />
@@ -410,7 +398,9 @@ export default function DashboardClient() {
                       </svg>
                     </div>
                     <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:15, color:'var(--text)', marginBottom:4 }}>Email verified!</div>
-                    <div style={{ fontSize:13, color:'var(--muted)' }}>Setting up your passkey…</div>
+                    <div style={{ fontSize:13, color:'var(--muted)', lineHeight:1.5 }}>
+                      You can now browse your record. Your clinic will verify your implant details shortly.
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -502,47 +492,6 @@ export default function DashboardClient() {
                     </p>
                   </>
                 )}
-              </div>
-            )}
-
-            {/* Screen 3: Passkey */}
-            {welcomeStep === 'passkey' && (
-              <div style={{ padding: '24px 28px 28px' }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
-                  <div style={{
-                    width:40, height:40, borderRadius:12, flexShrink:0,
-                    background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
-                    display:'grid', placeItems:'center',
-                  }}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
-                      <path d="M9 2H5a2 2 0 0 0-2 2v4M15 2h4a2 2 0 0 1 2 2v4"/>
-                      <path d="M9 22H5a2 2 0 0 1-2-2v-4M15 22h4a2 2 0 0 0 2-2v-4"/>
-                      <path d="M8.5 9.5v1.5a2 2 0 0 0 2 2h3a2 2 0 0 0 2-2V9.5"/>
-                      <path d="M8.5 8V7a3.5 3.5 0 0 1 7 0v1"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily:'var(--ff)', fontWeight:700, fontSize:16, color:'var(--text)', lineHeight:1.2 }}>Sign in with Face ID</div>
-                    <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>Optional — takes 5 seconds</div>
-                  </div>
-                </div>
-                <p style={{ color:'var(--muted)', fontSize:13.5, lineHeight:1.6, marginBottom:20 }}>
-                  Add a passkey to skip passwords entirely. Face ID, Touch ID, or your device PIN — faster and more secure.
-                </p>
-                {wPasskeyErr && (
-                  <p style={{ color:'var(--err)', fontSize:12.5, textAlign:'center', marginBottom:10 }}>{wPasskeyErr}</p>
-                )}
-                <button
-                  className="btn btn-s btn-block btn-lg"
-                  onClick={addWelcomePasskey}
-                  disabled={wPasskeyLoading}
-                  style={{ marginBottom:12 }}
-                >
-                  {wPasskeyLoading ? 'Setting up…' : 'Enable passkey'}
-                </button>
-                <button className="btn btn-block btn-lg" onClick={doneWelcome}>
-                  Maybe later
-                </button>
               </div>
             )}
 

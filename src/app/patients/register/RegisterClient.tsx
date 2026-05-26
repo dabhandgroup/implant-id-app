@@ -96,7 +96,10 @@ function CompactSelect({
 }) {
   const [open,   setOpen]   = useState(false)
   const [search, setSearch] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
+  const ref      = useRef<HTMLDivElement>(null)
+  const listRef  = useRef<HTMLDivElement>(null)
+  const typeBuf  = useRef('')
+  const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const selected = options.find(o => o.value === value)
   const filtered = searchable && search.trim()
@@ -114,9 +117,32 @@ function CompactSelect({
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
+    if (e.key === 'Escape') { setOpen(false); return }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); return }
+    if (e.key.length !== 1) return
+    e.preventDefault()
+    typeBuf.current += e.key.toLowerCase()
+    if (typeTimer.current) clearTimeout(typeTimer.current)
+    typeTimer.current = setTimeout(() => { typeBuf.current = '' }, 1500)
+    const buf = typeBuf.current
+    const match = options.find(o =>
+      o.label.toLowerCase().startsWith(buf) || o.value.toLowerCase().startsWith(buf)
+    )
+    if (match) {
+      onChange(match.value)
+      setOpen(true)
+      setTimeout(() => {
+        listRef.current?.querySelector<HTMLElement>(`[data-val="${match.value}"]`)
+          ?.scrollIntoView({ block: 'nearest' })
+      }, 0)
+    }
+  }
+
   return (
     <div className={`custom-select${open ? ' open' : ''}`} ref={ref} style={style}>
-      <button type="button" className="custom-select-btn" onClick={() => setOpen(o => !o)}>
+      <button type="button" className="custom-select-btn"
+        onClick={() => setOpen(o => !o)} onKeyDown={handleKeyDown}>
         <span className="custom-select-val"
           style={{ color: value ? 'var(--text)' : 'var(--muted2)' }}>
           {selected?.icon && <span style={{ marginRight: 6 }}>{selected.icon}</span>}
@@ -137,9 +163,9 @@ function CompactSelect({
             />
           </div>
         )}
-        <div className="custom-select-list">
+        <div className="custom-select-list" ref={listRef}>
           {filtered.map(o => (
-            <button key={o.value} type="button"
+            <button key={o.value} type="button" data-val={o.value}
               onClick={() => { onChange(o.value); setOpen(false); setSearch('') }}>
               {o.icon && <span style={{ marginRight: 8 }}>{o.icon}</span>}
               {o.label}
@@ -212,7 +238,6 @@ function DobPicker({ value, onChange }: { value: string; onChange: (v: string) =
         value={yr}
         placeholder="Year"
         onChange={y => { setYr(y); commit(day, mo, y) }}
-        searchable
       />
     </div>
   )

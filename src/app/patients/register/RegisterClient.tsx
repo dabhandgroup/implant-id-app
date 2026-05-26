@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useUser, useSignUp, useClerk } from '@clerk/nextjs'
 import { useMutation, useQuery }        from 'convex/react'
 import { api }                          from '../../../../convex/_generated/api'
@@ -18,6 +18,15 @@ interface SelectedDevice {
   manufacturer: string
   model_number: string
   device_type:  string
+}
+
+interface ImplantEntry {
+  id:           number
+  device:       SelectedDevice | null
+  hospital:     string
+  surgeon:      string
+  surgeryMonth: string
+  surgeryYear:  string
 }
 
 interface SelectOption { value: string; label: string; icon?: string }
@@ -480,6 +489,70 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
   )
 }
 
+// ── Implant block (one per implant) ──────────────────────────────────────────
+
+function ImplantBlock({
+  entry, index, total, onChange, onRemove,
+}: {
+  entry:    ImplantEntry
+  index:    number
+  total:    number
+  onChange: (updated: ImplantEntry) => void
+  onRemove: () => void
+}) {
+  return (
+    <div className="implant-block" style={{ marginBottom: 12 }}>
+      <div className="implant-block-hd" style={{ justifyContent: 'space-between' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          {total > 1 ? `Implant ${index + 1}` : 'Implant details'}
+        </span>
+        {total > 1 && (
+          <button type="button" className="dev-sel-x" onClick={onRemove}
+            title="Remove this implant" aria-label="Remove implant">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      <div className="field">
+        <label>Search for your device</label>
+        <DeviceSearch onSelect={device => onChange({ ...entry, device })} />
+      </div>
+
+      <div className="field">
+        <label>Hospital / clinic where implanted</label>
+        <input className="input" placeholder="e.g. Royal Melbourne Hospital"
+          value={entry.hospital}
+          onChange={e => onChange({ ...entry, hospital: e.target.value })} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="field">
+          <label>Surgeon name (if known)</label>
+          <input className="input" placeholder="e.g. Dr Sarah Chen"
+            value={entry.surgeon}
+            onChange={e => onChange({ ...entry, surgeon: e.target.value })} />
+        </div>
+        <div className="field">
+          <label>Date of surgery</label>
+          <SurgeryDatePicker
+            month={entry.surgeryMonth} year={entry.surgeryYear}
+            onMonthChange={m => onChange({ ...entry, surgeryMonth: m })}
+            onYearChange={y  => onChange({ ...entry, surgeryYear: y  })}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── OTP input row ─────────────────────────────────────────────────────────────
 
 function OtpRow({
@@ -541,11 +614,10 @@ export default function RegisterClient() {
   const phoneRefs = useRef<(HTMLInputElement | null)[]>([])
 
   // ── Step 3: implant details ───────────────────────────────────────────────
-  const [selectedDevice, setSelectedDevice] = useState<SelectedDevice | null>(null)
-  const [hospital,      setHospital]      = useState('')
-  const [surgeon,       setSurgeon]       = useState('')
-  const [surgeryMonth,  setSurgeryMonth]  = useState('')
-  const [surgeryYear,   setSurgeryYear]   = useState('')
+  const implantIdCounter = useRef(0)
+  const [implants, setImplants] = useState<ImplantEntry[]>([
+    { id: 0, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' },
+  ])
 
   // ── Step 4: summary ───────────────────────────────────────────────────────
   const [notes, setNotes] = useState('')
@@ -688,6 +760,10 @@ export default function RegisterClient() {
     setError('')
     setLoading(true)
     try {
+      const first = implants[0]
+      const extra = implants.slice(1).filter(imp =>
+        imp.device || imp.hospital || imp.surgeon || imp.surgeryMonth || imp.surgeryYear
+      )
       const result = await createPatient({
         firstName: firstName.trim(),
         lastName:  lastName.trim(),
@@ -695,16 +771,29 @@ export default function RegisterClient() {
         phone:          phoneNum.trim() ? `${phoneDial} ${phoneNum.trim()}` : undefined,
         countryOfBirth: countryName || undefined,
 
-        selfReportedDevice:       selectedDevice?.device_name   || undefined,
-        selfReportedDeviceId:     selectedDevice?.device_id     || undefined,
-        selfReportedManufacturer: selectedDevice?.manufacturer  || undefined,
-        selfReportedModelNumber:  selectedDevice?.model_number  || undefined,
-        selfReportedDeviceType:   selectedDevice?.device_type   || undefined,
-        selfReportedImplantMonth: surgeryMonth || undefined,
-        selfReportedImplantYear:  surgeryYear  || undefined,
-        selfReportedHospital:     hospital.trim() || undefined,
-        selfReportedSurgeon:      surgeon.trim()  || undefined,
-        additionalNotes:          notes.trim()    || undefined,
+        selfReportedDevice:       first?.device?.device_name   || undefined,
+        selfReportedDeviceId:     first?.device?.device_id     || undefined,
+        selfReportedManufacturer: first?.device?.manufacturer  || undefined,
+        selfReportedModelNumber:  first?.device?.model_number  || undefined,
+        selfReportedDeviceType:   first?.device?.device_type   || undefined,
+        selfReportedImplantMonth: first?.surgeryMonth || undefined,
+        selfReportedImplantYear:  first?.surgeryYear  || undefined,
+        selfReportedHospital:     first?.hospital.trim() || undefined,
+        selfReportedSurgeon:      first?.surgeon.trim()  || undefined,
+        selfReportedImplants: extra.length > 0
+          ? JSON.stringify(extra.map(imp => ({
+              device:       imp.device?.device_name   || null,
+              deviceId:     imp.device?.device_id     || null,
+              manufacturer: imp.device?.manufacturer  || null,
+              modelNumber:  imp.device?.model_number  || null,
+              deviceType:   imp.device?.device_type   || null,
+              month:        imp.surgeryMonth || null,
+              year:         imp.surgeryYear  || null,
+              hospital:     imp.hospital || null,
+              surgeon:      imp.surgeon  || null,
+            })))
+          : undefined,
+        additionalNotes: notes.trim() || undefined,
       })
 
       void result
@@ -915,53 +1004,53 @@ export default function RegisterClient() {
           </div>
 
           {/* ─────────────────────────────────────────────────────────────── */}
-          {/* STEP 3: Add your implant                                        */}
+          {/* STEP 3: Add your implant(s)                                     */}
           {/* ─────────────────────────────────────────────────────────────── */}
           <div className={`step-pane${step === 'implant' ? ' on' : ''}`}>
             <h3 className="step-title">Add your implant</h3>
             <p className="step-sub">
-              Search for your device below, then add your procedure details.
+              Search for your device and add procedure details. Got more than one? Add them all.
             </p>
             <form onSubmit={goToSummary}>
 
-              <div className="field">
-                <label>Search for your device</label>
-                <DeviceSearch onSelect={setSelectedDevice} />
+              {implants.map((imp, idx) => (
+                <ImplantBlock
+                  key={imp.id}
+                  entry={imp}
+                  index={idx}
+                  total={implants.length}
+                  onChange={updated =>
+                    setImplants(prev => prev.map(i => i.id === imp.id ? updated : i))
+                  }
+                  onRemove={() =>
+                    setImplants(prev => prev.filter(i => i.id !== imp.id))
+                  }
+                />
+              ))}
+
+              <button type="button" className="btn btn-block"
+                style={{ marginBottom: 18 }}
+                onClick={() => {
+                  implantIdCounter.current += 1
+                  setImplants(prev => [
+                    ...prev,
+                    { id: implantIdCounter.current, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' },
+                  ])
+                }}>
+                + Add another implant
+              </button>
+
+              <div className="dev-warn" style={{ marginBottom: 14 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                  <circle cx="12" cy="12" r="9" /><path d="M12 7v5M12 16h.01" />
+                </svg>
+                <span>
+                  Your selection will be verified before your record is confirmed.
+                  If you're unsure, pick the closest match — your clinic can correct it.
+                </span>
               </div>
 
-              <div className="implant-block" style={{ marginTop: 16 }}>
-                <div className="implant-block-hd">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
-                  Procedure details
-                </div>
-
-                <div className="field">
-                  <label>Hospital / clinic where implanted</label>
-                  <input className="input" placeholder="e.g. Royal Melbourne Hospital"
-                    value={hospital} onChange={e => setHospital(e.target.value)} />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div className="field">
-                    <label>Surgeon name (if known)</label>
-                    <input className="input" placeholder="e.g. Dr Sarah Chen"
-                      value={surgeon} onChange={e => setSurgeon(e.target.value)} />
-                  </div>
-                  <div className="field">
-                    <label>Date of surgery</label>
-                    <SurgeryDatePicker
-                      month={surgeryMonth} year={surgeryYear}
-                      onMonthChange={setSurgeryMonth}
-                      onYearChange={setSurgeryYear}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <div style={{ display: 'flex', gap: 10 }}>
                 {!isSignedIn && (
                   <button className="btn btn-lg" type="button"
                     onClick={() => goStep('verifyPhone')} style={{ flex: '0 0 auto' }}>
@@ -1010,39 +1099,48 @@ export default function RegisterClient() {
                 <span className="k">Phone</span>
                 <span className="v">{phoneDisplay}</span>
               </div>
-              <div className="row">
-                <span className="k">Device</span>
-                <span className="v">{selectedDevice?.device_name || 'Not specified'}</span>
-              </div>
-              {selectedDevice?.manufacturer && (
-                <div className="row">
-                  <span className="k">Manufacturer</span>
-                  <span className="v">{selectedDevice.manufacturer}</span>
-                </div>
-              )}
-              {hospital && (
-                <div className="row">
-                  <span className="k">Hospital</span>
-                  <span className="v">{hospital}</span>
-                </div>
-              )}
-              {surgeon && (
-                <div className="row">
-                  <span className="k">Surgeon</span>
-                  <span className="v">{surgeon}</span>
-                </div>
-              )}
-              {(surgeryMonth || surgeryYear) && (
-                <div className="row">
-                  <span className="k">Surgery date</span>
-                  <span className="v">
-                    {surgeryMonth
-                      ? MONTHS.find(m => m.value === surgeryMonth)?.label
-                      : ''}{' '}
-                    {surgeryYear}
-                  </span>
-                </div>
-              )}
+              {implants.map((imp, idx) => (
+                <React.Fragment key={imp.id}>
+                  {implants.length > 1 && (
+                    <div className="row" style={{ background: 'color-mix(in srgb,var(--accent) 5%,transparent)' }}>
+                      <span className="k" style={{ fontWeight: 600, color: 'var(--accent)' }}>
+                        Implant {idx + 1}
+                      </span>
+                    </div>
+                  )}
+                  <div className="row">
+                    <span className="k">Device</span>
+                    <span className="v">{imp.device?.device_name || 'Not specified'}</span>
+                  </div>
+                  {imp.device?.manufacturer && (
+                    <div className="row">
+                      <span className="k">Manufacturer</span>
+                      <span className="v">{imp.device.manufacturer}</span>
+                    </div>
+                  )}
+                  {imp.hospital && (
+                    <div className="row">
+                      <span className="k">Hospital</span>
+                      <span className="v">{imp.hospital}</span>
+                    </div>
+                  )}
+                  {imp.surgeon && (
+                    <div className="row">
+                      <span className="k">Surgeon</span>
+                      <span className="v">{imp.surgeon}</span>
+                    </div>
+                  )}
+                  {(imp.surgeryMonth || imp.surgeryYear) && (
+                    <div className="row">
+                      <span className="k">Surgery date</span>
+                      <span className="v">
+                        {imp.surgeryMonth ? MONTHS.find(m => m.value === imp.surgeryMonth)?.label : ''}{' '}
+                        {imp.surgeryYear}
+                      </span>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
               <div className="row">
                 <span className="k">Status</span>
                 <span className="v" style={{

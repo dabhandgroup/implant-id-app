@@ -274,6 +274,290 @@ function typeColour(type: string) {
   return { bg: 'color-mix(in srgb,var(--muted) 10%,transparent)', border: 'color-mix(in srgb,var(--muted) 25%,transparent)', text: 'var(--muted)' }
 }
 
+// ── PDF generation ────────────────────────────────────────────────────────────
+
+function mriColourHex(s: 'safe' | 'conditional' | 'unsafe'): string {
+  if (s === 'safe') return '#16a34a'
+  if (s === 'conditional') return '#d97706'
+  return '#dc2626'
+}
+
+function escHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function buildContractHtml(contractList: ContractData[]): string {
+  const n = contractList.length
+
+  const deviceSections = contractList.map((c, idx) => {
+    const mriHex = mriColourHex(c.mriStatus)
+    const isLast = idx === contractList.length - 1
+    const pageBreak = n > 1 && !isLast ? '<div class="page-break"></div>' : ''
+
+    const approvalRows = c.approvals
+      .map(
+        a => `<tr>
+          <td>${escHtml(a.flag)} ${escHtml(a.region)}</td>
+          <td style="font-family:monospace;font-size:11px">${escHtml(a.number)}</td>
+          <td>${escHtml(a.date)}</td>
+        </tr>`
+      )
+      .join('')
+
+    const certItems = [
+      'I confirm that all device information submitted is accurate, complete, and up to date to the best of my knowledge.',
+      'I confirm I have read and agree to the Implant ID submission guidelines and platform terms of use.',
+      'I confirm I have the authority and permission to submit this device on behalf of the manufacturer.',
+    ]
+      .map(
+        text => `<div class="cert-item">
+          <div class="cert-check">&#10003;</div>
+          <p>${escHtml(text)}</p>
+        </div>`
+      )
+      .join('')
+
+    return `
+      ${idx === 0 ? `
+      <div class="header">
+        <div class="header-left">
+          <div class="logo-mark">&#9135;</div>
+          <div>
+            <div class="logo-name">ImplantID</div>
+            <div class="logo-sub">Device Submission Contract</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="ref-num">${escHtml(c.refNumber)}</div>
+          <div class="submitted-label">Submitted ${escHtml(c.submittedDate)}</div>
+        </div>
+      </div>
+      <hr class="header-rule">
+      ` : ''}
+
+      <div class="section">
+        <div class="section-heading">
+          <div class="section-num">${idx + 1}</div>
+          <span>Device Identification${n > 1 ? ` — ${escHtml(c.deviceName)}` : ''}</span>
+        </div>
+        <div class="two-col">
+          <div class="field"><div class="field-label">Device Name</div><div class="field-value bold">${escHtml(c.deviceName)}</div></div>
+          <div class="field"><div class="field-label">Manufacturer</div><div class="field-value">${escHtml(c.manufacturer)}</div></div>
+          <div class="field"><div class="field-label">Device Category</div><div class="field-value">${escHtml(c.category)}</div></div>
+          <div class="field"><div class="field-label">Device Type</div><div class="field-value">${escHtml(c.deviceType)}</div></div>
+          <div class="field"><div class="field-label">Model / Part Number</div><div class="field-value mono">${escHtml(c.modelNumber)}</div></div>
+          <div class="field"><div class="field-label">GMDN Code</div><div class="field-value mono">${escHtml(c.gmdnCode)}</div></div>
+          <div class="field"><div class="field-label">Primary Implant Region</div><div class="field-value">${escHtml(c.bodyRegion)}</div></div>
+          <div class="field"><div class="field-label">Country of Registration</div><div class="field-value">${escHtml(c.country)}</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-heading">
+          <div class="section-num">${idx + 2}</div>
+          <span>Clinical Description</span>
+        </div>
+        <p class="body-text">${escHtml(c.description)}</p>
+      </div>
+
+      <div class="section">
+        <div class="section-heading">
+          <div class="section-num">${idx + 3}</div>
+          <span>MRI Safety Classification</span>
+        </div>
+        <div class="mri-badge" style="color:${mriHex};border-color:${mriHex};background:${mriHex}18">
+          ${c.mriStatus === 'safe' ? '&#10003;' : c.mriStatus === 'conditional' ? '&#9888;' : '&#10005;'}
+          ${escHtml(c.mriLabel)}
+          <span class="astm-label">Per ASTM F2503</span>
+        </div>
+        <div class="two-col" style="margin-top:14px">
+          <div class="field"><div class="field-label">Approved Field Strengths</div><div class="field-value">${escHtml(c.teslaRatings)}</div></div>
+          <div class="field"><div class="field-label">Whole-body SAR Limit</div><div class="field-value">${escHtml(c.sarWb)}</div></div>
+          <div class="field"><div class="field-label">Head SAR Limit</div><div class="field-value">${escHtml(c.sarHead)}</div></div>
+          <div class="field"><div class="field-label">Maximum Scan Duration</div><div class="field-value">${escHtml(c.scanDuration)}</div></div>
+          <div class="field"><div class="field-label">Post-implant Wait Period</div><div class="field-value">${escHtml(c.postImplantWait)}</div></div>
+        </div>
+        ${c.mriNotes ? `
+        <div class="mri-restrictions" style="border-left-color:${mriHex};background:${mriHex}0f">
+          <div class="restrictions-label" style="color:${mriHex}">Scan Conditions &amp; Restrictions</div>
+          <p class="body-text">${escHtml(c.mriNotes)}</p>
+        </div>
+        ` : ''}
+      </div>
+
+      <div class="section">
+        <div class="section-heading">
+          <div class="section-num">${idx + 4}</div>
+          <span>Regional Regulatory Approvals</span>
+        </div>
+        <table class="approval-table">
+          <thead>
+            <tr>
+              <th>Region</th>
+              <th>Registration Number</th>
+              <th>Approval Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${approvalRows}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-heading">
+          <div class="section-num">${idx + 5}</div>
+          <span>Manufacturer Certification</span>
+        </div>
+        ${certItems}
+      </div>
+
+      ${pageBreak}
+    `
+  })
+
+  // Signature section — covers all devices
+  const firstContract = contractList[0]
+  const deviceListHtml =
+    n > 1
+      ? `<p class="body-text" style="margin-bottom:10px">This electronic signature confirms the accuracy and authority of all ${n} device submissions contained in this contract:</p>
+         <ul class="device-list">${contractList.map(c => `<li>${escHtml(c.deviceName)}</li>`).join('')}</ul>`
+      : ''
+
+  const signatureSection = `
+    <div class="section" style="margin-bottom:0">
+      <div class="section-heading">
+        <div class="section-num">6</div>
+        <span>Electronic Signature</span>
+      </div>
+      ${deviceListHtml}
+      <div class="sig-grid">
+        <div>
+          <div class="field-label" style="margin-bottom:6px">Authorised Signatory</div>
+          <div class="sig-line">${escHtml(firstContract.submitterName)}</div>
+          <div style="font-size:12.5px;font-weight:600;color:#111;margin-top:8px">${escHtml(firstContract.submitterName)}</div>
+          <div style="font-size:12px;color:#6b7280">${escHtml(firstContract.submitterTitle)}</div>
+          <div style="font-size:12px;color:#6b7280">${escHtml(firstContract.submitterCompany)}</div>
+        </div>
+        <div>
+          <div class="field-label" style="margin-bottom:6px">Signature Date</div>
+          <div style="font-size:14px;font-weight:600;color:#111;margin-bottom:14px">${escHtml(firstContract.signatureDate)}</div>
+          <div class="field-label" style="margin-bottom:6px">Document Reference</div>
+          <div style="font-family:monospace;font-size:11px;color:#374151">${escHtml(firstContract.refNumber)}</div>
+        </div>
+      </div>
+    </div>
+  `
+
+  const footer = `
+    <div class="footer">
+      <p>This document is an automatically generated submission contract produced by the Implant ID platform. The device information contained herein was submitted by the manufacturer and has been archived for audit purposes. Implant ID does not independently verify the accuracy of manufacturer-submitted data. Clinicians should cross-reference against the manufacturer's current labelling before clinical use.</p>
+      <div class="footer-logo">
+        <div style="font-weight:700;color:#0d9488">ImplantID</div>
+        <div style="font-size:9px;color:#9ca3af">portal.implantid.io</div>
+      </div>
+    </div>
+  `
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escHtml(firstContract.refNumber)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      color: #111;
+      background: #fff;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+    .page { width: 794px; padding: 60px 64px; margin: 0 auto; }
+    .page-break { page-break-before: always; padding-top: 60px; }
+    @media print {
+      @page { size: A4; margin: 15mm 18mm; }
+      body { background: white; }
+      .page { width: 100%; padding: 0; }
+      .no-print { display: none; }
+    }
+
+    /* Header */
+    .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .logo-mark { width: 36px; height: 36px; border-radius: 9px; background: rgba(13,148,136,.12); display: flex; align-items: center; justify-content: center; font-size: 18px; color: #0d9488; }
+    .logo-name { font-size: 15px; font-weight: 700; color: #0d9488; letter-spacing: -.01em; }
+    .logo-sub { font-size: 10px; color: #6b7280; letter-spacing: .04em; text-transform: uppercase; }
+    .header-right { text-align: right; }
+    .ref-num { font-family: monospace; font-size: 10px; color: #6b7280; margin-bottom: 2px; }
+    .submitted-label { font-size: 11px; font-weight: 600; color: #111; }
+    .header-rule { border: none; border-top: 2px solid #e5e7eb; margin-bottom: 28px; }
+
+    /* Sections */
+    .section { margin-bottom: 28px; }
+    .section-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .section-num { width: 22px; height: 22px; border-radius: 50%; background: #0d9488; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .section-heading span { font-size: 13px; font-weight: 700; color: #111; letter-spacing: -.01em; }
+
+    /* Two-column grid */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+    .field {}
+    .field-label { font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; color: #9ca3af; font-weight: 600; margin-bottom: 2px; }
+    .field-value { font-size: 13px; color: #111; }
+    .field-value.bold { font-weight: 600; }
+    .field-value.mono { font-family: monospace; font-size: 12px; }
+
+    /* Body text */
+    .body-text { font-size: 13px; line-height: 1.75; color: #374151; }
+
+    /* MRI badge */
+    .mri-badge { display: inline-flex; align-items: center; gap: 7px; padding: 6px 14px; border-radius: 8px; border: 1.5px solid; font-size: 13px; font-weight: 700; }
+    .astm-label { font-size: 11px; color: #9ca3af; font-weight: 400; margin-left: 4px; }
+    .mri-restrictions { margin-top: 14px; padding: 12px 16px; border-left: 3px solid; border-radius: 0 6px 6px 0; }
+    .restrictions-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+
+    /* Approvals table */
+    .approval-table { width: 100%; border-collapse: collapse; }
+    .approval-table th { text-align: left; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #9ca3af; font-weight: 600; padding: 0 12px 8px 0; border-bottom: 1px solid #e5e7eb; }
+    .approval-table td { padding: 10px 12px 10px 0; font-size: 13px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+    .approval-table td:last-child { padding-right: 0; }
+
+    /* Certification */
+    .cert-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+    .cert-check { width: 18px; height: 18px; border-radius: 4px; background: rgba(22,163,74,.12); border: 1.5px solid rgba(22,163,74,.3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; font-size: 11px; color: #16a34a; font-weight: 700; }
+
+    /* Signature */
+    .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .sig-line { font-family: Georgia, serif; font-style: italic; font-size: 32px; color: #111; opacity: .85; padding-bottom: 10px; border-bottom: 1.5px solid #e5e7eb; margin-bottom: 0; }
+
+    /* Device list (multi-device) */
+    .device-list { margin: 0 0 14px 20px; }
+    .device-list li { font-size: 13px; color: #374151; line-height: 1.7; }
+
+    /* Footer */
+    .footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid #e5e7eb; display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+    .footer p { font-size: 10.5px; line-height: 1.7; color: #9ca3af; max-width: 520px; }
+    .footer-logo { text-align: right; flex-shrink: 0; font-size: 11px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    ${deviceSections.join('\n')}
+    ${signatureSection}
+    ${footer}
+  </div>
+</body>
+</html>`
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface Comment {
@@ -352,6 +636,17 @@ export default function DocumentDetailClient({ id }: { id: string }) {
     setSubmitting(false)
   }
 
+  function handleDownloadPdf() {
+    const html = buildContractHtml([contract])
+    const win = window.open('', '_blank')
+    if (!win) return
+    win.document.write(html)
+    win.document.close()
+    setTimeout(() => {
+      win.print()
+    }, 400)
+  }
+
   return (
     <div className="m-content">
       <a href="/master/documents" className="m-back">
@@ -373,6 +668,18 @@ export default function DocumentDetailClient({ id }: { id: string }) {
           <div className="sub">{contract.refNumber}</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn btn-s"
+            onClick={handleDownloadPdf}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download PDF
+          </button>
           {contract.externalLink && (
             <a
               href={contract.externalLink}
@@ -460,7 +767,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
 
               {/* ── Section 2: Clinical Description ── */}
               <ContractSection num={2} title="Clinical Description">
-                <p style={{ fontFamily: 'Georgia, serif', fontSize: 13.5, lineHeight: 1.75, color: '#374151', margin: 0 }}>
+                <p style={{ fontFamily: 'var(--fb)', fontSize: 13.5, lineHeight: 1.75, color: '#374151', margin: 0 }}>
                   {contract.description}
                 </p>
               </ContractSection>
@@ -502,7 +809,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
                     <div style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: mriColour(contract.mriStatus), marginBottom: 5 }}>
                       Scan Conditions &amp; Restrictions
                     </div>
-                    <p style={{ fontFamily: 'Georgia, serif', fontSize: 12.5, lineHeight: 1.7, color: '#374151', margin: 0 }}>
+                    <p style={{ fontFamily: 'var(--fb)', fontSize: 12.5, lineHeight: 1.7, color: '#374151', margin: 0 }}>
                       {contract.mriNotes}
                     </p>
                   </div>
@@ -546,7 +853,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
                         <path d="M20 6L9 17l-5-5"/>
                       </svg>
                     </div>
-                    <p style={{ fontFamily: 'Georgia, serif', fontSize: 12.5, lineHeight: 1.65, color: '#374151', margin: 0 }}>{text}</p>
+                    <p style={{ fontFamily: 'var(--fb)', fontSize: 12.5, lineHeight: 1.65, color: '#374151', margin: 0 }}>{text}</p>
                   </div>
                 ))}
               </ContractSection>
@@ -574,7 +881,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
 
               {/* Contract footer */}
               <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24 }}>
-                <p style={{ fontFamily: 'Georgia, serif', fontSize: 10.5, lineHeight: 1.7, color: '#9ca3af', margin: 0, maxWidth: 520 }}>
+                <p style={{ fontFamily: 'var(--fb)', fontSize: 10.5, lineHeight: 1.7, color: '#9ca3af', margin: 0, maxWidth: 520 }}>
                   This document is an automatically generated submission contract produced by the Implant ID platform. The device information contained herein was submitted by the manufacturer and has been archived for audit purposes. Implant ID does not independently verify the accuracy of manufacturer-submitted data. Clinicians should cross-reference against the manufacturer&apos;s current labelling before clinical use.
                 </p>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>

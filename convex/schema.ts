@@ -190,6 +190,10 @@ export default defineSchema({
     services:         v.array(v.string()),  // e.g. ["MRI", "Pacemaker clinics"]
     additionalInfo:   v.optional(v.string()),
 
+    // Facility capacity (collected in onboarding form)
+    mriScannerCount:    v.optional(v.number()),
+    staffUsingImplantId: v.optional(v.number()),
+
     // Status
     status:       v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected')),
     submittedAt:  v.number(),

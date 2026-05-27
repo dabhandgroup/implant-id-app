@@ -40,6 +40,10 @@ export const submitClinicApplication = mutation({
     services:       v.array(v.string()),
     additionalInfo: v.optional(v.string()),
 
+    // Facility capacity (kept as separate fields so the detail page can display them cleanly)
+    mriScannerCount:     v.optional(v.number()),
+    staffUsingImplantId: v.optional(v.number()),
+
     // Accreditation document
     storageId: v.optional(v.id('_storage')),
     fileName:  v.optional(v.string()),
@@ -177,70 +181,95 @@ export const listClinics = query({
 // ── Approval ──────────────────────────────────────────────────────────────────
 
 /**
- * Activate the clinic account in Clerk after approval.
+ * Activate the clinic account in Clerk after approval, then send the branded
+ * approval email via Resend.
  *
- * - If the submitter already has a Clerk account (clerkUserId is set), update
- *   their publicMetadata.role to 'clinic_staff' so they can access the portal.
- * - Otherwise, send a Clerk invitation email so they can create an account.
- *   The invitation includes publicMetadata.role = 'clinic_staff' so the role
- *   is set automatically when they sign up.
+ * Resolution order for the Clerk account:
+ *   1. If clerkUserId is already known, just patch the role.
+ *   2. Otherwise, search for an existing user with that email and patch them.
+ *   3. If no account exists, create one (no password — they sign in with
+ *      Clerk's email OTP magic code).
  *
- * Requires CLERK_SECRET_KEY to be set in Convex environment variables.
+ * Requires CLERK_SECRET_KEY in Convex environment variables.
  */
 export const activateClinicAccount = internalAction({
   args: {
     clerkUserId:  v.optional(v.string()),
     contactEmail: v.string(),
+    contactName:  v.string(),
     facilityName: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const secretKey = process.env.CLERK_SECRET_KEY
     if (!secretKey) {
       console.error('[clinics] CLERK_SECRET_KEY not set — cannot activate clinic account')
-      return
-    }
+    } else {
+      let resolvedId = args.clerkUserId ?? null
 
-    if (args.clerkUserId) {
-      // Existing Clerk user — patch their role
-      const res = await fetch(
-        `https://api.clerk.com/v1/users/${args.clerkUserId}/metadata`,
-        {
-          method: 'PATCH',
+      if (!resolvedId) {
+        // 1. Try to find by email
+        const searchRes = await fetch(
+          `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
+          { headers: { Authorization: `Bearer ${secretKey}` } },
+        )
+        if (searchRes.ok) {
+          const found = (await searchRes.json()) as { id: string }[]
+          if (found.length > 0) resolvedId = found[0].id
+        }
+      }
+
+      if (!resolvedId) {
+        // 2. Create a new Clerk user (passwordless — signs in via email OTP)
+        const createRes = await fetch('https://api.clerk.com/v1/users', {
+          method: 'POST',
           headers: {
             Authorization:  `Bearer ${secretKey}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
-        },
-      )
-      if (!res.ok) {
-        const body = await res.text()
-        console.error('[clinics] Clerk metadata PATCH failed:', res.status, body)
-      } else {
-        console.log('[clinics] Role updated to clinic_staff for', args.clerkUserId)
+          body: JSON.stringify({
+            email_addresses:          [args.contactEmail],
+            public_metadata:          { role: 'clinic_staff' },
+            skip_password_requirement: true,
+          }),
+        })
+        if (createRes.ok) {
+          const newUser = (await createRes.json()) as { id: string }
+          resolvedId = newUser.id
+          console.log('[clinics] Created Clerk account for', args.contactEmail)
+        } else {
+          const body = await createRes.text()
+          console.error('[clinics] Clerk user creation failed:', createRes.status, body)
+        }
       }
-    } else {
-      // No Clerk account yet — send an invitation
-      const res = await fetch('https://api.clerk.com/v1/invitations', {
-        method: 'POST',
-        headers: {
-          Authorization:  `Bearer ${secretKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email_address:   args.contactEmail,
-          public_metadata: { role: 'clinic_staff' },
-          redirect_url:    'https://portal.implantid.io/clinics/dashboard',
-          ignore_existing: true,
-        }),
-      })
-      if (!res.ok) {
-        const body = await res.text()
-        console.error('[clinics] Clerk invitation failed:', res.status, body)
-      } else {
-        console.log('[clinics] Invitation sent to', args.contactEmail)
+
+      if (resolvedId) {
+        // 3. Stamp the role on the resolved account
+        const patchRes = await fetch(
+          `https://api.clerk.com/v1/users/${resolvedId}/metadata`,
+          {
+            method: 'PATCH',
+            headers: {
+              Authorization:  `Bearer ${secretKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
+          },
+        )
+        if (patchRes.ok) {
+          console.log('[clinics] Role set to clinic_staff for', resolvedId)
+        } else {
+          const body = await patchRes.text()
+          console.error('[clinics] Clerk metadata PATCH failed:', patchRes.status, body)
+        }
       }
     }
+
+    // Always send the branded approval email via Resend (even if Clerk step failed)
+    await ctx.runAction(internal.email.sendClinicApprovalEmail, {
+      contactName:  args.contactName,
+      contactEmail: args.contactEmail,
+      facilityName: args.facilityName,
+    })
   },
 })
 
@@ -292,10 +321,11 @@ export const reviewApplication = mutation({
         }
       }
 
-      // Activate the Clerk account (set role or send invitation)
+      // Activate the Clerk account + send approval email
       await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
         clerkUserId:  app.clerkUserId ?? undefined,
         contactEmail: app.contactEmail,
+        contactName:  app.contactName,
         facilityName: app.facilityName,
       })
 

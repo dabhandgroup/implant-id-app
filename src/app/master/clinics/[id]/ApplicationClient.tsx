@@ -289,6 +289,23 @@ export default function ApplicationClient({ id }: { id: string }) {
         </div>
       )}
 
+      {/* ── Facility capacity ── */}
+      {(app.mriScannerCount != null || app.staffUsingImplantId != null) && (
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 14 }}>
+            Facility Capacity
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {app.mriScannerCount != null && (
+              <InfoField label="MRI Scanners" value={String(app.mriScannerCount)} />
+            )}
+            {app.staffUsingImplantId != null && (
+              <InfoField label="Staff using Implant ID" value={String(app.staffUsingImplantId)} />
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Notes (applicant additional info + admin review notes) ── */}
       {(app.additionalInfo || app.reviewNotes) && (
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 24 }}>

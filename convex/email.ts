@@ -61,6 +61,56 @@ export const sendClinicApplicationEmail = internalAction({
   },
 })
 
+// ── Clinic approval email ─────────────────────────────────────────────────────
+
+export const sendClinicApprovalEmail = internalAction({
+  args: {
+    contactName:  v.string(),
+    contactEmail: v.string(),
+    facilityName: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r           = resend()
+    const firstName   = args.contactName.split(' ')[0]
+    await r.emails.send({
+      from:    FROM,
+      to:      args.contactEmail,
+      subject: `You're approved — welcome to Implant ID`,
+      html: buildEmail({
+        title:   'Clinic Approved',
+        heading: `You're in, ${firstName}!`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            Great news — your application for
+            <strong style="color:#0e2a33;">${args.facilityName}</strong>
+            has been reviewed and approved. Your clinic account is now active on
+            the Implant ID platform.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            To sign in, click the button below and enter your email address.
+            We'll send you a one-time verification code — no password needed.
+          </p>
+        `,
+        highlightBox: {
+          content: `
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                       text-transform:uppercase;color:#29869F;">Sign in with</p>
+            <p style="margin:0;font-size:20px;font-weight:600;color:#1a6a80;
+                       letter-spacing:0.2px;">${args.contactEmail}</p>
+          `,
+        },
+        cta: {
+          label: 'Sign in to your clinic portal →',
+          url:   'https://portal.implantid.io/clinics',
+        },
+        footerNote: `If you didn't apply to join Implant ID, please contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,
+        includeUnsubscribe: true,
+      }),
+    })
+  },
+})
+
 // ── Patient welcome email ─────────────────────────────────────────────────────
 
 export const sendPatientWelcomeEmail = internalAction({

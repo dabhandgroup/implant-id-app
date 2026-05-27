@@ -163,13 +163,6 @@ export default function ClinicOnboardingClient() {
 
     setLoading(true)
 
-    // Combine MRI / staff counts into additionalInfo
-    const parts: string[] = []
-    if (mriCount)               parts.push(`MRI scanners: ${mriCount}`)
-    if (staffCount)             parts.push(`Staff using Implant ID: ${staffCount}`)
-    if (additionalInfo.trim())  parts.push(additionalInfo.trim())
-    const combinedInfo = parts.length ? parts.join('\n') : undefined
-
     try {
       // Upload accreditation document to Convex storage
       let storageId: string | undefined
@@ -200,7 +193,9 @@ export default function ClinicOnboardingClient() {
         regulatoryBody:  regulatoryBody         || undefined,
         registrationNum: registrationNum.trim() || undefined,
         services:        [],
-        additionalInfo:  combinedInfo,
+        additionalInfo:  additionalInfo.trim()  || undefined,
+        mriScannerCount:     mriCount    ? Number(mriCount)    : undefined,
+        staffUsingImplantId: staffCount  ? Number(staffCount)  : undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         storageId:       storageId as any,
         fileName,

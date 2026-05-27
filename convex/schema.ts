@@ -195,9 +195,13 @@ export default defineSchema({
     submittedAt:  v.number(),
     reviewedAt:   v.optional(v.number()),
     reviewNotes:  v.optional(v.string()),
+
+    // Clerk user who submitted (if authenticated)
+    clerkUserId:  v.optional(v.string()),
   })
     .index('by_status', ['status'])
-    .index('by_email', ['contactEmail']),
+    .index('by_email', ['contactEmail'])
+    .index('by_clerk', ['clerkUserId']),
 
   // Clinic audit log
   auditLog: defineTable({

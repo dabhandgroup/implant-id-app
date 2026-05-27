@@ -107,6 +107,14 @@ export const getMyClinic = query({
   },
 })
 
+/** Get a single application by its Convex ID (master admin detail view). */
+export const getApplicationById = query({
+  args: { id: v.id('clinicApplications') },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id)
+  },
+})
+
 /** List clinic applications, optionally filtered by status. */
 export const listApplications = query({
   args: {

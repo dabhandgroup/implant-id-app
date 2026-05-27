@@ -97,6 +97,7 @@ function SidePanel() {
 
 export default function ClinicOnboardingClient() {
   const submitApplication = useMutation(api.clinics.submitClinicApplication)
+  const generateUploadUrl = useMutation(api.clinics.generateUploadUrl)
 
   // Section 1 — Clinic information
   const [facilityName,    setFacilityName]    = useState('')
@@ -170,6 +171,23 @@ export default function ClinicOnboardingClient() {
     const combinedInfo = parts.length ? parts.join('\n') : undefined
 
     try {
+      // Upload accreditation document to Convex storage
+      let storageId: string | undefined
+      let fileName:  string | undefined
+
+      if (accreditationFile) {
+        const uploadUrl = await generateUploadUrl()
+        const uploadRes = await fetch(uploadUrl, {
+          method:  'POST',
+          headers: { 'Content-Type': accreditationFile.type },
+          body:    accreditationFile,
+        })
+        if (!uploadRes.ok) throw new Error('File upload failed — please try again')
+        const { storageId: sid } = await uploadRes.json() as { storageId: string }
+        storageId = sid
+        fileName  = accreditationFile.name
+      }
+
       await submitApplication({
         contactName:     contactName.trim(),
         contactEmail:    contactEmail.trim().toLowerCase(),
@@ -183,6 +201,9 @@ export default function ClinicOnboardingClient() {
         registrationNum: registrationNum.trim() || undefined,
         services:        [],
         additionalInfo:  combinedInfo,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        storageId:       storageId as any,
+        fileName,
       })
       setDone(true)
     } catch (err) {

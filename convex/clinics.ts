@@ -1,6 +1,18 @@
-import { mutation, query } from './_generated/server'
-import { v }               from 'convex/values'
-import { internal }        from './_generated/api'
+import { mutation, query, internalAction } from './_generated/server'
+import { v }                               from 'convex/values'
+import { internal }                        from './_generated/api'
+
+// ── File upload ───────────────────────────────────────────────────────────────
+
+/** Generate a one-time upload URL for the accreditation document. */
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
+// ── Applications ──────────────────────────────────────────────────────────────
 
 /** Submit a new clinic onboarding application. */
 export const submitClinicApplication = mutation({
@@ -27,10 +39,14 @@ export const submitClinicApplication = mutation({
     // Services
     services:       v.array(v.string()),
     additionalInfo: v.optional(v.string()),
+
+    // Accreditation document
+    storageId: v.optional(v.id('_storage')),
+    fileName:  v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Capture the authenticated user's Clerk ID (if signed in)
-    const identity = await ctx.auth.getUserIdentity()
+    const identity    = await ctx.auth.getUserIdentity()
     const clerkUserId = identity?.subject ?? undefined
 
     // Prevent duplicate applications: if an existing application is not rejected
@@ -111,7 +127,13 @@ export const getMyClinic = query({
 export const getApplicationById = query({
   args: { id: v.id('clinicApplications') },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id)
+    const app = await ctx.db.get(args.id)
+    if (!app) return null
+
+    // Resolve a short-lived download URL for the accreditation document
+    const fileUrl = app.storageId ? await ctx.storage.getUrl(app.storageId) : null
+
+    return { ...app, fileUrl }
   },
 })
 
@@ -149,6 +171,76 @@ export const listClinics = query({
       .withIndex('by_status', (q) => q.eq('status', 'active'))
       .order('desc')
       .take(100)
+  },
+})
+
+// ── Approval ──────────────────────────────────────────────────────────────────
+
+/**
+ * Activate the clinic account in Clerk after approval.
+ *
+ * - If the submitter already has a Clerk account (clerkUserId is set), update
+ *   their publicMetadata.role to 'clinic_staff' so they can access the portal.
+ * - Otherwise, send a Clerk invitation email so they can create an account.
+ *   The invitation includes publicMetadata.role = 'clinic_staff' so the role
+ *   is set automatically when they sign up.
+ *
+ * Requires CLERK_SECRET_KEY to be set in Convex environment variables.
+ */
+export const activateClinicAccount = internalAction({
+  args: {
+    clerkUserId:  v.optional(v.string()),
+    contactEmail: v.string(),
+    facilityName: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const secretKey = process.env.CLERK_SECRET_KEY
+    if (!secretKey) {
+      console.error('[clinics] CLERK_SECRET_KEY not set — cannot activate clinic account')
+      return
+    }
+
+    if (args.clerkUserId) {
+      // Existing Clerk user — patch their role
+      const res = await fetch(
+        `https://api.clerk.com/v1/users/${args.clerkUserId}/metadata`,
+        {
+          method: 'PATCH',
+          headers: {
+            Authorization:  `Bearer ${secretKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
+        },
+      )
+      if (!res.ok) {
+        const body = await res.text()
+        console.error('[clinics] Clerk metadata PATCH failed:', res.status, body)
+      } else {
+        console.log('[clinics] Role updated to clinic_staff for', args.clerkUserId)
+      }
+    } else {
+      // No Clerk account yet — send an invitation
+      const res = await fetch('https://api.clerk.com/v1/invitations', {
+        method: 'POST',
+        headers: {
+          Authorization:  `Bearer ${secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email_address:   args.contactEmail,
+          public_metadata: { role: 'clinic_staff' },
+          redirect_url:    'https://portal.implantid.io/clinics/dashboard',
+          ignore_existing: true,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.text()
+        console.error('[clinics] Clerk invitation failed:', res.status, body)
+      } else {
+        console.log('[clinics] Invitation sent to', args.contactEmail)
+      }
+    }
   },
 })
 
@@ -199,6 +291,13 @@ export const reviewApplication = mutation({
           })
         }
       }
+
+      // Activate the Clerk account (set role or send invitation)
+      await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
+        clerkUserId:  app.clerkUserId ?? undefined,
+        contactEmail: app.contactEmail,
+        facilityName: app.facilityName,
+      })
 
       return { clinicId }
     }

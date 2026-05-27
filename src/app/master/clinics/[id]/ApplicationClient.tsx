@@ -243,6 +243,52 @@ export default function ApplicationClient({ id }: { id: string }) {
         </div>
       )}
 
+      {/* ── Accreditation Document ── */}
+      {app.fileUrl && (
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 14 }}>
+            Accreditation Document
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+            <div style={{
+              width: 38, height: 38, borderRadius: 9, flexShrink: 0,
+              background: 'color-mix(in srgb,var(--err) 10%,transparent)',
+              border: '1px solid color-mix(in srgb,var(--err) 22%,transparent)',
+              display: 'grid', placeItems: 'center',
+            }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 600, color: 'var(--text)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {app.fileName ?? 'Accreditation document'}
+              </div>
+              <div style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted)' }}>
+                Submitted {formatDate(app.submittedAt)}
+              </div>
+            </div>
+            <a
+              href={app.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn"
+              style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              View / Download
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* ── Notes (applicant additional info + admin review notes) ── */}
       {(app.additionalInfo || app.reviewNotes) && (
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 24 }}>

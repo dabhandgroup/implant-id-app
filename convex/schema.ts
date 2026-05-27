@@ -196,6 +196,10 @@ export default defineSchema({
     reviewedAt:   v.optional(v.number()),
     reviewNotes:  v.optional(v.string()),
 
+    // Accreditation document (Convex file storage)
+    storageId: v.optional(v.id('_storage')),
+    fileName:  v.optional(v.string()),
+
     // Clerk user who submitted (if authenticated)
     clerkUserId:  v.optional(v.string()),
   })

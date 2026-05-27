@@ -132,6 +132,18 @@ export const listApplications = query({
   },
 })
 
+/** List all approved clinics (master admin view). */
+export const listClinics = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query('clinics')
+      .withIndex('by_status', (q) => q.eq('status', 'active'))
+      .order('desc')
+      .take(100)
+  },
+})
+
 /** Approve or reject a clinic application. */
 export const reviewApplication = mutation({
   args: {

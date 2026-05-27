@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 type Tab = 'pending' | 'all' | 'rejected'
 
@@ -22,6 +23,7 @@ const rejectedClinics = [
 ]
 
 export default function ClinicsClient() {
+  const router = useRouter()
   const [tab, setTab] = useState<Tab>('pending')
 
   return (
@@ -74,12 +76,12 @@ export default function ClinicsClient() {
             </thead>
             <tbody>
               {pendingClinics.map(c => (
-                <tr key={c.id}>
+                <tr key={c.id} onClick={() => router.push(`/master/clinics/${c.id}`)} style={{ cursor: 'pointer' }}>
                   <td style={{ fontWeight: 500 }}>{c.name}</td>
                   <td>{c.country}</td>
                   <td>{c.email}</td>
                   <td>{c.submitted}</td>
-                  <td>
+                  <td onClick={e => e.stopPropagation()}>
                     <a href={`/master/clinics/${c.id}`} className="m-act">Review Application</a>
                   </td>
                 </tr>
@@ -105,14 +107,14 @@ export default function ClinicsClient() {
             </thead>
             <tbody>
               {activeClinics.map(c => (
-                <tr key={c.id}>
+                <tr key={c.id} onClick={() => router.push(`/master/clinics/${c.id}`)} style={{ cursor: 'pointer' }}>
                   <td style={{ fontWeight: 500 }}>{c.name}</td>
                   <td>{c.country}</td>
                   <td><span className="m-status active">Active</span></td>
                   <td>{c.staff}</td>
                   <td>{c.patients}</td>
                   <td>{c.joined}</td>
-                  <td style={{ display: 'flex', gap: 6 }}>
+                  <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
                     <a href={`/master/clinics/${c.id}`} className="m-act">View</a>
                     <button className="m-act danger">Suspend</button>
                   </td>
@@ -145,14 +147,14 @@ export default function ClinicsClient() {
                   </td>
                 </tr>
               ) : rejectedClinics.map(c => (
-                <tr key={c.id}>
+                <tr key={c.id} onClick={() => router.push(`/master/clinics/${c.id}`)} style={{ cursor: 'pointer' }}>
                   <td style={{ fontWeight: 500 }}>{c.name}</td>
                   <td>{c.country}</td>
                   <td>{c.email}</td>
                   <td>{c.submitted}</td>
                   <td>{c.rejected}</td>
                   <td style={{ color: 'var(--muted)', fontSize: 13 }}>{c.reason}</td>
-                  <td>
+                  <td onClick={e => e.stopPropagation()}>
                     <a href={`/master/clinics/${c.id}`} className="m-act">View</a>
                   </td>
                 </tr>

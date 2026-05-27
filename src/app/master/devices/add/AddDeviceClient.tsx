@@ -84,9 +84,11 @@ export default function AddDeviceClient() {
   const [patientInstr,setPatientInstr]= useState('')
 
   // Section 5 — Documents
-  const [sourceUrl,  setSourceUrl]  = useState('')
-  const [sourceType, setSourceType] = useState('')
+  const [sourceUrl,    setSourceUrl]    = useState('')
+  const [sourceType,   setSourceType]   = useState('')
   const [uploadedFile, setUploadedFile] = useState<string | null>(null)
+  const [externalLink, setExternalLink] = useState('')
+  const [implantImage, setImplantImage] = useState<string | null>(null)
 
   // Regional approvals
   const [regOpen, setRegOpen]   = useState<string[]>([])
@@ -98,10 +100,10 @@ export default function AddDeviceClient() {
   const [cert2, setCert2] = useState(false)
   const [cert3, setCert3] = useState(false)
 
-  // Signature
+  // Signature — prefilled for master admin
   const [sigMode,       setSigMode]       = useState<'draw'|'type'>('type')
-  const [sigName,       setSigName]       = useState('')
-  const [sigTitle,      setSigTitle]      = useState('')
+  const [sigName,       setSigName]       = useState('Master Admin')
+  const [sigTitle,      setSigTitle]      = useState('Implant ID Master User')
   const [sigHasDrawing, setSigHasDrawing] = useState(false)
 
   const canvasRef    = useRef<HTMLCanvasElement>(null)
@@ -240,6 +242,71 @@ export default function AddDeviceClient() {
           <div className="field field-full">
             <label>Clinical Description</label>
             <textarea className="input" style={{ resize: 'vertical', minHeight: 80 }} placeholder="Brief clinical description of the device and its indication…" value={description} onChange={e => setDescription(e.target.value)} />
+          </div>
+
+          {/* Implant image */}
+          <div className="field field-full" style={{ marginTop: 8 }}>
+            <label>Implant Image <span style={{ fontWeight: 400, color: 'var(--muted2)', fontSize: 12 }}>(optional)</span></label>
+            {!implantImage ? (
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 16px',
+                  border: '2px dashed var(--border2)',
+                  borderRadius: 10,
+                  cursor: 'pointer',
+                  background: 'var(--bg)',
+                  transition: 'border-color .15s,background .15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLLabelElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLLabelElement).style.background = 'color-mix(in srgb,var(--accent) 3%,transparent)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLLabelElement).style.borderColor = ''; (e.currentTarget as HTMLLabelElement).style.background = 'var(--bg)' }}
+                onClick={() => setImplantImage('device-photo.jpg')}
+              >
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
+                    <rect x="3" y="3" width="18" height="18" rx="3"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                </div>
+                <div>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, color: 'var(--text)' }}>Upload device photo</div>
+                  <div style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted)' }}>JPG, PNG, WebP · max 10 MB</div>
+                </div>
+              </label>
+            ) : (
+              <div className="uploaded-file" style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', borderColor: 'color-mix(in srgb,var(--accent) 20%,transparent)' }}>
+                <div className="uf-ic" style={{ background: 'color-mix(in srgb,var(--accent) 10%,transparent)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
+                    <rect x="3" y="3" width="18" height="18" rx="3"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                </div>
+                <div>
+                  <div className="uf-name">{implantImage}</div>
+                  <div className="uf-meta">Image · ready to upload</div>
+                </div>
+                <button type="button" className="uf-remove" onClick={() => setImplantImage(null)} aria-label="Remove image">✕</button>
+              </div>
+            )}
+          </div>
+
+          {/* External link */}
+          <div className="field field-full" style={{ marginTop: 8 }}>
+            <label>Manufacturer Product Page <span style={{ fontWeight: 400, color: 'var(--muted2)', fontSize: 12 }}>(optional)</span></label>
+            <input
+              className="input"
+              type="url"
+              placeholder="https://www.manufacturer.com/product/device-name"
+              value={externalLink}
+              onChange={e => setExternalLink(e.target.value)}
+            />
+            <div style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted2)', marginTop: 5 }}>
+              Link to the official manufacturer product or IFU page. Clinics can use this to cross-reference data directly on the manufacturer&apos;s website.
+            </div>
           </div>
         </div>
       </div>
@@ -588,14 +655,14 @@ export default function AddDeviceClient() {
         <div className="sig-date">Signature date: {today}</div>
       </div>
 
-      {/* ── 24h Review Notice ── */}
+      {/* ── 24h Publication Hold Notice ── */}
       <div className="pub-delay">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
           <circle cx="12" cy="12" r="9"/>
           <path d="M12 7v5l3 2"/>
         </svg>
         <div className="pub-delay-body">
-          <strong>24-hour review hold.</strong> Submitted devices are reviewed by the Implant ID team before going live. This typically takes less than 24 hours. You&apos;ll be notified by email once approved.
+          <strong>24-hour publication hold.</strong> After submission, the system places a 24-hour hold before the device goes live globally. This gives you the opportunity to review and correct any information you&apos;ve submitted before it is used by clinics and patients.
         </div>
       </div>
 

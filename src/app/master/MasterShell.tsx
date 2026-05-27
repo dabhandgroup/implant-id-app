@@ -36,6 +36,9 @@ export default function MasterShell({ children }: MasterShellProps) {
   const [profileOpen, setProfileOpen] = useState(false)
   // Mobile profile popup
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
+  // Sign-out confirmation
+  const [signOutConfirm, setSignOutConfirm] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -55,7 +58,19 @@ export default function MasterShell({ children }: MasterShellProps) {
   const pageTitle = pageTitleFromPathname(pathname)
 
   async function handleSignOut() {
+    setSigningOut(true)
     await signOut({ redirectUrl: '/master/login' })
+  }
+
+  function requestSignOut() {
+    setSignOutConfirm(true)
+    setProfileOpen(false)
+    setMobProfileOpen(false)
+  }
+
+  function cancelSignOut() {
+    setSignOutConfirm(false)
+    setSigningOut(false)
   }
 
   function openMob() { setMobOpen(true) }
@@ -297,7 +312,7 @@ export default function MasterShell({ children }: MasterShellProps) {
               <IconHelp />Help &amp; support
             </a>
             <hr />
-            <button className="danger" onClick={handleSignOut}>
+            <button className="danger" onClick={requestSignOut}>
               <IconOut />Sign out
             </button>
           </div>
@@ -337,7 +352,7 @@ export default function MasterShell({ children }: MasterShellProps) {
                 </div>
                 <hr />
                 <a href="/master/settings">Account settings</a>
-                <button className="danger" onClick={handleSignOut}>Sign out</button>
+                <button className="danger" onClick={requestSignOut}>Sign out</button>
               </div>
             </div>
           </div>
@@ -353,13 +368,6 @@ export default function MasterShell({ children }: MasterShellProps) {
               <span className="m-badge">Master</span>
             </h1>
             <div className="app-top-r">
-              <button
-                className="ibtn notif-btn"
-                aria-label="Notifications"
-                onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setNotifOpen(true) }}
-              >
-                <IconBell />
-              </button>
               <button className="btn btn-s" onClick={() => window.location.href = '/master/devices/add'}>
                 + Add device
               </button>
@@ -394,12 +402,12 @@ export default function MasterShell({ children }: MasterShellProps) {
             <span className="t">Patients</span>
           </a>
           <a
-            href="/master/devices"
-            className={`mob-nav-tab${pathname === '/master/devices' ? ' active' : ''}`}
-            aria-label="Devices"
+            href="/master/search"
+            className={`mob-nav-tab${isActive('/master/search') ? ' active' : ''}`}
+            aria-label="Search everything"
           >
             <IconSearch />
-            <span className="t">Devices</span>
+            <span className="t">Search</span>
           </a>
           <a
             href="/master/clinics"
@@ -423,6 +431,27 @@ export default function MasterShell({ children }: MasterShellProps) {
           </button>
         </div>
       </nav>
+
+      {/* ── Sign-out confirmation modal ── */}
+      {signOutConfirm && (
+        <div className="logout-back open" onClick={cancelSignOut}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
+            <div className="logout-body">
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+                <IconOut />
+              </div>
+              <h3>Sign out?</h3>
+              <p>You&apos;ll be returned to the Master Admin login screen.</p>
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={cancelSignOut} disabled={signingOut}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleSignOut} disabled={signingOut}>
+                {signingOut ? 'Signing out…' : 'Sign out'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Notifications backdrop + drawer (OUTSIDE .app) ── */}
       <div

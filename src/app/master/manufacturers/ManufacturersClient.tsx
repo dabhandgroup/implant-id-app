@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 type Tab = 'pending' | 'all' | 'rejected'
 
@@ -37,6 +38,7 @@ const rejectedManufacturers: RejectedMfr[] = [
 ]
 
 export default function ManufacturersClient() {
+  const router = useRouter()
   const [tab,          setTab]          = useState<Tab>('pending')
   const [confirmModal, setConfirmModal] = useState<ConfirmModal | null>(null)
   const [confirming,   setConfirming]   = useState(false)
@@ -112,13 +114,13 @@ export default function ManufacturersClient() {
                 </thead>
                 <tbody>
                   {pendingManufacturers.map(m => (
-                    <tr key={m.id}>
+                    <tr key={m.id} onClick={() => router.push(`/master/manufacturers/${m.id}`)} style={{ cursor: 'pointer' }}>
                       <td style={{ fontWeight: 500 }}>{m.name}</td>
                       <td style={{ color: 'var(--muted)' }}>{m.contact}</td>
                       <td>{m.country}</td>
                       <td style={{ color: 'var(--muted)' }}>{m.applied}</td>
                       <td style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)' }}>{m.regNumber}</td>
-                      <td style={{ display: 'flex', gap: 6 }}>
+                      <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
                         <a href={`/master/manufacturers/${m.id}`} className="m-act">Review Application</a>
                         <button className="m-act danger" onClick={() => openConfirm('reject', m.id, m.name)}>Reject</button>
                       </td>
@@ -147,7 +149,7 @@ export default function ManufacturersClient() {
             </thead>
             <tbody>
               {allManufacturers.map(m => (
-                <tr key={m.id}>
+                <tr key={m.id} onClick={() => router.push(`/master/manufacturers/${m.id}`)} style={{ cursor: 'pointer' }}>
                   <td style={{ fontWeight: 500 }}>{m.name}</td>
                   <td style={{ color: 'var(--muted)' }}>{m.contact}</td>
                   <td>{m.country}</td>
@@ -163,7 +165,7 @@ export default function ManufacturersClient() {
                     }
                   </td>
                   <td style={{ color: 'var(--muted)' }}>{m.joined}</td>
-                  <td style={{ display: 'flex', gap: 6 }}>
+                  <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
                     <a href={`/master/manufacturers/${m.id}`} className="m-act">View</a>
                     {m.status === 'pending' && (
                       <button className="m-act approve" onClick={() => openConfirm('approve', m.id, m.name)}>Approve</button>
@@ -195,13 +197,13 @@ export default function ManufacturersClient() {
             </thead>
             <tbody>
               {rejectedManufacturers.map(m => (
-                <tr key={m.id}>
+                <tr key={m.id} onClick={() => router.push(`/master/manufacturers/${m.id}`)} style={{ cursor: 'pointer' }}>
                   <td style={{ fontWeight: 500 }}>{m.name}</td>
                   <td style={{ color: 'var(--muted)' }}>{m.contact}</td>
                   <td>{m.country}</td>
                   <td style={{ color: 'var(--muted)' }}>{m.applied}</td>
                   <td style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{m.reason}</td>
-                  <td>
+                  <td onClick={e => e.stopPropagation()}>
                     <button className="m-act">Reconsider</button>
                   </td>
                 </tr>

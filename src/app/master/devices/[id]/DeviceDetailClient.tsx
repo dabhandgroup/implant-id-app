@@ -183,7 +183,8 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           <h2 style={{ marginBottom: 6 }}>{device.name}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span className={`m-status ${device.status}`}>{device.status.charAt(0).toUpperCase() + device.status.slice(1)}</span>
-            <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, background: mriBg(device.mriStatus), color: mriColour(device.mriStatus), border: `1px solid color-mix(in srgb,${mriColour(device.mriStatus)} 25%,transparent)`, borderRadius: 8, padding: '3px 10px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, background: mriBg(device.mriStatus), color: mriColour(device.mriStatus), border: `1px solid color-mix(in srgb,${mriColour(device.mriStatus)} 25%,transparent)`, borderRadius: 8, padding: '3px 10px' }}>
+              <img src={`/mr-${device.mriStatus}.svg`} width="18" height="18" alt="" style={{ flexShrink: 0 }} />
               {device.mri}
             </span>
             <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>{device.manufacturer}</span>
@@ -243,8 +244,11 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 14 }}>MRI Compatibility</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div>
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted2)', marginBottom: 2 }}>MRI Status</div>
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: mriColour(device.mriStatus) }}>{device.mri}</div>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted2)', marginBottom: 4 }}>MRI Status</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img src={`/mr-${device.mriStatus}.svg`} width="28" height="28" alt={device.mri} style={{ flexShrink: 0 }} />
+                <span style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: mriColour(device.mriStatus) }}>{device.mri}</span>
+              </div>
             </div>
             <div>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted2)', marginBottom: 2 }}>Tesla Rating</div>

@@ -326,10 +326,10 @@ export default function AddDeviceClient() {
               type="button"
               className={`mri-toggle${mriClass === cls ? ` sel-${cls}` : ''}`}
               onClick={() => setMriClass(cls)}
+              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
             >
-              {cls === 'safe'        ? '✓ MR Safe'
-               : cls === 'conditional' ? '⚠ MR Conditional'
-               :                         '✕ MR Unsafe'}
+              <img src={`/mr-${cls}.svg`} width="22" height="22" alt="" style={{ flexShrink: 0, opacity: mriClass === cls ? 1 : 0.55 }} />
+              {cls === 'safe' ? 'MR Safe' : cls === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
             </button>
           ))}
         </div>

@@ -292,6 +292,9 @@ export default function PatientDetailClient({ id }: { id: string }) {
             </span>
             <span
               style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
                 fontFamily: 'var(--ff)',
                 fontSize: 12,
                 fontWeight: 600,
@@ -302,6 +305,7 @@ export default function PatientDetailClient({ id }: { id: string }) {
                 padding: '3px 10px',
               }}
             >
+              <img src={`/mr-${overallMri}.svg`} width="16" height="16" alt="" style={{ flexShrink: 0 }} />
               {mriLabel(overallMri)}
             </span>
           </div>
@@ -393,16 +397,14 @@ export default function PatientDetailClient({ id }: { id: string }) {
                       width: 38,
                       height: 38,
                       borderRadius: 10,
-                      background: `color-mix(in srgb,${mriColour(d.mriStatus)} 10%,transparent)`,
-                      border: `1px solid color-mix(in srgb,${mriColour(d.mriStatus)} 22%,transparent)`,
+                      background: `color-mix(in srgb,${mriColour(d.mriStatus)} 8%,transparent)`,
+                      border: `1px solid color-mix(in srgb,${mriColour(d.mriStatus)} 18%,transparent)`,
                       display: 'grid',
                       placeItems: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={mriColour(d.mriStatus)} strokeWidth="1.7">
-                      <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                    </svg>
+                    <img src={`/mr-${d.mriStatus}.svg`} width="26" height="26" alt={`MR ${d.mriStatus}`} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
@@ -411,6 +413,9 @@ export default function PatientDetailClient({ id }: { id: string }) {
                       </span>
                       <span
                         style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
                           fontFamily: 'var(--ff)',
                           fontSize: 11,
                           fontWeight: 600,

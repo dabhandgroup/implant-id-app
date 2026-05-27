@@ -438,7 +438,11 @@ export default function MasterShell({ children }: MasterShellProps) {
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
-                <IconOut />
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
               </div>
               <h3>Sign out?</h3>
               <p>You&apos;ll be returned to the Master Admin login screen.</p>

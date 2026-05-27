@@ -78,7 +78,10 @@ export default function DevicesClient() {
                 <td>{d.category}</td>
                 <td style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)' }}>{d.model}</td>
                 <td>
-                  <span style={{ color: mriColour(d.mriStatus), fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600 }}>{d.mri}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <img src={`/mr-${d.mriStatus}.svg`} width="22" height="22" alt={d.mri} style={{ flexShrink: 0 }} />
+                    <span style={{ color: mriColour(d.mriStatus), fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600 }}>{d.mri}</span>
+                  </div>
                 </td>
                 <td>
                   <span className={`m-status ${d.status}`}>

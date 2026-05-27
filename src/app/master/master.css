@@ -226,3 +226,8 @@ body{background:var(--bg);color:var(--text)}
   .form-grid{grid-template-columns:1fr}
   .form-grid-3{grid-template-columns:1fr 1fr}
 }
+
+/* Hide table search bar on mobile — not enough room next to action buttons */
+@media(max-width:768px){
+  .m-tbl-toolbar .search{display:none}
+}

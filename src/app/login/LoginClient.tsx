@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { useSignIn } from '@clerk/nextjs'
+import { useState, useEffect } from 'react'
+import { useSignIn, useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { setUserRoleIfNew } from '../actions/setUserRole'
 
@@ -108,6 +108,17 @@ export default function LoginClient() {
   const router = useRouter()
   // Clerk 7 signals API — signIn is always defined, finalize() sets the session
   const { signIn } = useSignIn()
+  // Already-signed-in detection — hooks must all be at top, unconditionally
+  const { isLoaded, isSignedIn, user } = useUser()
+
+  // Redirect to the correct dashboard if the user is already signed in
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return
+    const role = (user?.publicMetadata?.role as string | undefined) ?? 'patient'
+    if      (role === 'admin')        router.replace('/master/dashboard')
+    else if (role === 'clinic_staff') router.replace('/clinics/dashboard')
+    else                              router.replace('/patients/dashboard')
+  }, [isLoaded, isSignedIn, user, router])
 
   // tab / phase state
   const [tab,      setTab]      = useState<Tab>('patient')
@@ -336,6 +347,15 @@ export default function LoginClient() {
   }
 
   // ── render ─────────────────────────────────────────────────────────────────
+
+  // Suppress the login form while Clerk resolves the session and the redirect fires
+  if (isLoaded && isSignedIn) {
+    return (
+      <main className="auth" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--muted)' }}>Redirecting…</div>
+      </main>
+    )
+  }
 
   const filteredCountries = COUNTRIES.filter(c =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase())

@@ -14,19 +14,12 @@ type Application = {
   facilityType:    string
   facilityCountry: string
   contactEmail:    string
+  contactPhone?:   string
+  facilityPhone?:  string
   status:          'pending' | 'approved' | 'rejected'
   submittedAt:     number
   reviewedAt?:     number
   reviewNotes?:    string
-}
-
-type Clinic = {
-  _id:           Id<'clinics'>
-  name:          string
-  email?:        string
-  phone?:        string
-  status:        'active' | 'pending' | 'suspended'
-  _creationTime: number
 }
 
 function formatDate(ts: number) {
@@ -39,11 +32,11 @@ export default function ClinicsClient() {
   // ── All hooks unconditionally at top ─────────────────────────────────────────
   const router    = useRouter()
   const [tab,       setTab]       = useState<Tab>('pending')
-  const [reviewing, setReviewing] = useState(false)
+  const [reviewing, setReviewing] = useState(false) // quick-approve loading state
 
-  const pendingApps  = useQuery(api.clinics.listApplications, { status: 'pending'  }) as Application[] | undefined
-  const rejectedApps = useQuery(api.clinics.listApplications, { status: 'rejected' }) as Application[] | undefined
-  const allClinics   = useQuery(api.clinics.listClinics) as Clinic[] | undefined
+  const pendingApps   = useQuery(api.clinics.listApplications, { status: 'pending'  }) as Application[] | undefined
+  const approvedApps  = useQuery(api.clinics.listApplications, { status: 'approved' }) as Application[] | undefined
+  const rejectedApps  = useQuery(api.clinics.listApplications, { status: 'rejected' }) as Application[] | undefined
 
   const reviewApplication = useMutation(api.clinics.reviewApplication)
 
@@ -156,9 +149,9 @@ export default function ClinicsClient() {
 
       {/* ── All Clinics tab ── */}
       {tab === 'all' && (
-        allClinics === undefined ? (
+        approvedApps === undefined ? (
           <div style={{ color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14, padding: '32px 0' }}>Loading…</div>
-        ) : allClinics.length === 0 ? (
+        ) : approvedApps.length === 0 ? (
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 24px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>
             No active clinics yet. Approve a pending application to get started.
           </div>
@@ -171,17 +164,21 @@ export default function ClinicsClient() {
                   <th>Contact Email</th>
                   <th>Phone</th>
                   <th>Status</th>
-                  <th>Joined</th>
+                  <th>Approved</th>
                 </tr>
               </thead>
               <tbody>
-                {allClinics.map(c => (
-                  <tr key={c._id}>
-                    <td style={{ fontWeight: 500 }}>{c.name}</td>
-                    <td>{c.email ?? '—'}</td>
-                    <td>{c.phone ?? '—'}</td>
+                {approvedApps.map(app => (
+                  <tr
+                    key={app._id}
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => router.push('/master/clinics/' + app._id)}
+                  >
+                    <td style={{ fontWeight: 500 }}>{app.facilityName}</td>
+                    <td>{app.contactEmail}</td>
+                    <td>{app.facilityPhone ?? app.contactPhone ?? '—'}</td>
                     <td><span className="m-status active">Active</span></td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{formatDate(c._creationTime)}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>{app.reviewedAt ? formatDate(app.reviewedAt) : formatDate(app.submittedAt)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -283,7 +283,7 @@ export const reviewApplication = mutation({
   handler: async (ctx, args) => {
     const app = await ctx.db.get(args.applicationId)
     if (!app) throw new Error('Application not found')
-    if (app.status !== 'pending') throw new Error('Application is not pending')
+    if (app.status === 'approved') throw new Error('Application is already approved')
 
     await ctx.db.patch(args.applicationId, {
       status:      args.decision,

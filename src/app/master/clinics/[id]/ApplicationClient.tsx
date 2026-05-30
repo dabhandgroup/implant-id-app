@@ -169,11 +169,13 @@ export default function ApplicationClient({ id }: { id: string }) {
           </div>
         </div>
 
-        {/* Approve / Reject — pending only */}
-        {app.status === 'pending' && (
+        {/* Approve / Reject — pending shows both; rejected shows Approve to re-approve */}
+        {(app.status === 'pending' || app.status === 'rejected') && (
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-            <button className="btn btn-s"    onClick={() => openConfirm('approve')}>Approve</button>
-            <button className="btn btn-danger" onClick={() => openConfirm('reject')}>Reject</button>
+            <button className="btn btn-s" onClick={() => openConfirm('approve')}>Approve</button>
+            {app.status === 'pending' && (
+              <button className="btn btn-danger" onClick={() => openConfirm('reject')}>Reject</button>
+            )}
           </div>
         )}
       </div>

@@ -19,6 +19,7 @@ function resend() {
 
 export const sendClinicApplicationEmail = internalAction({
   args: {
+    applicationId:   v.string(),
     facilityName:    v.string(),
     contactName:     v.string(),
     contactEmail:    v.string(),
@@ -52,8 +53,8 @@ export const sendClinicApplicationEmail = internalAction({
           { label: 'Services',  value: args.services.join(', ') || '—' },
         ],
         cta: {
-          label: 'Review in admin panel →',
-          url:   'https://portal.implantid.io/admin',
+          label: 'Review application →',
+          url:   `https://portal.implantid.io/master/clinics/${args.applicationId}`,
         },
         footerNote: 'This is an automated system notification.',
         includeUnsubscribe: false,

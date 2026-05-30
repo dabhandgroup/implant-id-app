@@ -73,6 +73,7 @@ export const submitClinicApplication = mutation({
 
     // Fire email notification to admin asynchronously
     await ctx.scheduler.runAfter(0, internal.email.sendClinicApplicationEmail, {
+      applicationId:   id,
       facilityName:    args.facilityName,
       contactName:     args.contactName,
       contactEmail:    args.contactEmail,

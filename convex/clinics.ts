@@ -332,6 +332,14 @@ export const reviewApplication = mutation({
       return { clinicId }
     }
 
+    // Rejection path — send the rejection email
+    await ctx.scheduler.runAfter(0, internal.email.sendClinicRejectionEmail, {
+      contactName:  app.contactName,
+      contactEmail: app.contactEmail,
+      facilityName: app.facilityName,
+      reviewNotes:  args.notes,
+    })
+
     return null
   },
 })

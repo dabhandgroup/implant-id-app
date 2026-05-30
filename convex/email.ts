@@ -7,6 +7,7 @@ import { buildEmail } from './emailTemplate'
 const ADMIN_EMAIL = 'harry@dabhandmarketing.com'
 const FROM        = 'Implant ID <noreply@implantid.io>'
 const SUPPORT     = 'support@implantid.io'
+const BOOK_URL    = 'https://calendly.com/implantid'   // ← update to your booking page URL
 
 function resend() {
   const key = process.env.RESEND_API_KEY
@@ -106,6 +107,62 @@ export const sendClinicApprovalEmail = internalAction({
         footerNote: `If you didn't apply to join Implant ID, please contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,
         includeUnsubscribe: true,
+      }),
+    })
+  },
+})
+
+// ── Clinic rejection email ────────────────────────────────────────────────────
+
+export const sendClinicRejectionEmail = internalAction({
+  args: {
+    contactName:  v.string(),
+    contactEmail: v.string(),
+    facilityName: v.string(),
+    reviewNotes:  v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const r         = resend()
+    const firstName = args.contactName.split(' ')[0]
+
+    const notesBlock = args.reviewNotes
+      ? `
+        <div style="background:#fef9ec;border-left:3px solid #f0c040;border-radius:0 8px 8px 0;
+                    padding:16px 20px;margin:24px 0;">
+          <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.2px;
+                     text-transform:uppercase;color:#92700a;">Reviewer note</p>
+          <p style="margin:0;font-size:14px;color:#5a4a0a;line-height:1.6;">${args.reviewNotes}</p>
+        </div>`
+      : ''
+
+    await r.emails.send({
+      from:    FROM,
+      to:      args.contactEmail,
+      subject: `Your Implant ID application — next steps`,
+      html: buildEmail({
+        title:   'Application Update',
+        heading: `Thank you for applying, ${firstName}`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            Thank you for taking the time to apply to join the Implant ID network.
+            We've carefully reviewed the application for
+            <strong style="color:#0e2a33;">${args.facilityName}</strong>
+            and, unfortunately, we're unable to approve it at this stage.
+          </p>
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            This doesn't mean the door is closed. We'd love to understand your situation
+            better and explore whether there's a path forward. Book a free call with our
+            team and we'll walk through your application together.
+          </p>
+          ${notesBlock}
+        `,
+        cta: {
+          label: 'Book a call with us →',
+          url:   BOOK_URL,
+        },
+        footerNote: `If you believe this decision was made in error or have any questions,
+          please reach out at <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
       }),
     })
   },

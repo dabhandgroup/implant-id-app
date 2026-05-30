@@ -283,7 +283,12 @@ export const reviewApplication = mutation({
   handler: async (ctx, args) => {
     const app = await ctx.db.get(args.applicationId)
     if (!app) throw new Error('Application not found')
-    if (app.status === 'approved') throw new Error('Application is already approved')
+
+    // Guard: don't let an already-approved application be approved again
+    // (would create a duplicate clinic record). All other transitions are fine.
+    if (app.status === 'approved' && args.decision === 'approved') {
+      throw new Error('This clinic is already approved')
+    }
 
     await ctx.db.patch(args.applicationId, {
       status:      args.decision,
@@ -332,7 +337,19 @@ export const reviewApplication = mutation({
       return { clinicId }
     }
 
-    // Rejection path — send the rejection email
+    // Rejection / unapproval path ─────────────────────────────────────────────
+    // If this clinic was previously approved, suspend their clinic record
+    if (app.status === 'approved') {
+      const clinic = await ctx.db
+        .query('clinics')
+        .filter(q => q.eq(q.field('email'), app.contactEmail))
+        .first()
+      if (clinic) {
+        await ctx.db.patch(clinic._id, { status: 'suspended' })
+      }
+    }
+
+    // Send rejection email
     await ctx.scheduler.runAfter(0, internal.email.sendClinicRejectionEmail, {
       contactName:  app.contactName,
       contactEmail: app.contactEmail,

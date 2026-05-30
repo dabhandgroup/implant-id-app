@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 
-type ActionType = 'approve' | 'reject'
+type ActionType = 'approve' | 'reject' | 'unapprove'
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString('en-GB', {
@@ -67,7 +67,9 @@ export default function ApplicationClient({ id }: { id: string }) {
       await reviewApplication({
         applicationId: app._id,
         decision:      confirmAction === 'approve' ? 'approved' : 'rejected',
-        notes:         confirmAction === 'reject' && rejectNotes.trim() ? rejectNotes.trim() : undefined,
+        notes:         (confirmAction === 'reject' || confirmAction === 'unapprove') && rejectNotes.trim()
+                         ? rejectNotes.trim()
+                         : undefined,
       })
       router.push('/master/clinics')
     } catch (e) {
@@ -334,6 +336,23 @@ export default function ApplicationClient({ id }: { id: string }) {
         </div>
       )}
 
+      {/* ── Unapprove link (approved clinics only) ── */}
+      {app.status === 'approved' && (
+        <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+          <button
+            onClick={() => openConfirm('unapprove')}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted2)',
+              textDecoration: 'underline', textDecorationStyle: 'dotted',
+              textUnderlineOffset: 3,
+            }}
+          >
+            Unapprove this clinic
+          </button>
+        </div>
+      )}
+
       {/* ── Confirmation modal ── */}
       {confirmAction && (
         <div className="logout-back open" onClick={closeConfirm}>
@@ -354,7 +373,7 @@ export default function ApplicationClient({ id }: { id: string }) {
                   <p><strong>{app.facilityName}</strong></p>
                   <p>This will activate their clinic account on the platform.</p>
                 </>
-              ) : (
+              ) : confirmAction === 'reject' ? (
                 <>
                   <div style={{
                     width: 44, height: 44, borderRadius: '50%',
@@ -385,6 +404,41 @@ export default function ApplicationClient({ id }: { id: string }) {
                     />
                   </div>
                 </>
+              ) : (
+                <>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    background: 'color-mix(in srgb,var(--warn,#d97706) 12%,transparent)',
+                    display: 'grid', placeItems: 'center', margin: '0 auto 14px',
+                  }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="8" x2="12" y2="12"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                  </div>
+                  <h3>Unapprove this clinic?</h3>
+                  <p><strong>{app.facilityName}</strong></p>
+                  <p style={{ color: 'var(--muted)', fontSize: 13 }}>
+                    Their clinic account will be suspended and they'll receive a rejection email.
+                  </p>
+                  <div className="field" style={{ marginTop: 12, textAlign: 'left' }}>
+                    <label style={{
+                      fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500,
+                      color: 'var(--text)', display: 'block', marginBottom: 6,
+                    }}>
+                      Reason <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional — included in email)</span>
+                    </label>
+                    <textarea
+                      className="input"
+                      rows={3}
+                      placeholder="Reason for unapproval…"
+                      value={rejectNotes}
+                      onChange={e => setRejectNotes(e.target.value)}
+                      style={{ resize: 'vertical' }}
+                    />
+                  </div>
+                </>
               )}
               {submitError && (
                 <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginTop: 8 }}>
@@ -398,9 +452,13 @@ export default function ApplicationClient({ id }: { id: string }) {
                 <button className="btn btn-s" onClick={handleConfirm} disabled={submitting}>
                   {submitting ? 'Approving…' : 'Approve'}
                 </button>
-              ) : (
+              ) : confirmAction === 'reject' ? (
                 <button className="btn btn-danger" onClick={handleConfirm} disabled={submitting}>
                   {submitting ? 'Rejecting…' : 'Reject'}
+                </button>
+              ) : (
+                <button className="btn btn-danger" onClick={handleConfirm} disabled={submitting}>
+                  {submitting ? 'Unapproving…' : 'Unapprove'}
                 </button>
               )}
             </div>

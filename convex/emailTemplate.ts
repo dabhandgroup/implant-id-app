@@ -142,13 +142,13 @@ export function buildEmail(opts: EmailContent): string {
           <!-- ── HEADER ─────────────────────────────────────────────────── -->
           <tr>
             <td style="background-color:${CARD};border-radius:12px 12px 0 0;
-                        padding:32px 40px 28px;text-align:center;
+                        padding:32px 40px 28px;text-align:left;
                         border-bottom:1px solid ${BORDER};">
               <a href="https://portal.implantid.io" style="display:inline-block;text-decoration:none;">
                 <img src="${LOGO_URL}"
                      alt="Implant ID"
                      width="200"
-                     style="width:200px;max-width:200px;height:auto;display:block;margin:0 auto;border:0;" />
+                     style="width:200px;max-width:200px;height:auto;display:block;margin:0;border:0;" />
               </a>
             </td>
           </tr>
@@ -187,19 +187,41 @@ export function buildEmail(opts: EmailContent): string {
 
           <!-- ── FOOTER ─────────────────────────────────────────────────── -->
           <tr>
-            <td style="padding:16px 40px 0;text-align:center;">
-              <p style="margin:0 0 8px;font-size:12px;color:${FOOTER_C};line-height:1.6;">
-                &copy; ${new Date().getFullYear()} Implant ID Ltd. All rights reserved.
+            <td style="padding:24px 40px 0;text-align:center;">
+
+              <!-- Medical disclaimer -->
+              <p style="margin:0 0 10px;font-size:11px;color:${FOOTER_C};line-height:1.7;">
+                Implant ID is an information management platform for medical implant records.
+                It is not a substitute for professional medical advice, diagnosis, or treatment.
+                Always consult a qualified healthcare provider regarding any medical decisions.
               </p>
-              <p style="margin:0;font-size:12px;color:${FOOTER_C};line-height:1.6;">
-                <a href="https://portal.implantid.io/help" style="color:${FOOTER_C};text-decoration:underline;">Help</a>
+
+              <!-- Data / legal -->
+              <p style="margin:0 0 10px;font-size:11px;color:${FOOTER_C};line-height:1.7;">
+                Your data is handled in accordance with our
+                <a href="https://implantid.io/privacy" style="color:${FOOTER_C};text-decoration:underline;">Privacy Policy</a>
+                and applicable data-protection legislation, including UK GDPR.
+                For data queries contact
+                <a href="mailto:support@implantid.io" style="color:${FOOTER_C};text-decoration:underline;">support@implantid.io</a>.
+              </p>
+
+              <!-- Nav links -->
+              <p style="margin:0 0 10px;font-size:12px;color:${FOOTER_C};line-height:1.6;">
+                <a href="https://implantid.io/help" style="color:${FOOTER_C};text-decoration:underline;">Help</a>
                 &nbsp;&middot;&nbsp;
-                <a href="https://portal.implantid.io/privacy" style="color:${FOOTER_C};text-decoration:underline;">Privacy Policy</a>
+                <a href="https://implantid.io/privacy" style="color:${FOOTER_C};text-decoration:underline;">Privacy Policy</a>
                 &nbsp;&middot;&nbsp;
-                <a href="https://portal.implantid.io/terms" style="color:${FOOTER_C};text-decoration:underline;">Terms of Service</a>
+                <a href="https://implantid.io/terms" style="color:${FOOTER_C};text-decoration:underline;">Terms of Service</a>
                 ${includeUnsubscribe ? `&nbsp;&middot;&nbsp;
                 <a href="https://portal.implantid.io/settings/notifications" style="color:${FOOTER_C};text-decoration:underline;">Unsubscribe</a>` : ''}
               </p>
+
+              <!-- Copyright -->
+              <p style="margin:0;font-size:11px;color:${FOOTER_C};line-height:1.6;">
+                &copy; ${new Date().getFullYear()} Implant ID &nbsp;&middot;&nbsp;
+                <a href="https://implantid.io" style="color:${FOOTER_C};text-decoration:none;">implantid.io</a>
+              </p>
+
             </td>
           </tr>
 

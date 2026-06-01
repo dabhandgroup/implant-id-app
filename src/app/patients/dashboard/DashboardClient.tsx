@@ -803,9 +803,6 @@ export default function DashboardClient() {
                     <img src="/icon.svg" alt="" style={isPending ? { filter: 'brightness(0) opacity(0.4)' } : undefined}/>
                     <span style={isPending ? { color: '#475569' } : undefined}>Implant ID</span>
                   </div>
-                  <div style={{ fontFamily:'var(--ff)', fontSize:10, letterSpacing:'1.6px', textTransform:'uppercase', opacity: isPending ? .4 : .65, marginTop: 4 }}>
-                    Medical · Implant Record
-                  </div>
                 </div>
 
                 {/* MRI status — top right, icon + label, always visible once verified */}

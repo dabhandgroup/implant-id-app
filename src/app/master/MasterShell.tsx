@@ -13,6 +13,7 @@ function pageTitleFromPathname(pathname: string): string {
   if (pathname.startsWith('/master/clinics'))        return 'Clinics'
   if (pathname.startsWith('/master/devices/add'))    return 'Add Device'
   if (pathname.startsWith('/master/devices/bulk'))   return 'Bulk Upload'
+  if (pathname.startsWith('/master/devices/scrape')) return 'Scrape'
   if (pathname.startsWith('/master/devices'))        return 'Devices'
   if (pathname.startsWith('/master/patients'))       return 'Patients'
   if (pathname.startsWith('/master/manufacturers'))  return 'Manufacturers'
@@ -259,6 +260,10 @@ export default function MasterShell({ children }: MasterShellProps) {
           </a>
           <a href="/master/devices/bulk" className={`sb-link${isActive('/master/devices/bulk') ? ' active' : ''}`}>
             <IconUpload /><span>Bulk Upload</span>
+          </a>
+          <a href="/master/devices/scrape" className={`sb-link${isActive('/master/devices/scrape') ? ' active' : ''}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            <span>Scrape</span>
           </a>
 
           {/* ── ADMIN ── */}

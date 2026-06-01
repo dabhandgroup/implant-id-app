@@ -2,10 +2,13 @@
 
 import { useState } from 'react'
 import { useUser } from '@clerk/nextjs'
+import { useQuery } from 'convex/react'
+import { api } from '../../../../convex/_generated/api'
 
 export default function SurgeonDashboardClient() {
   const { user } = useUser()
   const [, setNavOpen] = useState(false)
+  const counts = useQuery(api.patients.getSurgeonPatientCounts)
 
   const firstName = user?.firstName ?? 'Surgeon'
 
@@ -17,10 +20,10 @@ export default function SurgeonDashboardClient() {
   ]
 
   const stats = [
-    { label: 'Total Patients',        value: '—', color: 'var(--accent)' },
-    { label: 'Verified',              value: '—', color: 'var(--ok)' },
-    { label: 'Awaiting Verification', value: '—', color: '#f59e0b' },
-    { label: 'Pending Review',        value: '—', color: 'var(--err)' },
+    { label: 'Total Patients',        value: counts === undefined ? '…' : String(counts.total),                color: 'var(--accent)' },
+    { label: 'Verified',              value: counts === undefined ? '…' : String(counts.verified),             color: 'var(--ok)' },
+    { label: 'Awaiting Verification', value: counts === undefined ? '…' : String(counts.awaitingVerification), color: '#f59e0b' },
+    { label: 'Pending Review',        value: counts === undefined ? '…' : String(counts.pendingReview),        color: 'var(--err)' },
   ]
 
   return (

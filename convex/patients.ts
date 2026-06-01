@@ -232,3 +232,28 @@ export const updatePatientProfile = mutation({
     })
   },
 })
+
+/** Patient counts for the surgeon dashboard stats cards. */
+export const getSurgeonPatientCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return { total: 0, verified: 0, awaitingVerification: 0, pendingReview: 0 }
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user) return { total: 0, verified: 0, awaitingVerification: 0, pendingReview: 0 }
+    const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!staffRow) return { total: 0, verified: 0, awaitingVerification: 0, pendingReview: 0 }
+    const requests = await ctx.db.query('accessRequests')
+      .withIndex('by_clinic', q => q.eq('clinicId', staffRow.clinicId))
+      .filter(q => q.eq(q.field('status'), 'approved'))
+      .collect()
+    const patientIds = [...new Set(requests.map(r => r.patientId))]
+    const patients = (await Promise.all(patientIds.map(id => ctx.db.get(id)))).filter(Boolean)
+    return {
+      total:                patients.length,
+      verified:             patients.filter(p => p?.verificationStatus === 'active').length,
+      awaitingVerification: patients.filter(p => p?.verificationStatus === 'pending').length,
+      pendingReview:        0,
+    }
+  },
+})

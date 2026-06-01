@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useUser, useClerk }           from '@clerk/nextjs'
-import { useQuery }                    from 'convex/react'
+import { useQuery, useMutation }       from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
 import { useRouter }                   from 'next/navigation'
 import { CustomSelect }                from '@/components/ui/CustomSelect'
@@ -23,6 +23,7 @@ export default function AccountClient() {
   const { signOut }        = useClerk()
   const router             = useRouter()
   const patient            = useQuery(api.patients.getMyPatient)
+  const updateProfile      = useMutation(api.patients.updatePatientProfile)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [sbCollapsed,    setSbCollapsed]    = useState(false)
@@ -65,6 +66,15 @@ export default function AccountClient() {
   // ── Implant ID clipboard ──────────────────────────────────────────────────
   const [iidCopied, setIidCopied] = useState(false)
 
+  // ── Clinical details ──────────────────────────────────────────────────────
+  const [heightCm,            setHeightCm]            = useState<string>('')
+  const [weightKg,            setWeightKg]            = useState<string>('')
+  const [contrastAllergy,     setContrastAllergy]     = useState(false)
+  const [contrastAllergyNote, setContrastAllergyNote] = useState('')
+  const [clinicalSaving,      setClinicalSaving]      = useState(false)
+  const [clinicalSaved,       setClinicalSaved]       = useState(false)
+  const [clinicalErr,         setClinicalErr]         = useState('')
+
   const sbBotRef      = useRef<HTMLDivElement>(null)
   const mobProfileRef = useRef<HTMLDivElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
@@ -93,6 +103,16 @@ export default function AccountClient() {
   useEffect(() => {
     if (patient === null) router.replace('/patients/register')
   }, [patient, router])
+
+  // Initialise clinical fields from patient data when it loads
+  useEffect(() => {
+    if (!patient) return
+    if (patient.heightCm)            setHeightCm(String(patient.heightCm))
+    if (patient.weightKg)            setWeightKg(String(patient.weightKg))
+    if (patient.contrastAllergy)     setContrastAllergy(patient.contrastAllergy)
+    if (patient.contrastAllergyNote) setContrastAllergyNote(patient.contrastAllergyNote)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient?._id])
 
   // ── Guards ────────────────────────────────────────────────────────────────
   if (!isLoaded || patient === undefined) {
@@ -229,6 +249,37 @@ export default function AccountClient() {
       setSecretCopied(true)
       setTimeout(() => setSecretCopied(false), 2000)
     })
+  }
+
+  async function saveClinicalDetails() {
+    setClinicalErr('')
+    setClinicalSaved(false)
+    const hNum = heightCm ? Number(heightCm) : undefined
+    const wNum = weightKg ? Number(weightKg) : undefined
+    if (hNum !== undefined && (isNaN(hNum) || hNum < 50 || hNum > 280)) {
+      setClinicalErr('Height must be between 50 and 280 cm.')
+      return
+    }
+    if (wNum !== undefined && (isNaN(wNum) || wNum < 10 || wNum > 500)) {
+      setClinicalErr('Weight must be between 10 and 500 kg.')
+      return
+    }
+    setClinicalSaving(true)
+    try {
+      await updateProfile({
+        heightCm:            hNum,
+        weightKg:            wNum,
+        contrastAllergy,
+        contrastAllergyNote: contrastAllergyNote.trim() || undefined,
+      })
+      setClinicalSaved(true)
+      setTimeout(() => setClinicalSaved(false), 3000)
+    } catch (err: unknown) {
+      const e = err as { message?: string }
+      setClinicalErr(e?.message ?? 'Failed to save. Please try again.')
+    } finally {
+      setClinicalSaving(false)
+    }
   }
 
   function doSignOut() {
@@ -535,6 +586,83 @@ export default function AccountClient() {
                     </span>
                   </button>
                 </div>
+              </div>
+            </div>
+
+            {/* ── Clinical details ──────────────────────────────────────── */}
+            <div className="acc-card">
+              <h2>Clinical details</h2>
+              <div className="sub">
+                This information helps clinicians provide safe and informed care.
+                Height and weight are used to calculate appropriate MRI parameters and medication dosing.
+              </div>
+              <div className="f-grid">
+                <div className="f-group">
+                  <label className="f-label">Height (cm)</label>
+                  <input
+                    type="number"
+                    className="f-input"
+                    placeholder="e.g. 175"
+                    min={50}
+                    max={280}
+                    value={heightCm}
+                    onChange={e => setHeightCm(e.target.value)}
+                    aria-label="Height in centimetres"
+                  />
+                </div>
+                <div className="f-group">
+                  <label className="f-label">Weight (kg)</label>
+                  <input
+                    type="number"
+                    className="f-input"
+                    placeholder="e.g. 75"
+                    min={10}
+                    max={500}
+                    value={weightKg}
+                    onChange={e => setWeightKg(e.target.value)}
+                    aria-label="Weight in kilograms"
+                  />
+                </div>
+              </div>
+              <div className="toggle-row" style={{ marginTop: 16 }}>
+                <div className="toggle-label">
+                  <b>Contrast dye allergy</b>
+                  <span>Alert clinicians that you have a known reaction to iodinated or gadolinium-based contrast agents</span>
+                </div>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={contrastAllergy}
+                    onChange={e => setContrastAllergy(e.target.checked)}
+                  />
+                  <span className="slider" />
+                </label>
+              </div>
+              {contrastAllergy && (
+                <div className="f-group" style={{ marginTop: 12 }}>
+                  <label className="f-label">Allergy notes</label>
+                  <textarea
+                    className="f-input"
+                    placeholder="e.g. Reaction type, severity, previous treatment required…"
+                    rows={3}
+                    value={contrastAllergyNote}
+                    onChange={e => setContrastAllergyNote(e.target.value)}
+                    aria-label="Contrast allergy notes"
+                    style={{ resize: 'vertical', minHeight: 72 }}
+                  />
+                </div>
+              )}
+              {clinicalErr && (
+                <div className="sec-err" style={{ marginTop: 12 }}>{clinicalErr}</div>
+              )}
+              <div className="save-bar">
+                <button
+                  className="btn btn-s"
+                  onClick={saveClinicalDetails}
+                  disabled={clinicalSaving}
+                >
+                  {clinicalSaving ? 'Saving…' : clinicalSaved ? 'Saved ✓' : 'Save clinical details'}
+                </button>
               </div>
             </div>
 

@@ -624,6 +624,12 @@ export default function RegisterClient() {
   // ── Step 4: summary ───────────────────────────────────────────────────────
   const [notes, setNotes] = useState('')
 
+  // ── Additional health details ──────────────────────────────────────────────
+  const [heightCm,            setHeightCm]            = useState('')
+  const [weightKg,            setWeightKg]            = useState('')
+  const [contrastAllergy,     setContrastAllergy]     = useState(false)
+  const [contrastAllergyNote, setContrastAllergyNote] = useState('')
+
   // ── UI ────────────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
@@ -796,6 +802,10 @@ export default function RegisterClient() {
             })))
           : undefined,
         additionalNotes: notes.trim() || undefined,
+        heightCm:            heightCm ? Number(heightCm) : undefined,
+        weightKg:            weightKg ? Number(weightKg) : undefined,
+        contrastAllergy:     contrastAllergy,
+        contrastAllergyNote: contrastAllergyNote.trim() || undefined,
       })
 
       void result
@@ -975,6 +985,20 @@ export default function RegisterClient() {
                 </span>
               </div>
 
+              {/* Height / Weight */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                <div className="field">
+                  <label>Height <span style={{color:'var(--muted)',fontWeight:400}}>(cm)</span></label>
+                  <input className="input" type="number" min="50" max="250" placeholder="e.g. 175"
+                    value={heightCm} onChange={e => setHeightCm(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Weight <span style={{color:'var(--muted)',fontWeight:400}}>(kg)</span></label>
+                  <input className="input" type="number" min="1" max="500" placeholder="e.g. 72"
+                    value={weightKg} onChange={e => setWeightKg(e.target.value)} />
+                </div>
+              </div>
+
               <button className="btn btn-s btn-lg btn-block" type="submit"
                 disabled={loading}>
                 {loading ? 'Sending code…' : 'Continue →'}
@@ -1061,6 +1085,24 @@ export default function RegisterClient() {
                 }}>
                 + Add another implant
               </button>
+
+              {/* Contrast allergy */}
+              <div className="field">
+                <label>Contrast allergy</label>
+                <div style={{ display:'flex', gap:8, marginBottom: contrastAllergy ? 10 : 0 }}>
+                  <button type="button" className={contrastAllergy ? 'btn' : 'btn btn-s'}
+                    style={{ flex:1 }}
+                    onClick={() => setContrastAllergy(false)}>No known allergy</button>
+                  <button type="button" className={contrastAllergy ? 'btn btn-s' : 'btn'}
+                    style={{ flex:1, background: contrastAllergy ? '#f59e0b' : undefined, borderColor: contrastAllergy ? '#f59e0b' : undefined }}
+                    onClick={() => setContrastAllergy(true)}>Has allergy / reaction</button>
+                </div>
+                {contrastAllergy && (
+                  <textarea className="input" rows={2} placeholder="Describe the reaction or contrast agent involved…"
+                    value={contrastAllergyNote} onChange={e => setContrastAllergyNote(e.target.value)}
+                    style={{ marginTop:8, resize:'vertical' }} />
+                )}
+              </div>
 
               <div className="dev-warn" style={{ marginBottom: 14 }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">

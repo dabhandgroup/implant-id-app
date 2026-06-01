@@ -781,36 +781,45 @@ export default function DashboardClient() {
               }
             >
               <div className="pb-top">
-                <div className="pb-brand">
-                  <img src="/icon.svg" alt="" style={isPending ? { filter: 'brightness(0) opacity(0.4)' } : undefined}/>
-                  <span style={isPending ? { color: '#475569' } : undefined}>Implant ID</span>
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <div style={{ fontFamily:'var(--ff)', fontSize:11, letterSpacing:'1.6px', textTransform:'uppercase', opacity: isPending ? .5 : .75 }}>
+                {/* Brand + label stacked on the left */}
+                <div>
+                  <div className="pb-brand">
+                    <img src="/icon.svg" alt="" style={isPending ? { filter: 'brightness(0) opacity(0.4)' } : undefined}/>
+                    <span style={isPending ? { color: '#475569' } : undefined}>Implant ID</span>
+                  </div>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:10, letterSpacing:'1.6px', textTransform:'uppercase', opacity: isPending ? .4 : .65, marginTop: 4 }}>
                     Medical · Implant Record
                   </div>
-                  {/* MRI safety icon — shown only once verified and device linked */}
-                  {!isPending && implantSafety && (
-                    <img
-                      src={
-                        implantSafety === 'safe'        ? '/mr-safe.svg'
-                        : implantSafety === 'conditional' ? '/mr-conditional.svg'
-                        : '/mr-unsafe.svg'
-                      }
-                      alt={
-                        implantSafety === 'safe'        ? 'MR Safe'
-                        : implantSafety === 'conditional' ? 'MR Conditional'
-                        : 'MR Unsafe'
-                      }
-                      title={
-                        implantSafety === 'safe'        ? 'MR Safe'
-                        : implantSafety === 'conditional' ? 'MR Conditional — conditions apply, consult your radiographer'
-                        : 'MR Unsafe — do not enter the MRI environment'
-                      }
-                      style={{ width:32, height:32, flexShrink:0 }}
-                    />
-                  )}
                 </div>
+
+                {/* MRI safety icon — prominent top-right, 56px */}
+                {!isPending && implantSafety ? (
+                  <img
+                    src={
+                      implantSafety === 'safe'        ? '/mr-safe.svg'
+                      : implantSafety === 'conditional' ? '/mr-conditional.svg'
+                      : '/mr-unsafe.svg'
+                    }
+                    alt={
+                      implantSafety === 'safe'        ? 'MR Safe'
+                      : implantSafety === 'conditional' ? 'MR Conditional'
+                      : 'MR Unsafe'
+                    }
+                    title={
+                      implantSafety === 'safe'        ? 'MR Safe — safe in any MRI environment'
+                      : implantSafety === 'conditional' ? 'MR Conditional — conditions apply, consult your radiographer before any scan'
+                      : 'MR Unsafe — do not enter the MRI environment'
+                    }
+                    style={{ width:56, height:56, flexShrink:0 }}
+                  />
+                ) : !isPending ? (
+                  /* Verified but no linked device yet — neutral placeholder */
+                  <div style={{ width:56, height:56, borderRadius:'50%', background:'rgba(255,255,255,0.12)', display:'grid', placeItems:'center', flexShrink:0 }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5">
+                      <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
+                    </svg>
+                  </div>
+                ) : null}
               </div>
 
               {/* Pending badge with tooltip — block-level so it has its own line */}
@@ -873,48 +882,50 @@ export default function DashboardClient() {
                 </p>
               )}
 
-              {/* Data grid + QR side by side */}
-              <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
-                <div className="pb-grid" style={{ flex: 1, gridTemplateColumns: 'repeat(3,1fr)' }}>
-                  <div>
-                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Your Implant ID</div>
-                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{iidCode}</div>
-                  </div>
-                  <div>
-                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Name</div>
-                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{fullName}</div>
-                  </div>
-                  {patient.selfReportedImplantYear && (
-                    <div>
-                      <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Implanted</div>
-                      <div className="v" style={{ color: isPending ? '#334155' : undefined }}>
-                        {patient.selfReportedImplantMonth
-                          ? `${MONTHS[parseInt(patient.selfReportedImplantMonth)-1]?.slice(0,3)} ${patient.selfReportedImplantYear}`
-                          : patient.selfReportedImplantYear}
-                      </div>
-                    </div>
-                  )}
+              {/* Data grid */}
+              <div className="pb-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+                <div>
+                  <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Your Implant ID</div>
+                  <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{iidCode}</div>
                 </div>
-
-                {/* QR code — right side, scans to /scan/[code] */}
-                {qrDataUrl ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                    <img
-                      src={qrDataUrl}
-                      alt="Scan this QR code at the clinic"
-                      style={{ width: 120, height: 120, borderRadius: 10, background: 'rgba(255,255,255,0.92)', padding: 5 }}
-                    />
-                    <span style={{ fontFamily: 'var(--ff)', fontSize: 9.5, marginTop: 5, letterSpacing: '1px', textTransform: 'uppercase', opacity: isPending ? 0.4 : 0.65 }}>Scan at clinic</span>
+                <div>
+                  <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Name</div>
+                  <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{fullName}</div>
+                </div>
+                {patient.selfReportedImplantYear && (
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Implanted</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>
+                      {patient.selfReportedImplantMonth
+                        ? `${MONTHS[parseInt(patient.selfReportedImplantMonth)-1]?.slice(0,3)} ${patient.selfReportedImplantYear}`
+                        : patient.selfReportedImplantYear}
+                    </div>
                   </div>
-                ) : !isPending ? (
-                  <div style={{ width: 120, height: 120, borderRadius: 10, background: 'rgba(255,255,255,0.12)', flexShrink: 0, display: 'grid', placeItems: 'center' }}>
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5">
-                      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                      <rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2z"/>
-                    </svg>
-                  </div>
-                ) : null}
+                )}
               </div>
+
+              {/* QR code — bottom right, scans to /scan/[code] in-app */}
+              {!isPending && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    {qrDataUrl ? (
+                      <img
+                        src={qrDataUrl}
+                        alt="Scan this QR code at the clinic to access this record"
+                        style={{ width: 130, height: 130, borderRadius: 10, background: 'rgba(255,255,255,0.92)', padding: 5 }}
+                      />
+                    ) : (
+                      <div style={{ width: 130, height: 130, borderRadius: 10, background: 'rgba(255,255,255,0.12)', display: 'grid', placeItems: 'center' }}>
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4">
+                          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                          <rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2z"/>
+                        </svg>
+                      </div>
+                    )}
+                    <span style={{ fontFamily: 'var(--ff)', fontSize: 9.5, marginTop: 5, letterSpacing: '1px', textTransform: 'uppercase', opacity: 0.65 }}>Scan at clinic</span>
+                  </div>
+                </div>
+              )}
 
               {/* Actions — always visible; greyed + locked when pending */}
               <div className="pb-actions" style={{ marginTop: 20 }}>
@@ -1022,14 +1033,14 @@ export default function DashboardClient() {
                   <b>Emergency info</b>
                   <p>A one-tap view of everything a paramedic needs to know.</p>
                 </a>
-                <a href="#" className="q">
+                <div className="q" style={{ opacity: 0.55, cursor: 'default' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                     <rect x="3" y="4" width="18" height="16" rx="2"/>
                     <path d="M8 2v4M16 2v4M3 10h18"/>
                   </svg>
                   <b>Upcoming appointments</b>
-                  <p>Appointments your clinic has scheduled for you.</p>
-                </a>
+                  <p>Coming soon — your booked appointments will appear here.</p>
+                </div>
               </div>
             </div>
 

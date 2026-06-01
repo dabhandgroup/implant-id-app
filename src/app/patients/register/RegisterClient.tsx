@@ -630,6 +630,18 @@ export default function RegisterClient() {
   const [contrastAllergy,     setContrastAllergy]     = useState(false)
   const [contrastAllergyNote, setContrastAllergyNote] = useState('')
 
+  // ── Surgeon search ────────────────────────────────────────────────────────
+  const [selfReportedSurgeon, setSelfReportedSurgeon] = useState('')
+  const [surgeonSearch,       setSurgeonSearch]       = useState('')
+  const [surgeonDropOpen,     setSurgeonDropOpen]     = useState(false)
+  const [selectedSurgeonId,   setSelectedSurgeonId]   = useState<string | null>(null)
+  const [surgeonEmail,        setSurgeonEmail]         = useState('')
+
+  const surgeonResults = useQuery(
+    api.patients.searchSurgeonsForRegistration,
+    surgeonSearch.trim().length >= 2 ? { query: surgeonSearch } : 'skip'
+  )
+
   // ── UI ────────────────────────────────────────────────────────────────────
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
@@ -806,6 +818,8 @@ export default function RegisterClient() {
         weightKg:            weightKg ? Number(weightKg) : undefined,
         contrastAllergy:     contrastAllergy,
         contrastAllergyNote: contrastAllergyNote.trim() || undefined,
+        selfReportedSurgeonUserId: selectedSurgeonId || undefined,
+        selfReportedSurgeonEmail:  (!selectedSurgeonId && surgeonEmail.trim()) ? surgeonEmail.trim() : undefined,
       })
 
       void result
@@ -1085,6 +1099,38 @@ export default function RegisterClient() {
                 }}>
                 + Add another implant
               </button>
+
+              {/* Surgeon search */}
+              <div className="field" style={{ position: 'relative' }}>
+                <label>Surgeon / doctor who performed the procedure <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span></label>
+                <input
+                  className="input" type="text" placeholder="Start typing to search…" autoComplete="off"
+                  value={surgeonSearch || selfReportedSurgeon}
+                  onChange={e => { setSurgeonSearch(e.target.value); setSelfReportedSurgeon(e.target.value); setSelectedSurgeonId(null); setSurgeonDropOpen(e.target.value.length > 0) }}
+                  onBlur={() => setTimeout(() => setSurgeonDropOpen(false), 200)}
+                />
+                {surgeonDropOpen && surgeonSearch.trim().length >= 2 && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 30, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.12)', maxHeight: 200, overflowY: 'auto', marginTop: 4 }}>
+                    {surgeonResults === undefined && <div style={{ padding: '12px 16px', fontSize: 13, color: 'var(--muted)' }}>Searching…</div>}
+                    {surgeonResults && surgeonResults.length === 0 && <div style={{ padding: '12px 16px', fontSize: 13, color: 'var(--muted)' }}>No surgeon found on platform</div>}
+                    {surgeonResults && surgeonResults.map((s: { userId: string; name: string; email: string }) => (
+                      <button key={String(s.userId)} type="button"
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border)' }}
+                        onClick={() => { setSelfReportedSurgeon(s.name); setSurgeonSearch(s.name); setSelectedSurgeonId(String(s.userId)); setSurgeonDropOpen(false) }}
+                      >
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 14%,transparent)', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 11, color: 'var(--accent)', flexShrink: 0 }}>{s.name.slice(0, 2).toUpperCase()}</div>
+                        <div><div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{s.name}</div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{s.email}</div></div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {!selectedSurgeonId && surgeonSearch.trim().length >= 2 && surgeonResults && surgeonResults.length === 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <label style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Enter their email to invite them to verify your record:</label>
+                    <input className="input" type="email" placeholder="surgeon@hospital.com" value={surgeonEmail} onChange={e => setSurgeonEmail(e.target.value)} />
+                  </div>
+                )}
+              </div>
 
               {/* Contrast allergy */}
               <div className="field">

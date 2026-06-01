@@ -271,3 +271,99 @@ export const sendPatientWelcomeEmail = internalAction({
     })
   },
 })
+
+// ── Patient verified email ────────────────────────────────────────────────────
+
+export const sendPatientVerifiedEmail = internalAction({
+  args: {
+    firstName:     v.string(),
+    email:         v.string(),
+    implantIdCode: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r = resend()
+    await r.emails.send({
+      from:    FROM,
+      to:      args.email,
+      subject: `Your implant record is verified — Implant ID`,
+      html: buildEmail({
+        title:   'Record Verified',
+        heading: `Great news, ${args.firstName} — your record is verified!`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            Your clinical team has reviewed and verified your implant record on Implant ID.
+            Your digital wallet pass is now active and ready to use.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Show your wallet pass at any MRI appointment so clinical staff can instantly
+            access your implant safety information.
+          </p>
+        `,
+        highlightBox: {
+          content: `
+            <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                       text-transform:uppercase;color:#29869F;">Your Implant ID</p>
+            <p style="margin:0;font-size:32px;font-weight:700;color:#1a6a80;
+                       letter-spacing:0.5px;line-height:1.2;">${args.implantIdCode}</p>
+          `,
+        },
+        cta: {
+          label: 'View my verified record →',
+          url:   'https://portal.implantid.io/patients/dashboard',
+        },
+        footerNote: `If you have any questions about your record, contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: true,
+      }),
+    })
+  },
+})
+
+// ── Surgeon platform invite email ─────────────────────────────────────────────
+
+export const sendSurgeonPlatformInviteEmail = internalAction({
+  args: {
+    surgeonEmail:     v.string(),
+    surgeonName:      v.optional(v.string()),
+    patientName:      v.string(),
+    patientImplantId: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r         = resend()
+    const greeting  = args.surgeonName ? args.surgeonName.split(' ')[0] : 'there'
+    await r.emails.send({
+      from:    FROM,
+      to:      args.surgeonEmail,
+      subject: `Your patient ${args.patientName} has registered on Implant ID`,
+      html: buildEmail({
+        title:   'Patient Registration',
+        heading: `Hi ${greeting} — your patient is on Implant ID`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            Your patient <strong style="color:#0e2a33;">${args.patientName}</strong> has registered
+            their implant record on Implant ID and has listed you as their implanting surgeon.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Once you sign in to the platform you can verify their record — this activates their
+            digital wallet pass and confirms their implant safety details for MRI teams.
+          </p>
+        `,
+        highlightBox: {
+          content: `
+            <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                       text-transform:uppercase;color:#29869F;">Patient Implant ID</p>
+            <p style="margin:0;font-size:28px;font-weight:700;color:#1a6a80;
+                       letter-spacing:0.5px;line-height:1.2;">${args.patientImplantId}</p>
+          `,
+        },
+        cta: {
+          label: 'Sign in to verify →',
+          url:   `https://portal.implantid.io/login?email=${encodeURIComponent(args.surgeonEmail)}`,
+        },
+        footerNote: `If you don't recognise this patient, please contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})

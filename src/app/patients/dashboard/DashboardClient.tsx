@@ -4,6 +4,7 @@ import { useUser, useClerk }           from '@clerk/nextjs'
 import { useQuery, useMutation }        from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
 import { useRouter }                   from 'next/navigation'
+import QRCode                          from 'qrcode'
 
 // ── Confetti fall from top ────────────────────────────────────────────────────
 const CONFETTI_COLORS = ['#29869f','#29a8cc','#2f9e72','#d97d2c','#8b5cf6','#ec4899','#f59e0b']
@@ -55,9 +56,12 @@ export default function DashboardClient() {
   const router              = useRouter()
   const patient             = useQuery(api.patients.getMyPatient)
   const implantSafety       = useQuery(api.patients.getMyImplantSafety)
+  const notifications       = useQuery(api.patients.getMyNotifications)
   const markWelcomeSeen     = useMutation(api.patients.markWelcomeSeen)
+  const markRead            = useMutation(api.patients.markAllNotificationsRead)
 
   // ── UI state ──────────────────────────────────────────────────────────────
+  const [qrDataUrl,     setQrDataUrl]     = useState<string>('')
   const [sbCollapsed,   setSbCollapsed]   = useState(false)
   const [sbOpen,        setSbOpen]        = useState(false)
   const [profileOpen,   setProfileOpen]   = useState(false)
@@ -87,6 +91,14 @@ export default function DashboardClient() {
   const wCodeRefs       = useRef<(HTMLInputElement | null)[]>([])
   // Prevents the welcome init effect from re-running when Clerk updates the user object mid-flow
   const welcomeShownRef = useRef(false)
+
+  // Generate QR code data URL for the pass card
+  useEffect(() => {
+    if (!patient?.implantIdCode) return
+    QRCode.toDataURL(patient.implantIdCode, { width: 180, margin: 2, color: { dark: '#0e2a33', light: '#ffffff' } })
+      .then((url: string) => setQrDataUrl(url))
+      .catch(() => {})
+  }, [patient?.implantIdCode])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -616,7 +628,7 @@ export default function DashboardClient() {
               <span className="dot" />
             </span>
             <span className="label">Notifications</span>
-            <span className="count">2</span>
+            <span className="count">{notifications?.filter((n: {read: boolean}) => !n.read).length || 0}</span>
           </button>
 
           {/* Profile bottom */}
@@ -871,6 +883,13 @@ export default function DashboardClient() {
                   </div>
                 )}
               </div>
+
+              {qrDataUrl && !isPending && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 16, marginBottom: 4 }}>
+                  <img src={qrDataUrl} alt="Your Implant ID QR code" style={{ width: 76, height: 76, borderRadius: 8, background: 'rgba(255,255,255,0.15)', padding: 4 }} />
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 10, opacity: 0.65, marginTop: 4, letterSpacing: '1px', textTransform: 'uppercase' }}>Scan at clinic</span>
+                </div>
+              )}
 
               {/* Actions — always visible; greyed + locked when pending */}
               <div className="pb-actions" style={{ marginTop: 20 }}>
@@ -1198,35 +1217,17 @@ export default function DashboardClient() {
           <button className="x" onClick={() => setNotifOpen(false)}>✕</button>
         </div>
         <div className="notif-list">
-          <div className="notif-item unread">
-            <div className="notif-ic ok">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <path d="m9 12 2 2 4-4"/>
-              </svg>
+          {!notifications || notifications.length === 0 ? (
+            <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No notifications</div>
+          ) : notifications.map((n: {_id: string, title: string, body: string}) => (
+            <div key={n._id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>{n.title}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</div>
             </div>
-            <div>
-              <b>Welcome to Implant ID</b>
-              <p>Your patient record is set up and your unique ID is ready. Add your implant details when your clinical team is ready.</p>
-              <div className="t">Just now · Implant ID</div>
-            </div>
-          </div>
-          <div className="notif-item unread">
-            <div className="notif-ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <rect x="3" y="6" width="18" height="14" rx="2"/>
-                <path d="M3 10h18M7 15h3"/>
-              </svg>
-            </div>
-            <div>
-              <b>Tip: share before appointments</b>
-              <p>Sharing your Implant ID with a clinic before you arrive means they can prepare your safety profile in advance.</p>
-              <div className="t">Today · Implant ID</div>
-            </div>
-          </div>
+          ))}
         </div>
         <div className="notif-foot">
-          <a href="#">Mark all as read</a>
+          <a href="#" onClick={e => { e.preventDefault(); markRead() }}>Mark all as read</a>
           <a href="#">Settings</a>
         </div>
       </aside>

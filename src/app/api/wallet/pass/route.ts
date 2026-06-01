@@ -101,6 +101,15 @@ export async function GET() {
     backgroundColor: bgColor,
     labelColor:      LIGHT_LABEL,
 
+    barcodes: [
+      {
+        message:         patient.implantIdCode,
+        format:          'PKBarcodeFormatQR',
+        messageEncoding: 'iso-8859-1',
+        altText:         patient.implantIdCode,
+      },
+    ],
+
     generic: {
       primaryField: [
         {

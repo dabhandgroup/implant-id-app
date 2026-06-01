@@ -6,7 +6,7 @@ export default defineSchema({
   users: defineTable({
     clerkId: v.string(),
     email: v.string(),
-    role: v.union(v.literal('patient'), v.literal('clinic_staff'), v.literal('admin')),
+    role: v.union(v.literal('patient'), v.literal('clinic_staff'), v.literal('surgeon'), v.literal('admin')),
     name: v.string(),
   })
     .index('by_clerk', ['clerkId'])
@@ -27,6 +27,8 @@ export default defineSchema({
     maxScanTime: v.optional(v.string()),
     contraindications: v.optional(v.string()),
     approvedRegions: v.optional(v.array(v.string())),
+    recalled:    v.optional(v.boolean()),
+    recallNotes: v.optional(v.string()),
     verified: v.boolean(),
     verifiedAt: v.optional(v.number()),
     submittedByManufacturer: v.optional(v.string()),
@@ -56,6 +58,8 @@ export default defineSchema({
     selfReportedImplantYear:  v.optional(v.string()),  // YYYY
     selfReportedHospital:     v.optional(v.string()),
     selfReportedSurgeon:      v.optional(v.string()),
+    selfReportedSurgeonUserId: v.optional(v.id('users')),
+    selfReportedSurgeonEmail:  v.optional(v.string()),
     selfReportedImplants:     v.optional(v.string()),  // JSON — additional implants array
     countryOfBirth:           v.optional(v.string()),
 

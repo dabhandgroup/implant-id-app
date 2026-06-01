@@ -272,6 +272,68 @@ export const getMyImplantSafety = query({
   },
 })
 
+/**
+ * Public lookup by implant ID code — used by clinic scan page.
+ * Returns patient info + verified devices, or null if not found.
+ * No authentication required (the code itself acts as the access token).
+ */
+export const lookupByImplantId = query({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_implant_code', (q) => q.eq('implantIdCode', args.code.trim().toUpperCase()))
+      .unique()
+    if (!patient) return null
+
+    // Fetch verified device links
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .take(20)
+
+    const devices = (
+      await Promise.all(
+        links.map(async (l) => {
+          const d = await ctx.db.get(l.deviceId)
+          if (!d) return null
+          return {
+            manufacturer: d.manufacturer,
+            model:        d.model,
+            deviceType:   d.deviceType,
+            mriStatus:    d.mriStatus,
+            serialNumber: l.serialNumber,
+            implantDate:  l.implantDate,
+            status:       l.status,
+          }
+        }),
+      )
+    ).filter(Boolean)
+
+    // Aggregate MRI status: unsafe > conditional > safe > unknown
+    let mriStatus: 'safe' | 'conditional' | 'unsafe' | 'unknown' = 'unknown'
+    const statuses = devices.map((d) => d!.mriStatus)
+    if (statuses.includes('unsafe'))      mriStatus = 'unsafe'
+    else if (statuses.includes('conditional')) mriStatus = 'conditional'
+    else if (statuses.includes('safe'))        mriStatus = 'safe'
+
+    return {
+      implantIdCode:       patient.implantIdCode,
+      firstName:           patient.firstName,
+      lastName:            patient.lastName,
+      dob:                 patient.dob,
+      heightCm:            patient.heightCm,
+      weightKg:            patient.weightKg,
+      contrastAllergy:     patient.contrastAllergy,
+      contrastAllergyNote: patient.contrastAllergyNote,
+      verificationStatus:  patient.verificationStatus ?? 'pending',
+      selfReportedDevice:  patient.selfReportedDevice,
+      mriStatus,
+      devices,
+    }
+  },
+})
+
 /** Patient counts for the surgeon dashboard stats cards. */
 export const getSurgeonPatientCounts = query({
   args: {},
@@ -294,5 +356,204 @@ export const getSurgeonPatientCounts = query({
       awaitingVerification: patients.filter(p => p?.verificationStatus === 'pending').length,
       pendingReview:        0,
     }
+  },
+})
+
+/** Verify a patient's record (admin / clinic_staff / surgeon only). */
+export const verifyPatient = mutation({
+  args: {
+    patientId:    v.id('patients'),
+    deviceId:     v.optional(v.id('devices')),
+    serialNumber: v.optional(v.string()),
+    implantDate:  v.optional(v.string()),
+    clinicNotes:  v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+    if (!['admin', 'clinic_staff', 'surgeon'].includes(user.role)) {
+      throw new Error('Insufficient permissions')
+    }
+
+    const patient = await ctx.db.get(args.patientId)
+    if (!patient) throw new Error('Patient not found')
+
+    await ctx.db.patch(args.patientId, { verificationStatus: 'active' })
+
+    if (args.deviceId) {
+      await ctx.db.insert('patientDevices', {
+        patientId:    args.patientId,
+        deviceId:     args.deviceId,
+        serialNumber: args.serialNumber,
+        implantDate:  args.implantDate,
+        clinicNotes:  args.clinicNotes,
+        status:       'active',
+      })
+    }
+
+    // Get the patient's user record to find their email
+    const patientUser = await ctx.db.get(patient.userId)
+    if (patientUser?.email) {
+      await ctx.scheduler.runAfter(0, internal.email.sendPatientVerifiedEmail, {
+        firstName:     patient.firstName,
+        email:         patientUser.email,
+        implantIdCode: patient.implantIdCode,
+      })
+    }
+
+    await ctx.db.insert('notifications', {
+      userId:    patient.userId,
+      type:      'verification',
+      title:     'Your implant record is verified',
+      body:      'Your clinical team has verified your record. Your wallet pass is now active.',
+      read:      false,
+      createdAt: Date.now(),
+    })
+  },
+})
+
+/** List all patients — admin only. */
+export const listAllPatients = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user || user.role !== 'admin') return []
+
+    return ctx.db
+      .query('patients')
+      .order('desc')
+      .take(args.limit ?? 100)
+  },
+})
+
+/** Get a single patient by ID with their verified devices — admin / clinic_staff / surgeon. */
+export const getPatientById = query({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user || !['admin', 'clinic_staff', 'surgeon'].includes(user.role)) return null
+
+    const patient = await ctx.db.get(args.patientId)
+    if (!patient) return null
+
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .take(50)
+
+    const devices = (
+      await Promise.all(
+        links.map(async (l) => {
+          const d = await ctx.db.get(l.deviceId)
+          return d ? { ...l, device: d } : null
+        }),
+      )
+    ).filter(Boolean)
+
+    return { ...patient, devices }
+  },
+})
+
+/** Get the current user's notifications (most recent 20). */
+export const getMyNotifications = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) return []
+
+    return ctx.db
+      .query('notifications')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .order('desc')
+      .take(20)
+  },
+})
+
+/** Mark all unread notifications as read for the current user. */
+export const markAllNotificationsRead = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) return
+
+    const unread = await ctx.db
+      .query('notifications')
+      .withIndex('by_user_unread', (q) =>
+        q.eq('userId', user._id).eq('read', false),
+      )
+      .take(100)
+
+    await Promise.all(unread.map((n) => ctx.db.patch(n._id, { read: true })))
+  },
+})
+
+/**
+ * Search platform surgeons by name or email — used during patient registration
+ * so a patient can tag their implanting surgeon.
+ */
+export const searchSurgeonsForRegistration = query({
+  args: { query: v.string() },
+  handler: async (ctx, args) => {
+    if (args.query.trim().length < 2) return []
+
+    const surgeonStaff = await ctx.db
+      .query('staff')
+      .filter((q) => q.eq(q.field('jobType'), 'surgeon'))
+      .take(200)
+
+    // Deduplicate by userId (surgeon may be at multiple clinics)
+    const seenUserIds = new Set<string>()
+    const uniqueStaff = surgeonStaff.filter((s) => {
+      const id = s.userId.toString()
+      if (seenUserIds.has(id)) return false
+      seenUserIds.add(id)
+      return true
+    })
+
+    const users = await Promise.all(uniqueStaff.map((s) => ctx.db.get(s.userId)))
+    const valid = users.filter(Boolean) as NonNullable<(typeof users)[0]>[]
+
+    const q = args.query.trim().toLowerCase()
+    const filtered = valid.filter(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q),
+    )
+
+    return filtered.slice(0, 8).map((u) => ({
+      userId: u._id,
+      name:   u.name,
+      email:  u.email,
+    }))
   },
 })

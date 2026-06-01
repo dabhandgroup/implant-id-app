@@ -1,8 +1,8 @@
 export const metadata = { title: 'Devices · Master Admin · Implant ID' }
 export const dynamic = 'force-dynamic'
 
-import DevicesClient from './DevicesClient'
+import MasterDevicesClient from './MasterDevicesClient'
 
 export default function MasterDevicesPage() {
-  return <DevicesClient />
+  return <MasterDevicesClient />
 }

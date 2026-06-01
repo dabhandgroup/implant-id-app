@@ -664,3 +664,49 @@ export const reviewApplication = mutation({
     return null
   },
 })
+
+/** Summary statistics for the current user's clinic dashboard. */
+export const getClinicStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) return null
+
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) return null
+
+    const approvedRequests = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .filter((q) => q.eq(q.field('status'), 'approved'))
+      .take(500)
+
+    const uniquePatientIds = [...new Set(approvedRequests.map((r) => r.patientId))]
+    const patients = (
+      await Promise.all(uniquePatientIds.map((id) => ctx.db.get(id)))
+    ).filter(Boolean)
+
+    // Team size (active staff)
+    const allStaff = await ctx.db
+      .query('staff')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .take(200)
+    const teamCount = allStaff.filter((s) => s.status === 'active').length
+
+    return {
+      total:     patients.length,
+      verified:  patients.filter((p) => p?.verificationStatus === 'active').length,
+      pending:   patients.filter((p) => p?.verificationStatus !== 'active').length,
+      teamCount,
+    }
+  },
+})

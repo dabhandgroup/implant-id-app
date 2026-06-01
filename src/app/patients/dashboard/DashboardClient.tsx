@@ -54,6 +54,7 @@ export default function DashboardClient() {
   const { signOut }         = useClerk()
   const router              = useRouter()
   const patient             = useQuery(api.patients.getMyPatient)
+  const implantSafety       = useQuery(api.patients.getMyImplantSafety)
   const markWelcomeSeen     = useMutation(api.patients.markWelcomeSeen)
 
   // ── UI state ──────────────────────────────────────────────────────────────
@@ -755,8 +756,31 @@ export default function DashboardClient() {
                   <img src="/icon.svg" alt="" style={isPending ? { filter: 'brightness(0) opacity(0.4)' } : undefined}/>
                   <span style={isPending ? { color: '#475569' } : undefined}>Implant ID</span>
                 </div>
-                <div style={{ fontFamily:'var(--ff)', fontSize:11, letterSpacing:'1.6px', textTransform:'uppercase', opacity: isPending ? .5 : .75 }}>
-                  Medical · Implant Record
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:11, letterSpacing:'1.6px', textTransform:'uppercase', opacity: isPending ? .5 : .75 }}>
+                    Medical · Implant Record
+                  </div>
+                  {/* MRI safety icon — shown only once verified and device linked */}
+                  {!isPending && implantSafety && (
+                    <img
+                      src={
+                        implantSafety === 'safe'        ? '/mr-safe.svg'
+                        : implantSafety === 'conditional' ? '/mr-conditional.svg'
+                        : '/mr-unsafe.svg'
+                      }
+                      alt={
+                        implantSafety === 'safe'        ? 'MR Safe'
+                        : implantSafety === 'conditional' ? 'MR Conditional'
+                        : 'MR Unsafe'
+                      }
+                      title={
+                        implantSafety === 'safe'        ? 'MR Safe'
+                        : implantSafety === 'conditional' ? 'MR Conditional — conditions apply, consult your radiographer'
+                        : 'MR Unsafe — do not enter the MRI environment'
+                      }
+                      style={{ width:32, height:32, flexShrink:0 }}
+                    />
+                  )}
                 </div>
               </div>
 

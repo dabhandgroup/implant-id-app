@@ -233,6 +233,45 @@ export const updatePatientProfile = mutation({
   },
 })
 
+/** MRI safety status derived from the patient's verified device records.
+ *  Returns the most-restrictive status across all linked devices:
+ *  unsafe > conditional > safe > null (no verified devices yet).
+ */
+export const getMyImplantSafety = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) return null
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) return null
+
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .collect()
+
+    const statuses = await Promise.all(
+      links.map(async (l) => {
+        const d = await ctx.db.get(l.deviceId)
+        return d?.mriStatus ?? null
+      }),
+    )
+
+    if (statuses.includes('unsafe'))      return 'unsafe'      as const
+    if (statuses.includes('conditional')) return 'conditional' as const
+    if (statuses.includes('safe'))        return 'safe'        as const
+    return null
+  },
+})
+
 /** Patient counts for the surgeon dashboard stats cards. */
 export const getSurgeonPatientCounts = query({
   args: {},

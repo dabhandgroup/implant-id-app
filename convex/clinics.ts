@@ -345,6 +345,151 @@ export const activateClinicAccount = internalAction({
   },
 })
 
+// ── Staff management ──────────────────────────────────────────────────────────
+
+/** List all staff members for the current user's clinic with their user info. */
+export const listClinicStaff = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) return []
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) return []
+    const all = await ctx.db
+      .query('staff')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .collect()
+    return Promise.all(
+      all.map(async (s) => {
+        const u = await ctx.db.get(s.userId)
+        return { ...s, userName: u?.name ?? '', userEmail: u?.email ?? '' }
+      }),
+    )
+  },
+})
+
+/**
+ * Create / update the Clerk account for a new staff member.
+ * surgeon jobType → role: 'surgeon'
+ * all others     → role: 'clinic_staff'
+ */
+export const createStaffAccount = internalAction({
+  args: {
+    contactEmail: v.string(),
+    contactName:  v.string(),
+    jobType:      v.union(v.literal('radiographer'), v.literal('surgeon'), v.literal('admin')),
+  },
+  handler: async (_ctx, args) => {
+    const secretKey = process.env.CLERK_SECRET_KEY
+    if (!secretKey) {
+      console.error('[staff] CLERK_SECRET_KEY not set')
+      return
+    }
+    const role = args.jobType === 'surgeon' ? 'surgeon' : 'clinic_staff'
+
+    // Check if account already exists
+    const searchRes = await fetch(
+      `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
+      { headers: { Authorization: `Bearer ${secretKey}` } },
+    )
+    if (searchRes.ok) {
+      const found = (await searchRes.json()) as { id: string }[]
+      if (found.length > 0) {
+        await fetch(`https://api.clerk.com/v1/users/${found[0].id}/metadata`, {
+          method:  'PATCH',
+          headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ public_metadata: { role } }),
+        })
+        console.log('[staff] Updated Clerk role for existing user', args.contactEmail)
+        return
+      }
+    }
+
+    // Create new passwordless account
+    const nameParts = args.contactName.trim().split(/\s+/)
+    const createRes = await fetch('https://api.clerk.com/v1/users', {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email_addresses:           [args.contactEmail],
+        first_name:                nameParts[0],
+        last_name:                 nameParts.slice(1).join(' ') || undefined,
+        skip_password_requirement: true,
+        public_metadata:           { role },
+      }),
+    })
+    if (createRes.ok) {
+      const u = (await createRes.json()) as { id: string }
+      console.log('[staff] Created Clerk account', u.id, 'for', args.contactEmail, 'role:', role)
+    } else {
+      console.error('[staff] Clerk creation failed:', createRes.status, await createRes.text())
+    }
+  },
+})
+
+/** Invite a new staff member to the clinic and create their Clerk account. */
+export const inviteClinicStaff = mutation({
+  args: {
+    contactEmail: v.string(),
+    contactName:  v.string(),
+    jobType:      v.union(v.literal('radiographer'), v.literal('surgeon'), v.literal('admin')),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) throw new Error('User not found')
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) throw new Error('Staff record not found — are you a clinic admin?')
+
+    // Find or create the user record for the invitee
+    let targetUser = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', args.contactEmail))
+      .first()
+    if (!targetUser) {
+      const uid = await ctx.db.insert('users', {
+        clerkId: '',   // will be filled in when they sign in
+        email:   args.contactEmail,
+        role:    'clinic_staff',
+        name:    args.contactName,
+      })
+      targetUser = await ctx.db.get(uid)
+    }
+    if (!targetUser) throw new Error('Could not create user record')
+
+    await ctx.db.insert('staff', {
+      userId:      targetUser._id,
+      clinicId:    staffRow.clinicId,
+      jobType:     args.jobType,
+      accessLevel: 'standard',
+      allPatients: true,
+      status:      'active',
+    })
+
+    // Create / update their Clerk account asynchronously
+    await ctx.scheduler.runAfter(0, internal.clinics.createStaffAccount, {
+      contactEmail: args.contactEmail,
+      contactName:  args.contactName,
+      jobType:      args.jobType,
+    })
+  },
+})
+
 /** Approve or reject a clinic application. */
 export const reviewApplication = mutation({
   args: {

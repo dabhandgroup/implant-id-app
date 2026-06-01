@@ -1,11 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useMutation } from 'convex/react'
 import { useRouter }   from 'next/navigation'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
+
+function MriIcon({ status, size = 24 }: { status: string; size?: number }) {
+  const src = status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : status === 'unsafe' ? '/mr-unsafe.svg' : null
+  if (!src) return null
+  return <img src={src} alt={MRI_LABEL[status] ?? status} style={{ width: size, height: size, flexShrink: 0, verticalAlign: 'middle' }} />
+}
 
 const MRI_COLOUR: Record<string,string> = {
   safe: 'var(--ok)', conditional: '#b45309', unsafe: 'var(--err)', unknown: 'var(--muted)',
@@ -52,8 +58,21 @@ export default function ScrapeClient() {
   const [webSearch,    setWebSearch]    = useState(true)
 
   const [loading,   setLoading]   = useState(false)
+  const [elapsed,   setElapsed]   = useState(0)
+  const timerRef                  = useRef<ReturnType<typeof setInterval> | null>(null)
   const [error,     setError]     = useState('')
   const [result,    setResult]    = useState<ScrapeResult | null>(null)
+
+  // Elapsed timer — starts/stops with loading state
+  useEffect(() => {
+    if (loading) {
+      setElapsed(0)
+      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
+    } else {
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+  }, [loading])
 
   // Editable mapped fields (pre-filled from scrape, user can adjust)
   const [editManufacturer,  setEditManufacturer]  = useState('')
@@ -158,11 +177,9 @@ export default function ScrapeClient() {
         </div>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns: result ? '1fr 1fr' : '560px', gap:24 }}>
-
-        {/* ── LEFT: Input form ── */}
-        <div>
-          <form onSubmit={handleScrape}>
+      {/* ── Input form — full width, max 760px ── */}
+      <div style={{ maxWidth: 760 }}>
+        <form onSubmit={handleScrape}>
             {/* Device type tabs */}
             <div style={{ display:'flex', gap:6, marginBottom:16 }}>
               {(['active','passive','temp','legacy'] as DeviceType[]).map(t => (
@@ -221,21 +238,63 @@ export default function ScrapeClient() {
             )}
 
             <button type="submit" className="btn btn-s btn-block" disabled={loading} style={{ fontSize:14 }}>
-              {loading ? '⏳ Extracting data…' : '🔍 Extract device data'}
+              {loading ? `⏳ Extracting data… ${elapsed}s` : '🔍 Extract device data'}
             </button>
           </form>
 
+          {/* ── Progress panel ── */}
           {loading && (
-            <div style={{ marginTop:16, padding:'14px 16px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, fontFamily:'var(--ff)', fontSize:13, color:'var(--muted)', lineHeight:1.6 }}>
-              <div style={{ fontWeight:600, color:'var(--text)', marginBottom:4 }}>Searching…</div>
-              {webSearch ? 'Searching for the official IFU and MRI technical manual. This may take 15–30 seconds.' : 'Extracting from the provided source.'}
+            <div style={{ marginTop:16, padding:'18px 20px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
+                <div style={{ fontFamily:'var(--ff)', fontWeight:600, color:'var(--text)', fontSize:14 }}>
+                  {webSearch ? 'Searching sources…' : 'Extracting from provided source…'}
+                </div>
+                <div style={{ fontFamily:'var(--fb)', fontSize:13, color:'var(--muted)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:6, padding:'3px 10px' }}>
+                  {elapsed}s elapsed
+                </div>
+              </div>
+
+              {webSearch && (
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {[
+                    { label:`${manufacturer || 'OEM'} official website`,        delay: 0  },
+                    { label:`${manufacturer || 'Manufacturer'} IFU / manual library`, delay: 3  },
+                    { label:'FDA medical device database',                       delay: 6  },
+                    { label:'EU MDR / EUDAMED registry',                        delay: 10 },
+                    { label:'Third-party MRI safety databases',                  delay: 15 },
+                    { label:'Cross-referencing extracted parameters',            delay: 20 },
+                  ].map((s, i) => {
+                    const active  = elapsed >= s.delay
+                    const done    = i < Math.floor(elapsed / 5)
+                    return (
+                      <div key={s.label} style={{ display:'flex', alignItems:'center', gap:10, opacity: active ? 1 : 0.3, transition:'opacity .5s' }}>
+                        <div style={{ width:16, height:16, borderRadius:'50%', flexShrink:0, border:`2px solid ${done ? 'var(--ok)' : active ? 'var(--accent)' : 'var(--border)'}`, background: done ? 'var(--ok)' : 'transparent', display:'grid', placeItems:'center' }}>
+                          {done && <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="M20 6L9 17l-5-5"/></svg>}
+                          {!done && active && <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--accent)', animation:'pending-pulse 1s ease-in-out infinite', display:'block' }}/>}
+                        </div>
+                        <span style={{ fontFamily:'var(--fb)', fontSize:13, color: done ? 'var(--ok)' : active ? 'var(--text)' : 'var(--muted)' }}>
+                          {s.label}
+                        </span>
+                        {!done && active && <span style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted)', marginLeft:'auto' }}>checking…</span>}
+                        {done && <span style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--ok)', marginLeft:'auto' }}>✓ checked</span>}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {!webSearch && (
+                <div style={{ fontFamily:'var(--fb)', fontSize:13, color:'var(--muted)' }}>
+                  Parsing the provided {ifuUrl ? 'URL' : 'text'} and extracting MRI safety parameters…
+                </div>
+              )}
             </div>
           )}
-        </div>
+      </div>
 
-        {/* ── RIGHT: Results + edit ── */}
+        {/* ── Results — below form, full width ── */}
         {result && (
-          <div>
+          <div style={{ maxWidth: 760, marginTop: 24 }}>
             {/* Confidence banner */}
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, padding:'12px 16px', borderRadius:10, background: confPct >= 80 ? 'color-mix(in srgb,var(--ok) 8%,transparent)' : 'color-mix(in srgb,#f59e0b 8%,transparent)', border: `1px solid color-mix(in srgb,${confPct >= 80 ? 'var(--ok)' : '#f59e0b'} 20%,transparent)` }}>
               <div style={{ fontSize:22, fontWeight:700, color: confPct >= 80 ? 'var(--ok)' : '#b45309', fontFamily:'var(--ff)', width:48, flexShrink:0 }}>{confPct}%</div>
@@ -298,13 +357,15 @@ export default function ScrapeClient() {
                 <div style={{ display:'flex', gap:8 }}>
                   {(['safe','conditional','unsafe','unknown'] as const).map(s => (
                     <button key={s} type="button"
-                      style={{ flex:1, padding:'8px 4px', borderRadius:6, cursor:'pointer', fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, transition:'all .15s',
+                      style={{ flex:1, padding:'8px 6px', borderRadius:6, cursor:'pointer', fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, transition:'all .15s',
                         background: editMriStatus === s ? (s === 'safe' ? 'var(--ok)' : s === 'conditional' ? '#d97706' : s === 'unsafe' ? 'var(--err)' : 'var(--muted)') : 'var(--bg)',
                         color:      editMriStatus === s ? '#fff' : 'var(--muted)',
                         border:     editMriStatus === s ? '2px solid transparent' : '1px solid var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                       }}
                       onClick={() => setEditMriStatus(s)}
                     >
+                      {s !== 'unknown' && <MriIcon status={s} size={16} />}
                       {MRI_LABEL[s]}
                     </button>
                   ))}
@@ -372,7 +433,6 @@ export default function ScrapeClient() {
             )}
           </div>
         )}
-      </div>
     </div>
   )
 }

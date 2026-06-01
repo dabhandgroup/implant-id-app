@@ -193,7 +193,7 @@ export async function GET() {
 
     const buffer = pass.getAsBuffer()
 
-    return new Response(buffer, {
+    return new Response(new Uint8Array(buffer), {
       headers: {
         'Content-Type':        'application/vnd.apple.pkpass',
         'Content-Disposition': `attachment; filename="implant-id-${patient.implantIdCode}.pkpass"`,

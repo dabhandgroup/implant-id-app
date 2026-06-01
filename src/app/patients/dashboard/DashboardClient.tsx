@@ -57,11 +57,13 @@ export default function DashboardClient() {
   const patient             = useQuery(api.patients.getMyPatient)
   const implantSafety       = useQuery(api.patients.getMyImplantSafety)
   const notifications       = useQuery(api.patients.getMyNotifications)
+  const allClinics          = useQuery(api.clinics.listClinics)
   const markWelcomeSeen     = useMutation(api.patients.markWelcomeSeen)
   const markRead            = useMutation(api.patients.markAllNotificationsRead)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [qrDataUrl,     setQrDataUrl]     = useState<string>('')
+  const [clinicSearch,  setClinicSearch]  = useState('')
   const [sbCollapsed,   setSbCollapsed]   = useState(false)
   const [sbOpen,        setSbOpen]        = useState(false)
   const [profileOpen,   setProfileOpen]   = useState(false)
@@ -95,7 +97,7 @@ export default function DashboardClient() {
   // Generate QR code data URL for the pass card
   useEffect(() => {
     if (!patient?.implantIdCode) return
-    QRCode.toDataURL(patient.implantIdCode, { width: 180, margin: 2, color: { dark: '#0e2a33', light: '#ffffff' } })
+    QRCode.toDataURL(`https://portal.implantid.io/scan/${patient.implantIdCode}`, { width: 280, margin: 1, color: { dark: '#0e2a33', light: '#ffffff' } })
       .then((url: string) => setQrDataUrl(url))
       .catch(() => {})
   }, [patient?.implantIdCode])
@@ -856,40 +858,63 @@ export default function DashboardClient() {
                 {patient.selfReportedDevice ?? 'Awaiting verification'}
               </div>
 
+              {/* Verified badge */}
+              {!isPending && (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 14, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.35)', borderRadius: 999, padding: '4px 12px', fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 700, color: '#bbf7d0', letterSpacing: '.3px' }}
+                  title="This record has been verified by your clinical team">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                  Verified by Implant ID
+                </div>
+              )}
+
               {isPending && (
-                <p style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'#64748b', marginBottom:18, position:'relative', zIndex:2, lineHeight:1.5 }}>
+                <p style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'#64748b', marginBottom:14, position:'relative', zIndex:2, lineHeight:1.5 }}>
                   Your clinical team will verify these details with your hospital. Once confirmed, your wallet pass will be activated.
                 </p>
               )}
 
-              {/* Data grid */}
-              <div className="pb-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
-                <div>
-                  <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Your Implant ID</div>
-                  <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{iidCode}</div>
-                </div>
-                <div>
-                  <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Name</div>
-                  <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{fullName}</div>
-                </div>
-                {patient.selfReportedImplantYear && (
+              {/* Data grid + QR side by side */}
+              <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
+                <div className="pb-grid" style={{ flex: 1, gridTemplateColumns: 'repeat(3,1fr)' }}>
                   <div>
-                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Implanted</div>
-                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>
-                      {patient.selfReportedImplantMonth
-                        ? `${MONTHS[parseInt(patient.selfReportedImplantMonth)-1]?.slice(0,3)} ${patient.selfReportedImplantYear}`
-                        : patient.selfReportedImplantYear}
-                    </div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Your Implant ID</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{iidCode}</div>
                   </div>
-                )}
-              </div>
-
-              {qrDataUrl && !isPending && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 16, marginBottom: 4 }}>
-                  <img src={qrDataUrl} alt="Your Implant ID QR code" style={{ width: 76, height: 76, borderRadius: 8, background: 'rgba(255,255,255,0.15)', padding: 4 }} />
-                  <span style={{ fontFamily: 'var(--ff)', fontSize: 10, opacity: 0.65, marginTop: 4, letterSpacing: '1px', textTransform: 'uppercase' }}>Scan at clinic</span>
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Name</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{fullName}</div>
+                  </div>
+                  {patient.selfReportedImplantYear && (
+                    <div>
+                      <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Implanted</div>
+                      <div className="v" style={{ color: isPending ? '#334155' : undefined }}>
+                        {patient.selfReportedImplantMonth
+                          ? `${MONTHS[parseInt(patient.selfReportedImplantMonth)-1]?.slice(0,3)} ${patient.selfReportedImplantYear}`
+                          : patient.selfReportedImplantYear}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* QR code — right side, scans to /scan/[code] */}
+                {qrDataUrl ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                    <img
+                      src={qrDataUrl}
+                      alt="Scan this QR code at the clinic"
+                      style={{ width: 120, height: 120, borderRadius: 10, background: 'rgba(255,255,255,0.92)', padding: 5 }}
+                    />
+                    <span style={{ fontFamily: 'var(--ff)', fontSize: 9.5, marginTop: 5, letterSpacing: '1px', textTransform: 'uppercase', opacity: isPending ? 0.4 : 0.65 }}>Scan at clinic</span>
+                  </div>
+                ) : !isPending ? (
+                  <div style={{ width: 120, height: 120, borderRadius: 10, background: 'rgba(255,255,255,0.12)', flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5">
+                      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                      <rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2z"/>
+                    </svg>
+                  </div>
+                ) : null}
+              </div>
 
               {/* Actions — always visible; greyed + locked when pending */}
               <div className="pb-actions" style={{ marginTop: 20 }}>
@@ -1202,20 +1227,56 @@ export default function DashboardClient() {
             )}
 
             {wallMode === 'email' && !emailSent && (
-              <form onSubmit={e => { e.preventDefault(); setEmailSent(true) }}>
-                <p>Send a copy of your implant record to any clinic. They'll receive it securely.</p>
-                <div className="field">
-                  <label>Clinic email</label>
-                  <input className="input" type="email" placeholder="records@clinic.com" required
-                    value={clinicEmail} onChange={e => setClinicEmail(e.target.value)} />
+              <div>
+                <p style={{ marginBottom: 14 }}>Search for your clinic on Implant ID, or enter their email directly.</p>
+
+                {/* Clinic search */}
+                <div className="field" style={{ marginBottom: 4 }}>
+                  <label>Search clinic name</label>
+                  <input className="input" type="text" placeholder="e.g. Royal Melbourne Hospital"
+                    value={clinicSearch} onChange={e => { setClinicSearch(e.target.value); setClinicEmail('') }} autoFocus />
                 </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button type="submit" className="btn btn-s btn-lg" style={{ flex: 1 }}>
-                    Send to clinic
-                  </button>
-                  <button type="button" className="btn btn-lg" onClick={() => setWallOpen(false)}>Cancel</button>
-                </div>
-              </form>
+
+                {/* Matching clinics */}
+                {clinicSearch.trim().length >= 2 && (() => {
+                  const q = clinicSearch.toLowerCase()
+                  const matches = (allClinics ?? []).filter((c: any) =>
+                    c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)
+                  ).slice(0, 5)
+                  return matches.length > 0 ? (
+                    <div style={{ border: '1px solid var(--border)', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
+                      {matches.map((c: any) => (
+                        <button key={c._id} type="button"
+                          onClick={() => { setClinicEmail(c.email ?? ''); setClinicSearch(c.name) }}
+                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '11px 14px', background: clinicEmail === c.email ? 'color-mix(in srgb,var(--accent) 8%,transparent)' : 'var(--bg2)', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border)' }}
+                        >
+                          <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, color: 'var(--text)' }}>{c.name}</div>
+                          {clinicEmail === c.email && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10, padding: '8px 12px', background: 'color-mix(in srgb,#f59e0b 8%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 8 }}>
+                      This clinic isn&apos;t on Implant ID yet. Enter their email and we&apos;ll send them an invitation to join.
+                    </div>
+                  )
+                })()}
+
+                {/* Email fallback */}
+                <form onSubmit={e => { e.preventDefault(); setEmailSent(true) }}>
+                  <div className="field" style={{ marginBottom: 12 }}>
+                    <label>Clinic email {clinicSearch.trim().length >= 2 && !allClinics?.find((c: any) => c.name.toLowerCase().includes(clinicSearch.toLowerCase())) && <span style={{ color: '#b45309', fontWeight: 400 }}>(invite)</span>}</label>
+                    <input className="input" type="email" placeholder="records@clinic.com" required
+                      value={clinicEmail} onChange={e => setClinicEmail(e.target.value)} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button type="submit" className="btn btn-s btn-lg" style={{ flex: 1 }} disabled={!clinicEmail}>
+                      {clinicEmail && allClinics?.find((c: any) => c.email === clinicEmail) ? 'Send record' : 'Send record + invitation'}
+                    </button>
+                    <button type="button" className="btn btn-lg" onClick={() => setWallOpen(false)}>Cancel</button>
+                  </div>
+                </form>
+              </div>
             )}
 
             {wallMode === 'email' && emailSent && (

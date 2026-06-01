@@ -32,16 +32,18 @@ function InfoCard({ label, value }: { label: string; value?: string | number | b
 
 export default function PatientDetailClient({ id }: Props) {
   // ── All hooks unconditionally at top ──────────────────────────────────────
-  const [verifying,      setVerifying]      = useState(false)
-  const [verified,       setVerified]       = useState(false)
-  const [error,          setError]          = useState('')
-  const [addDeviceOpen,  setAddDeviceOpen]  = useState(false)
-  const [deviceSearch,   setDeviceSearch]   = useState('')
-  const [addSerial,      setAddSerial]      = useState('')
-  const [addDate,        setAddDate]        = useState('')
-  const [addNotes,       setAddNotes]       = useState('')
-  const [addingDevice,   setAddingDevice]   = useState(false)
-  const [addDeviceError, setAddDeviceError] = useState('')
+  const [verifying,       setVerifying]       = useState(false)
+  const [verified,        setVerified]        = useState(false)
+  const [error,           setError]           = useState('')
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false)
+  const [removeConfirmId, setRemoveConfirmId] = useState<string | null>(null)
+  const [addDeviceOpen,   setAddDeviceOpen]   = useState(false)
+  const [deviceSearch,    setDeviceSearch]    = useState('')
+  const [addSerial,       setAddSerial]       = useState('')
+  const [addDate,         setAddDate]         = useState('')
+  const [addNotes,        setAddNotes]        = useState('')
+  const [addingDevice,    setAddingDevice]    = useState(false)
+  const [addDeviceError,  setAddDeviceError]  = useState('')
 
   const patient          = useQuery(api.patients.getPatientById, { patientId: id as Id<'patients'> })
   const allDevices       = useQuery(api.devices.listDevices)
@@ -86,9 +88,12 @@ export default function PatientDetailClient({ id }: Props) {
   const fullName  = `${patient.firstName} ${patient.lastName}`
 
   async function handleVerify() {
-    if (!window.confirm(`Verify record for ${fullName}? This will mark them as verified and trigger an email notification.`)) return
-    setVerifying(true)
-    setError('')
+    setVerifyModalOpen(true)
+  }
+
+  async function confirmVerify() {
+    setVerifying(true); setError('')
+    setVerifyModalOpen(false)
     try {
       await verifyPatient({ patientId: id as Id<'patients'> })
       setVerified(true)
@@ -220,11 +225,7 @@ export default function PatientDetailClient({ id }: Props) {
                   <button
                     className="btn btn-danger"
                     style={{ fontSize: 12, padding: '5px 12px', flexShrink: 0 }}
-                    onClick={async () => {
-                      if (!window.confirm('Remove this implant from the patient record?')) return
-                      try { await removeDevice({ patientDeviceId: d._id as Id<'patientDevices'> }) }
-                      catch (e) { alert((e as any)?.message ?? 'Failed to remove') }
-                    }}
+                    onClick={() => setRemoveConfirmId(d._id)}
                   >
                     Remove
                   </button>
@@ -248,6 +249,54 @@ export default function PatientDetailClient({ id }: Props) {
           <InfoCard label="Relationship" value={patient.emergencyContactRelation} />
         </div>
       </div>
+
+      {/* Verify patient modal */}
+      {verifyModalOpen && (
+        <div className="logout-back open" onClick={() => setVerifyModalOpen(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div className="logout-body">
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <h3>Verify patient record?</h3>
+              <p style={{ marginBottom: 16 }}><strong>{fullName}</strong> — {patient.implantIdCode}</p>
+              <div style={{ background: 'color-mix(in srgb,#f59e0b 8%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: '#92400e', lineHeight: 1.6, marginBottom: 8 }}>
+                <strong>⚠ Clinical responsibility notice</strong><br/>
+                Only verify this record if you are a qualified clinician or have been instructed to do so by the patient's clinical team. Verification confirms the implant details are correct and activates the patient's wallet pass. Incorrect verification could lead to patient harm.
+              </div>
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setVerifyModalOpen(false)}>Cancel</button>
+              <button className="btn btn-s" onClick={confirmVerify} disabled={verifying}>
+                {verifying ? 'Verifying…' : 'Confirm verification'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove implant confirmation modal */}
+      {removeConfirmId && (
+        <div className="logout-back open" onClick={() => setRemoveConfirmId(null)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
+            <div className="logout-body">
+              <h3>Remove implant?</h3>
+              <p>This will mark the device as explanted and remove it from the active record.</p>
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setRemoveConfirmId(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={async () => {
+                const id_to_remove = removeConfirmId
+                setRemoveConfirmId(null)
+                try { await removeDevice({ patientDeviceId: id_to_remove as any }) }
+                catch (e) { alert((e as any)?.message ?? 'Failed to remove') }
+              }}>Remove</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add implant modal */}
       {addDeviceOpen && (

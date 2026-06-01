@@ -1,17 +1,9 @@
-import './page.css'
-import { html } from './content'
-import ScriptLoader from '@/components/ScriptLoader'
+import AllPatientsClient from './AllPatientsClient'
 import type { Metadata } from 'next'
 
-export const metadata: Metadata = {
-  title: "All patients · Implant ID",
-}
+export const metadata: Metadata = { title: 'Patients · Implant ID' }
+export const dynamic = 'force-dynamic'
 
 export default function Page() {
-  return (
-    <>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
-      <ScriptLoader scripts={["/implants.js", "/scripts/clinics-dashboard-0.js", "/scripts/clinics-dashboard-1.js", "/scripts/clinics-dashboard-2.js", "/scripts/clinics-all-patients-0.js"]} />
-    </>
-  )
+  return <AllPatientsClient />
 }

@@ -607,7 +607,7 @@ export const linkDeviceToPatient = mutation({
   },
 })
 
-/** Patient shares their record with a clinic — sends email to clinic + confirmation to patient. */
+/** Patient shares their record with a clinic — creates accessRequest, notifies staff, sends email. */
 export const shareRecordWithClinic = mutation({
   args: {
     clinicEmail: v.string(),
@@ -616,18 +616,60 @@ export const shareRecordWithClinic = mutation({
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Not authenticated')
-
     const user = await ctx.db
       .query('users')
       .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
       .unique()
     if (!user) throw new Error('User not found')
-
     const patient = await ctx.db
       .query('patients')
       .withIndex('by_user', (q) => q.eq('userId', user._id))
       .unique()
     if (!patient) throw new Error('Patient record not found')
+
+    // If clinic is on the platform, create an approved accessRequest and notify staff
+    const clinic = await ctx.db
+      .query('clinics')
+      .filter((q) => q.eq(q.field('email'), args.clinicEmail))
+      .first()
+    if (clinic) {
+      const existing = await ctx.db
+        .query('accessRequests')
+        .withIndex('by_clinic', (q) => q.eq('clinicId', clinic._id))
+        .filter((q) => q.eq(q.field('patientId'), patient._id))
+        .first()
+      if (!existing) {
+        const staffRow = await ctx.db
+          .query('staff')
+          .withIndex('by_clinic', (q) => q.eq('clinicId', clinic._id))
+          .first()
+        if (staffRow) {
+          await ctx.db.insert('accessRequests', {
+            clinicId:    clinic._id,
+            staffId:     staffRow._id,
+            patientId:   patient._id,
+            status:      'approved',
+            requestedAt: Date.now(),
+            reason:      'Patient shared record via email',
+          })
+        }
+      }
+      const allStaff = await ctx.db
+        .query('staff')
+        .withIndex('by_clinic', (q) => q.eq('clinicId', clinic._id))
+        .collect()
+      for (const s of allStaff) {
+        await ctx.db.insert('notifications', {
+          userId:    s.userId,
+          type:      'patient_share',
+          title:     `${patient.firstName} ${patient.lastName} shared their record`,
+          body:      `Implant ID: ${patient.implantIdCode}. They have shared their record ahead of their appointment.`,
+          read:      false,
+          relatedId: patient._id,
+          createdAt: Date.now(),
+        })
+      }
+    }
 
     await ctx.scheduler.runAfter(0, internal.email.sendPatientShareEmail, {
       patientName:   `${patient.firstName} ${patient.lastName}`,
@@ -635,7 +677,7 @@ export const shareRecordWithClinic = mutation({
       implantIdCode: patient.implantIdCode,
       device:        patient.selfReportedDevice ?? undefined,
       clinicEmail:   args.clinicEmail,
-      clinicName:    args.clinicName,
+      clinicName:    args.clinicName ?? clinic?.name,
     })
   },
 })
@@ -656,3 +698,55 @@ export const removePatientDevice = mutation({
     await ctx.db.patch(args.patientDeviceId, { status: 'explanted' })
   },
 })
+
+/** Record a patient lookup by clinic staff — writes audit log and notifies patient. */
+export const recordPatientLookup = mutation({
+  args: {
+    patientId:  v.id('patients'),
+    clinicName: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) return
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) return
+
+    const clinic = args.clinicName
+      ? null
+      : await ctx.db.get(staffRow.clinicId)
+    const displayName = args.clinicName ?? clinic?.name ?? 'a clinic'
+
+    // Write audit log
+    await ctx.db.insert('auditLog', {
+      clinicId:  staffRow.clinicId,
+      staffId:   staffRow._id,
+      action:    'patient_lookup',
+      target:    args.patientId,
+      detail:    `Patient record viewed via scan`,
+      createdAt: Date.now(),
+    })
+
+    // Notify patient
+    const patient = await ctx.db.get(args.patientId)
+    if (patient) {
+      await ctx.db.insert('notifications', {
+        userId:    patient.userId,
+        type:      'record_viewed',
+        title:     'Your record was accessed',
+        body:      `Your implant record was viewed by ${displayName}.`,
+        read:      false,
+        relatedId: args.patientId,
+        createdAt: Date.now(),
+      })
+    }
+  },
+})
+

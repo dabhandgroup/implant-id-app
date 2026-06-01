@@ -12,11 +12,13 @@ export default function FindCareClient() {
   const { signOut }  = useClerk()
   const router       = useRouter()
 
-  const [searchQuery,  setSearchQuery]  = useState('')
-  const [activeFilter, setActiveFilter] = useState('all')
-  const [sbCollapsed,  setSbCollapsed]  = useState(false)
-  const [profileOpen,  setProfileOpen]  = useState(false)
-  const [logoutOpen,   setLogoutOpen]   = useState(false)
+  const [searchQuery,    setSearchQuery]    = useState('')
+  const [activeFilter,   setActiveFilter]   = useState('all')
+  const [sbCollapsed,    setSbCollapsed]    = useState(false)
+  const [profileOpen,    setProfileOpen]    = useState(false)
+  const [logoutOpen,     setLogoutOpen]     = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedClinic, setSelectedClinic] = useState<any | null>(null)
 
   const clinics = useQuery(api.clinics.listClinicsForPatients,
     searchQuery.trim().length >= 2 ? { query: searchQuery } : {},
@@ -29,12 +31,13 @@ export default function FindCareClient() {
 
   // ── Capability filter ─────────────────────────────────────────────────────
   const FILTERS = [
-    { key: 'all',        label: 'All' },
-    { key: 'pacemaker',  label: 'Pacemaker / ICD' },
-    { key: 'cochlear',   label: 'Cochlear' },
-    { key: 'dbs',        label: 'DBS / Neurostim' },
-    { key: 'mri',        label: 'MRI centre' },
-    { key: 'orthopaedic',label: 'Orthopaedic' },
+    { key: 'all',         label: 'All' },
+    { key: 'pacemaker',   label: 'Pacemaker / ICD' },
+    { key: 'cochlear',    label: 'Cochlear' },
+    { key: 'dbs',         label: 'DBS / Neurostim' },
+    { key: 'scs',         label: 'Spinal Cord' },
+    { key: 'mri',         label: 'MRI Centre' },
+    { key: 'orthopaedic', label: 'Orthopaedic' },
   ]
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,6 +47,17 @@ export default function FindCareClient() {
       cap.toLowerCase().includes(activeFilter.toLowerCase())
     )
   })
+
+  // ── Map helpers ───────────────────────────────────────────────────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function mapSrc(clinic: any | null) {
+    if (!clinic) return `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d19860.5!2d-0.148!3d51.519!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2suk`
+    return `https://maps.google.com/maps?q=${encodeURIComponent(clinic.name + (clinic.address ? ' ' + clinic.address : ''))}&output=embed`
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function directionsUrl(clinic: any) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(clinic.name + (clinic.address ? ' ' + clinic.address : ''))}`
+  }
 
   return (
     <>
@@ -166,6 +180,17 @@ export default function FindCareClient() {
               </div>
             )}
 
+            {/* Map — updates when a clinic is selected */}
+            <div style={{ marginBottom: 20, borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              <iframe
+                src={mapSrc(selectedClinic)}
+                style={{ width: '100%', height: 280, display: 'block', border: 'none' }}
+                allowFullScreen
+                loading="lazy"
+                title={selectedClinic ? `Map for ${selectedClinic.name}` : 'Clinic map'}
+              />
+            </div>
+
             {/* Results */}
             {clinics === undefined && (
               <div style={{ color: 'var(--muted)', fontSize: 14, padding: '32px 0' }}>Loading clinics…</div>
@@ -185,7 +210,9 @@ export default function FindCareClient() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {filtered.map((c: any) => (
-                <div key={c._id} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 22px', display: 'flex', gap: 16 }}>
+                <div key={c._id}
+                  onClick={() => setSelectedClinic(c)}
+                  style={{ background: 'var(--bg2)', border: `1.5px solid ${selectedClinic?._id === c._id ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 14, padding: '18px 22px', display: 'flex', gap: 16, cursor: 'pointer', transition: 'border-color .15s' }}>
                   {/* Pin icon */}
                   <div style={{ width: 40, height: 40, borderRadius: 10, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 2 }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
@@ -213,17 +240,21 @@ export default function FindCareClient() {
                     {/* Contact */}
                     <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 4 }}>
                       {c.phone && (
-                        <a href={`tel:${c.phone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
+                        <a href={`tel:${c.phone}`} onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.9A16 16 0 0 1 5.1 2 2 2 0 0 1 7.1 0h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2L11 7.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2-.5c.9.3 1.8.5 2.7.6A2 2 0 0 1 22 16.9z"/></svg>
                           {c.phone}
                         </a>
                       )}
                       {c.website && (
-                        <a href={c.website} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
+                        <a href={c.website} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
                           Website
                         </a>
                       )}
+                      <a href={directionsUrl(c)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+                        Get directions
+                      </a>
                     </div>
                   </div>
 

@@ -761,3 +761,49 @@ export const getClinicStats = query({
     }
   },
 })
+
+/** Patients who have approved access requests for this clinic (incl. records shared by patients). */
+export const listClinicPatients = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) return []
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) return []
+
+    const requests = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .filter((q) => q.eq(q.field('status'), 'approved'))
+      .collect()
+
+    const seen = new Set<string>()
+    const results = []
+    for (const req of requests) {
+      const pid = req.patientId.toString()
+      if (seen.has(pid)) continue
+      seen.add(pid)
+      const patient = await ctx.db.get(req.patientId)
+      if (!patient) continue
+      results.push({
+        _id:                    patient._id,
+        implantIdCode:          patient.implantIdCode,
+        firstName:              patient.firstName,
+        lastName:               patient.lastName,
+        verificationStatus:     patient.verificationStatus,
+        selfReportedDevice:     patient.selfReportedDevice,
+        selfReportedDeviceType: patient.selfReportedDeviceType,
+        lastAccessed:           req.requestedAt,
+      })
+    }
+    return results.sort((a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0))
+  },
+})

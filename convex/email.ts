@@ -1,8 +1,9 @@
 'use node'
 import { internalAction } from './_generated/server'
 import { v }              from 'convex/values'
-import { Resend } from 'resend'
-import { buildEmail } from './emailTemplate'
+import { Resend }         from 'resend'
+import { buildEmail }     from './emailTemplate'
+import QRCode             from 'qrcode'
 
 const ADMIN_EMAIL = 'harry@dabhandmarketing.com'
 const FROM        = 'Implant ID <noreply@implantid.io>'
@@ -332,7 +333,13 @@ export const sendPatientShareEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r = resend()
-    const scanUrl = `https://portal.implantid.io/scan/${args.implantIdCode}`
+    const scanUrl  = `https://portal.implantid.io/scan/${args.implantIdCode}`
+
+    // Generate QR code for the scan URL
+    const qrDataUrl = await QRCode.toDataURL(scanUrl, {
+      width: 200, margin: 1,
+      color: { dark: '#0e2a33', light: '#ffffff' },
+    })
 
     // Email to clinic
     await r.emails.send({
@@ -347,10 +354,18 @@ export const sendPatientShareEmail = internalAction({
             <strong style="color:#0e2a33;">${args.patientName}</strong> has shared their
             Implant ID record with you ahead of their appointment.
           </p>
-          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
-            Click the button below or scan their QR code at reception to access their
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            Click the button below or scan the QR code on your clinic device to access their
             full verified implant record, including MRI safety status and device details.
           </p>
+          <div style="text-align:center;margin:24px 0;">
+            <img src="${qrDataUrl}" width="160" height="160"
+              style="display:block;margin:0 auto;border-radius:8px;border:4px solid #f1f5f9;"
+              alt="Scan to access patient record" />
+            <p style="margin:8px 0 0;font-size:12px;color:#94a3b8;">
+              Scan on your clinic device to open the patient record instantly
+            </p>
+          </div>
         `,
         tableRows: [
           { label: 'Patient',    value: args.patientName },

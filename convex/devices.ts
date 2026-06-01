@@ -23,16 +23,19 @@ export const getDeviceById = query({
 /** Add a new device to the catalogue (platform admin use). */
 export const addDevice = mutation({
   args: {
-    manufacturer:     v.string(),
-    model:            v.string(),
-    deviceType:       v.string(),
-    classification:   v.union(v.literal('active'), v.literal('passive'), v.literal('legacy')),
-    mriStatus:        v.union(v.literal('conditional'), v.literal('safe'), v.literal('unsafe'), v.literal('unknown')),
-    fieldStrengths:   v.optional(v.string()),
-    sarLimit:         v.optional(v.string()),
-    b1RmsLimit:       v.optional(v.string()),
-    contraindications: v.optional(v.string()),
-    approvedRegions:  v.optional(v.array(v.string())),
+    manufacturer:       v.string(),
+    model:              v.string(),
+    deviceType:         v.string(),
+    classification:     v.union(v.literal('active'), v.literal('passive'), v.literal('legacy')),
+    mriStatus:          v.union(v.literal('conditional'), v.literal('safe'), v.literal('unsafe'), v.literal('unknown')),
+    fieldStrengths:     v.optional(v.string()),   // e.g. "1.5T, 3.0T"
+    sarLimit:           v.optional(v.string()),   // whole-body SAR, W/kg
+    b1RmsLimit:         v.optional(v.string()),   // µT
+    slewRateLimit:      v.optional(v.string()),   // T/m/s
+    gradientLimit:      v.optional(v.string()),   // mT/m
+    maxScanTime:        v.optional(v.string()),   // minutes per sequence
+    contraindications:  v.optional(v.string()),
+    approvedRegions:    v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     return ctx.db.insert('devices', {
@@ -44,6 +47,9 @@ export const addDevice = mutation({
       fieldStrengths:   args.fieldStrengths,
       sarLimit:         args.sarLimit,
       b1RmsLimit:       args.b1RmsLimit,
+      slewRateLimit:    args.slewRateLimit,
+      gradientLimit:    args.gradientLimit,
+      maxScanTime:      args.maxScanTime,
       contraindications: args.contraindications,
       approvedRegions:  args.approvedRegions,
       verified:         false,

@@ -775,7 +775,7 @@ export default function DashboardClient() {
                   background: 'linear-gradient(155deg,#991b1b 0%,#b91c1c 55%,#dc2626 100%)',
                 }
                 : implantSafety === 'conditional' ? {
-                  background: 'linear-gradient(155deg,#92400e 0%,#b45309 55%,#d97706 100%)',
+                  background: 'linear-gradient(155deg,#c2410c 0%,#ea580c 55%,#f97316 100%)',
                 }
                 : implantSafety === 'safe' ? {
                   background: 'linear-gradient(155deg,#166534 0%,#15803d 55%,#16a34a 100%)',
@@ -795,30 +795,24 @@ export default function DashboardClient() {
                   </div>
                 </div>
 
-                {/* MRI safety icon — prominent top-right, 56px */}
+                {/* MRI status — top right, icon + label, always visible once verified */}
                 {!isPending && implantSafety ? (
-                  <img
-                    src={
-                      implantSafety === 'safe'        ? '/mr-safe.svg'
-                      : implantSafety === 'conditional' ? '/mr-conditional.svg'
-                      : '/mr-unsafe.svg'
-                    }
-                    alt={
-                      implantSafety === 'safe'        ? 'MR Safe'
-                      : implantSafety === 'conditional' ? 'MR Conditional'
-                      : 'MR Unsafe'
-                    }
-                    title={
-                      implantSafety === 'safe'        ? 'MR Safe — safe in any MRI environment'
-                      : implantSafety === 'conditional' ? 'MR Conditional — conditions apply, consult your radiographer before any scan'
-                      : 'MR Unsafe — do not enter the MRI environment'
-                    }
-                    style={{ width:56, height:56, flexShrink:0 }}
-                  />
+                  <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                    <span style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.92)', letterSpacing:'.3px', whiteSpace:'nowrap' }}>
+                      {implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
+                    </span>
+                    <img
+                      src={
+                        implantSafety === 'safe'        ? '/mr-safe.svg'
+                        : implantSafety === 'conditional' ? '/mr-conditional.svg'
+                        : '/mr-unsafe.svg'
+                      }
+                      alt={implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
+                      style={{ width:44, height:44, flexShrink:0 }}
+                    />
+                  </div>
                 ) : !isPending ? (
-                  /* Verified but no MRI status linked yet — show Verified badge top-right */
-                  <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(34,197,94,0.20)', border:'1px solid rgba(34,197,94,0.4)', borderRadius:999, padding:'5px 12px', fontFamily:'var(--ff)', fontSize:11, fontWeight:700, color:'#bbf7d0', letterSpacing:'.3px', flexShrink:0 }}
-                    title="This record has been verified by your clinical team">
+                  <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(34,197,94,0.20)', border:'1px solid rgba(34,197,94,0.4)', borderRadius:999, padding:'5px 12px', fontFamily:'var(--ff)', fontSize:11, fontWeight:700, color:'#bbf7d0', letterSpacing:'.3px', flexShrink:0 }}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
                     Verified by Implant ID
                   </div>
@@ -866,37 +860,11 @@ export default function DashboardClient() {
               <div className="pb-name" style={{
                 fontSize: patient.selfReportedDevice ? 26 : 20,
                 color: isPending ? '#334155' : undefined,
-                marginBottom: (!isPending && implantSafety) ? 10 : undefined,
               }}>
                 {patient.selfReportedDevice ?? 'Awaiting verification'}
               </div>
 
-              {/* MRI safety icon — shown below device name once verified with linked device */}
-              {!isPending && implantSafety && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <img
-                    src={
-                      implantSafety === 'safe'        ? '/mr-safe.svg'
-                      : implantSafety === 'conditional' ? '/mr-conditional.svg'
-                      : '/mr-unsafe.svg'
-                    }
-                    alt={
-                      implantSafety === 'safe'        ? 'MR Safe'
-                      : implantSafety === 'conditional' ? 'MR Conditional'
-                      : 'MR Unsafe'
-                    }
-                    title={
-                      implantSafety === 'safe'        ? 'MR Safe — this device is safe in any MRI environment'
-                      : implantSafety === 'conditional' ? 'MR Conditional — specific conditions apply before scanning'
-                      : 'MR Unsafe — do not enter the MRI environment with this device'
-                    }
-                    style={{ width: 36, height: 36, flexShrink: 0 }}
-                  />
-                  <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, letterSpacing: '.3px', opacity: 0.85 }}>
-                    {implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
-                  </span>
-                </div>
-              )}
+              {/* MRI status now lives in top-right of pb-top — no duplicate here */}
 
               {isPending && (
                 <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'#64748b', marginBottom:10, position:'relative', zIndex:2, lineHeight:1.5 }}>
@@ -926,9 +894,9 @@ export default function DashboardClient() {
                 )}
               </div>
 
-              {/* Actions + QR inline — buttons left, QR right */}
+              {/* Actions + QR inline — buttons auto-width left, QR right */}
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 16 }}>
-              <div className="pb-actions" style={{ flex: 1, marginTop: 0 }}>
+              <div className="pb-actions" style={{ marginTop: 0, flex: 'none' }}>
 
                 {/* Add to Apple Wallet */}
                 {isPending ? (

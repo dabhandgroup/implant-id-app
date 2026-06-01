@@ -16,63 +16,26 @@ import { auth }        from '@clerk/nextjs/server'
 import { fetchQuery }  from 'convex/nextjs'
 import { api }         from '../../../../../convex/_generated/api'
 import { PKPass }      from 'passkit-generator'
-import { deflateSync } from 'zlib'
+import { readFileSync } from 'fs'
+import { join }         from 'path'
 // node-forge is bundled with passkit-generator
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const forge = require('node-forge')
 
-// ── PNG generation (required by Apple Wallet) ─────────────────────────────────
-
-function crc32(buf: Buffer): number {
-  const table = new Uint32Array(256)
-  for (let i = 0; i < 256; i++) {
-    let c = i
-    for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1)
-    table[i] = c
-  }
-  let crc = 0xFFFFFFFF
-  for (let i = 0; i < buf.length; i++) crc = table[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8)
-  return (crc ^ 0xFFFFFFFF) >>> 0
+// ── Load pre-converted PNG assets from /public ────────────────────────────────
+// These were generated from the SVGs using sharp (see scripts/convert-pass-images.js)
+function pub(name: string) {
+  return readFileSync(join(process.cwd(), 'public', name))
 }
 
-function pngChunk(type: string, data: Buffer): Buffer {
-  const tb  = Buffer.from(type, 'ascii')
-  const len = Buffer.allocUnsafe(4); len.writeUInt32BE(data.length)
-  const crc = Buffer.allocUnsafe(4); crc.writeUInt32BE(crc32(Buffer.concat([tb, data])))
-  return Buffer.concat([len, tb, data, crc])
-}
-
-/** Create a minimal solid-colour PNG (RGB, no alpha). */
-function makePng(w: number, h: number, r: number, g: number, b: number): Buffer {
-  const sig  = Buffer.from([137,80,78,71,13,10,26,10])
-  const ihdr = Buffer.alloc(13)
-  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4)
-  ihdr[8] = 8; ihdr[9] = 2   // 8-bit RGB
-
-  const rows = Buffer.alloc(h * (1 + w * 3))
-  for (let y = 0; y < h; y++) {
-    const off = y * (1 + w * 3)
-    for (let x = 0; x < w; x++) {
-      rows[off + 1 + x * 3]     = r
-      rows[off + 1 + x * 3 + 1] = g
-      rows[off + 1 + x * 3 + 2] = b
-    }
-  }
-
-  return Buffer.concat([
-    sig,
-    pngChunk('IHDR', ihdr),
-    pngChunk('IDAT', deflateSync(rows)),
-    pngChunk('IEND', Buffer.alloc(0)),
-  ])
-}
-
-// Implant ID teal: #29869F (41,134,159)
-const ICON_SM  = makePng(29,  29,  41, 134, 159)   // icon.png
-const ICON_MD  = makePng(58,  58,  41, 134, 159)   // icon@2x.png
-const ICON_LG  = makePng(87,  87,  41, 134, 159)   // icon@3x.png
-const LOGO_SM  = makePng(160, 50,  41, 134, 159)   // logo.png
-const LOGO_MD  = makePng(320, 100, 41, 134, 159)   // logo@2x.png
+const ICON_SM        = pub('icon-29.png')
+const ICON_MD        = pub('icon-58.png')
+const ICON_LG        = pub('icon-87.png')
+const LOGO_SM        = pub('wordmark-160.png')
+const LOGO_MD        = pub('wordmark-320.png')
+const MRI_SAFE       = pub('mr-safe.png')
+const MRI_CONDITIONAL = pub('mr-conditional.png')
+const MRI_UNSAFE     = pub('mr-unsafe.png')
 
 const MRI_LABEL: Record<string, string> = {
   safe: 'MR Safe', conditional: 'MR Conditional', unsafe: 'MR Unsafe — Do Not Scan',
@@ -233,15 +196,25 @@ export async function GET() {
       ? wwdrBuffer.toString('utf-8')
       : derToPem(wwdrBuffer)
 
+    // MRI icon for thumbnail (shown on pass detail)
+    const mriIcon = safety === 'safe' ? MRI_SAFE
+                  : safety === 'conditional' ? MRI_CONDITIONAL
+                  : safety === 'unsafe' ? MRI_UNSAFE
+                  : null
+
     const pass = new PKPass(
-      // Files — pass.json + required icon images
+      // Files — pass.json + icon images + MRI thumbnail
       {
-        'pass.json':   Buffer.from(JSON.stringify(passJson)),
-        'icon.png':    ICON_SM,
-        'icon@2x.png': ICON_MD,
-        'icon@3x.png': ICON_LG,
-        'logo.png':    LOGO_SM,
-        'logo@2x.png': LOGO_MD,
+        'pass.json':      Buffer.from(JSON.stringify(passJson)),
+        'icon.png':       ICON_SM,
+        'icon@2x.png':    ICON_MD,
+        'icon@3x.png':    ICON_LG,
+        'logo.png':       LOGO_SM,
+        'logo@2x.png':    LOGO_MD,
+        ...(mriIcon ? {
+          'thumbnail.png':    mriIcon,
+          'thumbnail@2x.png': mriIcon,
+        } : {}),
       },
       // Certificates — all in PEM format
       {

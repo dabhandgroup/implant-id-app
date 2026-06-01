@@ -866,9 +866,37 @@ export default function DashboardClient() {
               <div className="pb-name" style={{
                 fontSize: patient.selfReportedDevice ? 26 : 20,
                 color: isPending ? '#334155' : undefined,
+                marginBottom: (!isPending && implantSafety) ? 10 : undefined,
               }}>
                 {patient.selfReportedDevice ?? 'Awaiting verification'}
               </div>
+
+              {/* MRI safety icon — shown below device name once verified with linked device */}
+              {!isPending && implantSafety && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <img
+                    src={
+                      implantSafety === 'safe'        ? '/mr-safe.svg'
+                      : implantSafety === 'conditional' ? '/mr-conditional.svg'
+                      : '/mr-unsafe.svg'
+                    }
+                    alt={
+                      implantSafety === 'safe'        ? 'MR Safe'
+                      : implantSafety === 'conditional' ? 'MR Conditional'
+                      : 'MR Unsafe'
+                    }
+                    title={
+                      implantSafety === 'safe'        ? 'MR Safe — this device is safe in any MRI environment'
+                      : implantSafety === 'conditional' ? 'MR Conditional — specific conditions apply before scanning'
+                      : 'MR Unsafe — do not enter the MRI environment with this device'
+                    }
+                    style={{ width: 36, height: 36, flexShrink: 0 }}
+                  />
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, letterSpacing: '.3px', opacity: 0.85 }}>
+                    {implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
+                  </span>
+                </div>
+              )}
 
               {isPending && (
                 <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'#64748b', marginBottom:10, position:'relative', zIndex:2, lineHeight:1.5 }}>
@@ -1022,12 +1050,12 @@ export default function DashboardClient() {
                   <b>Find a clinic</b>
                   <p>Search the Implant ID network for clinics near you.</p>
                 </a>
-                <a href="#" className="q">
+                <a href="/patients/emergency" className="q">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                     <path d="M22 16.9A16 16 0 0 1 5.1 2 2 2 0 0 1 7.1 0h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2L11 7.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2-.5c.9.3 1.8.5 2.7.6A2 2 0 0 1 22 16.9z"/>
                   </svg>
                   <b>Emergency info</b>
-                  <p>A one-tap view of everything a paramedic needs to know.</p>
+                  <p>Everything a paramedic or A&amp;E team needs — one tap.</p>
                 </a>
                 <div className="q" style={{ opacity: 0.55, cursor: 'default' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">

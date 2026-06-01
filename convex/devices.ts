@@ -57,6 +57,21 @@ export const addDevice = mutation({
   },
 })
 
+/** Get a single device with a count of patients currently linked to it. */
+export const getDeviceWithUsage = query({
+  args: { id: v.id('devices') },
+  handler: async (ctx, args) => {
+    const device = await ctx.db.get(args.id)
+    if (!device) return null
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_device', (q) => q.eq('deviceId', args.id))
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .collect()
+    return { ...device, patientCount: links.length }
+  },
+})
+
 /** Update the MRI status (and optional recall flags) for a device. */
 export const updateDeviceMriStatus = mutation({
   args: {

@@ -203,10 +203,15 @@ export default function DashboardClient() {
   }, [wResendAt])
 
   // ── Loading / redirect states ─────────────────────────────────────────────
+  // Wait for BOTH patient AND implantSafety before rendering the card.
+  // This prevents the flash where the card briefly shows the wrong colour
+  // (e.g. default teal → orange for MR Conditional).
   if (!isLoaded || patient === undefined) {
     return <div style={{ minHeight: '100vh', background: 'var(--bg)' }} />
   }
   if (patient === null) return null // redirecting
+  // If verified, also wait for implantSafety to avoid colour flash
+  const cardReady = patient.verificationStatus !== 'active' || implantSafety !== undefined
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const firstName   = patient.firstName
@@ -758,10 +763,18 @@ export default function DashboardClient() {
               </div>
             </div>
 
-            {/* ── Implant pass card ─────────────────────────────────────── */}
-            {/* Card background is colour-coded by MRI safety status:
-                grey = pending/unverified, teal = verified/unknown,
-                green = MR Safe, amber = MR Conditional, red = MR Unsafe */}
+            {/* ── Implant pass card — skeleton while MRI safety status loads ─ */}
+            {!cardReady ? (
+              <div className="pass-big" style={{ background: 'linear-gradient(155deg,#e8edf2,#d4dce6)', minHeight: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', opacity: 0.45 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', border: '3px solid #64748b', borderTopColor: 'transparent', animation: 'dash-spin 0.8s linear infinite' }} />
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 13, color: '#64748b' }}>Loading your record…</span>
+                </div>
+              </div>
+            ) : (
+            /* Card background is colour-coded by MRI safety status:
+               grey = pending/unverified, teal = verified/unknown,
+               green = MR Safe, amber = MR Conditional, red = MR Unsafe */
             <div
               className="pass-big"
               style={
@@ -894,8 +907,8 @@ export default function DashboardClient() {
                 )}
               </div>
 
-              {/* Actions + QR inline — buttons auto-width left, QR right */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 16 }}>
+              {/* Actions + QR — buttons left, QR pinned to far right */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 16 }}>
               <div className="pb-actions" style={{ marginTop: 0, flex: 'none' }}>
 
                 {/* Add to Apple Wallet */}
@@ -1005,6 +1018,7 @@ export default function DashboardClient() {
 
               </div>{/* /actions + QR row */}
             </div>
+            )}{/* end cardReady ternary */}
 
             {/* Quick access */}
             <div className="sec">
@@ -1304,6 +1318,7 @@ export default function DashboardClient() {
         .wtab{background:transparent;border:0;font-family:var(--ff);font-size:12.5px;font-weight:500;color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer;transition:all .15s}
         .wtab.active{background:var(--text);color:var(--bg)}
         @keyframes pending-pulse{0%,100%{opacity:1;box-shadow:0 0 8px #f59e0b}50%{opacity:.4;box-shadow:0 0 3px #f59e0b}}
+        @keyframes dash-spin{to{transform:rotate(360deg)}}
         /* Hide green status dot when pending */
         .pb-status--pending::before{display:none !important}
         /* Locked nav items */

@@ -1,5 +1,6 @@
 'use client'
 import { useQuery } from 'convex/react'
+import { useRouter } from 'next/navigation'
 import { api as apiBase } from '../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
@@ -13,6 +14,7 @@ const MRI_COLOURS: Record<string, { color: string; label: string }> = {
 
 export default function MasterDevicesClient() {
   const devices = useQuery(api.devices.listDevices)
+  const router  = useRouter()
 
   if (devices === undefined) {
     return (
@@ -65,7 +67,7 @@ export default function MasterDevicesClient() {
               {devices.map((d: any) => {
                 const mri = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
                 return (
-                  <tr key={d._id}>
+                  <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/master/devices/${d._id}`)}>
                     <td style={{ fontWeight: 500 }}>{d.manufacturer}</td>
                     <td>{d.model}</td>
                     <td style={{ color: 'var(--muted)', fontSize: 13 }}>{d.deviceType}</td>

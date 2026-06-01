@@ -31,8 +31,10 @@ function pub(name: string) {
 const ICON_SM        = pub('icon-29.png')
 const ICON_MD        = pub('icon-58.png')
 const ICON_LG        = pub('icon-87.png')
-const LOGO_SM        = pub('wordmark-160.png')
-const LOGO_MD        = pub('wordmark-320.png')
+// Logo slot: use the small app icon so it doesn't clash with logoText "Implant ID"
+// (the wordmark caused doubling because Apple Wallet shows both logo.png AND logoText)
+const LOGO_SM        = pub('icon-58.png')   // 58px square icon for logo slot
+const LOGO_MD        = pub('icon-87.png')   // @2x
 const MRI_SAFE       = pub('mr-safe.png')
 const MRI_CONDITIONAL = pub('mr-conditional.png')
 const MRI_UNSAFE     = pub('mr-unsafe.png')
@@ -139,21 +141,31 @@ export async function GET() {
       },
     ],
     generic: {
+      // headerFields appear top-right in the pass header — shows MRI status prominently
+      headerFields: [
+        { key: 'mriHeader', label: 'MRI STATUS', value: safety ? mriLabel : (isPending ? 'Pending' : '—') },
+      ],
       primaryField: [
         { key: 'implantId', label: 'IMPLANT ID', value: patient.implantIdCode },
       ],
       secondaryFields: [
-        { key: 'mriStatus',    label: 'MRI STATUS', value: mriLabel },
-        { key: 'patientName',  label: 'PATIENT',    value: fullName },
+        { key: 'patientName', label: 'PATIENT', value: fullName },
+        { key: 'device',      label: 'DEVICE',  value: deviceName },
       ],
       auxiliaryFields: [
-        { key: 'device', label: 'DEVICE', value: deviceName },
         ...(patient.selfReportedImplantYear ? [{
           key:   'implantDate',
           label: 'IMPLANTED',
           value: patient.selfReportedImplantMonth
             ? `${patient.selfReportedImplantMonth}/${patient.selfReportedImplantYear}`
             : patient.selfReportedImplantYear,
+        }] : []),
+        ...(patient.contrastAllergy ? [{
+          key:   'allergyFront',
+          label: '⚠ CONTRAST ALLERGY',
+          value: patient.contrastAllergyNote
+            ? patient.contrastAllergyNote.slice(0, 40)
+            : 'Documented — notify radiology',
         }] : []),
       ],
       backFields: [

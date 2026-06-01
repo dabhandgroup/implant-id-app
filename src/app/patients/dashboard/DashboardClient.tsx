@@ -58,12 +58,15 @@ export default function DashboardClient() {
   const implantSafety       = useQuery(api.patients.getMyImplantSafety)
   const notifications       = useQuery(api.patients.getMyNotifications)
   const allClinics          = useQuery(api.clinics.listClinics)
-  const markWelcomeSeen     = useMutation(api.patients.markWelcomeSeen)
-  const markRead            = useMutation(api.patients.markAllNotificationsRead)
+  const markWelcomeSeen        = useMutation(api.patients.markWelcomeSeen)
+  const markRead               = useMutation(api.patients.markAllNotificationsRead)
+  const shareRecordWithClinic  = useMutation(api.patients.shareRecordWithClinic)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [qrDataUrl,     setQrDataUrl]     = useState<string>('')
   const [clinicSearch,  setClinicSearch]  = useState('')
+  const [sharing,       setSharing]       = useState(false)
+  const [shareError,    setShareError]    = useState('')
   const [sbCollapsed,   setSbCollapsed]   = useState(false)
   const [sbOpen,        setSbOpen]        = useState(false)
   const [profileOpen,   setProfileOpen]   = useState(false)
@@ -922,22 +925,23 @@ export default function DashboardClient() {
                     Wallet — pending
                   </button>
                 ) : (
-                  /* Verified — card is dark (teal/green/amber/red), so white buttons */
-                  <button
-                    onClick={() => setWallOpen(true)}
+                  /* Verified — direct .pkpass download, no popup */
+                  <a
+                    href="/api/wallet/pass"
+                    download
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       background: 'rgba(255,255,255,0.22)', border: '1.5px solid rgba(255,255,255,0.5)',
                       color: '#fff', borderRadius: 8, padding: '9px 16px',
                       fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      transition: 'background .15s',
+                      textDecoration: 'none', transition: 'background .15s',
                     }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>
                     </svg>
                     Add to Wallet
-                  </button>
+                  </a>
                 )}
 
                 {/* Share with clinic — locked when pending */}
@@ -989,10 +993,10 @@ export default function DashboardClient() {
                     <img
                       src={qrDataUrl}
                       alt="Scan at clinic to access this record"
-                      style={{ width: 90, height: 90, borderRadius: 8, background: 'rgba(255,255,255,0.92)', padding: 4, display: 'block' }}
+                      style={{ width: 113, height: 113, borderRadius: 9, background: 'rgba(255,255,255,0.92)', padding: 5, display: 'block' }}
                     />
                   ) : (
-                    <div style={{ width: 90, height: 90, borderRadius: 8, background: 'rgba(255,255,255,0.12)', display: 'grid', placeItems: 'center' }}>
+                    <div style={{ width: 113, height: 113, borderRadius: 9, background: 'rgba(255,255,255,0.12)', display: 'grid', placeItems: 'center' }}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4">
                         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
                         <rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2z"/>
@@ -1131,123 +1135,44 @@ export default function DashboardClient() {
         </div>{/* /app-main */}
       </div>{/* /app */}
 
-      {/* ── Wallet / share modal ───────────────────────────────────────────── */}
+      {/* ── Share with clinic modal (focused — no wallet tab) ─────────────── */}
       <div
         className={`wall-back${wallOpen ? ' open' : ''}`}
-        onClick={e => { if (e.target === e.currentTarget) setWallOpen(false) }}
+        onClick={e => { if (e.target === e.currentTarget) { setWallOpen(false); setEmailSent(false); setClinicEmail(''); setClinicSearch(''); setShareError('') } }}
       >
         <div className="wall-modal">
           <div className="wall-h">
-            <h3>{wallMode === 'email' ? 'Email your record to the clinic' : 'Share your implant record'}</h3>
-            <button onClick={() => setWallOpen(false)}>✕</button>
+            <h3>Share with clinic</h3>
+            <button onClick={() => { setWallOpen(false); setEmailSent(false); setClinicEmail(''); setClinicSearch(''); setShareError('') }}>✕</button>
           </div>
           <div className="wall-body">
-            {/* Mode switcher */}
-            <div style={{
-              display: 'flex', gap: 4,
-              background: 'var(--bg)', border: '1px solid var(--border)',
-              borderRadius: 999, padding: 4, margin: '0 auto 20px', width: 'fit-content',
-            }}>
-              <button
-                className={`wtab${wallMode === 'wallet' ? ' active' : ''}`}
-                onClick={() => setWallMode('wallet')}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ verticalAlign: -2, marginRight: 4 }}>
-                  <rect x="5" y="2" width="14" height="20" rx="2"/>
-                  <circle cx="12" cy="18" r="1"/>
-                </svg>
-                Apple Wallet
-              </button>
-              <button
-                className={`wtab${wallMode === 'email' ? ' active' : ''}`}
-                onClick={() => setWallMode('email')}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ verticalAlign: -2, marginRight: 4 }}>
-                  <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
-                  <path d="m22 6-10 7L2 6"/>
-                </svg>
-                Email the clinic
-              </button>
-            </div>
 
-            {wallMode === 'wallet' && (
-              <>
-                {/* Implant ID card preview */}
-                <div style={{ background: isPending ? 'linear-gradient(135deg,#e8edf2,#d4dce6)' : 'linear-gradient(135deg,var(--accent),#1a6a80)', borderRadius: 14, padding: '20px 22px', marginBottom: 18, color: isPending ? '#334155' : '#fff' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', opacity: 0.7, marginBottom: 4 }}>Implant ID</div>
-                      <div style={{ fontFamily: 'SF Mono, Monaco, monospace', fontSize: 20, fontWeight: 700, letterSpacing: '1px' }}>{iidCode}</div>
-                    </div>
-                    {qrDataUrl && (
-                      <img src={qrDataUrl} alt="QR" style={{ width: 56, height: 56, borderRadius: 6, background: 'rgba(255,255,255,0.2)', padding: 3 }} />
-                    )}
-                  </div>
-                  <div style={{ fontSize: 13, opacity: 0.85 }}>{fullName}</div>
-                  {patient?.selfReportedDevice && <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{patient.selfReportedDevice}</div>}
-                  {isPending && (
-                    <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '4px 10px', fontSize: 11.5, fontWeight: 600, color: '#92400e' }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}/> Pending verification
-                    </div>
-                  )}
-                </div>
-
-                <p style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16 }}>
-                  {isPending
-                    ? 'Your Implant ID is ready. Add the grey pending pass to your wallet now — once your clinic verifies your record, delete it and re-add for the colour-coded verified version.'
-                    : 'Add your verified Implant ID to Apple Wallet. Your MRI safety status and implant details will be on the card.'}
-                </p>
-
-                <div className="wall-opts">
-                  <a
-                    href="/api/wallet/pass"
-                    download
-                    className="btn btn-s btn-lg"
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M17.05 12.04c-.02-1.92 1.57-2.85 1.64-2.9-.9-1.3-2.29-1.49-2.78-1.5-1.17-.12-2.3.7-2.9.7-.6 0-1.53-.68-2.52-.66-1.28.02-2.47.75-3.14 1.9-1.36 2.34-.34 5.8.97 7.7.65.94 1.41 1.98 2.4 1.94.97-.04 1.33-.62 2.5-.62s1.5.62 2.53.6c1.04-.02 1.7-.94 2.34-1.88.74-1.08 1.04-2.13 1.05-2.18-.02-.01-2.02-.77-2.05-3.07zM15.1 5.43c.53-.64.88-1.54.78-2.43-.76.03-1.68.5-2.23 1.14-.49.56-.92 1.48-.8 2.35.85.07 1.72-.43 2.25-1.06z"/>
-                    </svg>
-                    Add to Apple Wallet
-                  </a>
-                  <a href="#" className="btn btn-lg" style={{ opacity: 0.5, pointerEvents: 'none' as const, cursor: 'not-allowed' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.15-4.53H2.18v2.84A10.99 10.99 0 0 0 12 23z"/>
-                      <path fill="#FBBC05" d="M5.85 14.1A6.61 6.61 0 0 1 5.5 12c0-.73.13-1.44.35-2.1V7.07H2.18a11 11 0 0 0 0 9.86l3.67-2.83z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.2 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A10.99 10.99 0 0 0 2.18 7.07l3.67 2.83C6.71 7.31 9.14 5.38 12 5.38z"/>
-                    </svg>
-                    Google Wallet — coming soon
-                  </a>
-                </div>
-                <button className="btn btn-lg" style={{ marginTop: 10 }} onClick={copyLink}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <rect x="9" y="9" width="13" height="13" rx="2"/>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                  </svg>
-                  {linkCopied ? '✓ Link copied' : 'Copy share link'}
-                </button>
-              </>
-            )}
-
-            {wallMode === 'email' && !emailSent && (
+            {!emailSent ? (
               <div>
-                <p style={{ marginBottom: 14 }}>Search for your clinic on Implant ID, or enter their email directly.</p>
+                <p style={{ marginBottom: 16, color: 'var(--muted)', fontSize: 14, lineHeight: 1.6 }}>
+                  Search for your clinic on Implant ID. They&apos;ll receive a link to your verified record instantly.
+                </p>
 
                 {/* Clinic search */}
                 <div className="field" style={{ marginBottom: 4 }}>
                   <label>Search clinic name</label>
                   <input className="input" type="text" placeholder="e.g. Royal Melbourne Hospital"
-                    value={clinicSearch} onChange={e => { setClinicSearch(e.target.value); setClinicEmail('') }} autoFocus />
+                    value={clinicSearch}
+                    onChange={e => { setClinicSearch(e.target.value); setClinicEmail('') }}
+                    autoFocus
+                  />
                 </div>
 
                 {/* Matching clinics */}
                 {clinicSearch.trim().length >= 2 && (() => {
                   const q = clinicSearch.toLowerCase()
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const matches = (allClinics ?? []).filter((c: any) =>
                     c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)
                   ).slice(0, 5)
                   return matches.length > 0 ? (
-                    <div style={{ border: '1px solid var(--border)', borderRadius: 10, marginBottom: 12, overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid var(--border)', borderRadius: 10, marginBottom: 14, overflow: 'hidden' }}>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {matches.map((c: any) => (
                         <button key={c._id} type="button"
                           onClick={() => { setClinicEmail(c.email ?? ''); setClinicSearch(c.name) }}
@@ -1259,47 +1184,74 @@ export default function DashboardClient() {
                       ))}
                     </div>
                   ) : (
-                    <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10, padding: '8px 12px', background: 'color-mix(in srgb,#f59e0b 8%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 8 }}>
-                      This clinic isn&apos;t on Implant ID yet. Enter their email and we&apos;ll send them an invitation to join.
+                    <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, padding: '8px 12px', background: 'color-mix(in srgb,#f59e0b 8%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 8 }}>
+                      This clinic isn&apos;t on Implant ID yet — enter their email and we&apos;ll send them an invitation to join along with your record.
                     </div>
                   )
                 })()}
 
-                {/* Email fallback */}
-                <form onSubmit={e => { e.preventDefault(); setEmailSent(true) }}>
+                {/* Email field */}
+                <form onSubmit={async e => {
+                  e.preventDefault()
+                  if (!clinicEmail) return
+                  setSharing(true); setShareError('')
+                  try {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const matchedClinic = (allClinics ?? []).find((c: any) => c.email === clinicEmail)
+                    await shareRecordWithClinic({
+                      clinicEmail,
+                      clinicName: (matchedClinic?.name ?? clinicSearch.trim()) || undefined,
+                    })
+                    setEmailSent(true)
+                  } catch {
+                    setShareError('Failed to send — please try again.')
+                  } finally {
+                    setSharing(false)
+                  }
+                }}>
                   <div className="field" style={{ marginBottom: 12 }}>
-                    <label>Clinic email {clinicSearch.trim().length >= 2 && !allClinics?.find((c: any) => c.name.toLowerCase().includes(clinicSearch.toLowerCase())) && <span style={{ color: '#b45309', fontWeight: 400 }}>(invite)</span>}</label>
+                    <label>
+                      Clinic email
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      {clinicSearch.trim().length >= 2 && !(allClinics ?? []).find((c: any) => c.name.toLowerCase().includes(clinicSearch.toLowerCase())) && (
+                        <span style={{ color: '#b45309', fontWeight: 400, marginLeft: 6 }}>(invite)</span>
+                      )}
+                    </label>
                     <input className="input" type="email" placeholder="records@clinic.com" required
                       value={clinicEmail} onChange={e => setClinicEmail(e.target.value)} />
                   </div>
+                  {shareError && <div style={{ color: 'var(--err)', fontSize: 13, marginBottom: 10 }}>{shareError}</div>}
                   <div style={{ display: 'flex', gap: 10 }}>
-                    <button type="submit" className="btn btn-s btn-lg" style={{ flex: 1 }} disabled={!clinicEmail}>
-                      {clinicEmail && allClinics?.find((c: any) => c.email === clinicEmail) ? 'Send record' : 'Send record + invitation'}
+                    <button type="submit" className="btn btn-s btn-lg" style={{ flex: 1 }} disabled={!clinicEmail || sharing}>
+                      {sharing ? 'Sending…' : (
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        clinicEmail && (allClinics ?? []).find((c: any) => c.email === clinicEmail)
+                          ? 'Send record'
+                          : 'Send record + invitation'
+                      )}
                     </button>
                     <button type="button" className="btn btn-lg" onClick={() => setWallOpen(false)}>Cancel</button>
                   </div>
                 </form>
               </div>
-            )}
-
-            {wallMode === 'email' && emailSent && (
+            ) : (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{
-                  width: 52, height: 52, borderRadius: '50%',
-                  background: 'color-mix(in srgb,var(--ok) 12%,transparent)',
-                  color: 'var(--ok)', display: 'grid', placeItems: 'center', margin: '0 auto 14px',
-                }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', color: 'var(--ok)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 6 9 17l-5-5"/>
                   </svg>
                 </div>
                 <h3 style={{ fontFamily: 'var(--ff)', fontSize: 18, marginBottom: 8 }}>Sent!</h3>
-                <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 20 }}>
-                  Your implant record has been sent to {clinicEmail}.
+                <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 6 }}>
+                  Your implant record has been sent to <strong>{clinicEmail}</strong>.
                 </p>
-                <button className="btn btn-lg" onClick={() => { setWallOpen(false); setEmailSent(false); setClinicEmail('') }}>Done</button>
+                <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 20 }}>
+                  A confirmation has also been sent to your email address.
+                </p>
+                <button className="btn btn-lg" onClick={() => { setWallOpen(false); setEmailSent(false); setClinicEmail(''); setClinicSearch('') }}>Done</button>
               </div>
             )}
+
           </div>
           <div className="wall-foot">Encrypted · Signed · Safe to share with any clinic</div>
         </div>

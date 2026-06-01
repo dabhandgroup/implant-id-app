@@ -319,6 +319,89 @@ export const sendPatientVerifiedEmail = internalAction({
   },
 })
 
+// ── Patient shares record with a clinic ──────────────────────────────────────
+
+export const sendPatientShareEmail = internalAction({
+  args: {
+    patientName:    v.string(),
+    patientEmail:   v.optional(v.string()),  // for confirmation copy to patient
+    implantIdCode:  v.string(),
+    device:         v.optional(v.string()),
+    clinicEmail:    v.string(),
+    clinicName:     v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const r = resend()
+    const scanUrl = `https://portal.implantid.io/scan/${args.implantIdCode}`
+
+    // Email to clinic
+    await r.emails.send({
+      from:    FROM,
+      to:      args.clinicEmail,
+      subject: `${args.patientName} has shared their implant record with you`,
+      html: buildEmail({
+        title:   'Patient Record Shared',
+        heading: `Patient record shared with ${args.clinicName ?? 'your clinic'}`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            <strong style="color:#0e2a33;">${args.patientName}</strong> has shared their
+            Implant ID record with you ahead of their appointment.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Click the button below or scan their QR code at reception to access their
+            full verified implant record, including MRI safety status and device details.
+          </p>
+        `,
+        tableRows: [
+          { label: 'Patient',    value: args.patientName },
+          { label: 'Implant ID', value: args.implantIdCode },
+          ...(args.device ? [{ label: 'Device', value: args.device }] : []),
+        ],
+        cta: {
+          label: 'View patient record →',
+          url:   scanUrl,
+        },
+        footerNote: `This record was shared by the patient. For security questions contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+
+    // Confirmation copy to patient
+    if (args.patientEmail) {
+      await r.emails.send({
+        from:    FROM,
+        to:      args.patientEmail,
+        subject: `Your record was shared with ${args.clinicName ?? args.clinicEmail}`,
+        html: buildEmail({
+          title:   'Record Shared',
+          heading: 'Your record has been shared',
+          body: `
+            <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+              Your implant record has been shared with
+              <strong style="color:#0e2a33;">${args.clinicName ?? args.clinicEmail}</strong>.
+              They can now view your MRI safety status and implant details in advance of your appointment.
+            </p>
+            <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+              If you did not authorise this, please contact us immediately.
+            </p>
+          `,
+          highlightBox: {
+            content: `
+              <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                         text-transform:uppercase;color:#29869F;">Shared with</p>
+              <p style="margin:0;font-size:18px;font-weight:600;color:#1a6a80;">${args.clinicName ?? args.clinicEmail}</p>
+            `,
+          },
+          footerNote: `If you did not do this, contact
+            <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,
+          includeUnsubscribe: true,
+        }),
+      })
+    }
+  },
+})
+
 // ── Surgeon platform invite email ─────────────────────────────────────────────
 
 export const sendSurgeonPlatformInviteEmail = internalAction({

@@ -607,6 +607,39 @@ export const linkDeviceToPatient = mutation({
   },
 })
 
+/** Patient shares their record with a clinic — sends email to clinic + confirmation to patient. */
+export const shareRecordWithClinic = mutation({
+  args: {
+    clinicEmail: v.string(),
+    clinicName:  v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) throw new Error('Patient record not found')
+
+    await ctx.scheduler.runAfter(0, internal.email.sendPatientShareEmail, {
+      patientName:   `${patient.firstName} ${patient.lastName}`,
+      patientEmail:  user.email || undefined,
+      implantIdCode: patient.implantIdCode,
+      device:        patient.selfReportedDevice ?? undefined,
+      clinicEmail:   args.clinicEmail,
+      clinicName:    args.clinicName,
+    })
+  },
+})
+
 /** Mark a patient device link as explanted (removes it from active record). */
 export const removePatientDevice = mutation({
   args: { patientDeviceId: v.id('patientDevices') },

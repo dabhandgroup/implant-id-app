@@ -41,7 +41,9 @@ const MRI_LABEL: Record<string, string> = {
   safe: 'MR Safe', conditional: 'MR Conditional', unsafe: 'MR Unsafe — Do Not Scan',
 }
 const MRI_BG: Record<string, string> = {
-  safe: 'rgb(21,128,61)', conditional: 'rgb(180,83,9)', unsafe: 'rgb(185,28,28)',
+  safe:        'rgb(22,101,52)',    // green
+  conditional: 'rgb(234,88,12)',   // proper orange (not dark brown)
+  unsafe:      'rgb(185,28,28)',   // red
 }
 const PENDING_BG = 'rgb(100,116,139)'
 const DEFAULT_BG = 'rgb(41,134,159)'
@@ -129,7 +131,8 @@ export async function GET() {
     labelColor:         LIGHT_LABEL,
     barcodes: [
       {
-        message:         patient.implantIdCode,
+        // Full URL so clinic can scan directly into the patient record
+        message:         `https://portal.implantid.io/scan/${patient.implantIdCode}`,
         format:          'PKBarcodeFormatQR',
         messageEncoding: 'iso-8859-1',
         altText:         patient.implantIdCode,
@@ -172,6 +175,12 @@ export async function GET() {
           key:   'allergy',
           label: '⚠ CONTRAST ALLERGY',
           value: patient.contrastAllergyNote ?? 'Documented contrast allergy — inform radiology before any contrast.',
+          textAlignment: 'PKTextAlignmentLeft' as const,
+        }] : []),
+        ...(patient.emergencyContactName ? [{
+          key:   'emergency_contact',
+          label: `EMERGENCY CONTACT${patient.emergencyContactRelation ? ` (${patient.emergencyContactRelation})` : ''}`,
+          value: `${patient.emergencyContactName}${patient.emergencyContactPhone ? ` · ${patient.emergencyContactPhone}` : ''}`,
           textAlignment: 'PKTextAlignmentLeft' as const,
         }] : []),
         {

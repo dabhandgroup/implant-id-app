@@ -813,11 +813,11 @@ export default function DashboardClient() {
                     style={{ width:56, height:56, flexShrink:0 }}
                   />
                 ) : !isPending ? (
-                  /* Verified but no linked device yet — neutral placeholder */
-                  <div style={{ width:56, height:56, borderRadius:'50%', background:'rgba(255,255,255,0.12)', display:'grid', placeItems:'center', flexShrink:0 }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5">
-                      <circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>
-                    </svg>
+                  /* Verified but no MRI status linked yet — show Verified badge top-right */
+                  <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(34,197,94,0.20)', border:'1px solid rgba(34,197,94,0.4)', borderRadius:999, padding:'5px 12px', fontFamily:'var(--ff)', fontSize:11, fontWeight:700, color:'#bbf7d0', letterSpacing:'.3px', flexShrink:0 }}
+                    title="This record has been verified by your clinical team">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                    Verified by Implant ID
                   </div>
                 ) : null}
               </div>
@@ -867,23 +867,14 @@ export default function DashboardClient() {
                 {patient.selfReportedDevice ?? 'Awaiting verification'}
               </div>
 
-              {/* Verified badge */}
-              {!isPending && (
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginBottom: 14, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.35)', borderRadius: 999, padding: '4px 12px', fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 700, color: '#bbf7d0', letterSpacing: '.3px' }}
-                  title="This record has been verified by your clinical team">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-                  Verified by Implant ID
-                </div>
-              )}
-
               {isPending && (
-                <p style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'#64748b', marginBottom:14, position:'relative', zIndex:2, lineHeight:1.5 }}>
-                  Your clinical team will verify these details with your hospital. Once confirmed, your wallet pass will be activated.
+                <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'#64748b', marginBottom:10, position:'relative', zIndex:2, lineHeight:1.5 }}>
+                  Your clinical team will verify these details with your hospital.
                 </p>
               )}
 
-              {/* Data grid */}
-              <div className="pb-grid" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+              {/* Data grid — auto columns so Implanted stays close */}
+              <div className="pb-grid" style={{ gridTemplateColumns: 'auto auto auto', gap: '8px 24px', width: 'fit-content', marginBottom: 0 }}>
                 <div>
                   <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Your Implant ID</div>
                   <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{iidCode}</div>
@@ -904,31 +895,9 @@ export default function DashboardClient() {
                 )}
               </div>
 
-              {/* QR code — bottom right, scans to /scan/[code] in-app */}
-              {!isPending && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    {qrDataUrl ? (
-                      <img
-                        src={qrDataUrl}
-                        alt="Scan this QR code at the clinic to access this record"
-                        style={{ width: 130, height: 130, borderRadius: 10, background: 'rgba(255,255,255,0.92)', padding: 5 }}
-                      />
-                    ) : (
-                      <div style={{ width: 130, height: 130, borderRadius: 10, background: 'rgba(255,255,255,0.12)', display: 'grid', placeItems: 'center' }}>
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4">
-                          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                          <rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2z"/>
-                        </svg>
-                      </div>
-                    )}
-                    <span style={{ fontFamily: 'var(--ff)', fontSize: 9.5, marginTop: 5, letterSpacing: '1px', textTransform: 'uppercase', opacity: 0.65 }}>Scan at clinic</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Actions — always visible; greyed + locked when pending */}
-              <div className="pb-actions" style={{ marginTop: 20 }}>
+              {/* Actions + QR inline — buttons left, QR right */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 16 }}>
+              <div className="pb-actions" style={{ flex: 1, marginTop: 0 }}>
 
                 {/* Add to Apple Wallet */}
                 {isPending ? (
@@ -1011,7 +980,30 @@ export default function DashboardClient() {
                   </button>
                 )}
 
-              </div>
+              </div>{/* /pb-actions */}
+
+              {/* QR code — bottom right, inline with buttons */}
+              {!isPending && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="Scan at clinic to access this record"
+                      style={{ width: 90, height: 90, borderRadius: 8, background: 'rgba(255,255,255,0.92)', padding: 4, display: 'block' }}
+                    />
+                  ) : (
+                    <div style={{ width: 90, height: 90, borderRadius: 8, background: 'rgba(255,255,255,0.12)', display: 'grid', placeItems: 'center' }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2z"/>
+                      </svg>
+                    </div>
+                  )}
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 9, marginTop: 4, letterSpacing: '.8px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Scan at clinic</span>
+                </div>
+              )}
+
+              </div>{/* /actions + QR row */}
             </div>
 
             {/* Quick access */}

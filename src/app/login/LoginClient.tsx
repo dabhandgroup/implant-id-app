@@ -186,7 +186,8 @@ export default function LoginClient() {
         // Security: OTP proves email ownership; role stamped after verification
         const { error: sue } = await signUp.create({ emailAddress: prefillEmail })
         if (sue) { setError(sue.message ?? 'Could not create account'); return }
-        const { error: vpe } = await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: vpe } = await (signUp as any).prepareEmailAddressVerification({ strategy: 'email_code' })
         if (vpe) { setError(vpe.message ?? 'Could not send code'); return }
         setOtp(['', '', '', '', '', ''])
         setClIsSignUp(true)
@@ -331,8 +332,9 @@ export default function LoginClient() {
       // (the invite's Clerk pre-creation may have failed; this is the safety net)
       const { error: sue } = await signUp!.create({ emailAddress: clEmail.trim() })
       if (sue) return err(sue.message ?? 'Could not send code — contact your admin if you were just invited')
-      const { error: vpe } = await signUp!.prepareEmailAddressVerification({ strategy: 'email_code' })
-      if (vpe) return err(vpe.message ?? 'Could not send code')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: vpe } = await (signUp! as any).prepareEmailAddressVerification({ strategy: 'email_code' })
+      if (vpe) return err((vpe as any).message ?? 'Could not send code')
       setOtp(['','','','','',''])
       setClIsSignUp(true)
       setClPhase('email-otp')
@@ -346,7 +348,8 @@ export default function LoginClient() {
     try {
       if (clIsSignUp) {
         // New account path — verify via Clerk sign-up flow
-        const { error: ve } = await signUp!.attemptEmailAddressVerification({ code: c })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: ve } = await (signUp! as any).attemptEmailAddressVerification({ code: c })
         if (ve) return err(ve.message ?? 'Invalid code')
         // Role was already set by the invite flow's createStaffAccount action.
         // Redirect to /login — the already-signed-in effect detects the role

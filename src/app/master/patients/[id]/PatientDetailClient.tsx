@@ -2,8 +2,10 @@
 import { useState }    from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useRouter }   from 'next/navigation'
-import { api }         from '../../../../../convex/_generated/api'
-import { Id }          from '../../../../../convex/_generated/dataModel'
+import { api as apiBase } from '../../../../../convex/_generated/api'
+import { Id }             from '../../../../../convex/_generated/dataModel'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = apiBase as any
 
 const MRI_COLOUR: Record<string,string> = {
   safe: 'var(--ok)', conditional: '#b45309', unsafe: 'var(--err)', unknown: 'var(--muted)',
@@ -49,7 +51,8 @@ export default function PatientDetailClient({ id }: Props) {
   const router           = useRouter()
 
   // Filter devices for search
-  const filteredDevices  = allDevices?.filter(d =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filteredDevices  = (allDevices as any[])?.filter((d: any) =>
     !deviceSearch.trim() ||
     d.manufacturer.toLowerCase().includes(deviceSearch.toLowerCase()) ||
     d.model.toLowerCase().includes(deviceSearch.toLowerCase())
@@ -261,7 +264,8 @@ export default function PatientDetailClient({ id }: Props) {
               </div>
               {filteredDevices.length > 0 && (
                 <div style={{ border: '1px solid var(--border)', borderRadius: 10, marginBottom: 14, maxHeight: 200, overflowY: 'auto' }}>
-                  {filteredDevices.map(d => (
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {filteredDevices.map((d: any) => (
                     <button key={d._id} type="button"
                       onClick={() => setDeviceSearch(`${d.manufacturer} ${d.model}`)}
                       style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border)' }}
@@ -297,7 +301,8 @@ export default function PatientDetailClient({ id }: Props) {
               <button className="btn" onClick={() => setAddDeviceOpen(false)} disabled={addingDevice}>Cancel</button>
               <button className="btn btn-s" disabled={addingDevice || !deviceSearch.trim()}
                 onClick={async () => {
-                  const match = allDevices?.find(d => `${d.manufacturer} ${d.model}` === deviceSearch.trim() || d.model.toLowerCase().includes(deviceSearch.toLowerCase()))
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const match = (allDevices as any[])?.find((d: any) => `${d.manufacturer} ${d.model}` === deviceSearch.trim() || d.model.toLowerCase().includes(deviceSearch.toLowerCase()))
                   if (!match) { setAddDeviceError('Select a device from the list above'); return }
                   setAddingDevice(true); setAddDeviceError('')
                   try {

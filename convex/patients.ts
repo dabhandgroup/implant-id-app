@@ -78,6 +78,8 @@ export const createPatient = mutation({
     selfReportedImplantYear:  v.optional(v.string()),
     selfReportedHospital:     v.optional(v.string()),
     selfReportedSurgeon:      v.optional(v.string()),
+    selfReportedSurgeonUserId: v.optional(v.string()),   // Convex user ID if surgeon found on platform
+    selfReportedSurgeonEmail:  v.optional(v.string()),   // email to invite if not on platform
     selfReportedImplants:     v.optional(v.string()),  // JSON array of additional implants
     countryOfBirth:           v.optional(v.string()),
 
@@ -139,8 +141,9 @@ export const createPatient = mutation({
       selfReportedImplantMonth: args.selfReportedImplantMonth,
       selfReportedImplantYear:  args.selfReportedImplantYear,
       selfReportedHospital:     args.selfReportedHospital,
-      selfReportedSurgeon:      args.selfReportedSurgeon,
-      selfReportedImplants:     args.selfReportedImplants,
+      selfReportedSurgeon:       args.selfReportedSurgeon,
+      selfReportedSurgeonEmail:  args.selfReportedSurgeonEmail,
+      selfReportedImplants:      args.selfReportedImplants,
 
       emergencyContactName:     args.emergencyContactName,
       emergencyContactPhone:    args.emergencyContactPhone,

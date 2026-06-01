@@ -239,9 +239,9 @@ export default function StaffClient() {
                           onClick={() => { setSelectedUserId(r.userId); setSelectedName(r.name) }}
                           style={{
                             display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                            padding: '11px 14px', background: 'none', border: 'none',
+                            padding: '11px 14px', border: 'none',
                             borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                            textAlign: 'left',
+                            textAlign: 'left' as const,
                             background: selectedUserId === r.userId
                               ? 'color-mix(in srgb,var(--accent) 8%,transparent)'
                               : 'var(--bg)',

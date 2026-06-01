@@ -2,7 +2,9 @@
 import { useState }    from 'react'
 import { useMutation } from 'convex/react'
 import { useRouter }   from 'next/navigation'
-import { api }         from '../../../../../convex/_generated/api'
+import { api as apiBase } from '../../../../../convex/_generated/api'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = apiBase as any
 
 type MriStatus     = 'conditional' | 'safe' | 'unsafe' | 'unknown'
 type Classification = 'active' | 'passive' | 'legacy'

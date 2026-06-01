@@ -1,6 +1,8 @@
 'use client'
 import { useQuery } from 'convex/react'
-import { api }      from '../../../../convex/_generated/api'
+import { api as apiBase } from '../../../../convex/_generated/api'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = apiBase as any
 
 const MRI_COLOURS: Record<string, { color: string; label: string }> = {
   safe:        { color: 'var(--ok)',    label: 'MR Safe' },
@@ -59,7 +61,8 @@ export default function MasterDevicesClient() {
               </tr>
             </thead>
             <tbody>
-              {devices.map((d) => {
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {devices.map((d: any) => {
                 const mri = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
                 return (
                   <tr key={d._id}>

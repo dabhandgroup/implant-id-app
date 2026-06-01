@@ -8,7 +8,7 @@ function formatDate(ts: number) {
 }
 
 export default function MasterPatientsClient() {
-  const patients = useQuery(api.patients.listAllPatients)
+  const patients = useQuery(api.patients.listAllPatients, {})
   const router   = useRouter()
 
   if (patients === undefined) {

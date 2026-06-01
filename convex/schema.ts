@@ -67,6 +67,12 @@ export default defineSchema({
     // Extra clinical notes (allergies, etc.)
     additionalNotes: v.optional(v.string()),
 
+    // Physical measurements (needed for SAR calculations by clinicians)
+    heightCm:            v.optional(v.number()),   // cm, e.g. 175
+    weightKg:            v.optional(v.number()),   // kg, e.g. 72
+    contrastAllergy:     v.optional(v.boolean()),  // true = contrast allergy present
+    contrastAllergyNote: v.optional(v.string()),   // free-text detail
+
     // Set to true once the patient has dismissed the first-login welcome flow
     welcomeSeen: v.optional(v.boolean()),
 

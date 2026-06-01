@@ -1,7 +1,7 @@
 import { currentUser } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 
-type UserRole = 'patient' | 'clinic_staff' | 'admin'
+type UserRole = 'patient' | 'clinic_staff' | 'surgeon' | 'admin'
 
 /**
  * Server-side role guard. Call at the top of any layout or page.
@@ -23,6 +23,7 @@ export async function requireRole(...allowed: UserRole[]) {
     // Redirect to the section they actually belong to
     if (role === 'admin')        redirect('/master/dashboard')
     if (role === 'clinic_staff') redirect('/clinics/dashboard')
+    if (role === 'surgeon')      redirect('/surgeons/dashboard')
     redirect('/patients/dashboard')   // patient (or unknown — safest default)
   }
 

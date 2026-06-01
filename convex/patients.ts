@@ -87,6 +87,11 @@ export const createPatient = mutation({
     emergencyContactRelation: v.optional(v.string()),
     additionalNotes:          v.optional(v.string()),
 
+    heightCm:            v.optional(v.number()),
+    weightKg:            v.optional(v.number()),
+    contrastAllergy:     v.optional(v.boolean()),
+    contrastAllergyNote: v.optional(v.string()),
+
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -142,6 +147,11 @@ export const createPatient = mutation({
       emergencyContactRelation: args.emergencyContactRelation,
       additionalNotes:          args.additionalNotes,
 
+      heightCm:            args.heightCm,
+      weightKg:            args.weightKg,
+      contrastAllergy:     args.contrastAllergy,
+      contrastAllergyNote: args.contrastAllergyNote,
+
       verificationStatus: 'pending',
     })
 
@@ -177,5 +187,48 @@ export const markWelcomeSeen = mutation({
       .unique()
     if (!patient) return
     await ctx.db.patch(patient._id, { welcomeSeen: true })
+  },
+})
+
+/** Update editable patient profile fields from the account/settings page. */
+export const updatePatientProfile = mutation({
+  args: {
+    phone:               v.optional(v.string()),
+    heightCm:            v.optional(v.number()),
+    weightKg:            v.optional(v.number()),
+    contrastAllergy:     v.optional(v.boolean()),
+    contrastAllergyNote: v.optional(v.string()),
+    additionalNotes:     v.optional(v.string()),
+    emergencyContactName:     v.optional(v.string()),
+    emergencyContactPhone:    v.optional(v.string()),
+    emergencyContactRelation: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) throw new Error('Patient record not found')
+
+    await ctx.db.patch(patient._id, {
+      phone:               args.phone,
+      heightCm:            args.heightCm,
+      weightKg:            args.weightKg,
+      contrastAllergy:     args.contrastAllergy,
+      contrastAllergyNote: args.contrastAllergyNote,
+      additionalNotes:     args.additionalNotes,
+      emergencyContactName:     args.emergencyContactName,
+      emergencyContactPhone:    args.emergencyContactPhone,
+      emergencyContactRelation: args.emergencyContactRelation,
+    })
   },
 })

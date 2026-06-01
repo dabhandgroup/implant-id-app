@@ -122,6 +122,7 @@ export default function LoginClient() {
     const role = (user?.publicMetadata?.role as string | undefined) ?? 'patient'
     if      (role === 'admin')        router.replace('/master/dashboard')
     else if (role === 'clinic_staff') router.replace('/clinics/dashboard')
+    else if (role === 'surgeon')      router.replace('/surgeons/dashboard')
     else                              router.replace('/patients/dashboard')
   }, [isLoaded, isSignedIn, user, router])
 

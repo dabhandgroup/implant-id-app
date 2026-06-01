@@ -557,3 +557,61 @@ export const searchSurgeonsForRegistration = query({
     }))
   },
 })
+
+// ── Device management (admin / clinic / surgeon) ──────────────────────────────
+
+/** Link a device catalogue entry to a patient record (adds a verified device). */
+export const linkDeviceToPatient = mutation({
+  args: {
+    patientId:    v.id('patients'),
+    deviceId:     v.id('devices'),
+    serialNumber: v.optional(v.string()),
+    implantDate:  v.optional(v.string()),
+    clinicNotes:  v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user || !['admin', 'clinic_staff', 'surgeon'].includes(user.role)) {
+      throw new Error('Insufficient permissions')
+    }
+    // Prevent duplicate active links
+    const existing = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_patient', (q) => q.eq('patientId', args.patientId))
+      .filter((q) => q.eq(q.field('deviceId'), args.deviceId))
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .first()
+    if (existing) throw new Error('This device is already linked to this patient')
+
+    return ctx.db.insert('patientDevices', {
+      patientId:    args.patientId,
+      deviceId:     args.deviceId,
+      serialNumber: args.serialNumber,
+      implantDate:  args.implantDate,
+      clinicNotes:  args.clinicNotes,
+      status:       'active',
+    })
+  },
+})
+
+/** Mark a patient device link as explanted (removes it from active record). */
+export const removePatientDevice = mutation({
+  args: { patientDeviceId: v.id('patientDevices') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user || !['admin', 'clinic_staff', 'surgeon'].includes(user.role)) {
+      throw new Error('Insufficient permissions')
+    }
+    await ctx.db.patch(args.patientDeviceId, { status: 'explanted' })
+  },
+})

@@ -916,18 +916,17 @@ export default function DashboardClient() {
                     Wallet — pending
                   </button>
                 ) : (
-                  /* Active — downloads .pkpass */
-                  <a
-                    href="/api/wallet/pass"
-                    download
+                  /* Verified — opens wallet overlay showing ID + download option */
+                  <button
                     className="btn btn-s"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                    onClick={() => setWallOpen(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>
                     </svg>
-                    Add to Apple Wallet
-                  </a>
+                    Add to Wallet
+                  </button>
                 )}
 
                 {/* Share with clinic — locked when pending */}
@@ -1129,34 +1128,51 @@ export default function DashboardClient() {
 
             {wallMode === 'wallet' && (
               <>
-                <p>Scan this QR code with your phone camera to add the pass to <b>Apple Wallet</b> or <b>Google Wallet</b>.</p>
-                <div className="wall-qr">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    alt="QR code for your Implant ID pass"
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent(passUrl)}`}
-                    width={200} height={200}
-                    style={{ display: 'block', width: '100%', height: '100%', imageRendering: 'pixelated' }}
-                  />
+                {/* Implant ID card preview */}
+                <div style={{ background: isPending ? 'linear-gradient(135deg,#e8edf2,#d4dce6)' : 'linear-gradient(135deg,var(--accent),#1a6a80)', borderRadius: 14, padding: '20px 22px', marginBottom: 18, color: isPending ? '#334155' : '#fff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', opacity: 0.7, marginBottom: 4 }}>Implant ID</div>
+                      <div style={{ fontFamily: 'SF Mono, Monaco, monospace', fontSize: 20, fontWeight: 700, letterSpacing: '1px' }}>{iidCode}</div>
+                    </div>
+                    {qrDataUrl && (
+                      <img src={qrDataUrl} alt="QR" style={{ width: 56, height: 56, borderRadius: 6, background: 'rgba(255,255,255,0.2)', padding: 3 }} />
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13, opacity: 0.85 }}>{fullName}</div>
+                  {patient?.selfReportedDevice && <div style={{ fontSize: 12, opacity: 0.7, marginTop: 2 }}>{patient.selfReportedDevice}</div>}
+                  {isPending && (
+                    <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(245,158,11,0.18)', border: '1px solid rgba(245,158,11,0.4)', borderRadius: 8, padding: '4px 10px', fontSize: 11.5, fontWeight: 600, color: '#92400e' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }}/> Pending verification
+                    </div>
+                  )}
                 </div>
+
+                <p style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16 }}>
+                  {isPending
+                    ? 'Your Implant ID is ready. Add the grey pending pass to your wallet now — once your clinic verifies your record, delete it and re-add for the colour-coded verified version.'
+                    : 'Add your verified Implant ID to Apple Wallet. Your MRI safety status and implant details will be on the card.'}
+                </p>
+
                 <div className="wall-opts">
                   <a
-                    href={`${passUrl}.pkpass`}
+                    href="/api/wallet/pass"
+                    download
                     className="btn btn-s btn-lg"
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M17.05 12.04c-.02-1.92 1.57-2.85 1.64-2.9-.9-1.3-2.29-1.49-2.78-1.5-1.17-.12-2.3.7-2.9.7-.6 0-1.53-.68-2.52-.66-1.28.02-2.47.75-3.14 1.9-1.36 2.34-.34 5.8.97 7.7.65.94 1.41 1.98 2.4 1.94.97-.04 1.33-.62 2.5-.62s1.5.62 2.53.6c1.04-.02 1.7-.94 2.34-1.88.74-1.08 1.04-2.13 1.05-2.18-.02-.01-2.02-.77-2.05-3.07zM15.1 5.43c.53-.64.88-1.54.78-2.43-.76.03-1.68.5-2.23 1.14-.49.56-.92 1.48-.8 2.35.85.07 1.72-.43 2.25-1.06z"/>
                     </svg>
-                    Apple Wallet
+                    Add to Apple Wallet
                   </a>
-                  <a href="#" className="btn btn-lg">
+                  <a href="#" className="btn btn-lg" style={{ opacity: 0.5, pointerEvents: 'none' as const, cursor: 'not-allowed' }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.15-4.53H2.18v2.84A10.99 10.99 0 0 0 12 23z"/>
                       <path fill="#FBBC05" d="M5.85 14.1A6.61 6.61 0 0 1 5.5 12c0-.73.13-1.44.35-2.1V7.07H2.18a11 11 0 0 0 0 9.86l3.67-2.83z"/>
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.2 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A10.99 10.99 0 0 0 2.18 7.07l3.67 2.83C6.71 7.31 9.14 5.38 12 5.38z"/>
                     </svg>
-                    Google Wallet
+                    Google Wallet — coming soon
                   </a>
                 </div>
                 <button className="btn btn-lg" style={{ marginTop: 10 }} onClick={copyLink}>

@@ -19,13 +19,15 @@ export default function UserSync() {
   useEffect(() => {
     if (!isLoaded || !user) return
 
-    // Read role from Clerk publicMetadata (set by setUserRoleIfNew server action)
-    const clerkRole = user.publicMetadata?.role as 'patient' | 'clinic_staff' | undefined
+    // Read role from Clerk publicMetadata — includes all platform roles
+    const clerkRole = user.publicMetadata?.role as
+      | 'patient' | 'clinic_staff' | 'surgeon' | 'admin'
+      | undefined
 
     upsertUser({
       email: user.primaryEmailAddress?.emailAddress ?? '',
       name:  user.fullName ?? user.username ?? user.id,
-      role:  clerkRole, // undefined = upsertUser will default to 'patient' for new rows
+      role:  clerkRole, // upsertUser promotes existing 'patient' rows if role is higher
     }).catch(console.error)
   }, [isLoaded, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 

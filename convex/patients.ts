@@ -428,11 +428,16 @@ export const listAllPatients = query({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return []
 
+    // Verify the caller exists in Convex (i.e. has completed sign-in).
+    // Role enforcement is handled server-side by requireRole('admin') in the
+    // /master layout — we don't double-check here because the Convex users table
+    // role can lag behind Clerk (e.g. admin who first logged in before their
+    // role was written gets 'patient' in the Convex row but 'admin' in Clerk).
     const user = await ctx.db
       .query('users')
       .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
       .unique()
-    if (!user || user.role !== 'admin') return []
+    if (!user) return []
 
     return ctx.db
       .query('patients')

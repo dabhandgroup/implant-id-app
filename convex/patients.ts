@@ -275,6 +275,47 @@ export const getMyImplantSafety = query({
   },
 })
 
+/** All verified devices linked to the current patient. */
+export const getMyLinkedDevices = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) return []
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) return []
+
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .collect()
+
+    return Promise.all(
+      links.map(async (l) => {
+        const d = await ctx.db.get(l.deviceId)
+        return d ? {
+          _id:          l._id,
+          deviceId:     l.deviceId,
+          name:         d.model,
+          manufacturer: d.manufacturer,
+          deviceType:   d.deviceType,
+          mriStatus:    d.mriStatus,
+          serialNumber: l.serialNumber,
+          implantDate:  l.implantDate,
+        } : null
+      }),
+    ).then(list => list.filter(Boolean))
+  },
+})
+
 /**
  * Public lookup by implant ID code — used by clinic scan page.
  * Returns patient info + verified devices, or null if not found.

@@ -56,6 +56,7 @@ export default function DashboardClient() {
   const router              = useRouter()
   const patient             = useQuery(api.patients.getMyPatient)
   const implantSafety       = useQuery(api.patients.getMyImplantSafety)
+  const linkedDevices       = useQuery(api.patients.getMyLinkedDevices)
   const notifications       = useQuery(api.patients.getMyNotifications)
   const allClinics          = useQuery(api.clinics.listClinics)
   const markWelcomeSeen        = useMutation(api.patients.markWelcomeSeen)
@@ -210,8 +211,8 @@ export default function DashboardClient() {
     return <div style={{ minHeight: '100vh', background: 'var(--bg)' }} />
   }
   if (patient === null) return null // redirecting
-  // If verified, also wait for implantSafety to avoid colour flash
-  const cardReady = patient.verificationStatus !== 'active' || implantSafety !== undefined
+  // If verified, wait for both implantSafety AND linkedDevices to avoid colour/content flash
+  const cardReady = patient.verificationStatus !== 'active' || (implantSafety !== undefined && linkedDevices !== undefined)
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const firstName   = patient.firstName
@@ -858,21 +859,38 @@ export default function DashboardClient() {
                 </div>
               )}
 
-              {/* Self-reported device type */}
+              {/* Device type label — uses verified devices if available, else self-reported */}
               <div
                 className={`pb-status${isPending ? ' pb-status--pending' : ''}`}
-                style={{ color: isPending ? '#64748b' : undefined, marginBottom: isPending ? 6 : undefined }}
+                style={{ color: isPending ? '#64748b' : undefined }}
               >
-                {patient.selfReportedDeviceType ?? 'No device type recorded'}
+                {linkedDevices && linkedDevices.length > 1
+                  ? `${linkedDevices.length} implants`
+                  : linkedDevices && linkedDevices.length === 1
+                    ? (linkedDevices[0] as any).deviceType
+                    : patient.selfReportedDeviceType ?? 'No device type recorded'}
               </div>
 
-              {/* Device name */}
-              <div className="pb-name" style={{
-                fontSize: patient.selfReportedDevice ? 26 : 20,
-                color: isPending ? '#334155' : undefined,
-              }}>
-                {patient.selfReportedDevice ?? 'Awaiting verification'}
-              </div>
+              {/* Device name(s) */}
+              {linkedDevices && linkedDevices.length > 0 ? (
+                <div style={{ marginBottom: 4 }}>
+                  {(linkedDevices as any[]).map((d, i) => (
+                    <div key={String(d._id)} className="pb-name" style={{ fontSize: 22, color: isPending ? '#334155' : undefined, marginBottom: i < linkedDevices.length - 1 ? 4 : 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {linkedDevices.length > 1 && (
+                        <img src={d.mriStatus === 'safe' ? '/mr-safe.svg' : d.mriStatus === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'} alt={d.mriStatus} style={{ width: 18, height: 18, flexShrink: 0 }} />
+                      )}
+                      {d.manufacturer} {d.name}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="pb-name" style={{
+                  fontSize: patient.selfReportedDevice ? 26 : 20,
+                  color: isPending ? '#334155' : undefined,
+                }}>
+                  {patient.selfReportedDevice ?? 'Awaiting verification'}
+                </div>
+              )}
 
               {/* MRI status now lives in top-right of pb-top — no duplicate here */}
 

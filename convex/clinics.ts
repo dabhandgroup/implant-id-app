@@ -83,6 +83,17 @@ export const submitClinicApplication = mutation({
       services:        args.services,
     })
 
+    // Pre-create a Clerk account immediately so it exists when the approval email
+    // link is clicked. We only need to do this if the submitter isn't already
+    // signed in (i.e. clerkUserId is unknown). If they're signed in, their Clerk
+    // account already exists and activateClinicAccount will find it by ID.
+    if (!clerkUserId) {
+      await ctx.scheduler.runAfter(0, internal.clinics.createPendingClinicAccount, {
+        contactEmail: args.contactEmail,
+        contactName:  args.contactName,
+      })
+    }
+
     return { id, alreadySubmitted: false }
   },
 })
@@ -180,6 +191,66 @@ export const listClinics = query({
 })
 
 // ── Approval ──────────────────────────────────────────────────────────────────
+
+/**
+ * Pre-create a passwordless Clerk account the moment a clinic submits their
+ * application form. This guarantees the account exists before the approval
+ * email link is ever clicked, avoiding the "Couldn't find your account" error.
+ *
+ * The account is created with role: 'clinic_pending' — it can't access anything.
+ * activateClinicAccount (called on approval) promotes it to 'clinic_staff'.
+ */
+export const createPendingClinicAccount = internalAction({
+  args: {
+    contactEmail: v.string(),
+    contactName:  v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const secretKey = process.env.CLERK_SECRET_KEY
+    if (!secretKey) {
+      console.error('[clinics] CLERK_SECRET_KEY not set — skipping Clerk pre-creation')
+      return
+    }
+
+    // If an account already exists for this email, do nothing
+    const searchRes = await fetch(
+      `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
+      { headers: { Authorization: `Bearer ${secretKey}` } },
+    )
+    if (searchRes.ok) {
+      const found = (await searchRes.json()) as { id: string }[]
+      if (found.length > 0) {
+        console.log('[clinics] Clerk account already exists for', args.contactEmail, '— skipping creation')
+        return
+      }
+    }
+
+    // Create a passwordless account (no role until approved)
+    const nameParts = args.contactName.trim().split(/\s+/)
+    const createRes = await fetch('https://api.clerk.com/v1/users', {
+      method:  'POST',
+      headers: {
+        Authorization:  `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email_addresses:           [args.contactEmail],
+        first_name:                nameParts[0],
+        last_name:                 nameParts.slice(1).join(' ') || undefined,
+        skip_password_requirement: true,
+        public_metadata:           { role: 'clinic_pending' },
+      }),
+    })
+
+    if (createRes.ok) {
+      const u = (await createRes.json()) as { id: string }
+      console.log('[clinics] Pre-created Clerk account', u.id, 'for', args.contactEmail)
+    } else {
+      const body = await createRes.text()
+      console.error('[clinics] Clerk pre-creation failed:', createRes.status, body)
+    }
+  },
+})
 
 /**
  * Activate the clinic account in Clerk after approval, then send the branded

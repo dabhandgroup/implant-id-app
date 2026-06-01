@@ -985,6 +985,7 @@ export default function DashboardClient() {
               {/* QR code — bottom right, inline with buttons */}
               {!isPending && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 9, marginBottom: 4, letterSpacing: '.8px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Scan at clinic</span>
                   {qrDataUrl ? (
                     <img
                       src={qrDataUrl}
@@ -999,7 +1000,6 @@ export default function DashboardClient() {
                       </svg>
                     </div>
                   )}
-                  <span style={{ fontFamily: 'var(--ff)', fontSize: 9, marginTop: 4, letterSpacing: '.8px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Scan at clinic</span>
                 </div>
               )}
 

@@ -178,6 +178,54 @@ export const listApplications = query({
   },
 })
 
+/** List clinics visible to patients (opted in via showToPatients). */
+export const listClinicsForPatients = query({
+  args: { query: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const all = await ctx.db
+      .query('clinics')
+      .withIndex('by_status', (q) => q.eq('status', 'active'))
+      .collect()
+
+    // Show clinics that have explicitly opted in, OR all active clinics if none have set the flag yet
+    // (graceful default — once a clinic sets it false it will be hidden)
+    const visible = all.filter(c => c.showToPatients !== false)
+
+    if (!args.query?.trim()) return visible
+
+    const q = args.query.toLowerCase()
+    return visible.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.address.toLowerCase().includes(q) ||
+      c.city?.toLowerCase().includes(q) ||
+      c.country?.toLowerCase().includes(q) ||
+      c.capabilities.some(cap => cap.toLowerCase().includes(q)),
+    )
+  },
+})
+
+/** Clinic staff updates their clinic's patient visibility setting. */
+export const updateClinicVisibility = mutation({
+  args: { showToPatients: v.boolean() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) throw new Error('User not found')
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow || staffRow.accessLevel !== 'admin') throw new Error('Admin access required')
+    await ctx.db.patch(staffRow.clinicId, { showToPatients: args.showToPatients })
+  },
+})
+
+/** Also store city/country when approving an application. */
+
 /** List all approved clinics (master admin view). */
 export const listClinics = query({
   args: {},
@@ -602,13 +650,16 @@ export const reviewApplication = mutation({
 
     if (args.decision === 'approved') {
       const clinicId = await ctx.db.insert('clinics', {
-        name:         app.facilityName,
-        address:      app.facilityAddress,
-        phone:        app.facilityPhone ?? app.contactPhone ?? undefined,
-        email:        app.contactEmail,
-        website:      app.facilityWebsite ?? undefined,
-        capabilities: app.services,
-        status:       'active',
+        name:           app.facilityName,
+        address:        app.facilityAddress,
+        city:           app.facilityCity ?? undefined,
+        country:        app.facilityCountry,
+        phone:          app.facilityPhone ?? app.contactPhone ?? undefined,
+        email:          app.contactEmail,
+        website:        app.facilityWebsite ?? undefined,
+        capabilities:   app.services,
+        status:         'active',
+        showToPatients: true,    // default: visible to patients
       })
 
       // If we know the submitting Clerk user, make them an admin staff member

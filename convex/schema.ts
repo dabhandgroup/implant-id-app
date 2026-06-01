@@ -107,6 +107,8 @@ export default defineSchema({
   clinics: defineTable({
     name: v.string(),
     address: v.string(),
+    city:    v.optional(v.string()),    // city for Find a Clinic search/display
+    country: v.optional(v.string()),
     phone: v.optional(v.string()),
     mriBookingsPhone: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -114,6 +116,7 @@ export default defineSchema({
     capabilities: v.array(v.string()), // e.g. ["Pacemaker/ICD","DBS/Neurostim"]
     logoUrl: v.optional(v.string()),
     status: v.union(v.literal('active'), v.literal('pending'), v.literal('suspended')),
+    showToPatients: v.optional(v.boolean()),  // appears on patient Find a Clinic page
   })
     .index('by_status', ['status']),
 

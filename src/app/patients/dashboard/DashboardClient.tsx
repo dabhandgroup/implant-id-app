@@ -742,14 +742,29 @@ export default function DashboardClient() {
             </div>
 
             {/* ── Implant pass card ─────────────────────────────────────── */}
+            {/* Card background is colour-coded by MRI safety status:
+                grey = pending/unverified, teal = verified/unknown,
+                green = MR Safe, amber = MR Conditional, red = MR Unsafe */}
             <div
               className="pass-big"
-              style={isPending ? {
-                background: 'linear-gradient(155deg,#e8edf2 0%,#d4dce6 55%,#eef1f5 100%)',
-                color: '#1e293b',
-                boxShadow: '0 20px 50px -20px rgba(0,0,0,.10)',
-                overflow: 'visible',
-              } : undefined}
+              style={
+                isPending ? {
+                  background: 'linear-gradient(155deg,#e8edf2 0%,#d4dce6 55%,#eef1f5 100%)',
+                  color: '#1e293b',
+                  boxShadow: '0 20px 50px -20px rgba(0,0,0,.10)',
+                  overflow: 'visible',
+                }
+                : implantSafety === 'unsafe' ? {
+                  background: 'linear-gradient(155deg,#991b1b 0%,#b91c1c 55%,#dc2626 100%)',
+                }
+                : implantSafety === 'conditional' ? {
+                  background: 'linear-gradient(155deg,#92400e 0%,#b45309 55%,#d97706 100%)',
+                }
+                : implantSafety === 'safe' ? {
+                  background: 'linear-gradient(155deg,#166534 0%,#15803d 55%,#16a34a 100%)',
+                }
+                : undefined   // default teal gradient from .pass-big CSS
+              }
             >
               <div className="pb-top">
                 <div className="pb-brand">
@@ -808,7 +823,7 @@ export default function DashboardClient() {
                   </span>
                   <div className="pending-tooltip">
                     Your implant details are being verified by your clinical team.
-                    Once confirmed, your wallet pass and sharing features will be unlocked.
+                    Once confirmed, your Apple Wallet pass will activate and the card will show your MRI safety status in the correct colour.
                   </div>
                 </div>
               )}
@@ -857,24 +872,76 @@ export default function DashboardClient() {
                 )}
               </div>
 
-              {/* Actions — hidden when pending */}
-              {!isPending && (
-                <div className="pb-actions" style={{ marginTop: 20 }}>
-                  <button className="btn btn-s" onClick={() => setWallOpen(true)}>
+              {/* Actions — always visible; greyed + locked when pending */}
+              <div className="pb-actions" style={{ marginTop: 20 }}>
+
+                {/* Add to Apple Wallet */}
+                {isPending ? (
+                  /* Grey / locked state */
+                  <button
+                    className="btn"
+                    disabled
+                    title="Available once your record is verified"
+                    style={{
+                      background: 'rgba(255,255,255,0.15)',
+                      borderColor: 'rgba(255,255,255,0.2)',
+                      color: 'rgba(255,255,255,0.45)',
+                      cursor: 'not-allowed', opacity: 1,
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity:.6 }}>
+                      <rect x="3" y="11" width="18" height="11" rx="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    Wallet — pending
+                  </button>
+                ) : (
+                  /* Active — downloads .pkpass */
+                  <a
+                    href="/api/wallet/pass"
+                    download
+                    className="btn btn-s"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none' }}
+                  >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>
                     </svg>
-                    Add to Wallet
+                    Add to Apple Wallet
+                  </a>
+                )}
+
+                {/* Share with clinic — locked when pending */}
+                {isPending ? (
+                  <button
+                    className="btn"
+                    disabled
+                    title="Available once your record is verified"
+                    style={{
+                      background: 'rgba(255,255,255,0.10)',
+                      borderColor: 'rgba(255,255,255,0.15)',
+                      color: 'rgba(255,255,255,0.40)',
+                      cursor: 'not-allowed', opacity: 1,
+                      display: 'flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity:.6 }}>
+                      <rect x="3" y="11" width="18" height="11" rx="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    Share — pending
                   </button>
-                  <button className="btn" onClick={() => setWallOpen(true)}>
+                ) : (
+                  <button className="btn" onClick={() => setWallOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                       <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
                       <path d="M16 6l-4-4-4 4M12 2v13"/>
                     </svg>
                     Share with clinic
                   </button>
-                </div>
-              )}
+                )}
+
+              </div>
             </div>
 
             {/* Quick access */}

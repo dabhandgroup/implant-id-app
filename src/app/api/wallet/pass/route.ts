@@ -1,58 +1,68 @@
 /**
  * GET /api/wallet/pass
+ * Generates a signed Apple Wallet .pkpass for the authenticated patient.
  *
- * Generates and returns an Apple Wallet .pkpass file for the authenticated patient.
- *
- * Requires these environment variables in Vercel / Convex:
- *   APPLE_PASS_TYPE_ID      — e.g. pass.io.implantid.patient  (from Apple Developer Portal)
- *   APPLE_TEAM_ID           — 10-char Apple Team Identifier
- *   APPLE_PASS_CERT         — base64-encoded .p12 signing certificate
- *   APPLE_PASS_CERT_PASSWORD — passphrase for the .p12 (leave blank if none)
- *   APPLE_WWDR_CERT         — base64-encoded Apple WWDR G4 certificate
- *
- * How to get these:
- *   1. Enrol in Apple Developer Program (developer.apple.com)
- *   2. Certificates, IDs & Profiles → Identifiers → Pass Type IDs → Create new
- *   3. Generate a pass signing certificate for that ID → download .cer → export as .p12
- *   4. Download the WWDR (Worldwide Developer Relations) G4 cert from Apple
- *   5. base64-encode both files: openssl base64 -in cert.p12 -out cert.b64
- *   6. Add all values as Vercel environment variables
+ * Required Vercel env vars:
+ *   APPLE_PASS_TYPE_ID      e.g. pass.io.implantid.patient
+ *   APPLE_TEAM_ID           10-char team ID (e.g. 43QC4SK96C)
+ *   APPLE_PASS_CERT         base64 of the .p12 signing certificate
+ *   APPLE_PASS_CERT_PASSWORD passphrase for the .p12 (omit / leave blank if none)
+ *   APPLE_WWDR_CERT         base64 of the Apple WWDR G4 .cer certificate
  */
 
-import { auth }        from '@clerk/nextjs/server'
-import { fetchQuery }  from 'convex/nextjs'
-import { api }         from '../../../../../convex/_generated/api'
-import { PKPass }      from 'passkit-generator'
+export const runtime = 'nodejs'
 
-// ── MRI status helpers ────────────────────────────────────────────────────────
+import { auth }       from '@clerk/nextjs/server'
+import { fetchQuery } from 'convex/nextjs'
+import { api }        from '../../../../../convex/_generated/api'
+import { PKPass }     from 'passkit-generator'
+// node-forge is bundled with passkit-generator
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const forge = require('node-forge')
 
 const MRI_LABEL: Record<string, string> = {
-  safe:        'MR Safe',
-  conditional: 'MR Conditional',
-  unsafe:      'MR Unsafe — Do Not Scan',
+  safe: 'MR Safe', conditional: 'MR Conditional', unsafe: 'MR Unsafe — Do Not Scan',
+}
+const MRI_BG: Record<string, string> = {
+  safe: 'rgb(21,128,61)', conditional: 'rgb(180,83,9)', unsafe: 'rgb(185,28,28)',
+}
+const PENDING_BG = 'rgb(100,116,139)'
+const DEFAULT_BG = 'rgb(41,134,159)'
+const WHITE      = 'rgb(255,255,255)'
+const LABEL_C    = 'rgb(220,240,248)'
+
+/** Extract PEM cert + key from a .p12 buffer using node-forge */
+function parsePkcs12(p12Buffer: Buffer, passphrase: string): { certPem: string; keyPem: string } {
+  const p12Der  = forge.util.createBuffer(p12Buffer.toString('binary'))
+  const p12Asn1 = forge.asn1.fromDer(p12Der)
+  const p12     = forge.pkcs12.pkcs12FromAsn1(p12Asn1, false, passphrase || null)
+
+  // Extract certificate
+  const certBags  = p12.getBags({ bagType: forge.pki.oids.certBag })
+  const certBag   = certBags[forge.pki.oids.certBag]?.[0]
+  if (!certBag?.cert) throw new Error('No certificate found in .p12 file')
+  const certPem   = forge.pki.certificateToPem(certBag.cert)
+
+  // Extract private key
+  const keyBags   = p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })
+  const keyBag    = keyBags[forge.pki.oids.pkcs8ShroudedKeyBag]?.[0]
+  if (!keyBag?.key)  throw new Error('No private key found in .p12 file')
+  const keyPem    = forge.pki.privateKeyToPem(keyBag.key)
+
+  return { certPem, keyPem }
 }
 
-const MRI_BG_RGB: Record<string, string> = {
-  safe:        'rgb(21,128,61)',    // green
-  conditional: 'rgb(180,83,9)',     // amber
-  unsafe:      'rgb(185,28,28)',    // red
+/** Convert a DER (.cer) buffer to PEM string */
+function derToPem(derBuffer: Buffer): string {
+  const b64  = derBuffer.toString('base64')
+  const body = b64.match(/.{1,64}/g)!.join('\n')
+  return `-----BEGIN CERTIFICATE-----\n${body}\n-----END CERTIFICATE-----\n`
 }
-
-const PENDING_BG  = 'rgb(100,116,139)'   // slate-500
-const DEFAULT_BG  = 'rgb(41,134,159)'    // implant ID teal
-const WHITE_TEXT  = 'rgb(255,255,255)'
-const LIGHT_LABEL = 'rgb(220,240,248)'
-
-// ── Route handler ─────────────────────────────────────────────────────────────
-
-export const runtime = 'nodejs'
 
 export async function GET() {
   // ── Auth ──────────────────────────────────────────────────────────────────
   const clerkAuth = await auth()
-  if (!clerkAuth.userId) {
-    return new Response('Unauthorised', { status: 401 })
-  }
+  if (!clerkAuth.userId) return new Response('Unauthorised', { status: 401 })
 
   const convexToken = await clerkAuth.getToken({ template: 'convex' })
 
@@ -61,32 +71,33 @@ export async function GET() {
     fetchQuery(api.patients.getMyPatient,       {}, { token: convexToken ?? undefined }),
     fetchQuery(api.patients.getMyImplantSafety, {}, { token: convexToken ?? undefined }),
   ])
+  if (!patient) return new Response('Patient not found', { status: 404 })
 
-  if (!patient) {
-    return new Response('Patient record not found', { status: 404 })
-  }
-
-  // ── Apple credential check ────────────────────────────────────────────────
-  const passTypeId  = process.env.APPLE_PASS_TYPE_ID
-  const teamId      = process.env.APPLE_TEAM_ID
-  const certB64     = process.env.APPLE_PASS_CERT
-  const certPwd     = process.env.APPLE_PASS_CERT_PASSWORD ?? ''
-  const wwdrB64     = process.env.APPLE_WWDR_CERT
+  // ── Apple credentials ─────────────────────────────────────────────────────
+  const passTypeId = process.env.APPLE_PASS_TYPE_ID
+  const teamId     = process.env.APPLE_TEAM_ID
+  const certB64    = process.env.APPLE_PASS_CERT
+  const certPwd    = process.env.APPLE_PASS_CERT_PASSWORD ?? ''
+  const wwdrB64    = process.env.APPLE_WWDR_CERT
 
   if (!passTypeId || !teamId || !certB64 || !wwdrB64) {
     return Response.json({
-      error:    'Apple Wallet not yet configured',
-      message:  'Your clinic administrator needs to configure Apple Developer credentials.',
-      required: ['APPLE_PASS_TYPE_ID', 'APPLE_TEAM_ID', 'APPLE_PASS_CERT', 'APPLE_WWDR_CERT'],
+      error:    'Apple Wallet not configured',
+      missing:  [
+        !passTypeId && 'APPLE_PASS_TYPE_ID',
+        !teamId     && 'APPLE_TEAM_ID',
+        !certB64    && 'APPLE_PASS_CERT',
+        !wwdrB64    && 'APPLE_WWDR_CERT',
+      ].filter(Boolean),
     }, { status: 503 })
   }
 
-  // ── Pass content ──────────────────────────────────────────────────────────
-  const isPending   = patient.verificationStatus !== 'active'
-  const mriLabel    = safety ? (MRI_LABEL[safety] ?? 'MR Status Unknown') : (isPending ? 'Pending Verification' : 'Not assessed')
-  const bgColor     = isPending ? PENDING_BG : (safety ? (MRI_BG_RGB[safety] ?? DEFAULT_BG) : DEFAULT_BG)
-  const fullName    = `${patient.firstName} ${patient.lastName}`
-  const deviceName  = patient.selfReportedDevice ?? 'Not recorded'
+  // ── Build pass content ────────────────────────────────────────────────────
+  const isPending  = patient.verificationStatus !== 'active'
+  const mriLabel   = safety ? (MRI_LABEL[safety] ?? 'MRI status unknown') : (isPending ? 'Pending verification' : 'Not assessed')
+  const bgColor    = isPending ? PENDING_BG : (safety ? (MRI_BG[safety] ?? DEFAULT_BG) : DEFAULT_BG)
+  const fullName   = `${patient.firstName} ${patient.lastName}`
+  const deviceName = patient.selfReportedDevice ?? 'Not recorded'
 
   const passJson = {
     formatVersion:      1,
@@ -96,11 +107,9 @@ export async function GET() {
     organizationName:   'Implant ID',
     description:        'Implant ID Patient Pass',
     logoText:           'Implant ID',
-
-    foregroundColor: WHITE_TEXT,
-    backgroundColor: bgColor,
-    labelColor:      LIGHT_LABEL,
-
+    foregroundColor:    WHITE,
+    backgroundColor:    bgColor,
+    labelColor:         LIGHT_LABEL,
     barcodes: [
       {
         message:         patient.implantIdCode,
@@ -109,33 +118,16 @@ export async function GET() {
         altText:         patient.implantIdCode,
       },
     ],
-
     generic: {
       primaryField: [
-        {
-          key:   'implantId',
-          label: 'IMPLANT ID',
-          value: patient.implantIdCode,
-        },
+        { key: 'implantId', label: 'IMPLANT ID', value: patient.implantIdCode },
       ],
       secondaryFields: [
-        {
-          key:   'mriStatus',
-          label: 'MRI STATUS',
-          value: mriLabel,
-        },
-        {
-          key:   'patientName',
-          label: 'PATIENT',
-          value: fullName,
-        },
+        { key: 'mriStatus',    label: 'MRI STATUS', value: mriLabel },
+        { key: 'patientName',  label: 'PATIENT',    value: fullName },
       ],
       auxiliaryFields: [
-        {
-          key:   'device',
-          label: 'DEVICE',
-          value: deviceName,
-        },
+        { key: 'device', label: 'DEVICE', value: deviceName },
         ...(patient.selfReportedImplantYear ? [{
           key:   'implantDate',
           label: 'IMPLANTED',
@@ -146,50 +138,58 @@ export async function GET() {
       ],
       backFields: [
         {
-          key:         'instructions',
-          label:       isPending ? '⚠ UNVERIFIED RECORD' : 'IMPORTANT',
-          value:       isPending
-            ? 'This implant record has not yet been verified by clinical staff. Do NOT use this pass to make MRI decisions until verification is complete.'
-            : 'Always show this card to MRI staff before any scan. Your radiographer will confirm conditions with you.',
+          key:   'instructions',
+          label: isPending ? '⚠ UNVERIFIED RECORD' : 'IMPORTANT',
+          value: isPending
+            ? 'This record has NOT been verified. Do not use to make clinical MRI decisions until verification is complete.'
+            : 'Always show this card to MRI staff before any scan. Your radiographer will review conditions with you.',
           textAlignment: 'PKTextAlignmentLeft',
         },
         {
           key:   'emergency',
           label: 'EMERGENCY',
-          value: 'If found unconscious or unable to communicate, show this card to medical staff immediately.',
+          value: 'If found unconscious, show this card to medical staff immediately.',
           textAlignment: 'PKTextAlignmentLeft',
         },
         ...(patient.contrastAllergy ? [{
           key:   'allergy',
           label: '⚠ CONTRAST ALLERGY',
-          value: patient.contrastAllergyNote ?? 'Documented contrast allergy — inform radiology before any contrast administration.',
+          value: patient.contrastAllergyNote ?? 'Documented contrast allergy — inform radiology before any contrast.',
           textAlignment: 'PKTextAlignmentLeft' as const,
         }] : []),
         {
           key:   'portal',
           label: 'FULL RECORD',
-          value: `https://portal.implantid.io — Sign in with ${patient.firstName.toLowerCase()}`,
+          value: `portal.implantid.io/scan/${patient.implantIdCode}`,
           textAlignment: 'PKTextAlignmentLeft',
         },
       ],
     },
   }
 
-  // ── Generate pass ─────────────────────────────────────────────────────────
+  // ── Generate signed .pkpass ───────────────────────────────────────────────
   try {
-    const signerCert = Buffer.from(certB64, 'base64')
-    const wwdrCert   = Buffer.from(wwdrB64, 'base64')
+    // Parse .p12 → separate PEM cert + key using node-forge
+    const p12Buffer = Buffer.from(certB64, 'base64')
+    const { certPem, keyPem } = parsePkcs12(p12Buffer, certPwd)
 
-    const pass = new PKPass({}, {
-      wwdr:                 wwdrCert,
-      signerCert,
-      signerKey:            signerCert,    // .p12 contains both cert + key
-      signerKeyPassphrase:  certPwd || undefined,
-    })
+    // WWDR cert: convert DER to PEM if needed
+    const wwdrBuffer = Buffer.from(wwdrB64, 'base64')
+    const wwdrPem    = wwdrBuffer.toString('utf-8').includes('BEGIN CERTIFICATE')
+      ? wwdrBuffer.toString('utf-8')
+      : derToPem(wwdrBuffer)
 
-    // Apply pass fields
-    Object.assign(pass, passJson)
-    pass.type = 'generic'
+    const pass = new PKPass(
+      // Files — pass.json is required
+      { 'pass.json': Buffer.from(JSON.stringify(passJson)) },
+      // Certificates — all in PEM format
+      {
+        wwdr:       wwdrPem,
+        signerCert: certPem,
+        signerKey:  keyPem,
+        signerKeyPassphrase: certPwd || undefined,
+      },
+    )
 
     const buffer = pass.getAsBuffer()
 
@@ -201,7 +201,14 @@ export async function GET() {
       },
     })
   } catch (err) {
-    console.error('[wallet/pass] Pass generation failed:', err)
-    return new Response('Pass generation failed — check Apple credentials', { status: 500 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[wallet/pass] Generation failed:', msg)
+    return new Response(
+      JSON.stringify({ error: 'Pass generation failed', detail: msg }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 }
+
+// Fix missing constant reference
+const LIGHT_LABEL = 'rgb(220,240,248)'

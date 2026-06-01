@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useClerk } from '@clerk/nextjs'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 
 interface MasterShellProps {
   children: React.ReactNode
@@ -25,21 +25,34 @@ function pageTitleFromPathname(pathname: string): string {
 
 export default function MasterShell({ children }: MasterShellProps) {
   const { signOut } = useClerk()
-  const pathname = usePathname()
+  const pathname  = usePathname()
+  const router    = useRouter()
+  const searchRef = useRef<HTMLInputElement>(null)
 
-  // Desktop collapse
-  const [collapsed, setCollapsed] = useState(false)
-  // Mobile sidebar open
-  const [mobOpen, setMobOpen] = useState(false)
-  // Notifications drawer
-  const [notifOpen, setNotifOpen] = useState(false)
-  // Desktop profile popup
-  const [profileOpen, setProfileOpen] = useState(false)
-  // Mobile profile popup
+  const [collapsed,      setCollapsed]      = useState(false)
+  const [mobOpen,        setMobOpen]        = useState(false)
+  const [notifOpen,      setNotifOpen]      = useState(false)
+  const [profileOpen,    setProfileOpen]    = useState(false)
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
-  // Sign-out confirmation
   const [signOutConfirm, setSignOutConfirm] = useState(false)
-  const [signingOut, setSigningOut] = useState(false)
+  const [signingOut,     setSigningOut]     = useState(false)
+  const [searchQuery,    setSearchQuery]    = useState('')
+
+  // ⌘K / Ctrl+K focuses the global search bar
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        if (pathname !== '/master/search') {
+          router.push('/master/search')
+        } else {
+          searchRef.current?.focus()
+        }
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [pathname, router])
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -368,10 +381,41 @@ export default function MasterShell({ children }: MasterShellProps) {
             <button className="sb-burger" onClick={openMob} aria-label="Open menu">
               <IconHamburg />
             </button>
-            <h1>
+            <h1 style={{ flexShrink: 0 }}>
               {pageTitle}
               <span className="m-badge">Master</span>
             </h1>
+
+            {/* Global search bar */}
+            <form
+              style={{ flex: 1, maxWidth: 420, margin: '0 20px', position: 'relative' }}
+              onSubmit={e => { e.preventDefault(); if (searchQuery.trim()) router.push(`/master/search?q=${encodeURIComponent(searchQuery)}`) }}
+            >
+              <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: 'var(--muted2)', pointerEvents: 'none' }}
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input
+                ref={searchRef}
+                type="text"
+                placeholder="Search patients, devices, clinics…"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onFocus={() => { if (!pathname.startsWith('/master/search')) router.push('/master/search') }}
+                style={{
+                  width: '100%', background: 'var(--bg2)', border: '1px solid var(--border)',
+                  borderRadius: 10, padding: '8px 40px 8px 36px',
+                  fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--text)', outline: 'none',
+                  transition: 'border-color .15s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+              />
+              <kbd style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontFamily: 'var(--ff)', fontSize: 10, color: 'var(--muted2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px', pointerEvents: 'none' }}>
+                ⌘K
+              </kbd>
+            </form>
+
             <div className="app-top-r">
               <button className="btn btn-s" onClick={() => window.location.href = '/master/devices/add'}>
                 + Add device

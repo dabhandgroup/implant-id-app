@@ -1,6 +1,6 @@
 'use node'
 import { internalAction } from './_generated/server'
-import { v } from 'convex/values'
+import { v }              from 'convex/values'
 import { Resend } from 'resend'
 import { buildEmail } from './emailTemplate'
 
@@ -163,6 +163,63 @@ export const sendClinicRejectionEmail = internalAction({
         },
         footerNote: `If you believe this decision was made in error or have any questions,
           please reach out at <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})
+
+// ── Staff invite email ────────────────────────────────────────────────────────
+
+export const sendStaffInviteEmail = internalAction({
+  args: {
+    contactName:  v.string(),
+    contactEmail: v.string(),
+    clinicName:   v.string(),
+    jobType:      v.string(),   // 'radiographer' | 'surgeon' | 'admin'
+  },
+  handler: async (_ctx, args) => {
+    const r         = resend()
+    const firstName = args.contactName.split(' ')[0]
+    const roleLabel = args.jobType === 'surgeon'      ? 'Surgeon'
+                    : args.jobType === 'admin'         ? 'Admin'
+                    : 'Radiographer'
+    const portalUrl = args.jobType === 'surgeon'
+      ? `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`
+      : `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`
+
+    await r.emails.send({
+      from:    FROM,
+      to:      args.contactEmail,
+      subject: `You've been added to ${args.clinicName} on Implant ID`,
+      html: buildEmail({
+        title:   'Platform Invitation',
+        heading: `You've been added, ${firstName}!`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            <strong style="color:#0e2a33;">${args.clinicName}</strong> has added you to
+            the Implant ID platform as a <strong style="color:#0e2a33;">${roleLabel}</strong>.
+            Your account is ready to use.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Click the button below to sign in. Enter your email address and we'll send you
+            a one-time verification code — no password needed.
+          </p>
+        `,
+        highlightBox: {
+          content: `
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                       text-transform:uppercase;color:#29869F;">Sign in with</p>
+            <p style="margin:0;font-size:20px;font-weight:600;color:#1a6a80;
+                       letter-spacing:0.2px;">${args.contactEmail}</p>
+          `,
+        },
+        cta: {
+          label: 'Sign in to your portal →',
+          url:   portalUrl,
+        },
+        footerNote: `If you weren't expecting this invitation, contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
         includeUnsubscribe: false,
       }),
     })

@@ -487,6 +487,93 @@ export const inviteClinicStaff = mutation({
       contactName:  args.contactName,
       jobType:      args.jobType,
     })
+
+    // Send invite email so they know to sign in
+    const clinic = await ctx.db.get(staffRow.clinicId)
+    await ctx.scheduler.runAfter(0, internal.email.sendStaffInviteEmail, {
+      contactEmail: args.contactEmail,
+      contactName:  args.contactName,
+      clinicName:   clinic?.name ?? 'your clinic',
+      jobType:      args.jobType,
+    })
+  },
+})
+
+/** Search existing platform surgeons by name or email (for adding to a clinic). */
+export const searchPlatformSurgeons = query({
+  args: { query: v.string() },
+  handler: async (ctx, args) => {
+    // Get all staff with jobType = 'surgeon'
+    const surgeonStaff = await ctx.db
+      .query('staff')
+      .filter((q) => q.eq(q.field('jobType'), 'surgeon'))
+      .collect()
+
+    // Unique user IDs (surgeon may be at multiple clinics)
+    const seenUserIds = new Set<string>()
+    const uniqueStaff = surgeonStaff.filter((s) => {
+      const id = s.userId.toString()
+      if (seenUserIds.has(id)) return false
+      seenUserIds.add(id)
+      return true
+    })
+
+    const users = await Promise.all(uniqueStaff.map((s) => ctx.db.get(s.userId)))
+    const valid = users.filter(Boolean) as NonNullable<(typeof users)[0]>[]
+
+    const q = args.query.trim().toLowerCase()
+    const filtered = q
+      ? valid.filter(
+          (u) =>
+            u.name.toLowerCase().includes(q) ||
+            u.email.toLowerCase().includes(q),
+        )
+      : valid
+
+    return filtered.slice(0, 10).map((u) => ({
+      userId: u._id,
+      name:   u.name,
+      email:  u.email,
+    }))
+  },
+})
+
+/** Add an existing platform surgeon (or staff member) to this clinic. */
+export const addExistingStaffToClinic = mutation({
+  args: {
+    userId:  v.id('users'),
+    jobType: v.union(v.literal('radiographer'), v.literal('surgeon'), v.literal('admin')),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) throw new Error('User not found')
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) throw new Error('Staff record not found')
+
+    // Check not already at this clinic
+    const existing = await ctx.db
+      .query('staff')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .filter((q) => q.eq(q.field('userId'), args.userId))
+      .first()
+    if (existing) throw new Error('This person is already a member of your clinic')
+
+    await ctx.db.insert('staff', {
+      userId:      args.userId,
+      clinicId:    staffRow.clinicId,
+      jobType:     args.jobType,
+      accessLevel: 'standard',
+      allPatients: true,
+      status:      'active',
+    })
   },
 })
 

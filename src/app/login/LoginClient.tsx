@@ -311,15 +311,31 @@ export default function LoginClient() {
 
   // ── Clinic: email OTP ─────────────────────────────────────────────────────
 
+  // ── Clinic / Surgeon: email OTP ──────────────────────────────────────────────
+  // Tries sign-in first. If account doesn't exist (e.g. invite Clerk pre-creation
+  // failed), automatically falls back to sign-up so the user is never stranded.
+
   async function sendClinicOtp() {
-    if (!clEmail.trim()) return err('Enter your clinic email')
+    if (!clEmail.trim()) return err('Enter your email')
     setLoading(true); setError('')
     try {
+      // Try sign-in (account pre-created by invite flow)
       const { error: ce } = await signIn!.create({ identifier: clEmail })
-      if (ce) return err(ce.message ?? 'Could not start sign-in')
-      const { error: se } = await signIn!.emailCode.sendCode()
-      if (se) return err(se.message ?? 'Could not send code')
-      setOtp(['','','','','','']); setClPhase('email-otp')
+      if (!ce) {
+        const { error: se } = await signIn!.emailCode.sendCode()
+        if (se) return err(se.message ?? 'Could not send code')
+        setOtp(['','','','','','']); setClPhase('email-otp')
+        return
+      }
+      // Account not found — create it now via sign-up
+      // (the invite's Clerk pre-creation may have failed; this is the safety net)
+      const { error: sue } = await signUp!.create({ emailAddress: clEmail.trim() })
+      if (sue) return err(sue.message ?? 'Could not send code — contact your admin if you were just invited')
+      const { error: vpe } = await signUp!.prepareEmailAddressVerification({ strategy: 'email_code' })
+      if (vpe) return err(vpe.message ?? 'Could not send code')
+      setOtp(['','','','','',''])
+      setClIsSignUp(true)
+      setClPhase('email-otp')
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
@@ -332,13 +348,16 @@ export default function LoginClient() {
         // New account path — verify via Clerk sign-up flow
         const { error: ve } = await signUp!.attemptEmailAddressVerification({ code: c })
         if (ve) return err(ve.message ?? 'Invalid code')
-        // Stamp clinic_staff role now that account is verified
-        await setUserRoleIfNew('clinic_staff').catch(() => { /* non-fatal */ })
-        router.push('/clinics/dashboard')
+        // Role was already set by the invite flow's createStaffAccount action.
+        // Redirect to /login — the already-signed-in effect detects the role
+        // and bounces to the correct portal (clinic or surgeon).
+        router.replace('/login')
       } else {
         // Existing account path — normal sign-in OTP
         const { error: ve } = await signIn!.emailCode.verifyCode({ code: c })
         if (ve) return err(ve.message ?? 'Invalid code')
+        // finalizeAndGo always redirects to /clinics/dashboard but requireRole
+        // on that layout will bounce surgeons to /surgeons/dashboard automatically.
         await finalizeAndGo('/clinics/dashboard')
       }
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }

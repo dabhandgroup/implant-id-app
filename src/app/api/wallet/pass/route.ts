@@ -21,7 +21,7 @@
 
 import { auth }        from '@clerk/nextjs/server'
 import { fetchQuery }  from 'convex/nextjs'
-import { api }         from '../../../../convex/_generated/api'
+import { api }         from '../../../../../convex/_generated/api'
 import { PKPass }      from 'passkit-generator'
 
 // ── MRI status helpers ────────────────────────────────────────────────────────

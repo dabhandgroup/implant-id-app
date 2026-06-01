@@ -103,7 +103,7 @@ export const sendClinicApprovalEmail = internalAction({
         },
         cta: {
           label: 'Sign in to your clinic portal →',
-          url:   'https://portal.implantid.io/clinics',
+          url:   `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`,
         },
         footerNote: `If you didn't apply to join Implant ID, please contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,

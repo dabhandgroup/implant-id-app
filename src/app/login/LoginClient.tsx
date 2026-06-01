@@ -1,7 +1,7 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSignIn, useUser } from '@clerk/nextjs'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { setUserRoleIfNew } from '../actions/setUserRole'
 
 // ── OTP input row ─────────────────────────────────────────────────────────────
@@ -105,7 +105,11 @@ type ClinicPhase  = 'email' | 'email-otp' | 'password' | 'mfa-totp'
 // ─── component ───────────────────────────────────────────────────────────────
 
 export default function LoginClient() {
-  const router = useRouter()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  // If the user arrived via the approval email link, their email is pre-filled
+  const prefillEmail = searchParams.get('email') ?? ''
+
   // Clerk 7 signals API — signIn is always defined, finalize() sets the session
   const { signIn } = useSignIn()
   // Already-signed-in detection — hooks must all be at top, unconditionally
@@ -120,8 +124,8 @@ export default function LoginClient() {
     else                              router.replace('/patients/dashboard')
   }, [isLoaded, isSignedIn, user, router])
 
-  // tab / phase state
-  const [tab,      setTab]      = useState<Tab>('patient')
+  // tab / phase state — default to 'clinic' tab when arriving via approval link
+  const [tab,      setTab]      = useState<Tab>(prefillEmail ? 'clinic' : 'patient')
   const [patPhase, setPatPhase] = useState<PatientPhase>('phone')
   const [clPhase,  setClPhase]  = useState<ClinicPhase>('email')
 
@@ -134,8 +138,8 @@ export default function LoginClient() {
   // OTP digits shared between phone + email flows
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
 
-  // clinic email / password
-  const [clEmail,    setClEmail]    = useState('')
+  // clinic email / password — pre-fill from URL param if present
+  const [clEmail,    setClEmail]    = useState(prefillEmail)
   const [clPassword, setClPassword] = useState('')
   const [clShowPw,   setClShowPw]   = useState(false)
 
@@ -150,6 +154,29 @@ export default function LoginClient() {
 
   // MFA — TOTP second factor
   const [mfaDest,    setMfaDest]    = useState('')   // remembered so verify can redirect
+
+  // ── Auto-send OTP when arriving via approval email link ───────────────────
+  // Guard ref prevents double-firing in React strict mode
+  const autoSent = useRef(false)
+  useEffect(() => {
+    if (!prefillEmail || autoSent.current || !signIn) return
+    autoSent.current = true
+    ;(async () => {
+      setLoading(true)
+      try {
+        const { error: ce } = await signIn.create({ identifier: prefillEmail })
+        if (ce) { setError(ce.message ?? 'Could not start sign-in'); return }
+        const { error: se } = await signIn.emailCode.sendCode()
+        if (se) { setError(se.message ?? 'Could not send code'); return }
+        setOtp(['', '', '', '', '', ''])
+        setClPhase('email-otp')
+      } catch {
+        setError('Could not send verification code — please enter your email and try again')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [signIn, prefillEmail]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── helpers ────────────────────────────────────────────────────────────────
 

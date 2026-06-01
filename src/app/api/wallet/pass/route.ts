@@ -28,16 +28,19 @@ function pub(name: string) {
   return readFileSync(join(process.cwd(), 'public', name))
 }
 
-const ICON_SM        = pub('icon-29.png')
-const ICON_MD        = pub('icon-58.png')
-const ICON_LG        = pub('icon-87.png')
-// Logo slot: use the small app icon so it doesn't clash with logoText "Implant ID"
-// (the wordmark caused doubling because Apple Wallet shows both logo.png AND logoText)
-const LOGO_SM        = pub('icon-58.png')   // 58px square icon for logo slot
-const LOGO_MD        = pub('icon-87.png')   // @2x
-const MRI_SAFE       = pub('mr-safe.png')
-const MRI_CONDITIONAL = pub('mr-conditional.png')
-const MRI_UNSAFE     = pub('mr-unsafe.png')
+const ICON_SM         = pub('icon-29.png')
+const ICON_MD         = pub('icon-58.png')
+const ICON_LG         = pub('icon-87.png')
+// White logo (from email template) — clean on coloured card backgrounds
+const LOGO_SM         = pub('wallet-logo.png')
+const LOGO_MD         = pub('wallet-logo@2x.png')
+// MRI badge thumbnails: icon + label text side by side
+const MRI_SAFE_BADGE        = pub('mr-safe-badge.png')
+const MRI_SAFE_BADGE_2X     = pub('mr-safe-badge@2x.png')
+const MRI_CONDITIONAL_BADGE = pub('mr-conditional-badge.png')
+const MRI_CONDITIONAL_2X    = pub('mr-conditional-badge@2x.png')
+const MRI_UNSAFE_BADGE      = pub('mr-unsafe-badge.png')
+const MRI_UNSAFE_BADGE_2X   = pub('mr-unsafe-badge@2x.png')
 
 const MRI_LABEL: Record<string, string> = {
   safe: 'MR Safe', conditional: 'MR Conditional', unsafe: 'MR Unsafe — Do Not Scan',
@@ -160,6 +163,11 @@ export async function GET() {
             ? `${patient.selfReportedImplantMonth}/${patient.selfReportedImplantYear}`
             : patient.selfReportedImplantYear,
         }] : []),
+        ...(patient.selfReportedSurgeon ? [{
+          key:   'surgeon',
+          label: 'SURGEON',
+          value: patient.selfReportedSurgeon,
+        }] : []),
         ...(patient.contrastAllergy ? [{
           key:   'allergyFront',
           label: '⚠ CONTRAST ALLERGY',
@@ -217,14 +225,18 @@ export async function GET() {
       ? wwdrBuffer.toString('utf-8')
       : derToPem(wwdrBuffer)
 
-    // MRI icon for thumbnail (shown on pass detail)
-    const mriIcon = safety === 'safe' ? MRI_SAFE
-                  : safety === 'conditional' ? MRI_CONDITIONAL
-                  : safety === 'unsafe' ? MRI_UNSAFE
-                  : null
+    // MRI badge thumbnail: icon + label text side by side
+    const mriBadge   = safety === 'safe' ? MRI_SAFE_BADGE
+                     : safety === 'conditional' ? MRI_CONDITIONAL_BADGE
+                     : safety === 'unsafe' ? MRI_UNSAFE_BADGE
+                     : null
+    const mriBadge2x = safety === 'safe' ? MRI_SAFE_BADGE_2X
+                     : safety === 'conditional' ? MRI_CONDITIONAL_2X
+                     : safety === 'unsafe' ? MRI_UNSAFE_BADGE_2X
+                     : null
 
     const pass = new PKPass(
-      // Files — pass.json + icon images + MRI thumbnail
+      // Files — pass.json + icon images + MRI badge thumbnail
       {
         'pass.json':      Buffer.from(JSON.stringify(passJson)),
         'icon.png':       ICON_SM,
@@ -232,9 +244,9 @@ export async function GET() {
         'icon@3x.png':    ICON_LG,
         'logo.png':       LOGO_SM,
         'logo@2x.png':    LOGO_MD,
-        ...(mriIcon ? {
-          'thumbnail.png':    mriIcon,
-          'thumbnail@2x.png': mriIcon,
+        ...(mriBadge ? {
+          'thumbnail.png':    mriBadge,
+          'thumbnail@2x.png': mriBadge2x ?? mriBadge,
         } : {}),
       },
       // Certificates — all in PEM format

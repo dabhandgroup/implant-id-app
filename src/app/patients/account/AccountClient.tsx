@@ -915,16 +915,6 @@ export default function AccountClient() {
                   <span className="slider" />
                 </label>
               </div>
-              <div className="toggle-row">
-                <div className="toggle-label">
-                  <b>Share location with clinics</b>
-                  <span>Helps nearby clinics prepare for your visit</span>
-                </div>
-                <label className="toggle">
-                  <input type="checkbox" checked={shareLocation} onChange={e => setShareLocation(e.target.checked)} />
-                  <span className="slider" />
-                </label>
-              </div>
               <div className="save-bar">
                 <button className="btn btn-s" onClick={() => {/* TODO Phase 3: persist to Convex */}}>
                   Save preferences

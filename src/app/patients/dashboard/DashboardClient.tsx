@@ -1160,35 +1160,57 @@ export default function DashboardClient() {
         </div>{/* /app-main */}
       </div>{/* /app */}
 
-      {/* ── Share with clinic modal (focused — no wallet tab) ─────────────── */}
+      {/* ── Share with clinic modal ───────────────────────────────────────────── */}
       <div
         className={`wall-back${wallOpen ? ' open' : ''}`}
         onClick={e => { if (e.target === e.currentTarget) { setWallOpen(false); setEmailSent(false); setClinicEmail(''); setClinicSearch(''); setShareError('') } }}
       >
         <div className="wall-modal">
           <div className="wall-h">
-            <h3>Share with clinic</h3>
-            <button onClick={() => { setWallOpen(false); setEmailSent(false); setClinicEmail(''); setClinicSearch(''); setShareError('') }}>✕</button>
+            <div>
+              <h3 style={{ margin: 0 }}>Share with clinic</h3>
+              <p style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', margin: '3px 0 0' }}>
+                Your record + QR code will be sent to the clinic
+              </p>
+            </div>
+            <button onClick={() => { setWallOpen(false); setEmailSent(false); setClinicEmail(''); setClinicSearch(''); setShareError('') }} aria-label="Close">✕</button>
           </div>
           <div className="wall-body">
 
             {!emailSent ? (
-              <div>
-                <p style={{ marginBottom: 16, color: 'var(--muted)', fontSize: 14, lineHeight: 1.6 }}>
-                  Search for your clinic on Implant ID. They&apos;ll receive a link to your verified record instantly.
-                </p>
-
-                {/* Clinic search */}
-                <div className="field" style={{ marginBottom: 4 }}>
-                  <label>Search clinic name</label>
-                  <input className="input" type="text" placeholder="e.g. Royal Melbourne Hospital"
+              <form onSubmit={async e => {
+                e.preventDefault()
+                if (!clinicEmail) return
+                setSharing(true); setShareError('')
+                try {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const matchedClinic = (allClinics ?? []).find((c: any) => c.email === clinicEmail)
+                  await shareRecordWithClinic({
+                    clinicEmail,
+                    clinicName: (matchedClinic?.name ?? clinicSearch.trim()) || undefined,
+                  })
+                  setEmailSent(true)
+                } catch {
+                  setShareError('Failed to send — please try again.')
+                } finally {
+                  setSharing(false)
+                }
+              }}>
+                {/* Combined search + results in one block */}
+                <div style={{ position: 'relative', marginBottom: 10 }}>
+                  <svg style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: 'var(--muted2)', pointerEvents: 'none', zIndex: 1 }}
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  </svg>
+                  <input className="input" type="text" placeholder="Search clinic name…"
                     value={clinicSearch}
                     onChange={e => { setClinicSearch(e.target.value); setClinicEmail('') }}
                     autoFocus
+                    style={{ paddingLeft: 42 }}
                   />
                 </div>
 
-                {/* Matching clinics */}
+                {/* Clinic results dropdown */}
                 {clinicSearch.trim().length >= 2 && (() => {
                   const q = clinicSearch.toLowerCase()
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1196,69 +1218,52 @@ export default function DashboardClient() {
                     c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)
                   ).slice(0, 5)
                   return matches.length > 0 ? (
-                    <div style={{ border: '1px solid var(--border)', borderRadius: 10, marginBottom: 14, overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid var(--border)', borderRadius: 10, marginBottom: 12, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,.06)' }}>
                       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      {matches.map((c: any) => (
+                      {matches.map((c: any, i: number) => (
                         <button key={c._id} type="button"
                           onClick={() => { setClinicEmail(c.email ?? ''); setClinicSearch(c.name) }}
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '11px 14px', background: clinicEmail === c.email ? 'color-mix(in srgb,var(--accent) 8%,transparent)' : 'var(--bg2)', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border)' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: clinicEmail === c.email ? 'color-mix(in srgb,var(--accent) 7%,transparent)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: i < matches.length - 1 ? '1px solid var(--border)' : 'none' }}
                         >
-                          <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, color: 'var(--text)' }}>{c.name}</div>
-                          {clinicEmail === c.email && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>}
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0, fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 12, color: 'var(--accent)' }}>
+                            {c.name.slice(0,2).toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{c.name}</div>
+                            {c.city && <div style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted)' }}>{c.city}{c.country ? `, ${c.country}` : ''}</div>}
+                          </div>
+                          {clinicEmail === c.email && (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                          )}
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, padding: '8px 12px', background: 'color-mix(in srgb,#f59e0b 8%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 8 }}>
-                      This clinic isn&apos;t on Implant ID yet — enter their email and we&apos;ll send them an invitation to join along with your record.
+                    <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, padding: '10px 14px', background: 'color-mix(in srgb,#f59e0b 7%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 8, lineHeight: 1.55 }}>
+                      Clinic not found — enter their email below and we&apos;ll invite them to join Implant ID.
                     </div>
                   )
                 })()}
 
                 {/* Email field */}
-                <form onSubmit={async e => {
-                  e.preventDefault()
-                  if (!clinicEmail) return
-                  setSharing(true); setShareError('')
-                  try {
+                <div style={{ marginBottom: 14 }}>
+                  <input className="input" type="email" placeholder="Or enter clinic email directly…" required
+                    value={clinicEmail} onChange={e => setClinicEmail(e.target.value)}
+                    style={{ fontSize: 14 }}
+                  />
+                </div>
+
+                {shareError && <div style={{ color: 'var(--err)', fontSize: 13, marginBottom: 12 }}>{shareError}</div>}
+
+                <button type="submit" className="btn btn-s btn-block btn-lg" disabled={!clinicEmail || sharing} style={{ fontSize: 14, height: 46 }}>
+                  {sharing ? 'Sending…' : (
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const matchedClinic = (allClinics ?? []).find((c: any) => c.email === clinicEmail)
-                    await shareRecordWithClinic({
-                      clinicEmail,
-                      clinicName: (matchedClinic?.name ?? clinicSearch.trim()) || undefined,
-                    })
-                    setEmailSent(true)
-                  } catch {
-                    setShareError('Failed to send — please try again.')
-                  } finally {
-                    setSharing(false)
-                  }
-                }}>
-                  <div className="field" style={{ marginBottom: 12 }}>
-                    <label>
-                      Clinic email
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                      {clinicSearch.trim().length >= 2 && !(allClinics ?? []).find((c: any) => c.name.toLowerCase().includes(clinicSearch.toLowerCase())) && (
-                        <span style={{ color: '#b45309', fontWeight: 400, marginLeft: 6 }}>(invite)</span>
-                      )}
-                    </label>
-                    <input className="input" type="email" placeholder="records@clinic.com" required
-                      value={clinicEmail} onChange={e => setClinicEmail(e.target.value)} />
-                  </div>
-                  {shareError && <div style={{ color: 'var(--err)', fontSize: 13, marginBottom: 10 }}>{shareError}</div>}
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button type="submit" className="btn btn-s btn-lg" style={{ flex: 1 }} disabled={!clinicEmail || sharing}>
-                      {sharing ? 'Sending…' : (
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        clinicEmail && (allClinics ?? []).find((c: any) => c.email === clinicEmail)
-                          ? 'Send record'
-                          : 'Send record + invitation'
-                      )}
-                    </button>
-                    <button type="button" className="btn btn-lg" onClick={() => setWallOpen(false)}>Cancel</button>
-                  </div>
-                </form>
-              </div>
+                    clinicEmail && (allClinics ?? []).find((c: any) => c.email === clinicEmail)
+                      ? 'Send my record →'
+                      : 'Send record + invite clinic →'
+                  )}
+                </button>
+              </form>
             ) : (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', color: 'var(--ok)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
@@ -1292,16 +1297,21 @@ export default function DashboardClient() {
         <div className="notif-list">
           {!notifications || notifications.length === 0 ? (
             <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No notifications</div>
-          ) : notifications.map((n: {_id: string, title: string, body: string}) => (
-            <div key={n._id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>{n.title}</div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</div>
+          ) : (notifications as {_id: string, title: string, body: string, read: boolean, createdAt: number}[]).map(n => (
+            <div key={n._id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: n.read ? 'transparent' : 'color-mix(in srgb,var(--accent) 3%,transparent)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: n.read ? 400 : 600, color: 'var(--text)', marginBottom: 3 }}>{n.title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</div>
+              </div>
+              {!n.read && (
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 4 }} />
+              )}
             </div>
           ))}
         </div>
         <div className="notif-foot">
           <a href="#" onClick={e => { e.preventDefault(); markRead() }}>Mark all as read</a>
-          <a href="#">Settings</a>
+          <a href="/patients/account">Notification settings</a>
         </div>
       </aside>
 

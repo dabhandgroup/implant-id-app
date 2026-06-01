@@ -1,17 +1,12 @@
-import './page.css'
-import { html } from './content'
-import ScriptLoader from '@/components/ScriptLoader'
 import type { Metadata } from 'next'
+import OffboardClient from './OffboardClient'
 
 export const metadata: Metadata = {
-  title: "Delete account · Implant ID",
+  title: 'Deactivate account · Implant ID',
 }
 
+export const dynamic = 'force-dynamic'
+
 export default function Page() {
-  return (
-    <>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
-      <ScriptLoader scripts={["/scripts/patients-0.js", "/scripts/patients-offboard-0.js"]} />
-    </>
-  )
+  return <OffboardClient />
 }

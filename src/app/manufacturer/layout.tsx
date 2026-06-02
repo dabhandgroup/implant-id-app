@@ -15,7 +15,7 @@ export default async function ManufacturerLayout({ children }: { children: React
 
   // Authenticated portal pages — apply shell + role guard
   const { requireRole } = await import('@/lib/requireRole')
-  await requireRole(['manufacturer', 'admin'])
+  await requireRole('manufacturer', 'admin')
 
   const { default: ManufacturerShell } = await import('./ManufacturerShell')
   return <ManufacturerShell>{children}</ManufacturerShell>

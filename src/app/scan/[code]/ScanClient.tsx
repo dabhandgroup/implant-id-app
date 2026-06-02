@@ -36,7 +36,11 @@ export default function ScanClient({ code }: { code: string }) {
     return (
       <main style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',padding:24,fontFamily:'var(--ff)'}}>
         <div style={{maxWidth:440,textAlign:'center'}}>
-          <div style={{fontSize:40,marginBottom:16}}>🔒</div>
+          <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
           <h2 style={{marginBottom:12,color:'var(--text)'}}>Access restricted</h2>
           <p style={{color:'var(--muted)',fontSize:15,lineHeight:1.65}}>This QR code is for clinical staff only. If you are a patient trying to view your own record, <a href="/patients/dashboard" style={{color:'var(--accent)'}}>go to your dashboard</a>.</p>
         </div>
@@ -79,7 +83,10 @@ export default function ScanClient({ code }: { code: string }) {
                 <img src={result.overallMriStatus==='safe'?'/mr-safe.svg':result.overallMriStatus==='conditional'?'/mr-conditional.svg':'/mr-unsafe.svg'} alt={MRI_LABEL[result.overallMriStatus]} style={{width:48,height:48,flexShrink:0}}/>
                 <div>
                   <div style={{fontFamily:'var(--ff)',fontWeight:700,fontSize:16,color:MRI_COLOUR[result.overallMriStatus]}}>{MRI_LABEL[result.overallMriStatus]}</div>
-                  <div style={{fontSize:12.5,color:'var(--muted)',marginTop:2}}>{result.verificationStatus==='active'?'Verified Implant ID record':'⚠ Unverified — self-reported only'}</div>
+                  <div style={{fontSize:12.5,color:'var(--muted)',marginTop:2,display:'flex',alignItems:'center',gap:4}}>
+                    {result.verificationStatus!=='active'&&<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
+                    {result.verificationStatus==='active'?'Verified Implant ID record':'Unverified — self-reported only'}
+                  </div>
                 </div>
               </div>
             )}
@@ -98,8 +105,9 @@ export default function ScanClient({ code }: { code: string }) {
                 ))}
               </div>
               {result.contrastAllergy && (
-                <div style={{marginBottom:12,padding:'10px 14px',borderRadius:8,background:'color-mix(in srgb,var(--err) 8%,transparent)',border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)',fontFamily:'var(--ff)',fontSize:13,color:'var(--err)',fontWeight:500}}>
-                  ⚠ Contrast allergy{result.contrastAllergyNote?': '+result.contrastAllergyNote:''}
+                <div style={{marginBottom:12,padding:'10px 14px',borderRadius:8,background:'color-mix(in srgb,var(--err) 8%,transparent)',border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)',fontFamily:'var(--ff)',fontSize:13,color:'var(--err)',fontWeight:500,display:'flex',alignItems:'center',gap:6}}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Contrast allergy{result.contrastAllergyNote?': '+result.contrastAllergyNote:''}
                 </div>
               )}
               {result.devices && result.devices.length > 0 && result.devices.map((d:any,i:number) => d && (

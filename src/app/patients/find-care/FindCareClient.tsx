@@ -104,7 +104,7 @@ export default function FindCareClient() {
             <span>Account settings</span>
           </a>
           <a className="sb-link" href="/patients/emergency" title="Emergency info">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M22 16.9A16 16 0 0 1 5.1 2 2 2 0 0 1 7.1 0h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2L11 7.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2-.5c.9.3 1.8.5 2.7.6A2 2 0 0 1 22 16.9z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             <span>Emergency info</span>
           </a>
           <button className="sb-notif" aria-label="Notifications" title="Notifications"
@@ -145,6 +145,31 @@ export default function FindCareClient() {
 
         {/* ── Main content ── */}
         <div className="app-main">
+          <nav className="mob-nav" aria-label="Mobile navigation">
+            <div className="mob-nav-tabs">
+              <a href="/patients/dashboard" className="mob-nav-tab" aria-label="My record">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+                <span className="t">Record</span>
+              </a>
+              <a href="/patients/share" className="mob-nav-tab" aria-label="Share with clinic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>
+                <span className="t">Share</span>
+              </a>
+              <a href="/patients/find-care" className="mob-nav-tab active" aria-label="Find a clinic">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span className="t">Find</span>
+              </a>
+              <a href="/patients/account" className="mob-nav-tab" aria-label="Account">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+                <span className="t">Account</span>
+              </a>
+              <button className="mob-nav-tab mob-nav-menu-btn" aria-label="Toggle menu" onClick={() => setSbCollapsed(v => !v)}>
+                <div className="ham-ic"><span /><span /><span /></div>
+                <span className="t">Menu</span>
+              </button>
+            </div>
+          </nav>
+
           <div className="fc-layout">
             {/* Left panel — search and clinic list */}
             <div className="fc-panel">

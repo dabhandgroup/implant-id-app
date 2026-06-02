@@ -25,6 +25,7 @@ export default function AccountClient() {
   const patient            = useQuery(api.patients.getMyPatient)
   const updateProfile      = useMutation(api.patients.updatePatientProfile)
   const notifications      = useQuery(api.patients.getMyNotifications)
+  const markRead           = useMutation(api.patients.markAllNotificationsRead)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [sbCollapsed,    setSbCollapsed]    = useState(false)
@@ -998,39 +999,24 @@ export default function AccountClient() {
       <aside className={`notif-drawer${notifOpen ? ' open' : ''}`} aria-label="Notifications">
         <div className="notif-h">
           <h3>Updates</h3>
-          <button className="x" onClick={() => setNotifOpen(false)}>✕</button>
+          <button className="x" onClick={() => setNotifOpen(false)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <div className="notif-list">
-          <div className="notif-item unread">
-            <div className="notif-ic ok">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <path d="m9 12 2 2 4-4"/>
-              </svg>
+          {!notifications || notifications.length === 0 ? (
+            <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No notifications</div>
+          ) : (notifications as {_id: string, title: string, body: string, read: boolean, createdAt: number}[]).map(n => (
+            <div key={n._id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: n.read ? 'transparent' : 'color-mix(in srgb,var(--accent) 3%,transparent)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: n.read ? 400 : 600, color: 'var(--text)', marginBottom: 3 }}>{n.title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</div>
+              </div>
+              {!n.read && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 4 }} />}
             </div>
-            <div>
-              <b>Welcome to Implant ID</b>
-              <p>Your patient record is set up and your unique ID is ready.</p>
-              <div className="t">Just now · Implant ID</div>
-            </div>
-          </div>
-          <div className="notif-item unread">
-            <div className="notif-ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <rect x="3" y="6" width="18" height="14" rx="2"/>
-                <path d="M3 10h18M7 15h3"/>
-              </svg>
-            </div>
-            <div>
-              <b>Tip: share before appointments</b>
-              <p>Sharing your Implant ID with a clinic before you arrive means they can prepare in advance.</p>
-              <div className="t">Today · Implant ID</div>
-            </div>
-          </div>
+          ))}
         </div>
         <div className="notif-foot">
-          <a href="#">Mark all as read</a>
-          <a href="#">Settings</a>
+          <a href="#" onClick={e => { e.preventDefault(); markRead() }}>Mark all as read</a>
+          <a href="/patients/account">Notification settings</a>
         </div>
       </aside>
 

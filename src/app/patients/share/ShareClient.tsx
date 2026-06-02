@@ -27,6 +27,7 @@ export default function ShareClient() {
   // Queries
   const allClinics      = useQuery(api.clinics.listClinics)
   const notifications   = useQuery(api.patients.getMyNotifications)
+  const markRead        = useMutation(api.patients.markAllNotificationsRead)
   const shareRecordWithClinic = useMutation(api.patients.shareRecordWithClinic)
 
   // Redirect guards — after all hooks
@@ -431,9 +432,25 @@ export default function ShareClient() {
       <aside className={`notif-drawer${notifOpen ? ' open' : ''}`} aria-label="Notifications">
         <div className="notif-h">
           <h3>Updates</h3>
-          <button className="x" onClick={() => setNotifOpen(false)}>✕</button>
+          <button className="x" onClick={() => setNotifOpen(false)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
-        <div className="notif-foot"><a href="#">Mark all as read</a><a href="#">Settings</a></div>
+        <div className="notif-list">
+          {!notifications || notifications.length === 0 ? (
+            <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No notifications</div>
+          ) : (notifications as {_id: string, title: string, body: string, read: boolean, createdAt: number}[]).map(n => (
+            <div key={n._id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: n.read ? 'transparent' : 'color-mix(in srgb,var(--accent) 3%,transparent)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: n.read ? 400 : 600, color: 'var(--text)', marginBottom: 3 }}>{n.title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</div>
+              </div>
+              {!n.read && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 4 }} />}
+            </div>
+          ))}
+        </div>
+        <div className="notif-foot">
+          <a href="#" onClick={e => { e.preventDefault(); markRead() }}>Mark all as read</a>
+          <a href="/patients/account">Notification settings</a>
+        </div>
       </aside>
 
       {/* Logout modal */}

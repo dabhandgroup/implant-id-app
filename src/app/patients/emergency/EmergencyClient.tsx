@@ -118,8 +118,9 @@ export default function EmergencyClient() {
         {/* Contrast allergy — most urgent after MRI status */}
         {hasAllergy && (
           <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '2px solid color-mix(in srgb,var(--err) 30%,transparent)', borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--err)', marginBottom: 6 }}>
-              ⚠ Contrast Allergy
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--err)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Contrast Allergy
             </div>
             <div style={{ fontFamily: 'var(--fb)', fontSize: 15, color: 'var(--err)', fontWeight: 600 }}>
               {patient.contrastAllergyNote ?? 'Documented contrast allergy — do not administer contrast without specialist review.'}
@@ -188,7 +189,7 @@ export default function EmergencyClient() {
             {patient.emergencyContactPhone && (
               <a href={`tel:${patient.emergencyContactPhone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M22 16.9A16 16 0 0 1 5.1 2 2 2 0 0 1 7.1 0h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2L11 7.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2-.5c.9.3 1.8.5 2.7.6A2 2 0 0 1 22 16.9z"/>
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
                 </svg>
                 {patient.emergencyContactPhone}
               </a>
@@ -198,10 +199,15 @@ export default function EmergencyClient() {
 
         {/* Verification disclaimer */}
         <div style={{ background: 'color-mix(in srgb,#f59e0b 6%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 10, padding: '12px 16px' }}>
-          <div style={{ fontFamily: 'var(--fb)', fontSize: 12.5, color: '#92400e', lineHeight: 1.6 }}>
-            {patient.verificationStatus === 'active'
-              ? '✓ This record has been verified by the patient\'s clinical team on Implant ID. For full technical MRI parameters, scan the QR code on the patient\'s card or contact the treating clinic.'
-              : '⚠ This record has not yet been verified by a clinical team. Information is self-reported by the patient. Treat with caution and verify with the treating institution.'}
+          <div style={{ fontFamily: 'var(--fb)', fontSize: 12.5, color: '#92400e', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+            {patient.verificationStatus === 'active' ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><polyline points="20 6 9 17 4 12"/></svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            )}
+            <span>{patient.verificationStatus === 'active'
+              ? 'This record has been verified by the patient\'s clinical team on Implant ID. For full technical MRI parameters, scan the QR code on the patient\'s card or contact the treating clinic.'
+              : 'This record has not yet been verified by a clinical team. Information is self-reported by the patient. Treat with caution and verify with the treating institution.'}</span>
           </div>
         </div>
 

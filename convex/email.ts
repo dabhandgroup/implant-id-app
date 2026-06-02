@@ -358,9 +358,9 @@ export const sendPatientShareEmail = internalAction({
             Click the button below or scan the QR code on your clinic device to access their
             full verified implant record, including MRI safety status and device details.
           </p>
-          <div style="text-align:center;margin:24px 0;">
+          <div style="margin:24px 0;">
             <img src="${qrUrl}" width="160" height="160"
-              style="display:block;margin:0 auto;border-radius:8px;border:4px solid #f1f5f9;"
+              style="display:block;border-radius:8px;border:4px solid #f1f5f9;"
               alt="Scan to access patient record" />
             <p style="margin:8px 0 0;font-size:12px;color:#94a3b8;">
               Scan on your clinic device to open the patient record instantly

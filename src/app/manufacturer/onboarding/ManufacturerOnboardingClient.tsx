@@ -108,22 +108,42 @@ function SidePanel({ step }: { step: number }) {
   )
 }
 
-// ── Step progress bar ─────────────────────────────────────────────────────────
+// ── Step progress — minimal inline dots ──────────────────────────────────────
 
 function StepBar({ step }: { step: number }) {
   return (
-    <div className="step-progress" role="list" aria-label="Application progress">
-      {STEPS.map(s => (
-        <div
-          key={s.n}
-          role="listitem"
-          className={`step-progress-item ${s.n < step ? 'done' : s.n === step ? 'active' : ''}`}
-          aria-current={s.n === step ? 'step' : undefined}
-        >
-          <span className="sp-num">{s.n < step ? '✓' : s.n}</span>
-          {s.label}
-        </div>
-      ))}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 32 }} role="list" aria-label="Application progress">
+      {STEPS.map((s, i) => {
+        const done   = s.n < step
+        const active = s.n === step
+        return (
+          <div key={s.n} style={{ display: 'flex', alignItems: 'center' }} role="listitem">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700,
+                background: done ? 'var(--ok)' : active ? 'var(--accent)' : 'var(--border)',
+                color: done || active ? '#fff' : 'var(--muted)',
+                transition: 'all .2s',
+              }}>
+                {done
+                  ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="13" height="13"><path d="M20 6L9 17l-5-5"/></svg>
+                  : s.n}
+              </div>
+              <span style={{
+                fontFamily: 'var(--ff)', fontSize: 10.5, fontWeight: active ? 600 : 400,
+                color: active ? 'var(--text)' : done ? 'var(--ok)' : 'var(--muted2)',
+                whiteSpace: 'nowrap', letterSpacing: '.1px',
+              }}>
+                {s.label}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div style={{ width: 36, height: 2, background: done ? 'var(--ok)' : 'var(--border)', margin: '0 4px', marginBottom: 20, flexShrink: 0, transition: 'background .2s' }} />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

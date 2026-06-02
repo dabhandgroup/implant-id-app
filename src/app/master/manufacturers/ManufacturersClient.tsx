@@ -143,9 +143,9 @@ export default function ManufacturersClient() {
       <div className="m-tabs">
         <button className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
           Pending
-          {pendingApps.length > 0 && (
+          {(pendingApps?.length ?? 0) > 0 && (
             <span style={{ marginLeft: 7, background: 'color-mix(in srgb,var(--warn) 14%,transparent)', color: 'var(--warn)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
-              {pendingApps.length}
+              {pendingApps!.length}
             </span>
           )}
         </button>

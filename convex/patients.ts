@@ -1,6 +1,7 @@
 import { mutation, query } from './_generated/server'
 import { v }              from 'convex/values'
 import { internal }       from './_generated/api'
+import QRCode             from 'qrcode'
 
 /**
  * Patient ID format: IID-[3 surname][2 firstname][DD][MM][2 random]
@@ -712,6 +713,13 @@ export const shareRecordWithClinic = mutation({
       }
     }
 
+    // Generate and store QR code as a file
+    const scanUrl = `https://portal.implantid.io/scan/${patient.implantIdCode}`
+    const qrBuffer = await QRCode.toBuffer(scanUrl, { width: 200 })
+
+    // Store the QR code file and get its storage ID
+    const qrFileId = await ctx.storage.store(new Blob([qrBuffer], { type: 'image/png' }))
+
     await ctx.scheduler.runAfter(0, internal.email.sendPatientShareEmail, {
       patientName:   `${patient.firstName} ${patient.lastName}`,
       patientEmail:  user.email || undefined,
@@ -719,6 +727,7 @@ export const shareRecordWithClinic = mutation({
       device:        patient.selfReportedDevice ?? undefined,
       clinicEmail:   args.clinicEmail,
       clinicName:    args.clinicName ?? clinic?.name,
+      qrFileId:      qrFileId,
     })
   },
 })

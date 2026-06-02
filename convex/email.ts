@@ -3,7 +3,6 @@ import { internalAction } from './_generated/server'
 import { v }              from 'convex/values'
 import { Resend }         from 'resend'
 import { buildEmail }     from './emailTemplate'
-import QRCode             from 'qrcode'
 
 const ADMIN_EMAIL = 'harry@dabhandmarketing.com'
 const FROM        = 'Implant ID <noreply@implantid.io>'
@@ -330,16 +329,14 @@ export const sendPatientShareEmail = internalAction({
     device:         v.optional(v.string()),
     clinicEmail:    v.string(),
     clinicName:     v.optional(v.string()),
+    qrFileId:       v.string(),  // stored QR code file ID
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const r = resend()
     const scanUrl  = `https://portal.implantid.io/scan/${args.implantIdCode}`
 
-    // Generate QR code for the scan URL
-    const qrDataUrl = await QRCode.toDataURL(scanUrl, {
-      width: 200, margin: 1,
-      color: { dark: '#0e2a33', light: '#ffffff' },
-    })
+    // Get the stored QR code file URL
+    const qrUrl = await ctx.storage.getUrl(args.qrFileId)
 
     // Email to clinic
     await r.emails.send({
@@ -359,7 +356,7 @@ export const sendPatientShareEmail = internalAction({
             full verified implant record, including MRI safety status and device details.
           </p>
           <div style="text-align:center;margin:24px 0;">
-            <img src="${qrDataUrl}" width="160" height="160"
+            <img src="${qrUrl}" width="160" height="160"
               style="display:block;margin:0 auto;border-radius:8px;border:4px solid #f1f5f9;"
               alt="Scan to access patient record" />
             <p style="margin:8px 0 0;font-size:12px;color:#94a3b8;">

@@ -598,12 +598,12 @@ export default function DashboardClient() {
               </svg>
             </span>
           ) : (
-            <a className="sb-link" href="#" title="Documents">
+            <button type="button" className="sb-link" title="Documents" onClick={() => document.getElementById('documents-section')?.scrollIntoView({ behavior: 'smooth' })} style={{ background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/>
               </svg>
               <span>Documents</span>
-            </a>
+            </button>
           )}
 
           <span className="sb-section">Find care</span>
@@ -1066,7 +1066,7 @@ export default function DashboardClient() {
             </div>
 
             {/* Documents placeholder */}
-            <div className="sec">
+            <div id="documents-section" className="sec">
               <h2>Your documents</h2>
               <p className="sub">Documents will appear here once your clinical team adds your implant details.</p>
               <div style={{

@@ -2,7 +2,11 @@
 import { useState, useEffect } from 'react'
 import { useUser, useClerk }   from '@clerk/nextjs'
 import { useRouter }           from 'next/navigation'
+import { useQuery, useMutation } from 'convex/react'
+import { api as apiBase }      from '../../../convex/_generated/api'
 import QRCode                  from 'qrcode'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = apiBase as any
 
 // ── OTP input row — module level (avoids React remount on state change) ────────
 interface OtpProps { otp: string[]; setOtp: (v: string[]) => void; onComplete: (code: string) => void }
@@ -40,6 +44,30 @@ export default function MasterSettingsClient() {
   const { user, isLoaded }  = useUser()
   const { signOut }         = useClerk()
   const router              = useRouter()
+
+  // ── Admin user management ─────────────────────────────────────────────────
+  const admins      = useQuery(api.users.listAdmins)
+  const inviteAdmin = useMutation(api.users.inviteAdmin)
+  const [inviteName,  setInviteName]  = useState('')
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviting,    setInviting]    = useState(false)
+  const [inviteErr,   setInviteErr]   = useState('')
+  const [inviteDone,  setInviteDone]  = useState(false)
+
+  async function handleInviteAdmin(e: React.FormEvent) {
+    e.preventDefault()
+    if (!inviteName.trim() || !inviteEmail.trim()) return
+    setInviting(true); setInviteErr(''); setInviteDone(false)
+    try {
+      await inviteAdmin({ email: inviteEmail.trim().toLowerCase(), name: inviteName.trim() })
+      setInviteDone(true); setInviteName(''); setInviteEmail('')
+      setTimeout(() => setInviteDone(false), 3000)
+    } catch (e) {
+      setInviteErr((e as { message?: string })?.message ?? 'Failed — try again')
+    } finally {
+      setInviting(false)
+    }
+  }
 
   // ── Security — passkeys ───────────────────────────────────────────────────
   const [passkeyLoading, setPasskeyLoading] = useState(false)
@@ -181,8 +209,8 @@ export default function MasterSettingsClient() {
       <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 24, alignItems: 'start' }}>
         {/* Settings nav */}
         <nav style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          {(['security', 'profile'] as const).map(s => (
-            <button key={s} onClick={() => setActiveSection(s)}
+          {(['security', 'profile', 'admins'] as const).map(s => (
+            <button key={s} onClick={() => setActiveSection(s as 'security' | 'profile')}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px',
                 background: activeSection === s ? 'color-mix(in srgb,var(--accent) 8%,transparent)' : 'transparent',
@@ -193,9 +221,11 @@ export default function MasterSettingsClient() {
               }}>
               {s === 'security'
                 ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                : s === 'admins'
+                  ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               }
-              {s === 'security' ? 'Security' : 'Profile'}
+              {s === 'security' ? 'Security' : s === 'admins' ? 'Admin Users' : 'Profile'}
             </button>
           ))}
         </nav>
@@ -385,6 +415,68 @@ export default function MasterSettingsClient() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="1.7"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                   <span style={{ fontSize: 13, color: 'var(--ok)', fontFamily: 'var(--ff)', fontWeight: 500 }}>Verified master account — full platform access</span>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Admin Users panel ── */}
+          {(activeSection as string) === 'admins' && (
+            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Admin Users</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Manage who has master admin access to the platform.</div>
+              </div>
+              <div style={{ padding: '24px 22px' }}>
+
+                {/* Invite form */}
+                <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', marginBottom: 24 }}>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Invite new admin</div>
+                  <form onSubmit={handleInviteAdmin}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                      <div className="field" style={{ marginBottom: 0 }}>
+                        <label>Full name <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+                        <input className="input" type="text" placeholder="Jane Smith" value={inviteName} onChange={e => setInviteName(e.target.value)} required />
+                      </div>
+                      <div className="field" style={{ marginBottom: 0 }}>
+                        <label>Email address <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+                        <input className="input" type="email" placeholder="jane@implantid.io" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required />
+                      </div>
+                    </div>
+                    {inviteErr && <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--err)' }}>{inviteErr}</div>}
+                    {inviteDone && <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--ok)', fontWeight: 600 }}>✓ Admin invited — they can sign in via email OTP</div>}
+                    <button type="submit" className="btn btn-s" disabled={inviting || !inviteName.trim() || !inviteEmail.trim()}>
+                      {inviting ? 'Inviting…' : '+ Invite admin'}
+                    </button>
+                  </form>
+                </div>
+
+                {/* Current admins */}
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, color: 'var(--muted2)', marginBottom: 12, letterSpacing: '.5px', textTransform: 'uppercase' }}>Current admins</div>
+                {admins === undefined ? (
+                  <div style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
+                ) : admins.length === 0 ? (
+                  <div style={{ color: 'var(--muted)', fontSize: 13 }}>No admins found.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                    {(admins as {_id:string; name:string; email:string; clerkId:string}[]).map((a, i) => (
+                      <div key={a._id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: i % 2 === 0 ? 'var(--bg)' : 'transparent' }}>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(140deg,var(--accent),var(--accent2))', display: 'grid', placeItems: 'center', color: '#fff', fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                          {a.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{a.name}</div>
+                          <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{a.email}</div>
+                        </div>
+                        {a.email === email && (
+                          <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 10%,transparent)', padding: '2px 8px', borderRadius: 5 }}>You</span>
+                        )}
+                        <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--ok)', background: 'color-mix(in srgb,var(--ok) 10%,transparent)', padding: '2px 8px', borderRadius: 5 }}>
+                          {a.clerkId ? 'Active' : 'Pending'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

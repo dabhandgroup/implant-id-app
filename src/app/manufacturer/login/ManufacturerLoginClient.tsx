@@ -32,12 +32,13 @@ function OtpRow({ otp, setOtp, onComplete }: OtpProps) {
     if (digits.length === 6) onComplete(digits)
   }
   return (
-    <div className="mauth-otp">
+    <div style={{ display: 'flex', gap: 8, margin: '16px 0 4px' }}>
       {otp.map((v, i) => (
-        <input key={i} className="mfr-otp-input" maxLength={2} inputMode="numeric" pattern="[0-9]*"
+        <input key={i} className="mfr-otp-input input" maxLength={2} inputMode="numeric" pattern="[0-9]*"
           value={v} onChange={e => handleChange(i, e.target.value)}
           onKeyDown={e => handleKeyDown(i, e)} onPaste={handlePaste}
           onFocus={e => e.target.select()}
+          style={{ width: 46, height: 52, textAlign: 'center', fontSize: 22, fontWeight: 600, fontFamily: 'var(--ff)', padding: 0 }}
         />
       ))}
     </div>
@@ -120,7 +121,7 @@ export default function ManufacturerLoginClient() {
       {/* ── Left panel ── */}
       <aside className="mauth-side">
         <a href="/" className="logo">
-          <img src="/icon.svg" alt="" />
+          <img src="/icon.svg" alt="" style={{ filter: 'brightness(0) invert(1)' }} />
           <span className="logo-text"><b>Implant</b><span>ID</span></span>
         </a>
         <div className="body">
@@ -158,7 +159,11 @@ export default function ManufacturerLoginClient() {
               : 'Manage your device catalogue, upload safety data and maintain the manufacturer-verified flag. All actions are logged.'}
           </p>
 
-          {error && <div className="mauth-err">{error}</div>}
+          {error && (
+            <div style={{ background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, color: '#fca5a5', marginBottom: 16 }}>
+              {error}
+            </div>
+          )}
 
           {phase === 'email' ? (
             <form onSubmit={sendOtp}>

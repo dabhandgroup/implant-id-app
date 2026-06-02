@@ -1,99 +1,66 @@
-/* ── Manufacturer login — dark two-column layout ─────────────────────────── */
+/* Manufacturer login — same shell as login.html, dark theme variant */
+body{background:#050e11;color:#eaf4f7}
+.mauth{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.mauth-side{position:relative;background:linear-gradient(160deg,#0a2630 0%,#155063 60%,#0e3a47 100%);color:#fff;padding:48px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+.mauth-side::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 80% 10%,rgba(125,225,255,.18),transparent 50%),radial-gradient(circle at 10% 90%,rgba(0,0,0,.4),transparent 55%);pointer-events:none}
+.mauth-side .logo{position:relative;z-index:2;display:inline-flex;align-items:center;gap:12px;font-family:var(--ff);font-weight:600;font-size:24px;letter-spacing:-.015em;color:#fff;text-decoration:none}
+.mauth-side .logo img{height:50px}
+.mauth-side .logo-text{display:flex;align-items:baseline;gap:3px}
+.mauth-side .logo-text b{font-weight:600}
+.mauth-side .logo-text span{background:linear-gradient(90deg,#fff,#cdeef6);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}
+.mauth-side .body{position:relative;z-index:2}
+.mauth-side h2{color:#fff;font-size:clamp(30px,3.4vw,48px);margin:0 0 18px;font-family:var(--ff);font-weight:500;letter-spacing:-.03em;line-height:1.05}
+.mauth-side h2 em{font-style:normal;background:linear-gradient(100deg,#7de1ff,#fff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mauth-side .body > p{color:rgba(255,255,255,.78);font-size:15.5px;line-height:1.6;max-width:420px;margin-bottom:32px}
+.mauth-feats{display:flex;flex-direction:column;gap:14px;max-width:420px}
+.mauth-feat{display:flex;gap:14px;align-items:flex-start}
+.mauth-feat .i{width:34px;height:34px;border-radius:9px;background:rgba(125,225,255,.16);color:#7de1ff;display:grid;place-items:center;flex-shrink:0}
+.mauth-feat .i svg{width:16px;height:16px}
+.mauth-feat b{display:block;font-family:var(--ff);font-size:14px;font-weight:500;color:#fff;margin-bottom:2px}
+.mauth-feat span{font-size:13px;color:rgba(255,255,255,.62);line-height:1.5}
+.mauth-side .quote{position:relative;z-index:2;border-top:1px solid rgba(255,255,255,.18);padding-top:24px;margin-top:32px}
+.mauth-side .quote p{font-family:var(--fb);font-size:14.5px;line-height:1.55;color:rgba(255,255,255,.78);margin-bottom:8px}
+.mauth-side .quote cite{font-family:var(--ff);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.55);font-style:normal;display:block}
 
-.mauth {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 100vh;
+/* Right pane — dark to differentiate from clinic/patient login */
+.mauth-main{display:flex;align-items:center;justify-content:center;padding:56px 48px;background:#050e11}
+.mauth-box{width:100%;max-width:400px}
+.mauth-box .ey{color:#7de1ff;justify-content:flex-start;margin-bottom:14px}
+.mauth-box .ey::before{background:#7de1ff}
+.mauth-box h1{font-family:var(--ff);font-size:30px;font-weight:500;color:#fff;letter-spacing:-.025em;margin-bottom:8px}
+.mauth-box .sub{color:rgba(234,244,247,.62);font-size:14.5px;line-height:1.55;margin-bottom:28px}
+.mauth-box .field{margin-bottom:14px}
+.mauth-box .field label{font-family:var(--ff);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:rgba(234,244,247,.55);font-weight:600;display:block;margin-bottom:6px}
+.mauth-box .i-wrap{position:relative}
+.mauth-box .i-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:rgba(234,244,247,.5);pointer-events:none}
+.mauth-box .input{width:100%;background:rgba(234,244,247,.05);border:1px solid rgba(234,244,247,.12);border-radius:10px;padding:13px 15px 13px 42px;color:#fff;font-family:var(--fb);font-size:14px;transition:all .15s}
+.mauth-box .input::placeholder{color:rgba(234,244,247,.35)}
+.mauth-box .input:focus{outline:0;border-color:#29a8cc;box-shadow:0 0 0 3px rgba(41,168,204,.2);background:rgba(234,244,247,.08)}
+.mauth-row{display:flex;justify-content:space-between;align-items:center;margin:8px 0 22px;font-size:13px}
+.mauth-row label{color:rgba(234,244,247,.7);display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-family:var(--fb)}
+.mauth-row label input{accent-color:#29a8cc}
+.mauth-row a{color:#7de1ff;text-decoration:none;font-family:var(--ff);font-weight:500}
+.mauth-row a:hover{text-decoration:underline}
+.mauth-btn{width:100%;background:linear-gradient(90deg,#29869f,#29a8cc);color:#fff;border:0;font-family:var(--ff);font-weight:600;font-size:14px;padding:14px;border-radius:10px;cursor:pointer;transition:filter .15s}
+.mauth-btn:hover{filter:brightness(1.12)}
+.mauth-divider{display:flex;align-items:center;gap:14px;margin:22px 0;color:rgba(234,244,247,.45);font-family:var(--ff);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;font-weight:600}
+.mauth-divider::before,.mauth-divider::after{content:"";flex:1;height:1px;background:rgba(234,244,247,.1)}
+.mauth-alt{text-align:center;font-family:var(--fb);font-size:13px;color:rgba(234,244,247,.6);margin-top:6px}
+.mauth-alt a{color:#7de1ff;font-weight:600;text-decoration:none}
+.mauth-alt a:hover{text-decoration:underline}
+.mauth-foot{text-align:center;margin-top:18px;font-family:var(--ff);font-size:11.5px;color:rgba(234,244,247,.4)}
+.mauth-foot a{color:rgba(234,244,247,.7);text-decoration:none}
+.mauth-foot a:hover{color:#fff}
+
+@media(max-width:900px){
+  .mauth{grid-template-columns:1fr;min-height:auto}
+  .mauth-side{padding:40px 28px}
+  .mauth-main{padding:40px 28px}
+  .mauth-feats{display:none}
+  .mauth-side .quote{display:none}
 }
-
-/* Left panel */
-.mauth-side {
-  background: linear-gradient(160deg, #0a1f27 0%, #0e2a33 45%, #0f3040 100%);
-  color: #fff;
-  padding: 52px 56px;
-  display: flex;
-  flex-direction: column;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.mauth-side .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; margin-bottom: 56px }
-.mauth-side .logo img { height: 36px; filter: brightness(0) invert(1) }
-.mauth-side .logo .logo-text { color: #fff; font-family: var(--ff); font-weight: 700; font-size: 20px }
-.mauth-side .logo .logo-text span { color: rgba(255,255,255,.55) }
-
-.mauth-side .body { flex: 1 }
-.mauth-side .body h2 { font-family: var(--ff); font-size: clamp(26px,3.5vw,38px); font-weight: 500; line-height: 1.15; letter-spacing: -.025em; margin: 0 0 14px; color: #fff }
-.mauth-side .body > p { color: rgba(255,255,255,.65); font-size: 15px; line-height: 1.6; max-width: 360px; margin: 0 0 40px }
-
-.mauth-feats { display: flex; flex-direction: column; gap: 22px }
-.mauth-feat { display: flex; align-items: flex-start; gap: 14px }
-.mauth-feat .i { width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); display: grid; place-items: center; flex-shrink: 0 }
-.mauth-feat .i svg { width: 18px; height: 18px; color: rgba(255,255,255,.7) }
-.mauth-feat b { display: block; font-family: var(--ff); font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 3px }
-.mauth-feat span { font-size: 13px; color: rgba(255,255,255,.5); line-height: 1.45 }
-
-.mauth-side .quote { margin-top: auto; padding-top: 28px; border-top: 1px solid rgba(255,255,255,.1) }
-.mauth-side .quote p { font-family: Georgia, serif; font-style: italic; font-size: 14px; color: rgba(255,255,255,.6); line-height: 1.6; margin: 0 0 8px }
-.mauth-side .quote cite { font-family: var(--ff); font-size: 11px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: rgba(255,255,255,.35) }
-
-/* Right panel */
-.mauth-main { background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 60px 48px }
-.mauth-box { width: 100%; max-width: 440px }
-
-.mauth-box .ey { font-family: var(--ff); font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px }
-.mauth-box h1 { font-family: var(--ff); font-size: clamp(24px,2.5vw,30px); font-weight: 500; letter-spacing: -.025em; margin: 0 0 10px }
-.mauth-box .sub { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0 0 32px }
-
-.mauth-btn {
-  width: 100%; padding: 14px; background: var(--accent); color: #fff;
-  border: none; border-radius: 10px; font-family: var(--ff); font-size: 15px; font-weight: 600;
-  cursor: pointer; transition: background .15s; margin-top: 4px;
-}
-.mauth-btn:hover { background: var(--accent-deep) }
-.mauth-btn:disabled { opacity: .6; cursor: not-allowed }
-
-.mauth-divider { text-align: center; color: var(--muted2); font-size: 13px; margin: 22px 0; position: relative }
-.mauth-divider::before, .mauth-divider::after { content: ''; position: absolute; top: 50%; width: 42%; height: 1px; background: var(--border) }
-.mauth-divider::before { left: 0 }
-.mauth-divider::after { right: 0 }
-
-.mauth-alt { text-align: center; font-size: 13.5px; color: var(--muted); margin: 0 0 8px }
-.mauth-alt a { color: var(--accent); text-decoration: none; font-weight: 600 }
-.mauth-alt a:hover { text-decoration: underline }
-
-.mauth-foot { margin-top: 28px; text-align: center; font-size: 12.5px; color: var(--muted2) }
-.mauth-foot a { color: var(--muted); text-decoration: none }
-.mauth-foot a:hover { color: var(--accent) }
-
-/* OTP input row */
-.mauth-otp { display: flex; gap: 8px; margin: 16px 0 4px }
-.mauth-otp input {
-  width: 46px; height: 52px; text-align: center; font-size: 22px; font-weight: 600;
-  font-family: var(--ff); border: 1.5px solid var(--border2); border-radius: 10px;
-  background: var(--bg); color: var(--text); outline: none; box-sizing: border-box;
-  transition: border-color .15s;
-}
-.mauth-otp input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent) }
-
-/* Error banner */
-.mauth-err {
-  background: color-mix(in srgb,var(--err) 8%,transparent);
-  border: 1px solid color-mix(in srgb,var(--err) 20%,transparent);
-  border-radius: 8px; padding: 10px 14px; font-size: 13.5px; color: var(--err);
-  margin-bottom: 16px;
-}
-
-/* Input with icon */
-.i-wrap { position: relative }
-.i-wrap .i-ic { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted2); pointer-events: none }
-.i-wrap .input { padding-left: 40px }
-
-@media(max-width:900px) {
-  .mauth { grid-template-columns: 1fr }
-  .mauth-side { display: none }
-  .mauth-main { padding: 40px 24px }
+@media(min-width:900px){
+  .mauth{height:100vh;min-height:0;overflow:hidden}
+  .mauth-main{overflow-y:auto}
+  .mauth-side{overflow:hidden}
 }

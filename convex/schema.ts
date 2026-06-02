@@ -97,6 +97,11 @@ export default defineSchema({
     verificationStatus: v.optional(
       v.union(v.literal('pending'), v.literal('active'))
     ),
+
+    // Admin-only override for testing MRI card colours without real devices
+    mriStatusOverride: v.optional(
+      v.union(v.literal('safe'), v.literal('conditional'), v.literal('unsafe'), v.literal('unknown'), v.null())
+    ),
   })
     .index('by_user',         ['userId'])
     .index('by_implant_code', ['implantIdCode']),

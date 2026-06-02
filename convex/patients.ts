@@ -483,7 +483,7 @@ export const adminSetPatientStatus = mutation({
     if (!user || user.role !== 'admin') throw new Error('Admin only')
 
     const patch: Record<string, unknown> = { verificationStatus: args.verificationStatus }
-    if (args.mriOverride) {
+    if (args.mriOverride !== undefined) {
       patch.mriStatusOverride = args.mriOverride === 'none' ? null : args.mriOverride
     }
     await ctx.db.patch(args.patientId, patch)

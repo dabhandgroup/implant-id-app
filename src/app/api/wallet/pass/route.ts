@@ -34,14 +34,16 @@ const ICON_LG         = pub('icon-87.png')
 // White logo — shows clearly on coloured card backgrounds
 const LOGO_SM = pub('wallet-logo.png')
 const LOGO_MD = pub('wallet-logo@2x.png')
-// MRI icon thumbnails — clean square icons, appear top-right of pass opposite the logo
-// Using mr-safe.png (87×87) NOT the badge images (240×80 with "Conditions apply" text)
-const MRI_SAFE_ICON         = pub('mr-safe.png')
-const MRI_SAFE_ICON_2X      = pub('mr-safe@2x.png')
-const MRI_CONDITIONAL_ICON  = pub('mr-conditional.png')
-const MRI_CONDITIONAL_2X    = pub('mr-conditional@2x.png')
-const MRI_UNSAFE_ICON       = pub('mr-unsafe.png')
-const MRI_UNSAFE_ICON_2X    = pub('mr-unsafe@2x.png')
+// MRI icon thumbnails with white backgrounds for visibility on coloured pass cards:
+//   Safe    → white rounded rect  (green icon invisible on green card otherwise)
+//   Conditional → plain icon      (yellow triangle already readable on orange)
+//   Unsafe  → white circle        (dark icon invisible on red card otherwise)
+const MRI_SAFE_ICON         = pub('mr-safe-thumb.png')
+const MRI_SAFE_ICON_2X      = pub('mr-safe-thumb@2x.png')
+const MRI_CONDITIONAL_ICON  = pub('mr-conditional-thumb.png')
+const MRI_CONDITIONAL_2X    = pub('mr-conditional-thumb@2x.png')
+const MRI_UNSAFE_ICON       = pub('mr-unsafe-thumb.png')
+const MRI_UNSAFE_ICON_2X    = pub('mr-unsafe-thumb@2x.png')
 
 const MRI_LABEL: Record<string, string> = {
   safe: 'MR Safe', conditional: 'MR Conditional', unsafe: 'MR Unsafe — Do Not Scan',

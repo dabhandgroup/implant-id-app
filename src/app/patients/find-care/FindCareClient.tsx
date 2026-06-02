@@ -17,12 +17,14 @@ export default function FindCareClient() {
   const [sbCollapsed,    setSbCollapsed]    = useState(false)
   const [profileOpen,    setProfileOpen]    = useState(false)
   const [logoutOpen,     setLogoutOpen]     = useState(false)
+  const [notifOpen,      setNotifOpen]      = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedClinic, setSelectedClinic] = useState<any | null>(null)
 
   const clinics = useQuery(api.clinics.listClinicsForPatients,
     searchQuery.trim().length >= 2 ? { query: searchQuery } : {},
   )
+  const notifications = useQuery(api.patients.getMyNotifications)
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'P'
@@ -105,6 +107,18 @@ export default function FindCareClient() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M22 16.9A16 16 0 0 1 5.1 2 2 2 0 0 1 7.1 0h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2L11 7.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2-.5c.9.3 1.8.5 2.7.6A2 2 0 0 1 22 16.9z"/></svg>
             <span>Emergency info</span>
           </a>
+          <button className="sb-notif" aria-label="Notifications" title="Notifications"
+            onClick={e => { e.stopPropagation(); setNotifOpen(true) }}>
+            <span className="sb-notif-ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span className="dot" />
+            </span>
+            <span className="label">Notifications</span>
+            <span className="count">{notifications?.filter((n: {read: boolean}) => !n.read).length || 0}</span>
+          </button>
 
           {/* Profile */}
           <div
@@ -239,6 +253,36 @@ export default function FindCareClient() {
           </div>
         </div>
       </div>
+
+      {/* Notification drawer */}
+      <div className={`notif-back${notifOpen ? ' open' : ''}`} onClick={() => setNotifOpen(false)} />
+      <aside className={`notif-drawer${notifOpen ? ' open' : ''}`} aria-label="Notifications">
+        <div className="notif-h">
+          <h3>Updates</h3>
+          <button className="x" onClick={() => setNotifOpen(false)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="notif-list">
+          {!notifications || notifications.length === 0 ? (
+            <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No notifications</div>
+          ) : (notifications as {_id: string, title: string, body: string, read: boolean, createdAt: number}[]).map(n => (
+            <div key={n._id} className={`notif-item${n.read ? '' : ' unread'}`}>
+              <div className="notif-ic ok">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
+              <div>
+                <b>{n.title}</b>
+                <p>{n.body}</p>
+                <div className="t">{new Date(n.createdAt).toLocaleDateString()} · Implant ID</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="notif-foot">
+          <a href="/patients/account">Notification settings</a>
+        </div>
+      </aside>
 
       {/* Logout modal */}
       {logoutOpen && (

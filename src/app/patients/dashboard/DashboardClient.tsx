@@ -634,6 +634,10 @@ export default function DashboardClient() {
             </svg>
             <span>Account settings</span>
           </a>
+          <a className="sb-link" href="/patients/emergency" title="Emergency info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M22 16.9A16 16 0 0 1 5.1 2 2 2 0 0 1 7.1 0h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2L11 7.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2-.5c.9.3 1.8.5 2.7.6A2 2 0 0 1 22 16.9z"/></svg>
+            <span>Emergency info</span>
+          </a>
 
           {/* Notifications button */}
           <button

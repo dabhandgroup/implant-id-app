@@ -10,7 +10,7 @@ export default async function ManufacturerLayout({ children }: { children: React
   const pathname = hdrs.get('x-pathname') ?? hdrs.get('x-invoke-path') ?? ''
 
   // Public routes — no shell, no auth check
-  const isPublic = pathname.includes('/sign-up') || pathname.includes('/onboarding')
+  const isPublic = pathname.includes('/sign-up') || pathname.includes('/onboarding') || pathname.includes('/login')
   if (isPublic) return <>{children}</>
 
   // Authenticated portal pages — apply shell + role guard

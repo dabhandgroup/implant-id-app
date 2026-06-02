@@ -8,15 +8,26 @@ import { Id }                    from '../../../../../convex/_generated/dataMode
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
+type ActionType = 'approve' | 'reject'
+
 interface Props { id: string }
 
-function Field({ label, value }: { label: string; value?: string | string[] | null }) {
+function formatDate(ts: number) {
+  return new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function getInitials(name: string) {
+  const w = name.trim().split(/\s+/)
+  return w.length === 1 ? w[0].slice(0, 2).toUpperCase() : (w[0][0] + w[1][0]).toUpperCase()
+}
+
+function InfoCard({ label, value }: { label: string; value?: string | string[] | null }) {
   if (!value || (Array.isArray(value) && value.length === 0)) return null
   return (
-    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 18px' }}>
-      <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>{label}</div>
+    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
+      <div style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted2)', marginBottom: 6, letterSpacing: '.5px', textTransform: 'uppercase' }}>{label}</div>
       {Array.isArray(value) ? (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
           {value.map(v => (
             <span key={v} style={{ background: 'color-mix(in srgb,var(--accent) 10%,transparent)', color: 'var(--accent)', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 6 }}>{v}</span>
           ))}
@@ -28,121 +39,117 @@ function Field({ label, value }: { label: string; value?: string | string[] | nu
   )
 }
 
+function SectionLabel({ label }: { label: string }) {
+  return (
+    <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12, marginTop: 24 }}>{label}</div>
+  )
+}
+
 export default function ManufacturerClient({ id }: Props) {
-  const router             = useRouter()
-  const mfr                = useQuery(api.manufacturers.getApplicationById, { id: id as Id<'manufacturers'> })
-  const review             = useMutation(api.manufacturers.reviewApplication)
+  const router   = useRouter()
+  const mfr      = useQuery(api.manufacturers.getApplicationById, { id: id as Id<'manufacturers'> })
+  const review   = useMutation(api.manufacturers.reviewApplication)
 
-  const [confirmType,  setConfirmType]  = useState<'approve' | 'reject' | null>(null)
-  const [rejectReason, setRejectReason] = useState('')
-  const [confirming,   setConfirming]   = useState(false)
-  const [confirmed,    setConfirmed]    = useState(false)
-  const [error,        setError]        = useState('')
+  const [confirmAction, setConfirmAction] = useState<ActionType | null>(null)
+  const [rejectNotes,   setRejectNotes]   = useState('')
+  const [submitting,    setSubmitting]    = useState(false)
+  const [submitError,   setSubmitError]   = useState('')
 
-  // All hooks must be before early returns
+  function openConfirm(type: ActionType) { setConfirmAction(type); setRejectNotes(''); setSubmitError('') }
+  function closeConfirm() { if (!submitting) { setConfirmAction(null); setSubmitError('') } }
+
+  async function handleConfirm() {
+    if (!mfr) return
+    setSubmitting(true); setSubmitError('')
+    try {
+      await review({
+        applicationId: id,
+        decision: confirmAction === 'approve' ? 'approved' : 'rejected',
+        notes: confirmAction === 'reject' && rejectNotes.trim() ? rejectNotes.trim() : undefined,
+      })
+      router.push('/master/manufacturers')
+    } catch (e) {
+      setSubmitError((e as { message?: string })?.message ?? 'Something went wrong')
+      setSubmitting(false)
+    }
+  }
+
   if (mfr === undefined) return <div className="m-content" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>Loading…</div>
-  if (mfr === null) return <div className="m-content" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>Manufacturer not found.</div>
+  if (mfr === null)      return <div className="m-content" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>Manufacturer not found.</div>
 
   const isPending  = mfr.status === 'pending'
   const isApproved = mfr.status === 'approved'
   const isRejected = mfr.status === 'rejected'
-
-  async function handleConfirm() {
-    if (!confirmType) return
-    setError(''); setConfirming(true)
-    try {
-      await review({
-        applicationId: id,
-        action: confirmType,
-        reviewNotes: confirmType === 'reject' ? rejectReason : undefined,
-      })
-      setConfirmed(true)
-      await new Promise(r => setTimeout(r, 800))
-      setConfirmType(null); setConfirmed(false); setConfirming(false)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'An error occurred')
-      setConfirming(false)
-    }
-  }
+  const colour     = isPending ? '#d97706' : isApproved ? 'var(--ok)' : 'var(--err)'
+  const statusLabel = mfr.status.charAt(0).toUpperCase() + mfr.status.slice(1)
 
   return (
     <div className="m-content">
-      {/* Back */}
-      <button
-        className="m-back"
-        onClick={() => router.push('/master/manufacturers')}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 13.5, background: 'transparent', border: 0, cursor: 'pointer', padding: 0, marginBottom: 24 }}
-      >
-        ← All Manufacturers
+      <button onClick={() => router.push('/master/manufacturers')} className="m-back"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 13.5, background: 'transparent', border: 0, cursor: 'pointer', padding: 0, marginBottom: 24 }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Manufacturers
       </button>
 
-      {/* Header */}
-      <div className="m-h">
-        <div>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {mfr.companyName}
-            <span className={`m-status ${mfr.status}`}>{mfr.status.charAt(0).toUpperCase() + mfr.status.slice(1)}</span>
-          </h2>
-          <div className="sub">{mfr.contactEmail} · Applied {new Date(mfr.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+      {/* ── Profile header card ── */}
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '28px 32px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 22 }}>
+        <div style={{ width: 64, height: 64, borderRadius: 16, flexShrink: 0, background: 'color-mix(in srgb,var(--accent) 14%,transparent)', border: '1.5px solid color-mix(in srgb,var(--accent) 28%,transparent)', display: 'grid', placeItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 22, color: 'var(--accent)' }}>{getInitials(mfr.companyName)}</span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {isPending && <>
-            <button className="btn btn-s" onClick={() => { setConfirmType('approve'); setError('') }}>Approve ✓</button>
-            <button className="btn btn-danger" onClick={() => { setConfirmType('reject'); setError('') }}>Reject</button>
-          </>}
-          {isRejected && <button className="btn btn-s" onClick={() => { setConfirmType('approve'); setError('') }}>Reconsider</button>}
-          {isApproved && <button className="btn btn-danger" onClick={() => { setConfirmType('reject'); setError('') }}>Suspend</button>}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h2 style={{ marginBottom: 8 }}>{mfr.companyName}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: colour, background: `color-mix(in srgb,${colour} 10%,transparent)`, border: `1px solid color-mix(in srgb,${colour} 25%,transparent)`, borderRadius: 8, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>
+              {isPending && <span style={{ width: 6, height: 6, borderRadius: '50%', background: colour, display: 'inline-block' }} />}
+              {statusLabel}
+            </span>
+            <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>Applied {formatDate(mfr.submittedAt)}</span>
+            {mfr.country && <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>{mfr.country}</span>}
+          </div>
         </div>
-      </div>
-
-      {/* Confirmed banner */}
-      {confirmed && (
-        <div style={{ background: 'color-mix(in srgb,var(--ok) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 25%,transparent)', borderRadius: 10, padding: '12px 18px', marginBottom: 20, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)', fontWeight: 500 }}>
-          Action applied successfully.
-        </div>
-      )}
-
-      {/* ── Section: Company identity ── */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Company Identity</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
-          <Field label="Legal Entity Name"          value={mfr.legalEntityName} />
-          <Field label="Trading / Brand Name"       value={mfr.companyName} />
-          <Field label="Registration Number"        value={mfr.regNumber} />
-          <Field label="Country of Incorporation"   value={mfr.country} />
-          <Field label="Website"                    value={mfr.website} />
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          {(isPending || isRejected) && <button className="btn btn-s" onClick={() => openConfirm('approve')}>Approve ✓</button>}
+          {(isPending || isApproved) && <button className="btn btn-danger" onClick={() => openConfirm('reject')}>{isApproved ? 'Suspend' : 'Reject'}</button>}
         </div>
       </div>
 
-      {/* ── Section: Regulatory ── */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Regulatory</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
-          <Field label="ISO 13485 Certificate No."  value={mfr.iso13485CertNumber} />
-          <Field label="ISO 13485 Issuing Body"     value={mfr.iso13485IssuingBody} />
-          <Field label="ISO 13485 Expiry Date"      value={mfr.iso13485ExpiryDate} />
-          <Field label="Other Registrations"        value={mfr.regulatoryRegistrations} />
-          <Field label="Device Categories"          value={mfr.deviceCategories} />
-          <Field label="Geographic Markets"         value={mfr.geographicMarkets} />
-        </div>
+      {/* ── Company Identity ── */}
+      <SectionLabel label="Company Identity" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
+        <InfoCard label="Legal Entity Name"        value={mfr.legalEntityName} />
+        <InfoCard label="Trading / Brand Name"     value={mfr.companyName} />
+        <InfoCard label="Registration Number"      value={mfr.regNumber} />
+        <InfoCard label="Country of Incorporation" value={mfr.country} />
+        <InfoCard label="Website"                  value={mfr.website} />
       </div>
 
-      {/* ── Section: Contact ── */}
-      <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Primary Contact</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 12 }}>
-          <Field label="Name"       value={mfr.contactName} />
-          <Field label="Job Title"  value={mfr.contactJobTitle} />
-          <Field label="Email"      value={mfr.contactEmail} />
-          <Field label="Phone"      value={mfr.contactPhone} />
-        </div>
+      {/* ── Regulatory ── */}
+      <SectionLabel label="Regulatory" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
+        <InfoCard label="ISO 13485 Certificate No." value={mfr.iso13485CertNumber} />
+        <InfoCard label="ISO 13485 Issuing Body"    value={mfr.iso13485IssuingBody} />
+        <InfoCard label="ISO 13485 Expiry Date"     value={mfr.iso13485ExpiryDate} />
+        <InfoCard label="Other Registrations"       value={mfr.regulatoryRegistrations} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+        <InfoCard label="Device Categories" value={mfr.deviceCategories} />
+        <InfoCard label="Geographic Markets" value={mfr.geographicMarkets} />
       </div>
 
-      {/* ── Supporting documents ── */}
+      {/* ── Primary Contact ── */}
+      <SectionLabel label="Primary Contact" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
+        <InfoCard label="Name"      value={mfr.contactName} />
+        <InfoCard label="Job Title" value={mfr.contactJobTitle} />
+        <InfoCard label="Email"     value={mfr.contactEmail} />
+        <InfoCard label="Phone"     value={mfr.contactPhone} />
+      </div>
+
+      {/* ── Supporting Documents ── */}
       {(mfr.docCompanyRegistration || mfr.docIso13485 || mfr.docRegulatoryCert || mfr.docLetterhead || mfr.docMriSampleData) && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Supporting Documents</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10 }}>
+        <>
+          <SectionLabel label="Supporting Documents" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
             {([
               { id: mfr.docCompanyRegistration, label: 'Certificate of Incorporation' },
               { id: mfr.docIso13485,            label: 'ISO 13485 Certificate' },
@@ -150,13 +157,8 @@ export default function ManufacturerClient({ id }: Props) {
               { id: mfr.docLetterhead,          label: 'Company Letterhead Statement' },
               { id: mfr.docMriSampleData,       label: 'Sample MRI Safety Data' },
             ] as const).filter(d => d.id).map(doc => (
-              <a
-                key={doc.label}
-                href={`/api/storage/${doc.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', textDecoration: 'none', color: 'var(--text)', transition: 'border-color .15s' }}
-              >
+              <a key={doc.label} href={`/api/storage/${doc.id}`} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', textDecoration: 'none', color: 'var(--text)' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 <div>
                   <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500 }}>{doc.label}</div>
@@ -165,20 +167,22 @@ export default function ManufacturerClient({ id }: Props) {
               </a>
             ))}
           </div>
-        </div>
+        </>
       )}
 
-      {/* ── Review notes ── */}
+      {/* ── Review Notes ── */}
       {mfr.reviewNotes && (
-        <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 24 }}>
-          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--err)', marginBottom: 6 }}>Review Notes</div>
-          <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)' }}>{mfr.reviewNotes}</div>
-        </div>
+        <>
+          <SectionLabel label="Review Notes" />
+          <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 12, padding: '16px 18px' }}>
+            <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)' }}>{mfr.reviewNotes}</div>
+          </div>
+        </>
       )}
 
       {/* ── Approve modal ── */}
-      {confirmType === 'approve' && (
-        <div className="logout-back open" onClick={() => setConfirmType(null)}>
+      {confirmAction === 'approve' && (
+        <div className="logout-back open" onClick={closeConfirm}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
@@ -186,12 +190,12 @@ export default function ManufacturerClient({ id }: Props) {
               </div>
               <h3>Approve manufacturer?</h3>
               <p><strong>{mfr.companyName}</strong> will be activated and able to upload devices to the catalogue.</p>
-              {error && <div style={{ marginTop: 12, padding: '10px 12px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', borderRadius: 8, fontSize: 13, color: 'var(--err)' }}>{error}</div>}
+              {submitError && <div style={{ marginTop: 12, padding: '10px 12px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', borderRadius: 8, fontSize: 13, color: 'var(--err)' }}>{submitError}</div>}
             </div>
             <div className="logout-actions">
-              <button className="btn" onClick={() => setConfirmType(null)} disabled={confirming}>Cancel</button>
-              <button className="btn btn-s" onClick={handleConfirm} disabled={confirming}>
-                {confirmed ? '✓ Approved!' : confirming ? 'Approving…' : 'Approve'}
+              <button className="btn" onClick={closeConfirm} disabled={submitting}>Cancel</button>
+              <button className="btn btn-s" onClick={handleConfirm} disabled={submitting}>
+                {submitting ? 'Approving…' : 'Approve'}
               </button>
             </div>
           </div>
@@ -199,8 +203,8 @@ export default function ManufacturerClient({ id }: Props) {
       )}
 
       {/* ── Reject modal ── */}
-      {confirmType === 'reject' && (
-        <div className="logout-back open" onClick={() => setConfirmType(null)}>
+      {confirmAction === 'reject' && (
+        <div className="logout-back open" onClick={closeConfirm}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
               <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
@@ -208,14 +212,16 @@ export default function ManufacturerClient({ id }: Props) {
               </div>
               <h3>{isApproved ? 'Suspend manufacturer?' : 'Reject application?'}</h3>
               <p style={{ marginBottom: 14 }}><strong>{mfr.companyName}</strong></p>
-              <p style={{ marginBottom: 14, color: 'var(--muted)', fontSize: 13 }}>Provide a reason — this will be included in the notification email.</p>
-              <textarea className="input" style={{ resize: 'vertical', minHeight: 80 }} placeholder="e.g. Unable to verify ISO 13485 certificate…" value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
-              {error && <div style={{ marginTop: 12, padding: '10px 12px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', borderRadius: 8, fontSize: 13, color: 'var(--err)' }}>{error}</div>}
+              <p style={{ marginBottom: 14, color: 'var(--muted)', fontSize: 13 }}>Provide a reason — this will be sent to the applicant.</p>
+              <textarea className="input" style={{ resize: 'vertical', minHeight: 80 }}
+                placeholder="e.g. Unable to verify ISO 13485 certificate…"
+                value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} />
+              {submitError && <div style={{ marginTop: 12, padding: '10px 12px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', borderRadius: 8, fontSize: 13, color: 'var(--err)' }}>{submitError}</div>}
             </div>
             <div className="logout-actions">
-              <button className="btn" onClick={() => setConfirmType(null)} disabled={confirming}>Cancel</button>
-              <button className="btn btn-danger" onClick={handleConfirm} disabled={confirming || !rejectReason.trim()}>
-                {confirmed ? 'Done' : confirming ? 'Processing…' : isApproved ? 'Suspend' : 'Reject'}
+              <button className="btn" onClick={closeConfirm} disabled={submitting}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleConfirm} disabled={submitting || !rejectNotes.trim()}>
+                {submitting ? 'Processing…' : isApproved ? 'Suspend' : 'Reject'}
               </button>
             </div>
           </div>

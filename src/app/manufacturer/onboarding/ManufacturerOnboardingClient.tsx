@@ -1,7 +1,8 @@
 'use client'
-import { useState, useRef } from 'react'
-import { useMutation } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
+import { useState, useRef }  from 'react'
+import { useMutation }        from 'convex/react'
+import { api }                from '../../../../convex/_generated/api'
+import { CustomSelect }       from '@/components/ui/CustomSelect'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -500,18 +501,12 @@ export default function ManufacturerOnboardingClient() {
                         Country of incorporation
                         <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
                       </label>
-                      <select
-                        className="input"
+                      <CustomSelect
                         value={country}
-                        onChange={e => setCountry(e.target.value)}
-                        aria-label="Country of incorporation"
-                        style={{ appearance: 'none', backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230e2a33' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', backgroundSize: '10px', paddingRight: 36 }}
-                      >
-                        <option value="">Select country</option>
-                        {COUNTRIES.map(c => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
+                        onChange={setCountry}
+                        placeholder="Select country"
+                        options={COUNTRIES.map(c => ({ label: c, value: c }))}
+                      />
                     </div>
 
                     <div className="field field-full">

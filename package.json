@@ -16,16 +16,19 @@
     "@clerk/nextjs": "^7.4.1",
     "convex": "^1.39.1",
     "next": "^16.2.6",
+    "papaparse": "^5.5.3",
     "passkit-generator": "^3.5.7",
     "qrcode": "^1.5.4",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "resend": "^6.12.3",
     "sharp": "^0.34.5",
-    "svix": "^1.94.0"
+    "svix": "^1.94.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
+    "@types/papaparse": "^5.5.2",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

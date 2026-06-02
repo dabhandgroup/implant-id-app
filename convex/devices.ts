@@ -100,6 +100,67 @@ export const addDevice = mutation({
   },
 })
 
+/**
+ * Bulk-insert devices from a parsed CSV/Excel upload.
+ * Devices are inserted with status='pending_review' and verified=false.
+ * Each row must have manufacturer, model, deviceType, mriStatus at minimum.
+ */
+export const bulkInsertDevices = mutation({
+  args: {
+    devices: v.array(v.object({
+      name:             v.string(),
+      manufacturer:     v.string(),
+      model:            v.string(),
+      deviceType:       v.string(),
+      classification:   v.optional(v.union(v.literal('active'), v.literal('passive'), v.literal('legacy'))),
+      mriStatus:        v.union(v.literal('conditional'), v.literal('safe'), v.literal('unsafe'), v.literal('unknown')),
+      fieldStrengths:   v.optional(v.string()),
+      sarLimit:         v.optional(v.string()),
+      b1RmsLimit:       v.optional(v.string()),
+      slewRateLimit:    v.optional(v.string()),
+      gradientLimit:    v.optional(v.string()),
+      maxScanTime:      v.optional(v.string()),
+      contraindications:v.optional(v.string()),
+      sourceUrl:        v.optional(v.string()),
+      notes:            v.optional(v.string()),
+    })),
+    submitterName:  v.string(),
+    submitterTitle: v.string(),
+    source:         v.optional(v.string()), // 'admin' | 'manufacturer'
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || !['admin', 'manufacturer'].includes(user.role)) throw new Error('Insufficient permissions')
+
+    const now = Date.now()
+    const ids: string[] = []
+    for (const d of args.devices) {
+      const id = await ctx.db.insert('devices', {
+        manufacturer:      d.manufacturer,
+        model:             d.model,
+        deviceType:        d.deviceType,
+        classification:    d.classification ?? 'active',
+        mriStatus:         d.mriStatus,
+        fieldStrengths:    d.fieldStrengths,
+        sarLimit:          d.sarLimit,
+        b1RmsLimit:        d.b1RmsLimit,
+        slewRateLimit:     d.slewRateLimit,
+        gradientLimit:     d.gradientLimit,
+        maxScanTime:       d.maxScanTime,
+        contraindications: d.contraindications,
+        oem_ownedNotes:    d.notes,
+        status:            'pending_review',
+        verified:          false,
+        publishedAt:       now,
+      })
+      ids.push(String(id))
+    }
+    return { inserted: ids.length }
+  },
+})
+
 /** Get a single device with a count of patients currently linked to it. */
 export const getDeviceWithUsage = query({
   args: { id: v.id('devices') },

@@ -231,7 +231,7 @@ export default function ShareClient() {
                     />
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                <div className="sh-wallet-btns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
                   <a href={`${passUrl}.pkpass`} className="btn btn-s btn-lg">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M17.05 12.04c-.02-1.92 1.57-2.85 1.64-2.9-.9-1.3-2.29-1.49-2.78-1.5-1.17-.12-2.3.7-2.9.7-.6 0-1.53-.68-2.52-.66-1.28.02-2.47.75-3.14 1.9-1.36 2.34-.34 5.8.97 7.7.65.94 1.41 1.98 2.4 1.94.97-.04 1.33-.62 2.5-.62s1.5.62 2.53.6c1.04-.02 1.7-.94 2.34-1.88.74-1.08 1.04-2.13 1.05-2.18-.02-.01-2.02-.77-2.05-3.07zM15.1 5.43c.53-.64.88-1.54.78-2.43-.76.03-1.68.5-2.23 1.14-.49.56-.92 1.48-.8 2.35.85.07 1.72-.43 2.25-1.06z"/>

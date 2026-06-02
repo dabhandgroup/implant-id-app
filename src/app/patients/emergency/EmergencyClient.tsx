@@ -158,7 +158,19 @@ export default function EmergencyClient() {
                   <div style={{ fontSize: 11, color: '#64748b' }}>portal.implantid.io · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                 </div>
               </div>
-              <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 13, fontWeight: 700, color: '#29869f', letterSpacing: '.05em' }}>{patient.implantIdCode}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* QR code for instant clinic scan — print-only */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=4&data=${encodeURIComponent(scanUrl)}`}
+                  alt="Scan to view full record"
+                  style={{ width: 56, height: 56, border: '1px solid #e2e8f0', borderRadius: 4 }}
+                />
+                <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 11, fontWeight: 700, color: '#0e2a33', letterSpacing: '.05em', textAlign: 'center' }}>
+                  {patient.implantIdCode}
+                  <div style={{ fontFamily: 'sans-serif', fontSize: 9, fontWeight: 400, color: '#64748b', letterSpacing: 0, marginTop: 2 }}>Scan for full record</div>
+                </div>
+              </div>
             </div>
 
             {/* Page header — screen only */}
@@ -228,10 +240,10 @@ export default function EmergencyClient() {
             <div className="em-card" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Patient</div>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{fullName}</div>
-              <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 14, color: 'var(--accent)', letterSpacing: '.04em', marginBottom: patient.dob ? 10 : 0 }}>{patient.implantIdCode}</div>
+              <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 14, color: 'var(--accent-deep)', letterSpacing: '.04em', marginBottom: patient.dob ? 10 : 0 }}>{patient.implantIdCode}</div>
               {patient.dob && (
                 <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>DOB: <strong style={{ color: 'var(--text)' }}>{patient.dob}</strong></span>
+                  <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>Date of birth: <strong style={{ color: 'var(--text)' }}>{patient.dob}</strong></span>
                   {patient.heightCm && <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>Height: <strong style={{ color: 'var(--text)' }}>{patient.heightCm} cm</strong></span>}
                   {patient.weightKg && <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>Weight: <strong style={{ color: 'var(--text)' }}>{patient.weightKg} kg</strong></span>}
                 </div>

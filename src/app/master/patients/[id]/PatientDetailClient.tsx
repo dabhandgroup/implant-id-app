@@ -44,12 +44,15 @@ export default function PatientDetailClient({ id }: Props) {
   const [addNotes,        setAddNotes]        = useState('')
   const [addingDevice,    setAddingDevice]    = useState(false)
   const [addDeviceError,  setAddDeviceError]  = useState('')
+  const [statusSaving,    setStatusSaving]    = useState(false)
+  const [statusMsg,       setStatusMsg]       = useState('')
 
   const patient          = useQuery(api.patients.getPatientById, { patientId: id as Id<'patients'> })
   const allDevices       = useQuery(api.devices.listDevices)
   const verifyPatient    = useMutation(api.patients.verifyPatient)
   const linkDevice       = useMutation(api.patients.linkDeviceToPatient)
   const removeDevice     = useMutation(api.patients.removePatientDevice)
+  const adminSetStatus   = useMutation(api.patients.adminSetPatientStatus)
   const router           = useRouter()
 
   // Filter devices for search
@@ -159,6 +162,66 @@ export default function PatientDetailClient({ id }: Props) {
           {error}
         </div>
       )}
+
+      {/* ── Admin Status Override ── */}
+      <div style={{ background: 'color-mix(in srgb,var(--accent) 4%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 12, padding: '18px 20px', marginBottom: 24 }}>
+        <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 14 }}>Admin: Status Override (for testing)</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
+          <div>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>Verification</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(['pending', 'active'] as const).map(s => (
+                <button key={s} className={`btn${patient.verificationStatus === s ? ' btn-s' : ''}`}
+                  style={{ fontSize: 12, padding: '6px 14px' }}
+                  onClick={async () => {
+                    setStatusSaving(true); setStatusMsg('')
+                    try { await adminSetStatus({ patientId: id as Id<'patients'>, verificationStatus: s }); setStatusMsg('Saved') }
+                    catch { setStatusMsg('Error') } finally { setStatusSaving(false); setTimeout(() => setStatusMsg(''), 2000) }
+                  }}
+                  disabled={statusSaving}
+                >
+                  {s === 'pending' ? '⏳ Pending' : '✓ Verified'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>MRI Status Override</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {([
+                { val: 'none',        label: 'Auto (from devices)', color: 'var(--muted)' },
+                { val: 'safe',        label: 'MR Safe',             color: 'var(--ok)' },
+                { val: 'conditional', label: 'MR Conditional',      color: '#b45309' },
+                { val: 'unsafe',      label: 'MR Unsafe',           color: 'var(--err)' },
+                { val: 'unknown',     label: 'Unknown',             color: 'var(--muted)' },
+              ] as const).map(opt => {
+                const current = (patient as Record<string, unknown>).mriStatusOverride as string | null
+                const isActive = opt.val === 'none' ? !current : current === opt.val
+                return (
+                  <button key={opt.val} className={`btn${isActive ? ' btn-s' : ''}`}
+                    style={{ fontSize: 11, padding: '5px 10px', color: isActive ? undefined : opt.color, borderColor: isActive ? undefined : opt.color }}
+                    onClick={async () => {
+                      setStatusSaving(true); setStatusMsg('')
+                      try {
+                        await adminSetStatus({
+                          patientId: id as Id<'patients'>,
+                          verificationStatus: patient.verificationStatus ?? 'pending',
+                          mriOverride: opt.val,
+                        })
+                        setStatusMsg('Saved')
+                      } catch { setStatusMsg('Error') } finally { setStatusSaving(false); setTimeout(() => setStatusMsg(''), 2000) }
+                    }}
+                    disabled={statusSaving}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          {statusMsg && <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: statusMsg === 'Saved' ? 'var(--ok)' : 'var(--err)', fontWeight: 600 }}>{statusMsg}</span>}
+        </div>
+      </div>
 
       {/* Info cards grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12, marginBottom: 24 }}>

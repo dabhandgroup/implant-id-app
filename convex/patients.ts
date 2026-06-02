@@ -256,6 +256,10 @@ export const getMyImplantSafety = query({
       .unique()
     if (!patient) return null
 
+    // Admin override takes precedence for testing
+    const override = (patient as Record<string, unknown>).mriStatusOverride as string | null | undefined
+    if (override && override !== 'none') return override as 'safe' | 'conditional' | 'unsafe' | 'unknown'
+
     const links = await ctx.db
       .query('patientDevices')
       .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
@@ -459,6 +463,30 @@ export const verifyPatient = mutation({
       read:      false,
       createdAt: Date.now(),
     })
+  },
+})
+
+/**
+ * Admin-only: override a patient's verification status and MRI status for testing.
+ * Sets a direct override on the patient record that takes precedence over linked devices.
+ */
+export const adminSetPatientStatus = mutation({
+  args: {
+    patientId:          v.id('patients'),
+    verificationStatus: v.union(v.literal('pending'), v.literal('active')),
+    mriOverride:        v.optional(v.union(v.literal('safe'), v.literal('conditional'), v.literal('unsafe'), v.literal('unknown'), v.literal('none'))),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') throw new Error('Admin only')
+
+    const patch: Record<string, unknown> = { verificationStatus: args.verificationStatus }
+    if (args.mriOverride) {
+      patch.mriStatusOverride = args.mriOverride === 'none' ? null : args.mriOverride
+    }
+    await ctx.db.patch(args.patientId, patch)
   },
 })
 

@@ -370,11 +370,10 @@ export const inviteManufacturer = mutation({
       reviewedAt: Date.now(),
     })
 
-    // Activate Clerk account + send approval email
-    await ctx.scheduler.runAfter(0, internal.manufacturers.activateManufacturerAccount, {
-      clerkUserId: undefined,
-      contactEmail: args.contactEmail,
+    // Send invitation email with sign-up link (they'll activate by signing up)
+    await ctx.scheduler.runAfter(0, internal.email.sendManufacturerInviteEmail, {
       contactName: args.contactName,
+      contactEmail: args.contactEmail,
       companyName: args.companyName,
     })
 

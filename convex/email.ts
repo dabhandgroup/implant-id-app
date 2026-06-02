@@ -556,6 +556,54 @@ export const sendManufacturerApprovalEmail = internalAction({
   },
 })
 
+// ── Manufacturer invite email ───────────────────────────────────────────────
+
+export const sendManufacturerInviteEmail = internalAction({
+  args: {
+    contactName: v.string(),
+    contactEmail: v.string(),
+    companyName: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r = resend()
+    const firstName = args.contactName.split(' ')[0]
+    await r.emails.send({
+      from: FROM,
+      to: args.contactEmail,
+      subject: `You've been invited to Implant ID`,
+      html: buildEmail({
+        title: 'Manufacturer Invitation',
+        heading: `Welcome to Implant ID, ${firstName}!`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            <strong style="color:#0e2a33;">${args.companyName}</strong> has invited you to join
+            the Implant ID manufacturer network. Your account is ready to activate.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Click the button below to sign up and start submitting devices to the Implant ID
+            network. You'll use this email address to sign in.
+          </p>
+        `,
+        highlightBox: {
+          content: `
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                       text-transform:uppercase;color:#29869F;">Sign up with</p>
+            <p style="margin:0;font-size:20px;font-weight:600;color:#1a6a80;
+                       letter-spacing:0.2px;">${args.contactEmail}</p>
+          `,
+        },
+        cta: {
+          label: 'Sign in to your manufacturer portal →',
+          url: `https://portal.implantid.io/sign-up?email=${encodeURIComponent(args.contactEmail)}&role=manufacturer`,
+        },
+        footerNote: `If you weren't expecting this invitation, please contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,
+        includeUnsubscribe: true,
+      }),
+    })
+  },
+})
+
 // ── Manufacturer rejection email ──────────────────────────────────────────────
 
 export const sendManufacturerRejectionEmail = internalAction({

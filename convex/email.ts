@@ -3,6 +3,7 @@ import { internalAction } from './_generated/server'
 import { v }              from 'convex/values'
 import { Resend }         from 'resend'
 import { buildEmail }     from './emailTemplate'
+import QRCode             from 'qrcode'
 
 const ADMIN_EMAIL = 'harry@dabhandmarketing.com'
 const FROM        = 'Implant ID <noreply@implantid.io>'
@@ -329,14 +330,16 @@ export const sendPatientShareEmail = internalAction({
     device:         v.optional(v.string()),
     clinicEmail:    v.string(),
     clinicName:     v.optional(v.string()),
-    qrFileId:       v.string(),  // stored QR code file ID
   },
   handler: async (ctx, args) => {
     const r = resend()
     const scanUrl  = `https://portal.implantid.io/scan/${args.implantIdCode}`
 
-    // Get the stored QR code file URL
-    const qrUrl = await ctx.storage.getUrl(args.qrFileId)
+    // Generate QR code PNG in this Node.js action, store it, get a public HTTPS URL
+    // (data: URIs are blocked by Gmail — Convex storage returns a proper https:// URL)
+    const qrBuffer = await QRCode.toBuffer(scanUrl, { width: 200, margin: 2 })
+    const qrFileId = await ctx.storage.store(new Blob([qrBuffer], { type: 'image/png' }))
+    const qrUrl    = await ctx.storage.getUrl(qrFileId)
 
     // Email to clinic
     await r.emails.send({

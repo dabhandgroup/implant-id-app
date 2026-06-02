@@ -34,6 +34,13 @@ const ICON_LG         = pub('icon-87.png')
 // White logo — shows clearly on coloured card backgrounds
 const LOGO_SM = pub('wallet-logo.png')
 const LOGO_MD = pub('wallet-logo@2x.png')
+// MRI badge thumbnails — appear top-right of pass as icon, opposite the logo
+const MRI_SAFE_BADGE        = pub('mr-safe-badge.png')
+const MRI_SAFE_BADGE_2X     = pub('mr-safe-badge@2x.png')
+const MRI_CONDITIONAL_BADGE = pub('mr-conditional-badge.png')
+const MRI_CONDITIONAL_2X    = pub('mr-conditional-badge@2x.png')
+const MRI_UNSAFE_BADGE      = pub('mr-unsafe-badge.png')
+const MRI_UNSAFE_BADGE_2X   = pub('mr-unsafe-badge@2x.png')
 
 const MRI_LABEL: Record<string, string> = {
   safe: 'MR Safe', conditional: 'MR Conditional', unsafe: 'MR Unsafe — Do Not Scan',
@@ -115,6 +122,13 @@ export async function GET() {
   const fullName   = `${patient.firstName} ${patient.lastName}`
   const deviceName = patient.selfReportedDevice ?? 'Not recorded'
 
+  // Truncate long values so they don't push fields to next line on the pass
+  const truncate = (s: string, max: number) => s.length > max ? s.slice(0, max - 1) + '…' : s
+  const patientNameShort = truncate(fullName, 22)          // primary field — large text
+  const deviceNameShort  = truncate(deviceName, 20)        // secondary field
+  const surgeonShort     = patient.selfReportedSurgeon
+    ? truncate(patient.selfReportedSurgeon, 16) : undefined
+
   const passJson = {
     formatVersion:      1,
     passTypeIdentifier: passTypeId,
@@ -122,7 +136,7 @@ export async function GET() {
     teamIdentifier:     teamId,
     organizationName:   'Implant ID',
     description:        'Implant ID Patient Pass',
-    // No logoText — the logo image is the brand; text next to it causes overlap
+    // No logoText — logo image is the brand
     foregroundColor:    WHITE,
     backgroundColor:    bgColor,
     labelColor:         'rgb(255,220,180)',
@@ -135,24 +149,17 @@ export async function GET() {
       },
     ],
     generic: {
-      // headerFields: top-right — keep very short so it doesn't overlap the logo
-      headerFields: [
-        {
-          key:   'mriShort',
-          label: 'MRI',
-          value: safety === 'safe' ? 'SAFE' : safety === 'conditional' ? 'CONDITIONAL' : safety === 'unsafe' ? 'UNSAFE' : 'PENDING',
-        },
-      ],
-      // primaryField: largest text — patient name is most immediately useful
+      // No headerFields — the MRI badge thumbnail (top-right) replaces text
+      // primaryField: largest text — patient name
       primaryFields: [
-        { key: 'patientName', label: 'PATIENT', value: fullName },
+        { key: 'patientName', label: 'PATIENT', value: patientNameShort },
       ],
-      // secondaryFields: MRI status full label + device name
+      // secondaryFields: MRI status + device
       secondaryFields: [
         { key: 'mriStatus', label: 'MRI STATUS', value: mriLabel },
-        { key: 'device',    label: 'DEVICE',     value: deviceName },
+        { key: 'device',    label: 'DEVICE',     value: deviceNameShort },
       ],
-      // auxiliaryFields: implant date + surgeon
+      // auxiliaryFields: date + surgeon + implant ID
       auxiliaryFields: [
         ...(patient.selfReportedImplantYear ? [{
           key:   'implantDate',
@@ -161,17 +168,17 @@ export async function GET() {
             ? `${patient.selfReportedImplantMonth}/${patient.selfReportedImplantYear}`
             : patient.selfReportedImplantYear,
         }] : []),
-        ...(patient.selfReportedSurgeon ? [{
+        ...(surgeonShort ? [{
           key:   'surgeon',
           label: 'SURGEON',
-          value: patient.selfReportedSurgeon,
+          value: surgeonShort,
         }] : []),
         { key: 'implantId', label: 'IMPLANT ID', value: patient.implantIdCode },
         ...(patient.contrastAllergy ? [{
           key:   'allergyFront',
           label: 'CONTRAST ALLERGY',
           value: patient.contrastAllergyNote
-            ? patient.contrastAllergyNote.slice(0, 40)
+            ? patient.contrastAllergyNote.slice(0, 30)
             : 'Documented — notify radiology',
         }] : []),
       ],
@@ -224,8 +231,17 @@ export async function GET() {
       ? wwdrBuffer.toString('utf-8')
       : derToPem(wwdrBuffer)
 
+    // MRI badge thumbnail — shown top-right of the pass, opposite the logo
+    const badgeSm = safety === 'safe'        ? MRI_SAFE_BADGE
+                  : safety === 'conditional' ? MRI_CONDITIONAL_BADGE
+                  : safety === 'unsafe'      ? MRI_UNSAFE_BADGE
+                  : null
+    const badgeMd = safety === 'safe'        ? MRI_SAFE_BADGE_2X
+                  : safety === 'conditional' ? MRI_CONDITIONAL_2X
+                  : safety === 'unsafe'      ? MRI_UNSAFE_BADGE_2X
+                  : null
+
     const pass = new PKPass(
-      // Files — pass.json + icon images (no thumbnail — was causing MRI badge to clip)
       {
         'pass.json':      Buffer.from(JSON.stringify(passJson)),
         'icon.png':       ICON_SM,
@@ -233,6 +249,11 @@ export async function GET() {
         'icon@3x.png':    ICON_LG,
         'logo.png':       LOGO_SM,
         'logo@2x.png':    LOGO_MD,
+        // Thumbnail: MRI badge icon appears top-right, no text header needed
+        ...(!isPending && badgeSm ? {
+          'thumbnail.png':    badgeSm,
+          'thumbnail@2x.png': badgeMd ?? badgeSm,
+        } : {}),
       },
       // Certificates — all in PEM format
       {

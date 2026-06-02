@@ -930,12 +930,8 @@ export default function DashboardClient() {
                 </p>
               )}
 
-              {/* Data grid — auto columns so Implanted stays close */}
-              <div className="pb-grid" style={{ gridTemplateColumns: 'auto auto auto', gap: '8px 24px', width: 'fit-content', marginBottom: 0 }}>
-                <div>
-                  <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Your Implant ID</div>
-                  <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{iidCode}</div>
-                </div>
+              {/* Data grid — Name + Implanted inline; Implant ID moves below QR */}
+              <div className="pb-grid" style={{ gridTemplateColumns: 'auto auto', gap: '8px 24px', width: 'fit-content', marginBottom: 0 }}>
                 <div>
                   <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Name</div>
                   <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{fullName}</div>
@@ -1062,6 +1058,15 @@ export default function DashboardClient() {
               )}
 
               </div>{/* /actions + QR row */}
+
+              {/* Implant ID — below QR/buttons, close to the scan code */}
+              {!isPending && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', gap: 8, position: 'relative', zIndex: 2 }}>
+                  <div className="k" style={{ opacity: 0.7 }}>Implant ID</div>
+                  <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 13, fontWeight: 600, letterSpacing: '.05em' }}>{iidCode}</div>
+                </div>
+              )}
+
             </div>
             )}{/* end cardReady ternary */}
 

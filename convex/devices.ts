@@ -31,6 +31,18 @@ export const listAllDevices = query({
   },
 })
 
+/** List devices for a specific manufacturer (by manufacturer name string). */
+export const listMyDevices = query({
+  args: { manufacturerName: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query('devices')
+      .withIndex('by_manufacturer', (q) => q.eq('manufacturer', args.manufacturerName))
+      .order('desc')
+      .take(200)
+  },
+})
+
 /** List devices pending review (24h auto-publish window). */
 export const listPendingDevices = query({
   args: {},

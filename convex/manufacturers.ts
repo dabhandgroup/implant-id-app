@@ -1,4 +1,4 @@
-import { mutation, query, internalAction } from './_generated/server'
+import { mutation, query, internalAction, internalMutation } from './_generated/server'
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 
@@ -314,7 +314,7 @@ export const reviewApplication = mutation({
         companyName: app.companyName,
       })
 
-      return { applicationId }
+      return { applicationId: app._id }
     }
 
     // Rejection path ──────────────────────────────────────────────────────────
@@ -388,8 +388,8 @@ export const submitDeviceForReview = mutation({
   },
 })
 
-/** Scheduled action: auto-publish device after 24 hours (only if still pending_review). */
-export const publishDevice = internalAction({
+/** Scheduled mutation: auto-publish device after 24 hours (only if still pending_review). */
+export const publishDevice = internalMutation({
   args: {
     deviceId: v.id('devices'),
   },
@@ -682,9 +682,9 @@ export const rejectDevice = mutation({
     const device = await ctx.db.get(args.deviceId)
     if (!device) throw new Error('Device not found')
 
-    // Mark as rejected (soft delete)
+    // Mark as draft (soft delete - device can be re-submitted)
     await ctx.db.patch(args.deviceId, {
-      status: 'rejected',
+      status: 'draft',
     })
 
     // TODO: Send rejection email to manufacturer

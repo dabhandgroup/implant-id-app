@@ -3,13 +3,30 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
-import { api as apiBase } from '../../../../../convex/_generated/api'
+import { api as apiBase } from '../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
 type Tab = 'pending' | 'all' | 'rejected'
 
 interface ConfirmModal { type: 'approve' | 'reject'; id: string; name: string }
+
+interface Manufacturer {
+  _id: string
+  _creationTime: number
+  companyName: string
+  contactEmail: string
+  contactName: string
+  country: string
+  regNumber: string
+  website: string
+  logoUrl?: string
+  status: 'pending' | 'approved' | 'rejected'
+  submittedAt: number
+  reviewedAt?: number
+  reviewNotes?: string
+  clerkUserId?: string
+}
 
 function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -81,9 +98,9 @@ export default function ManufacturersClient() {
       <div className="m-tabs">
         <button className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
           Pending
-          {pendingManufacturers.length > 0 && (
+          {pendingApps.length > 0 && (
             <span style={{ marginLeft: 7, background: 'color-mix(in srgb,var(--warn) 14%,transparent)', color: 'var(--warn)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
-              {pendingManufacturers.length}
+              {pendingApps.length}
             </span>
           )}
         </button>
@@ -115,7 +132,7 @@ export default function ManufacturersClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingApps.map(m => (
+                  {pendingApps.map((m: Manufacturer) => (
                     <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
                       <td style={{ fontWeight: 500 }}>{m.companyName}</td>
                       <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
@@ -154,7 +171,7 @@ export default function ManufacturersClient() {
                 </thead>
                 <tbody>
                   {/* Approved manufacturers */}
-                  {allMfrs.map(m => (
+                  {allMfrs.map((m: Manufacturer) => (
                     <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
                       <td style={{ fontWeight: 500 }}>{m.companyName}</td>
                       <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
@@ -173,7 +190,7 @@ export default function ManufacturersClient() {
                     </tr>
                   ))}
                   {/* Pending applications */}
-                  {pendingApps.map(m => (
+                  {pendingApps.map((m: Manufacturer) => (
                     <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
                       <td style={{ fontWeight: 500 }}>{m.companyName}</td>
                       <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
@@ -217,7 +234,7 @@ export default function ManufacturersClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rejectedApps.map(m => (
+                  {rejectedApps.map((m: Manufacturer) => (
                     <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
                       <td style={{ fontWeight: 500 }}>{m.companyName}</td>
                       <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>

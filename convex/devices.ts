@@ -15,12 +15,12 @@ export const listDevices = query({
 
 /** List all devices regardless of status (master admin only). */
 export const listAllDevices = query({
-  args: { limit: v.optional(v.number()), status: v.optional(v.string()) },
+  args: { limit: v.optional(v.number()), status: v.optional(v.union(v.literal('draft'), v.literal('pending_review'), v.literal('live'), v.literal('recalled'))) },
   handler: async (ctx, args) => {
     if (args.status) {
       return ctx.db
         .query('devices')
-        .withIndex('by_status', (q) => q.eq('status', args.status!))
+        .withIndex('by_status', (q) => q.eq('status', args.status))
         .order('desc')
         .take(args.limit ?? 200)
     }

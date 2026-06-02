@@ -3,14 +3,17 @@ import { NextResponse } from 'next/server'
 
 const isPublicRoute = createRouteMatcher([
   '/login(.*)',
-  '/master/login(.*)',         // master portal login — no prior auth required
-  '/admin/login(.*)',          // manufacturer/admin login — no prior auth required
-  '/patients/register(.*)',    // full sign-up flow lives here — handles its own auth
-  '/sign-up(.*)',              // kept only to redirect legacy links → /patients/register
+  '/master/login(.*)',             // master portal login — no prior auth required
+  '/admin/login(.*)',              // legacy admin login
+  '/manufacturer/login(.*)',       // manufacturer login — approval email links here
+  '/manufacturer/onboarding(.*)',  // manufacturer application form — no auth required
+  '/manufacturer/sign-up(.*)',     // manufacturer sign-up flow
+  '/patients/register(.*)',        // full sign-up flow lives here — handles its own auth
+  '/sign-up(.*)',                  // kept only to redirect legacy links → /patients/register
   '/forgot(.*)',
-  '/sso-callback(.*)',         // OAuth return leg — must be public
-  '/api/webhooks/(.*)',        // Clerk webhook delivery — no browser session
-  '/clinics/onboarding(.*)',   // clinic application form — no auth required to apply
+  '/sso-callback(.*)',             // OAuth return leg — must be public
+  '/api/webhooks/(.*)',            // Clerk webhook delivery — no browser session
+  '/clinics/onboarding(.*)',       // clinic application form — no auth required to apply
 ])
 
 // Hard-fail at startup if Clerk isn't configured — never silently open all routes

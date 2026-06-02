@@ -1,132 +1,241 @@
 'use client'
 
-import { useState } from 'react'
-import { useUser } from '@clerk/nextjs'
-import { useQuery } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
+import { useQuery }  from 'convex/react'
+import { useUser }   from '@clerk/nextjs'
+import { api as apiBase } from '../../../../convex/_generated/api'
+
+const api = apiBase as any
 
 export default function SurgeonDashboardClient() {
   const { user } = useUser()
-  const [, setNavOpen] = useState(false)
-  const counts = useQuery(api.patients.getSurgeonPatientCounts)
+
+  // All hooks unconditionally at top
+  const patients = useQuery(api.clinics.listClinicPatients)
+
+  // Derived stats
+  const total    = patients?.length ?? '—'
+  const verified = patients ? patients.filter((p: any) => p.verificationStatus === 'active').length   : '—'
+  const pending  = patients ? patients.filter((p: any) => p.verificationStatus !== 'active').length   : '—'
 
   const firstName = user?.firstName ?? 'Surgeon'
 
-  const navItems = [
-    { label: 'Dashboard',   href: '/surgeons/dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-    { label: 'My Patients', href: '/surgeons/patients',  icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75M9 7a4 4 0 100 8 4 4 0 000-8z' },
-    { label: 'Devices',     href: '/surgeons/devices',   icon: 'M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18' },
-    { label: 'Settings',    href: '/surgeons/settings',  icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
-  ]
-
   const stats = [
-    { label: 'Total Patients',        value: counts === undefined ? '…' : String(counts.total),                color: 'var(--accent)' },
-    { label: 'Verified',              value: counts === undefined ? '…' : String(counts.verified),             color: 'var(--ok)' },
-    { label: 'Awaiting Verification', value: counts === undefined ? '…' : String(counts.awaitingVerification), color: '#f59e0b' },
-    { label: 'Pending Review',        value: counts === undefined ? '…' : String(counts.pendingReview),        color: 'var(--err)' },
+    { label: 'Total Patients',        value: total,   color: 'var(--accent)' },
+    { label: 'Verified',              value: verified, color: 'var(--ok)'    },
+    { label: 'Awaiting Verification', value: pending,  color: '#f59e0b'      },
+    { label: 'Pending Review',        value: '—',      color: 'var(--err)'   },
   ]
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--ff)' }}>
+    <div className="m-content">
 
-      {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-      <aside style={{
-        width: 240, background: 'var(--bg2)', borderRight: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column', padding: '24px 0',
-        position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 10,
-      }}>
-        {/* Logo */}
-        <div style={{ padding: '0 20px 24px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/icon.svg" alt="Implant ID" style={{ width: 28, height: 28 }} />
-            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
-              <b>Implant</b><span style={{ color: 'var(--accent)' }}>ID</span>
-            </span>
-          </div>
-          <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted2)', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' }}>
-            Surgeon Portal
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav style={{ flex: 1, padding: '16px 12px' }}>
-          {navItems.map(item => {
-            const active = typeof window !== 'undefined' && window.location.pathname === item.href
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '10px 12px', borderRadius: 8, marginBottom: 2,
-                  color: active ? 'var(--accent)' : 'var(--text)',
-                  textDecoration: 'none', fontSize: 13.5, fontWeight: 500,
-                  background: active
-                    ? 'color-mix(in srgb,var(--accent) 10%,transparent)'
-                    : 'transparent',
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d={item.icon} strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                {item.label}
-              </a>
-            )
-          })}
-        </nav>
-
-        {/* User footer */}
-        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ fontSize: 12.5, color: 'var(--muted)', fontWeight: 500 }}>
-            {user?.fullName ?? 'Surgeon'}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--muted2)', marginTop: 2 }}>Surgeon</div>
-        </div>
-      </aside>
-
-      {/* ── Main content ───────────────────────────────────────────────────── */}
-      <main style={{ marginLeft: 240, flex: 1, padding: '32px 40px' }}>
-        {/* Header */}
-        <div style={{ marginBottom: 28 }}>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: 'var(--text)' }}>
+      {/* Header */}
+      <div className="m-h" style={{ marginBottom: 28 }}>
+        <div>
+          <h2 style={{ fontSize: 26, fontWeight: 600, letterSpacing: '-.025em' }}>
             Good to see you, {firstName}
-          </h1>
-          <p style={{ margin: '6px 0 0', fontSize: 14, color: 'var(--muted)' }}>
-            Manage your patients and implant records.
-          </p>
-        </div>
-
-        {/* Stats row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 28 }}>
-          {stats.map(s => (
-            <div key={s.label} style={{
-              background: 'var(--bg2)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '20px 22px',
-            }}>
-              <div style={{ fontSize: 26, fontWeight: 700, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 4 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Patients placeholder */}
-        <div style={{
-          background: 'var(--bg2)', border: '1px solid var(--border)',
-          borderRadius: 14, padding: '48px 24px', textAlign: 'center',
-        }}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.4" style={{ marginBottom: 12 }}>
-            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
-          </svg>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
-            No patients yet
+          </h2>
+          <div className="sub">
+            Surgeon portal — manage your patients and implant records.
           </div>
-          <p style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 340, margin: '0 auto' }}>
-            Your patients will appear here once your clinic admin links them to your account.
-          </p>
         </div>
-      </main>
+      </div>
+
+      {/* Stat cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 28 }}>
+        {stats.map(stat => (
+          <div
+            key={stat.label}
+            style={{
+              background: 'var(--bg2)',
+              border: '1px solid var(--border)',
+              borderRadius: 14,
+              padding: '20px 22px',
+            }}
+          >
+            <div style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: stat.color,
+              fontFamily: 'var(--ff)',
+              letterSpacing: '-.02em',
+              lineHeight: 1,
+            }}>
+              {stat.value}
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 6, fontFamily: 'var(--ff)' }}>
+              {stat.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick actions */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
+        <a
+          href="/surgeons/scan"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            background: 'var(--bg2)',
+            border: '1px solid var(--border)',
+            borderRadius: 14,
+            padding: '20px 22px',
+            textDecoration: 'none',
+            color: 'var(--text)',
+            transition: 'border-color .15s, box-shadow .15s',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+          onMouseOut={(e)  => (e.currentTarget.style.borderColor = 'var(--border)')}
+        >
+          <div style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+            display: 'grid', placeItems: 'center', flexShrink: 0,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/>
+              <path d="m21 21-4.3-4.3"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--ff)', fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
+              Look Up Patient
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+              Search by Implant ID code
+            </div>
+          </div>
+        </a>
+
+        <a
+          href="/surgeons/patients"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            background: 'var(--bg2)',
+            border: '1px solid var(--border)',
+            borderRadius: 14,
+            padding: '20px 22px',
+            textDecoration: 'none',
+            color: 'var(--text)',
+            transition: 'border-color .15s',
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+          onMouseOut={(e)  => (e.currentTarget.style.borderColor = 'var(--border)')}
+        >
+          <div style={{
+            width: 40, height: 40, borderRadius: 10,
+            background: 'color-mix(in srgb,var(--ok) 10%,transparent)',
+            display: 'grid', placeItems: 'center', flexShrink: 0,
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="1.7" aria-hidden="true">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontFamily: 'var(--ff)', fontWeight: 600, fontSize: 14, marginBottom: 2 }}>
+              View All Patients
+            </div>
+            <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+              Patients shared with your clinic
+            </div>
+          </div>
+        </a>
+      </div>
+
+      {/* Recent patients */}
+      <div style={{
+        background: 'var(--bg2)',
+        border: '1px solid var(--border)',
+        borderRadius: 14,
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <h3 style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+            Recent Patients
+          </h3>
+          <a href="/surgeons/patients" style={{ fontSize: 12.5, color: 'var(--accent)', fontFamily: 'var(--ff)', fontWeight: 500 }}>
+            View all
+          </a>
+        </div>
+
+        {patients === undefined && (
+          <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>
+            Loading&hellip;
+          </div>
+        )}
+
+        {patients !== undefined && patients.length === 0 && (
+          <div style={{ padding: '48px 24px', textAlign: 'center' }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.4" style={{ marginBottom: 12, display: 'block', margin: '0 auto 12px' }} aria-hidden="true">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 6 }}>
+              No patients yet
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--muted)', maxWidth: 340, margin: '0 auto' }}>
+              Patients will appear here once they share their record with your clinic.
+            </p>
+          </div>
+        )}
+
+        {patients !== undefined && patients.length > 0 && (
+          <table className="m-tbl" style={{ width: '100%' }}>
+            <thead>
+              <tr>
+                <th>Implant ID</th>
+                <th>Name</th>
+                <th>Device</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {patients.slice(0, 5).map((p: any) => (
+                <tr
+                  key={p._id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => window.location.href = '/surgeons/scan?code=' + p.implantIdCode}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') window.location.href = '/surgeons/scan?code=' + p.implantIdCode }}
+                  aria-label={`View record for ${p.firstName} ${p.lastName}`}
+                >
+                  <td style={{ fontFamily: 'SF Mono,Monaco,monospace', fontWeight: 600, color: 'var(--accent)', fontSize: 13 }}>
+                    {p.implantIdCode}
+                  </td>
+                  <td style={{ fontWeight: 500 }}>{p.firstName} {p.lastName}</td>
+                  <td style={{ color: 'var(--muted)' }}>{p.selfReportedDevice ?? '—'}</td>
+                  <td>
+                    <span style={{
+                      fontFamily: 'var(--ff)',
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 5,
+                      background: p.verificationStatus === 'active'
+                        ? 'color-mix(in srgb,var(--ok) 10%,transparent)'
+                        : 'color-mix(in srgb,#f59e0b 10%,transparent)',
+                      color: p.verificationStatus === 'active' ? 'var(--ok)' : '#92400e',
+                      border: p.verificationStatus === 'active'
+                        ? '1px solid color-mix(in srgb,var(--ok) 25%,transparent)'
+                        : '1px solid color-mix(in srgb,#f59e0b 25%,transparent)',
+                    }}>
+                      {p.verificationStatus === 'active' ? 'Verified' : 'Pending'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
     </div>
   )
 }

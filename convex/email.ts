@@ -338,7 +338,7 @@ export const sendPatientShareEmail = internalAction({
     // Generate QR code PNG in this Node.js action, store it, get a public HTTPS URL
     // (data: URIs are blocked by Gmail — Convex storage returns a proper https:// URL)
     const qrBuffer = await QRCode.toBuffer(scanUrl, { width: 200, margin: 2 })
-    const qrFileId = await ctx.storage.store(new Blob([qrBuffer], { type: 'image/png' }))
+    const qrFileId = await ctx.storage.store(new Blob([new Uint8Array(qrBuffer)], { type: 'image/png' }))
     const qrUrl    = await ctx.storage.getUrl(qrFileId)
 
     // Email to clinic

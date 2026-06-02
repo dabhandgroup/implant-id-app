@@ -130,143 +130,124 @@ export default function FindCareClient() {
         </aside>
 
         {/* ── Main content ── */}
-        <div className="app-main">
-          <div style={{ padding: '32px 40px', maxWidth: 860 }}>
-            <div style={{ marginBottom: 28 }}>
-              <h1 style={{ fontFamily: 'var(--ff)', fontSize: 26, fontWeight: 700, color: 'var(--text)', margin: '0 0 6px' }}>Find a clinic</h1>
-              <p style={{ fontFamily: 'var(--fb)', fontSize: 15, color: 'var(--muted)', margin: 0 }}>
-                Clinics on the Implant ID network can access your verified record instantly.
+        <div className="app-main" style={{ display: 'flex', height: '100vh' }}>
+          {/* Left column — search and clinic list */}
+          <div style={{ width: '35%', borderRight: '1px solid var(--border)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '32px 24px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+              <h1 style={{ fontFamily: 'var(--ff)', fontSize: 24, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>Find a clinic</h1>
+              <p style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)', margin: '0 0 20px' }}>
+                Clinics on the Implant ID network can pull up your record instantly.
               </p>
-            </div>
 
-            {/* Search */}
-            <div style={{ position: 'relative', marginBottom: 16 }}>
-              <svg style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted2)', pointerEvents: 'none' }}
-                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input
-                className="input"
-                type="text"
-                placeholder="Search by clinic name, city, or speciality…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{ paddingLeft: 44, fontSize: 15, height: 46 }}
-              />
-            </div>
+              {/* Search */}
+              <div style={{ position: 'relative', marginBottom: 16 }}>
+                <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: 'var(--muted2)', pointerEvents: 'none' }}
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="Search by name, city, or postcode"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ paddingLeft: 40, fontSize: 14, height: 42 }}
+                />
+              </div>
 
-            {/* Filters */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
-              {FILTERS.map(f => (
-                <button key={f.key} type="button"
-                  onClick={() => setActiveFilter(f.key)}
-                  style={{
-                    padding: '6px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500, transition: 'all .15s',
-                    border: `1.5px solid ${activeFilter === f.key ? 'var(--accent)' : 'var(--border)'}`,
-                    background: activeFilter === f.key ? 'color-mix(in srgb,var(--accent) 10%,transparent)' : 'transparent',
-                    color: activeFilter === f.key ? 'var(--accent-deep)' : 'var(--muted)',
-                  }}
-                >
-                  {f.label}
-                </button>
-              ))}
+              {/* Filters */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {FILTERS.map(f => (
+                  <button key={f.key} type="button"
+                    onClick={() => setActiveFilter(f.key)}
+                    style={{
+                      padding: '5px 12px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, transition: 'all .15s',
+                      border: `1px solid ${activeFilter === f.key ? 'var(--accent)' : 'var(--border)'}`,
+                      background: activeFilter === f.key ? 'var(--text)' : 'transparent',
+                      color: activeFilter === f.key ? '#fff' : 'var(--muted)',
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Count */}
             {clinics !== undefined && (
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-                Showing {filtered.length} clinic{filtered.length !== 1 ? 's' : ''}
-                {searchQuery.trim() ? ` matching "${searchQuery}"` : ' on the Implant ID network'}
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', padding: '12px 24px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+                Showing {filtered.length} clinic{filtered.length !== 1 ? 's' : ''}{searchQuery.trim() ? ` near you` : ' on the network'}
               </div>
             )}
 
-            {/* Map — updates when a clinic is selected */}
-            <div style={{ marginBottom: 20, borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
-              <iframe
-                src={mapSrc(selectedClinic)}
-                style={{ width: '100%', height: 280, display: 'block', border: 'none' }}
-                allowFullScreen
-                loading="lazy"
-                title={selectedClinic ? `Map for ${selectedClinic.name}` : 'Clinic map'}
-              />
-            </div>
+            {/* Results list */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 12px' }}>
+              {clinics === undefined && (
+                <div style={{ color: 'var(--muted)', fontSize: 13, padding: '24px 12px' }}>Loading clinics…</div>
+              )}
 
-            {/* Results */}
-            {clinics === undefined && (
-              <div style={{ color: 'var(--muted)', fontSize: 14, padding: '32px 0' }}>Loading clinics…</div>
-            )}
-
-            {clinics !== undefined && filtered.length === 0 && (
-              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, color: 'var(--text)', marginBottom: 6 }}>
-                  {searchQuery ? `No clinics found for "${searchQuery}"` : 'No clinics listed yet'}
+              {clinics !== undefined && filtered.length === 0 && (
+                <div style={{ padding: '24px 12px', textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
+                    {searchQuery ? 'No clinics found' : 'No clinics yet'}
+                  </div>
+                  <p style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted)', margin: 0 }}>
+                    {searchQuery ? 'Try a different search' : 'Coming soon'}
+                  </p>
                 </div>
-                <p style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)', margin: 0 }}>
-                  {searchQuery ? 'Try a different search term or remove the filter.' : 'Clinics will appear here once they join the Implant ID network.'}
-                </p>
-              </div>
-            )}
+              )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {filtered.map((c: any) => (
                 <div key={c._id}
                   onClick={() => setSelectedClinic(c)}
-                  style={{ background: 'var(--bg2)', border: `1.5px solid ${selectedClinic?._id === c._id ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 14, padding: '18px 22px', display: 'flex', gap: 16, cursor: 'pointer', transition: 'border-color .15s' }}>
-                  {/* Pin icon */}
-                  <div style={{ width: 40, height: 40, borderRadius: 10, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 2 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-                    </svg>
+                  style={{ background: selectedClinic?._id === c._id ? 'var(--bg2)' : 'transparent', border: `1px solid ${selectedClinic?._id === c._id ? 'var(--accent)' : 'transparent'}`, borderRadius: 10, padding: '14px', cursor: 'pointer', transition: 'all .15s', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 4 }}>
+                    <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{c.name}</div>
+                    <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent)', fontWeight: 500 }}>0.8 mi</span>
+                  </div>
+                  <div style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted)', marginBottom: 6, lineHeight: 1.4 }}>
+                    {c.address}{c.city && c.city !== c.address ? `, ${c.city}` : ''}
                   </div>
 
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 3 }}>{c.name}</div>
-                    <div style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)', marginBottom: 8 }}>
-                      {c.address}{c.city && c.city !== c.address ? `, ${c.city}` : ''}{c.country ? ` · ${c.country}` : ''}
+                  {/* Capabilities */}
+                  {c.capabilities.length > 0 && (
+                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
+                      {c.capabilities.slice(0, 2).map((cap: string) => (
+                        <span key={cap} style={{ fontFamily: 'var(--ff)', fontSize: 11, padding: '2px 7px', borderRadius: 4, background: 'color-mix(in srgb,var(--accent) 15%,transparent)', color: 'var(--accent-deep)' }}>
+                          {cap}
+                        </span>
+                      ))}
                     </div>
+                  )}
 
-                    {/* Capabilities */}
-                    {c.capabilities.length > 0 && (
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: c.phone || c.website ? 10 : 0 }}>
-                        {c.capabilities.map((cap: string) => (
-                          <span key={cap} style={{ fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 500, padding: '3px 9px', borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--border)', color: 'var(--text)' }}>
-                            {cap}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Contact */}
-                    <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 4 }}>
-                      {c.phone && (
-                        <a href={`tel:${c.phone}`} onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.9A16 16 0 0 1 5.1 2 2 2 0 0 1 7.1 0h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2L11 7.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2-.5c.9.3 1.8.5 2.7.6A2 2 0 0 1 22 16.9z"/></svg>
-                          {c.phone}
-                        </a>
-                      )}
-                      {c.website && (
-                        <a href={c.website} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg>
-                          Website
-                        </a>
-                      )}
-                      <a href={directionsUrl(c)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
-                        Get directions
+                  {/* Contact links */}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {c.phone && (
+                      <a href={`tel:${c.phone}`} onClick={e => e.stopPropagation()} style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ display: 'inline', marginRight: 4, verticalAlign: 'text-bottom' }}><path d="M22 16.9A16 16 0 0 1 5.1 2 2 2 0 0 1 7.1 0h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2L11 7.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2-.5c.9.3 1.8.5 2.7.6A2 2 0 0 1 22 16.9z"/></svg>
+                        Call
                       </a>
-                    </div>
-                  </div>
-
-                  {/* Verified badge */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'flex-start', gap: 8, flexShrink: 0 }}>
-                    <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6, background: 'color-mix(in srgb,var(--ok) 10%,transparent)', color: 'var(--ok)', border: '1px solid color-mix(in srgb,var(--ok) 25%,transparent)' }}>
-                      ✓ Verified
-                    </span>
+                    )}
+                    <a href={directionsUrl(c)} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ display: 'inline', marginRight: 4, verticalAlign: 'text-bottom' }}><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>
+                      View on map
+                    </a>
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Right column — map */}
+          <div style={{ flex: 1, borderRadius: 0, overflow: 'hidden' }}>
+            <iframe
+              src={mapSrc(selectedClinic)}
+              style={{ width: '100%', height: '100%', display: 'block', border: 'none' }}
+              allowFullScreen
+              loading="lazy"
+              title={selectedClinic ? `Map for ${selectedClinic.name}` : 'Clinic map'}
+            />
           </div>
         </div>
       </div>

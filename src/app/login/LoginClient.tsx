@@ -656,7 +656,7 @@ export default function LoginClient() {
                       <input className="input" type="email" placeholder="you@clinic.com" value={clEmail} onChange={e => setClEmail(e.target.value)} />
                     </div>
                   </div>
-                  <button type="button" className="btn btn-s btn-lg btn-block" onClick={sendClinicOtp} disabled={loading}>
+                  <button type="button" className="btn btn-s btn-lg btn-block" style={{ marginTop: 16 }} onClick={sendClinicOtp} disabled={loading}>
                     {loading ? 'Sending…' : 'Send verification code →'}
                   </button>
                   <div className="bio-option">

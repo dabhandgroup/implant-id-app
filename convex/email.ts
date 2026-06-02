@@ -594,7 +594,7 @@ export const sendManufacturerInviteEmail = internalAction({
         },
         cta: {
           label: 'Sign in to your manufacturer portal →',
-          url: `https://portal.implantid.io/sign-up?email=${encodeURIComponent(args.contactEmail)}&role=manufacturer`,
+          url: `https://portal.implantid.io/manufacturer/sign-up?email=${encodeURIComponent(args.contactEmail)}`,
         },
         footerNote: `If you weren't expecting this invitation, please contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,

@@ -10,7 +10,7 @@ import { auth, clerkClient } from '@clerk/nextjs/server'
  * which lets the middleware enforce route separation without a DB call.
  */
 export async function setUserRoleIfNew(
-  role: 'patient' | 'clinic_staff',
+  role: 'patient' | 'clinic_staff' | 'manufacturer',
 ): Promise<void> {
   const { userId } = await auth()
   if (!userId) throw new Error('Not authenticated')

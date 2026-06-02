@@ -93,6 +93,8 @@ export default function DashboardClient() {
   const [wResendCountdown,  setWResendCountdown]  = useState(0)
   const [wEmailDone,        setWEmailDone]        = useState(false)
 
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const photoInputRef   = useRef<HTMLInputElement>(null)
   const sbBotRef        = useRef<HTMLDivElement>(null)
   const mobProfileRef   = useRef<HTMLDivElement>(null)
   const wCodeRefs       = useRef<(HTMLInputElement | null)[]>([])
@@ -237,6 +239,18 @@ export default function DashboardClient() {
   function doSignOut() {
     setLogoutOpen(false)
     signOut({ redirectUrl: '/login' })
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setPhotoUploading(true)
+    try {
+      await user.setProfileImage({ file })
+    } catch { /* non-fatal */ } finally {
+      setPhotoUploading(false)
+      if (photoInputRef.current) photoInputRef.current.value = ''
+    }
   }
 
   function copyLink() {
@@ -761,20 +775,25 @@ export default function DashboardClient() {
 
             {/* Patient header */}
             <div className="pt-header">
-              <div className="pt-av" style={{
-                background: 'var(--accent)',
-                color: '#fff',
-                display: 'grid',
-                placeItems: 'center',
-                fontFamily: 'var(--ff)',
-                fontSize: 28,
-                fontWeight: 600,
-              }}>
-                {initials}
+              <div
+                className="pt-av"
+                style={{ background: 'var(--accent)', color: '#fff', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff)', fontSize: 24, fontWeight: 600 }}
+                onClick={() => photoInputRef.current?.click()}
+                title="Click to upload photo"
+              >
+                {user?.imageUrl
+                  ? <img src={user.imageUrl} alt={initials} />
+                  : photoUploading
+                    ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="22" height="22" style={{ animation: 'dash-spin 0.8s linear infinite' }}><circle cx="12" cy="12" r="9" strokeDasharray="28" strokeDashoffset="10"/></svg>
+                    : initials}
+                <div className="pt-av-overlay">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" width="20" height="20"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                </div>
+                <input ref={photoInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={handlePhotoUpload} />
               </div>
               <div>
                 <div className="ey">Your implant record</div>
-                <h1 style={{ marginTop: 8 }}>Hi {firstName}</h1>
+                <h1>Hi {firstName}</h1>
                 <p className="sub">Everything about your implant, in one place. Share it at any clinic with one tap.</p>
               </div>
             </div>
@@ -821,20 +840,16 @@ export default function DashboardClient() {
                   </div>
                 </div>
 
-                {/* MRI status — top right, icon + label, always visible once verified */}
+                {/* MRI status — top right, icon + label */}
                 {!isPending && implantSafety ? (
-                  <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                  <div className="pb-mri">
                     <span style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.92)', letterSpacing:'.3px', whiteSpace:'nowrap' }}>
                       {implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
                     </span>
                     <img
-                      src={
-                        implantSafety === 'safe'        ? '/mr-safe.svg'
-                        : implantSafety === 'conditional' ? '/mr-conditional.svg'
-                        : '/mr-unsafe.svg'
-                      }
+                      src={implantSafety === 'safe' ? '/mr-safe.svg' : implantSafety === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
                       alt={implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
-                      style={{ width:44, height:44, flexShrink:0 }}
+                      style={{ width:34, height:34, flexShrink:0, display:'block' }}
                     />
                   </div>
                 ) : !isPending ? (

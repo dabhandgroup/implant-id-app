@@ -75,14 +75,16 @@ select.f-input{cursor:pointer;appearance:none;background-image:url("data:image/s
 .totp-secret{font-family:monospace;font-size:16px;font-weight:600;letter-spacing:.12em;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);word-break:break-all}
 
 @media(max-width:900px){
-  .acc-wrap{padding:20px 16px 100px}
-  .acc-card{padding:22px 18px}
+  .acc-wrap{padding:16px 14px 100px;max-width:100%}
+  .acc-card{padding:20px 16px;border-radius:12px}
   .f-grid{grid-template-columns:1fr}
-  .photo-area{flex-direction:column;text-align:center}
-  .photo-actions{flex-direction:row;justify-content:center}
-  .photo-av{width:80px;height:80px}
+  .photo-area{flex-direction:row;gap:18px;align-items:center;text-align:left}
+  .photo-actions{flex-direction:row}
+  .photo-av{width:72px;height:72px;flex-shrink:0}
+  .photo-av .initials{font-size:26px}
   .toggle-row{flex-wrap:wrap;gap:12px}
   .save-bar{flex-direction:column}
   .save-bar .btn{width:100%;justify-content:center}
-  .acc-hd h1{font-size:24px}
+  .acc-hd h1{font-size:22px}
+  .acc-hd .sub{font-size:13px}
 }

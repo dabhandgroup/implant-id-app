@@ -485,8 +485,9 @@ export default function AccountClient() {
               <h2>Profile photo</h2>
               <div className="sub">This appears on your Implant ID profile and Wallet pass.</div>
               <div className="photo-area">
-                <div className="photo-av">
-                  {photoUrl ? (
+                <div className="photo-av" onClick={() => photoInputRef.current?.click()} style={{ cursor: 'pointer' }} title="Click to change photo">
+                  {/* Only show Clerk's image if the patient has uploaded a real photo (not the default generated avatar) */}
+                  {photoUrl && !photoUrl.includes('img.clerk.com/default') && !photoUrl.includes('gravatar') ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={photoUrl} alt={fullName} />
                   ) : (

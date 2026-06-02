@@ -45,10 +45,17 @@ body{background:var(--bg)}
 .sh-recent-item b{display:block;font-family:var(--ff);font-size:14px;font-weight:500;margin-bottom:2px}
 .sh-recent-item span{font-size:12.5px;color:var(--muted2);font-family:var(--ff)}
 
+/* Share link row — inline on desktop, stacked on mobile */
+.sh-link-row{display:flex;align-items:center;gap:8px}
+.sh-copy-btn{flex-shrink:0}
+
 @media(max-width:900px){
   .sh-wrap{padding:16px 14px 100px;max-width:100%;overflow-x:hidden}
   .sh-card{padding:18px 14px;border-radius:12px}
   .sh-card .sub{font-size:13px;margin-bottom:16px}
   .sh-wallet-btns{flex-direction:column;align-items:stretch}
   .sh-wallet-btns .btn{width:100%;justify-content:center}
+  /* Copy button stacks below URL so you can read the full link */
+  .sh-link-row{flex-direction:column;align-items:stretch;gap:8px}
+  .sh-copy-btn{width:100%;justify-content:center}
 }

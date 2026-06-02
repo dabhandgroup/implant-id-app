@@ -250,14 +250,14 @@ export default function ShareClient() {
                 </div>
                 <div style={{ background: 'color-mix(in srgb, var(--accent) 4%, transparent)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 10 }}>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>Your share link</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="sh-link-row">
                     <input type="text" value={passUrl} readOnly className="input" style={{ flex: 1, background: 'var(--bg2)', fontSize: 13 }} />
-                    <button onClick={copyLink} className="btn" style={{ whiteSpace: 'nowrap' }}>
+                    <button onClick={copyLink} className="btn sh-copy-btn" style={{ whiteSpace: 'nowrap' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                         <rect x="9" y="9" width="13" height="13" rx="2"/>
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                       </svg>
-                      {linkCopied ? '✓' : 'Copy'}
+                      {linkCopied ? '✓ Copied' : 'Copy'}
                     </button>
                   </div>
                 </div>

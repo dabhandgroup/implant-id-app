@@ -349,13 +349,20 @@ export default function LoginClient() {
     setLoading(true); setError('')
     try {
       if (clIsSignUp) {
-        // New account path — verify via Clerk sign-up flow
+        // New account path — Clerk v7 sign-up verification
+        // attemptEmailAddressVerification was removed in Clerk v7; use attemptVerification
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: ve } = await (signUp! as any).attemptEmailAddressVerification({ code: c })
-        if (ve) return err(ve.message ?? 'Invalid code')
-        // Role was already set by the invite flow's createStaffAccount action.
-        // Redirect to /login — the already-signed-in effect detects the role
-        // and bounces to the correct portal (clinic or surgeon).
+        const result = await (signUp! as any).attemptVerification({ strategy: 'email_code', code: c })
+        if (result.status !== 'complete') {
+          return err(result.verifications?.emailAddress?.error?.message ?? 'Invalid code')
+        }
+        // After sign-up completes, sign them in directly so they land in the portal
+        // without needing to go through login again
+        const { error: si } = await signIn!.create({ identifier: clEmail })
+        if (!si) {
+          const { error: se } = await signIn!.emailCode.sendCode()
+          if (!se) { setClIsSignUp(false); setOtp(['','','','','','']); return }
+        }
         router.replace('/login')
       } else {
         // Existing account path — normal sign-in OTP

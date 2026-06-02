@@ -1,8 +1,10 @@
 'use client'
 
-import { useQuery }  from 'convex/react'
-import { useRouter } from 'next/navigation'
-import { api }       from '../../../../convex/_generated/api'
+import { useState }   from 'react'
+import { useQuery, useMutation }   from 'convex/react'
+import { useUser, useClerk } from '@clerk/nextjs'
+import { useRouter }  from 'next/navigation'
+import { api }        from '../../../../convex/_generated/api'
 
 const MRI_COLOUR: Record<string, string> = {
   safe:        '#166534',
@@ -29,189 +31,304 @@ const MRI_NOTE: Record<string, string> = {
   unknown:     'MRI safety status has not been verified. Do not scan until confirmed.',
 }
 
-function InfoBlock({ label, value, highlight }: { label: string; value?: string | null; highlight?: boolean }) {
-  if (!value) return null
-  return (
-    <div style={{
-      background: highlight ? 'color-mix(in srgb,var(--err) 6%,transparent)' : 'var(--bg2)',
-      border: `1px solid ${highlight ? 'color-mix(in srgb,var(--err) 20%,transparent)' : 'var(--border)'}`,
-      borderRadius: 12, padding: '14px 18px',
-    }}>
-      <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: highlight ? 'var(--err)' : 'var(--muted2)', marginBottom: 5 }}>
-        {label}
-      </div>
-      <div style={{ fontFamily: 'var(--fb)', fontSize: 15, color: highlight ? 'var(--err)' : 'var(--text)', fontWeight: highlight ? 600 : 400 }}>
-        {value}
-      </div>
-    </div>
-  )
-}
-
 export default function EmergencyClient() {
-  const router        = useRouter()
-  const patient       = useQuery(api.patients.getMyPatient)
-  const implantSafety = useQuery(api.patients.getMyImplantSafety)
+  const { user }         = useUser()
+  const { signOut }      = useClerk()
+  const router           = useRouter()
+  const patient          = useQuery(api.patients.getMyPatient)
+  const implantSafety    = useQuery(api.patients.getMyImplantSafety)
+  const notifications    = useQuery(api.patients.getMyNotifications)
+  const markRead         = useMutation(api.patients.markAllNotificationsRead)
+
+  const [sbCollapsed,  setSbCollapsed]  = useState(false)
+  const [profileOpen,  setProfileOpen]  = useState(false)
+  const [logoutOpen,   setLogoutOpen]   = useState(false)
+  const [notifOpen,    setNotifOpen]    = useState(false)
+  const [linkCopied,   setLinkCopied]   = useState(false)
+
+  const initials = user
+    ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'P'
+    : 'P'
+  const fullNameUser = user?.fullName ?? 'Patient'
 
   if (patient === undefined) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg)', fontFamily: 'var(--ff)', color: 'var(--muted)', fontSize: 14 }}>
-        Loading…
-      </div>
-    )
+    return <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg)', fontFamily: 'var(--ff)', color: 'var(--muted)', fontSize: 14 }}>Loading…</div>
   }
+  if (patient === null) { router.replace('/patients/register'); return null }
 
-  if (patient === null) {
-    router.replace('/patients/register')
-    return null
+  const status     = implantSafety ?? 'unknown'
+  const fullName   = `${patient.firstName} ${patient.lastName}`
+  const hasAllergy = !!patient.contrastAllergy
+  const scanUrl    = `https://portal.implantid.io/scan/${patient.implantIdCode}`
+
+  function copyLink() {
+    navigator.clipboard?.writeText(scanUrl)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
   }
-
-  const status      = implantSafety ?? 'unknown'
-  const fullName    = `${patient.firstName} ${patient.lastName}`
-  const hasAllergy  = !!patient.contrastAllergy
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--ff)' }}>
+    <>
+      <div className="sb-back" id="sb-back" />
+      <div className={`app${sbCollapsed ? ' collapsed' : ''}`}>
 
-      {/* ── Back + header ── */}
-      <div style={{ padding: '16px 20px 0', maxWidth: 600, margin: '0 auto' }}>
-        <button
-          onClick={() => router.back()}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 13.5, fontFamily: 'var(--ff)', padding: 0, marginBottom: 16 }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
-          Back
-        </button>
-      </div>
+        {/* ── Sidebar ── */}
+        <aside className="sidebar">
+          <div className="sb-logo">
+            <a href="/" className="logo">
+              <img src="/icon.svg" alt="" />
+              <span className="logo-text"><b>Implant</b><span>ID</span></span>
+            </a>
+            <button className="sb-toggle" onClick={() => setSbCollapsed(c => !c)} aria-label="Collapse sidebar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+          </div>
 
-      {/* ── MRI status hero — most important for first responders ── */}
-      <div style={{ background: MRI_BG[status], padding: '28px 20px', marginBottom: 0 }}>
-        <div style={{ maxWidth: 600, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
-            <img
-              src={
-                status === 'safe'        ? '/mr-safe.svg'
-                : status === 'conditional' ? '/mr-conditional.svg'
-                : status === 'unsafe'     ? '/mr-unsafe.svg'
-                : '/mr-conditional.svg'
-              }
-              alt={MRI_LABEL[status]}
-              style={{ width: 56, height: 56, flexShrink: 0 }}
-            />
+          <span className="sb-section">My record</span>
+          <a className="sb-link" href="/patients/dashboard" title="My record">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+            <span>My record</span>
+          </a>
+          <a className="sb-link" href="/patients/share" title="Share with clinic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>
+            <span>Share with clinic</span>
+          </a>
+          <button type="button" className="sb-link" onClick={() => router.push('/patients/dashboard?section=documents')} title="Documents" style={{ background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
+            <span>Documents</span>
+          </button>
+
+          <span className="sb-section">Find care</span>
+          <a className="sb-link" href="/patients/find-care" title="Find a clinic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>Find a clinic</span>
+          </a>
+
+          <span className="sb-section">Account</span>
+          <a className="sb-link" href="/patients/account" title="Account settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span>Account settings</span>
+          </a>
+          <a className="sb-link active" href="/patients/emergency" title="Emergency info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>Emergency info</span>
+          </a>
+          <button className="sb-notif" aria-label="Notifications" title="Notifications"
+            onClick={e => { e.stopPropagation(); setNotifOpen(true) }}>
+            <span className="sb-notif-ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span className="dot" />
+            </span>
+            <span className="label">Notifications</span>
+            <span className="count">{notifications?.filter((n: {read: boolean}) => !n.read).length || 0}</span>
+          </button>
+
+          <div className="sb-bot" onClick={() => setProfileOpen(v => !v)}>
+            <div className="av" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>{initials}</div>
             <div>
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>
-                MRI Safety Status
-              </div>
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 22, fontWeight: 700, color: '#fff' }}>
-                {MRI_LABEL[status]}
-              </div>
+              <div className="name">{fullNameUser}</div>
+              <div className="role">Patient</div>
             </div>
           </div>
-          <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '11px 14px', fontFamily: 'var(--fb)', fontSize: 13.5, color: 'rgba(255,255,255,0.9)', lineHeight: 1.55 }}>
-            {MRI_NOTE[status]}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Patient info ── */}
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '20px 20px 40px' }}>
-
-        {/* Contrast allergy — most urgent after MRI status */}
-        {hasAllergy && (
-          <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '2px solid color-mix(in srgb,var(--err) 30%,transparent)', borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--err)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-              Contrast Allergy
-            </div>
-            <div style={{ fontFamily: 'var(--fb)', fontSize: 15, color: 'var(--err)', fontWeight: 600 }}>
-              {patient.contrastAllergyNote ?? 'Documented contrast allergy — do not administer contrast without specialist review.'}
-            </div>
-          </div>
-        )}
-
-        {/* Patient identity */}
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
-          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>
-            Patient
-          </div>
-          <div style={{ fontFamily: 'var(--ff)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{fullName}</div>
-          <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 14, color: 'var(--accent)', letterSpacing: '.04em', marginBottom: patient.dob ? 10 : 0 }}>{patient.implantIdCode}</div>
-          {patient.dob && (
-            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>DOB: <strong style={{ color: 'var(--text)' }}>{patient.dob}</strong></span>
-              {patient.heightCm && <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>Height: <strong style={{ color: 'var(--text)' }}>{patient.heightCm} cm</strong></span>}
-              {patient.weightKg && <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>Weight: <strong style={{ color: 'var(--text)' }}>{patient.weightKg} kg</strong></span>}
+          {profileOpen && (
+            <div className="profile-menu open">
+              <a href="/patients/account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>My account</a>
+              <hr />
+              <button className="danger" onClick={() => { setProfileOpen(false); setLogoutOpen(true) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sign out
+              </button>
             </div>
           )}
-        </div>
+        </aside>
 
-        {/* Implant */}
-        {(patient.selfReportedDevice || patient.selfReportedDeviceType) && (
-          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>
-              Implanted Device
+        {/* ── Main content ── */}
+        <div className="app-main">
+          <div style={{ maxWidth: 640, margin: '0 auto', padding: '28px 20px 60px' }}>
+
+            {/* Page header */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 6 }}>Emergency info</div>
+              <h1 style={{ fontFamily: 'var(--ff)', fontSize: 26, fontWeight: 700, color: 'var(--text)', margin: '0 0 6px', letterSpacing: '-.02em' }}>{fullName}</h1>
+              <p style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--muted)', margin: 0 }}>
+                Share this page with first responders or clinical staff in an emergency.
+              </p>
             </div>
-            {patient.selfReportedDeviceType && (
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', marginBottom: 4 }}>{patient.selfReportedDeviceType}</div>
-            )}
-            {patient.selfReportedDevice && (
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{patient.selfReportedDevice}</div>
-            )}
-            {patient.selfReportedManufacturer && (
-              <div style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>{patient.selfReportedManufacturer}</div>
-            )}
-            {patient.selfReportedImplantYear && (
-              <div style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-                Implanted: {patient.selfReportedImplantMonth ? `${patient.selfReportedImplantMonth}/${patient.selfReportedImplantYear}` : patient.selfReportedImplantYear}
-                {patient.selfReportedHospital && ` · ${patient.selfReportedHospital}`}
+
+            {/* Action buttons */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
+              <button
+                className="btn btn-s"
+                onClick={copyLink}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}
+              >
+                {linkCopied ? (
+                  <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>Copied!</>
+                ) : (
+                  <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy shareable link</>
+                )}
+              </button>
+              <button
+                className="btn"
+                onClick={() => window.print()}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Print / Save as PDF
+              </button>
+            </div>
+
+            {/* MRI status hero */}
+            <div style={{ background: MRI_BG[status], borderRadius: 16, padding: '22px 22px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+                <img
+                  src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
+                  alt={MRI_LABEL[status]}
+                  style={{ width: 52, height: 52, flexShrink: 0 }}
+                />
+                <div>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>MRI Safety Status</div>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 20, fontWeight: 700, color: '#fff' }}>{MRI_LABEL[status]}</div>
+                </div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '11px 14px', fontFamily: 'var(--fb)', fontSize: 13.5, color: 'rgba(255,255,255,0.9)', lineHeight: 1.55 }}>
+                {MRI_NOTE[status]}
+              </div>
+            </div>
+
+            {/* Contrast allergy */}
+            {hasAllergy && (
+              <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '2px solid color-mix(in srgb,var(--err) 30%,transparent)', borderRadius: 14, padding: '16px 18px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <div>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--err)', marginBottom: 4 }}>Contrast Allergy</div>
+                  <div style={{ fontFamily: 'var(--fb)', fontSize: 15, color: 'var(--err)', fontWeight: 600 }}>
+                    {patient.contrastAllergyNote ?? 'Documented contrast allergy — do not administer contrast without specialist review.'}
+                  </div>
+                </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Clinical notes — allergies, additional */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10, marginBottom: 14 }}>
-          <InfoBlock
-            label="Additional clinical notes"
-            value={patient.additionalNotes}
-          />
-        </div>
-
-        {/* Emergency contact */}
-        {patient.emergencyContactName && (
-          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>
-              Emergency Contact
+            {/* Patient identity */}
+            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Patient</div>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{fullName}</div>
+              <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 14, color: 'var(--accent)', letterSpacing: '.04em', marginBottom: patient.dob ? 10 : 0 }}>{patient.implantIdCode}</div>
+              {patient.dob && (
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+                  <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>DOB: <strong style={{ color: 'var(--text)' }}>{patient.dob}</strong></span>
+                  {patient.heightCm && <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>Height: <strong style={{ color: 'var(--text)' }}>{patient.heightCm} cm</strong></span>}
+                  {patient.weightKg && <span style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>Weight: <strong style={{ color: 'var(--text)' }}>{patient.weightKg} kg</strong></span>}
+                </div>
+              )}
             </div>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{patient.emergencyContactName}</div>
-            {patient.emergencyContactRelation && (
-              <div style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', marginBottom: 6 }}>{patient.emergencyContactRelation}</div>
-            )}
-            {patient.emergencyContactPhone && (
-              <a href={`tel:${patient.emergencyContactPhone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
-                </svg>
-                {patient.emergencyContactPhone}
-              </a>
-            )}
-          </div>
-        )}
 
-        {/* Verification disclaimer */}
-        <div style={{ background: 'color-mix(in srgb,#f59e0b 6%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 10, padding: '12px 16px' }}>
-          <div style={{ fontFamily: 'var(--fb)', fontSize: 12.5, color: '#92400e', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 7 }}>
-            {patient.verificationStatus === 'active' ? (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><polyline points="20 6 9 17 4 12"/></svg>
-            ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            {/* Implanted device */}
+            {(patient.selfReportedDevice || patient.selfReportedDeviceType) && (
+              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Implanted Device</div>
+                {patient.selfReportedDeviceType && <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', marginBottom: 4 }}>{patient.selfReportedDeviceType}</div>}
+                {patient.selfReportedDevice && <div style={{ fontFamily: 'var(--ff)', fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{patient.selfReportedDevice}</div>}
+                {patient.selfReportedManufacturer && <div style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)' }}>{patient.selfReportedManufacturer}</div>}
+                {patient.selfReportedImplantYear && (
+                  <div style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
+                    Implanted: {patient.selfReportedImplantMonth ? `${patient.selfReportedImplantMonth}/${patient.selfReportedImplantYear}` : patient.selfReportedImplantYear}
+                    {patient.selfReportedHospital && ` · ${patient.selfReportedHospital}`}
+                  </div>
+                )}
+              </div>
             )}
-            <span>{patient.verificationStatus === 'active'
-              ? 'This record has been verified by the patient\'s clinical team on Implant ID. For full technical MRI parameters, scan the QR code on the patient\'s card or contact the treating clinic.'
-              : 'This record has not yet been verified by a clinical team. Information is self-reported by the patient. Treat with caution and verify with the treating institution.'}</span>
+
+            {/* Additional notes */}
+            {patient.additionalNotes && (
+              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 8 }}>Clinical Notes</div>
+                <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{patient.additionalNotes}</div>
+              </div>
+            )}
+
+            {/* Emergency contact */}
+            {patient.emergencyContactName && (
+              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Emergency Contact</div>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{patient.emergencyContactName}</div>
+                {patient.emergencyContactRelation && <div style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', marginBottom: 6 }}>{patient.emergencyContactRelation}</div>}
+                {patient.emergencyContactPhone && (
+                  <a href={`tel:${patient.emergencyContactPhone}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    {patient.emergencyContactPhone}
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Verification disclaimer */}
+            <div style={{ background: 'color-mix(in srgb,#f59e0b 6%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              {patient.verificationStatus === 'active' ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><polyline points="20 6 9 17 4 12"/></svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              )}
+              <div style={{ fontFamily: 'var(--fb)', fontSize: 12.5, color: '#92400e', lineHeight: 1.6 }}>
+                {patient.verificationStatus === 'active'
+                  ? 'This record has been verified by the patient\'s clinical team on Implant ID.'
+                  : 'This record has not yet been verified by a clinical team. Information is self-reported by the patient. Treat with caution.'}
+              </div>
+            </div>
+
           </div>
         </div>
-
       </div>
-    </div>
+
+      {/* Notification drawer */}
+      <div className={`notif-back${notifOpen ? ' open' : ''}`} onClick={() => setNotifOpen(false)} />
+      <aside className={`notif-drawer${notifOpen ? ' open' : ''}`} aria-label="Notifications">
+        <div className="notif-h">
+          <h3>Updates</h3>
+          <button className="x" onClick={() => setNotifOpen(false)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="notif-list">
+          {!notifications || notifications.length === 0 ? (
+            <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No notifications</div>
+          ) : (notifications as {_id: string, title: string, body: string, read: boolean, createdAt: number}[]).map(n => (
+            <div key={n._id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', borderLeft: n.read ? '3px solid transparent' : '3px solid var(--accent)', background: n.read ? 'transparent' : 'color-mix(in srgb,var(--accent) 5%,transparent)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: n.read ? 400 : 600, color: 'var(--text)' }}>{n.title}</span>
+                  {!n.read && <span style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 12%,transparent)', borderRadius: 4, padding: '2px 6px' }}>New</span>}
+                </div>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--muted2)', marginTop: 4 }}>{new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="notif-foot">
+          <a href="#" onClick={e => { e.preventDefault(); markRead() }}>Mark all as read</a>
+          <a href="/patients/account">Notification settings</a>
+        </div>
+      </aside>
+
+      {/* Logout modal */}
+      {logoutOpen && (
+        <div className="logout-back open" onClick={() => setLogoutOpen(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
+            <div className="logout-body">
+              <h3>Log out of Implant ID?</h3>
+              <p>You&apos;ll need to sign back in to access your implant record.</p>
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setLogoutOpen(false)}>← Back</button>
+              <button className="btn btn-danger" onClick={() => signOut({ redirectUrl: '/login' })}>Yes, log out</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

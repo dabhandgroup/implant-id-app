@@ -117,7 +117,7 @@ export default function ShareClient() {
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/>
             </svg>
             <span>Documents & manuals</span>
-          </a>
+          </button>
 
           <span className="sb-section">Find care</span>
           <a className="sb-link" href="/patients/find-care" title="Find a clinic">

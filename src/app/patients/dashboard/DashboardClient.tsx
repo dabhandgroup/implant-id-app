@@ -848,15 +848,13 @@ export default function DashboardClient() {
                     {/* Conditional: icon alone (yellow triangle always readable on orange)
                         Safe/Unsafe: wrap in a white shape so they're visible on matching bg colours */}
                     {implantSafety === 'conditional' ? (
-                      <img src="/mr-conditional.svg" alt="MR Conditional" style={{ width:34, height:34, display:'block', flexShrink:0 }} />
+                      <img src="/mr-conditional.svg" alt="MR Conditional" style={{ width:42, height:42, display:'block', flexShrink:0 }} />
                     ) : implantSafety === 'safe' ? (
-                      /* Square, no rounded corners, tight padding */
-                      <div style={{ width:36, height:36, borderRadius:0, background:'rgba(255,255,255,0.92)', display:'grid', placeItems:'center', flexShrink:0, padding:3 }}>
+                      <div style={{ width:45, height:45, borderRadius:0, background:'rgba(255,255,255,0.92)', display:'grid', placeItems:'center', flexShrink:0, padding:4 }}>
                         <img src="/mr-safe.svg" alt="MR Safe" style={{ width:'100%', height:'100%', display:'block' }} />
                       </div>
                     ) : (
-                      /* Circle, tight padding */
-                      <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'grid', placeItems:'center', flexShrink:0, padding:4 }}>
+                      <div style={{ width:45, height:45, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'grid', placeItems:'center', flexShrink:0, padding:5 }}>
                         <img src="/mr-unsafe.svg" alt="MR Unsafe" style={{ width:'100%', height:'100%', display:'block' }} />
                       </div>
                     )}

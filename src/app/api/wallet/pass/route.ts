@@ -34,13 +34,14 @@ const ICON_LG         = pub('icon-87.png')
 // White logo — shows clearly on coloured card backgrounds
 const LOGO_SM = pub('wallet-logo.png')
 const LOGO_MD = pub('wallet-logo@2x.png')
-// MRI badge thumbnails — appear top-right of pass as icon, opposite the logo
-const MRI_SAFE_BADGE        = pub('mr-safe-badge.png')
-const MRI_SAFE_BADGE_2X     = pub('mr-safe-badge@2x.png')
-const MRI_CONDITIONAL_BADGE = pub('mr-conditional-badge.png')
-const MRI_CONDITIONAL_2X    = pub('mr-conditional-badge@2x.png')
-const MRI_UNSAFE_BADGE      = pub('mr-unsafe-badge.png')
-const MRI_UNSAFE_BADGE_2X   = pub('mr-unsafe-badge@2x.png')
+// MRI icon thumbnails — clean square icons, appear top-right of pass opposite the logo
+// Using mr-safe.png (87×87) NOT the badge images (240×80 with "Conditions apply" text)
+const MRI_SAFE_ICON         = pub('mr-safe.png')
+const MRI_SAFE_ICON_2X      = pub('mr-safe@2x.png')
+const MRI_CONDITIONAL_ICON  = pub('mr-conditional.png')
+const MRI_CONDITIONAL_2X    = pub('mr-conditional@2x.png')
+const MRI_UNSAFE_ICON       = pub('mr-unsafe.png')
+const MRI_UNSAFE_ICON_2X    = pub('mr-unsafe@2x.png')
 
 const MRI_LABEL: Record<string, string> = {
   safe: 'MR Safe', conditional: 'MR Conditional', unsafe: 'MR Unsafe — Do Not Scan',
@@ -231,15 +232,15 @@ export async function GET() {
       ? wwdrBuffer.toString('utf-8')
       : derToPem(wwdrBuffer)
 
-    // MRI badge thumbnail — shown top-right of the pass, opposite the logo
-    const badgeSm = safety === 'safe'        ? MRI_SAFE_BADGE
-                  : safety === 'conditional' ? MRI_CONDITIONAL_BADGE
-                  : safety === 'unsafe'      ? MRI_UNSAFE_BADGE
-                  : null
-    const badgeMd = safety === 'safe'        ? MRI_SAFE_BADGE_2X
-                  : safety === 'conditional' ? MRI_CONDITIONAL_2X
-                  : safety === 'unsafe'      ? MRI_UNSAFE_BADGE_2X
-                  : null
+    // MRI icon thumbnail — clean square PNG, shown top-right of pass, opposite the logo
+    const iconSm = safety === 'safe'        ? MRI_SAFE_ICON
+                 : safety === 'conditional' ? MRI_CONDITIONAL_ICON
+                 : safety === 'unsafe'      ? MRI_UNSAFE_ICON
+                 : null
+    const iconMd = safety === 'safe'        ? MRI_SAFE_ICON_2X
+                 : safety === 'conditional' ? MRI_CONDITIONAL_2X
+                 : safety === 'unsafe'      ? MRI_UNSAFE_ICON_2X
+                 : null
 
     const pass = new PKPass(
       {
@@ -249,10 +250,10 @@ export async function GET() {
         'icon@3x.png':    ICON_LG,
         'logo.png':       LOGO_SM,
         'logo@2x.png':    LOGO_MD,
-        // Thumbnail: MRI badge icon appears top-right, no text header needed
-        ...(!isPending && badgeSm ? {
-          'thumbnail.png':    badgeSm,
-          'thumbnail@2x.png': badgeMd ?? badgeSm,
+        // Thumbnail: MRI status icon appears top-right (no text, no "Conditions apply")
+        ...(!isPending && iconSm ? {
+          'thumbnail.png':    iconSm,
+          'thumbnail@2x.png': iconMd ?? iconSm,
         } : {}),
       },
       // Certificates — all in PEM format

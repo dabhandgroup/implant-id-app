@@ -40,6 +40,7 @@ export default function ManufacturersClient() {
   const rejectedApps = useQuery(api.manufacturers.listApplications, { status: 'rejected' })
   const allMfrs = useQuery(api.manufacturers.listApprovedManufacturers)
   const review = useMutation(api.manufacturers.reviewApplication)
+  const invite = useMutation(api.manufacturers.inviteManufacturer)
 
   // Local state
   const [tab,          setTab]          = useState<Tab>('pending')
@@ -48,6 +49,17 @@ export default function ManufacturersClient() {
   const [confirmed,    setConfirmed]    = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [error,        setError]        = useState('')
+  const [showInvite,   setShowInvite]   = useState(false)
+  const [inviting,     setInviting]     = useState(false)
+  const [inviteError,  setInviteError]  = useState('')
+  const [inviteForm, setInviteForm] = useState({
+    companyName: '',
+    contactName: '',
+    contactEmail: '',
+    country: '',
+    regNumber: '',
+    website: '',
+  })
 
   function openConfirm(type: 'approve' | 'reject', id: string, name: string) {
     setConfirmModal({ type, id, name })
@@ -63,6 +75,39 @@ export default function ManufacturersClient() {
     setConfirmed(false)
     setRejectReason('')
     setError('')
+  }
+
+  function closeInvite() {
+    setShowInvite(false)
+    setInviting(false)
+    setInviteError('')
+    setInviteForm({
+      companyName: '',
+      contactName: '',
+      contactEmail: '',
+      country: '',
+      regNumber: '',
+      website: '',
+    })
+  }
+
+  async function handleInvite() {
+    setInviteError('')
+    setInviting(true)
+    try {
+      await invite({
+        companyName: inviteForm.companyName,
+        contactName: inviteForm.contactName,
+        contactEmail: inviteForm.contactEmail,
+        country: inviteForm.country,
+        regNumber: inviteForm.regNumber || undefined,
+        website: inviteForm.website || undefined,
+      })
+      closeInvite()
+    } catch (err: unknown) {
+      setInviteError(err instanceof Error ? err.message : 'An error occurred')
+      setInviting(false)
+    }
   }
 
   async function handleConfirm() {
@@ -91,7 +136,7 @@ export default function ManufacturersClient() {
           <h2>Manufacturers</h2>
           <div className="sub">Device manufacturers with access to the Implant ID platform catalogue.</div>
         </div>
-        <button className="btn btn-s">+ Invite Manufacturer</button>
+        <button className="btn btn-s" onClick={() => setShowInvite(true)}>+ Invite Manufacturer</button>
       </div>
 
       {/* Tabs */}
@@ -311,6 +356,99 @@ export default function ManufacturersClient() {
               <button className="btn" onClick={closeConfirm} disabled={confirming}>Cancel</button>
               <button className="btn btn-danger" onClick={handleConfirm} disabled={confirming || !rejectReason.trim()}>
                 {confirmed ? 'Rejected' : confirming ? 'Rejecting…' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Invite modal ── */}
+      {showInvite && (
+        <div className="logout-back open" onClick={closeInvite}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ width: 500 }}>
+            <div className="logout-body">
+              <h3 style={{ marginBottom: 20 }}>Invite Manufacturer</h3>
+
+              <div className="field">
+                <label>Company Name</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={inviteForm.companyName}
+                  onChange={e => setInviteForm({ ...inviteForm, companyName: e.target.value })}
+                  placeholder="e.g. Acme Medical Devices"
+                />
+              </div>
+
+              <div className="field">
+                <label>Contact Name</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={inviteForm.contactName}
+                  onChange={e => setInviteForm({ ...inviteForm, contactName: e.target.value })}
+                  placeholder="e.g. John Smith"
+                />
+              </div>
+
+              <div className="field">
+                <label>Contact Email</label>
+                <input
+                  className="input"
+                  type="email"
+                  value={inviteForm.contactEmail}
+                  onChange={e => setInviteForm({ ...inviteForm, contactEmail: e.target.value })}
+                  placeholder="john@acme.com"
+                />
+              </div>
+
+              <div className="field">
+                <label>Country</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={inviteForm.country}
+                  onChange={e => setInviteForm({ ...inviteForm, country: e.target.value })}
+                  placeholder="e.g. USA"
+                />
+              </div>
+
+              <div className="field">
+                <label>Reg. Number (optional)</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={inviteForm.regNumber}
+                  onChange={e => setInviteForm({ ...inviteForm, regNumber: e.target.value })}
+                  placeholder="e.g. FDA1234567"
+                />
+              </div>
+
+              <div className="field">
+                <label>Website (optional)</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={inviteForm.website}
+                  onChange={e => setInviteForm({ ...inviteForm, website: e.target.value })}
+                  placeholder="https://acme.com"
+                />
+              </div>
+
+              {inviteError && (
+                <div style={{ marginBottom: 14, background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--err)' }}>
+                  {inviteError}
+                </div>
+              )}
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={closeInvite} disabled={inviting}>Cancel</button>
+              <button
+                className="btn btn-s"
+                onClick={handleInvite}
+                disabled={inviting || !inviteForm.companyName.trim() || !inviteForm.contactName.trim() || !inviteForm.contactEmail.trim() || !inviteForm.country.trim()}
+              >
+                {inviting ? 'Inviting…' : 'Send Invite'}
               </button>
             </div>
           </div>

@@ -330,6 +330,58 @@ export const reviewApplication = mutation({
   },
 })
 
+/** Master admin: directly invite a manufacturer (skips application process). */
+export const inviteManufacturer = mutation({
+  args: {
+    companyName: v.string(),
+    contactName: v.string(),
+    contactEmail: v.string(),
+    country: v.string(),
+    regNumber: v.optional(v.string()),
+    website: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Verify admin access
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user || user.role !== 'admin') throw new Error('Admin role required')
+
+    // Check for existing
+    const existing = await ctx.db
+      .query('manufacturers')
+      .withIndex('by_email', (q) => q.eq('contactEmail', args.contactEmail))
+      .first()
+
+    if (existing) {
+      throw new Error('Manufacturer already exists with this email')
+    }
+
+    // Create and immediately approve the manufacturer
+    const id = await ctx.db.insert('manufacturers', {
+      ...args,
+      clerkUserId: undefined,
+      status: 'approved',
+      submittedAt: Date.now(),
+      reviewedAt: Date.now(),
+    })
+
+    // Activate Clerk account + send approval email
+    await ctx.scheduler.runAfter(0, internal.manufacturers.activateManufacturerAccount, {
+      clerkUserId: undefined,
+      contactEmail: args.contactEmail,
+      contactName: args.contactName,
+      companyName: args.companyName,
+    })
+
+    return { id }
+  },
+})
+
 // ── Devices ───────────────────────────────────────────────────────────────────
 
 /** Manufacturer submits a new device for review (24h auto-publish). */

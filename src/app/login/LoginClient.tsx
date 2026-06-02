@@ -187,13 +187,9 @@ export default function LoginClient() {
         // Security: OTP proves email ownership; role stamped after verification
         const { error: sue } = await signUp.create({ emailAddress: prefillEmail })
         if (sue) { setError(sue.message ?? 'Could not create account'); return }
-        // Send verification code via email
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        try {
-          await (signUp as any).prepareEmailAddressVerification?.({ strategy: 'email_code' })
-        } catch (e) {
-          setError('Could not send code'); return
-        }
+        const { error: vpe } = await (signUp as any).verifications.sendEmailCode()
+        if (vpe) { setError((vpe as any).message ?? 'Could not send code'); return }
         setOtp(['', '', '', '', '', ''])
         setClIsSignUp(true)
         setClPhase('email-otp')
@@ -338,13 +334,9 @@ export default function LoginClient() {
       // (the invite's Clerk pre-creation may have failed; this is the safety net)
       const { error: sue } = await signUp!.create({ emailAddress: clEmail.trim() })
       if (sue) return err(sue.message ?? 'Could not send code — contact your admin if you were just invited')
-      // Send verification code via email
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      try {
-        await (signUp! as any).prepareEmailAddressVerification?.({ strategy: 'email_code' })
-      } catch (e) {
-        return err('Could not send code')
-      }
+      const { error: vpe } = await (signUp! as any).verifications.sendEmailCode()
+      if (vpe) return err((vpe as any).message ?? 'Could not send code')
       setOtp(['','','','','',''])
       setClIsSignUp(true)
       setClPhase('email-otp')

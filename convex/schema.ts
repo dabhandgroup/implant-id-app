@@ -256,6 +256,7 @@ export default defineSchema({
 
   // Manufacturer applications (pre-approval)
   manufacturers: defineTable({
+    // Basic identity
     companyName: v.string(),
     contactName: v.string(),
     contactEmail: v.string(),
@@ -263,6 +264,17 @@ export default defineSchema({
     regNumber: v.optional(v.string()),
     website: v.optional(v.string()),
     logoUrl: v.optional(v.string()),
+    // Extended onboarding fields
+    legalEntityName:          v.optional(v.string()),
+    contactJobTitle:          v.optional(v.string()),
+    contactPhone:             v.optional(v.string()),
+    iso13485CertNumber:       v.optional(v.string()),
+    iso13485IssuingBody:      v.optional(v.string()),
+    iso13485ExpiryDate:       v.optional(v.string()),
+    regulatoryRegistrations:  v.optional(v.string()),  // free-text list
+    deviceCategories:         v.optional(v.array(v.string())),
+    geographicMarkets:        v.optional(v.array(v.string())),
+    // Admin
     status: v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected')),
     submittedAt: v.number(),
     reviewedAt: v.optional(v.number()),

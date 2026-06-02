@@ -7,12 +7,22 @@ import { internal } from './_generated/api'
 /** Submit a new manufacturer application. */
 export const submitManufacturerApplication = mutation({
   args: {
-    companyName: v.string(),
-    contactName: v.string(),
-    contactEmail: v.string(),
-    country: v.string(),
-    regNumber: v.optional(v.string()),
-    website: v.optional(v.string()),
+    companyName:             v.string(),
+    contactName:             v.string(),
+    contactEmail:            v.string(),
+    country:                 v.string(),
+    regNumber:               v.optional(v.string()),
+    website:                 v.optional(v.string()),
+    // Extended onboarding fields
+    legalEntityName:         v.optional(v.string()),
+    contactJobTitle:         v.optional(v.string()),
+    contactPhone:            v.optional(v.string()),
+    iso13485CertNumber:      v.optional(v.string()),
+    iso13485IssuingBody:     v.optional(v.string()),
+    iso13485ExpiryDate:      v.optional(v.string()),
+    regulatoryRegistrations: v.optional(v.string()),
+    deviceCategories:        v.optional(v.array(v.string())),
+    geographicMarkets:       v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     // Capture the authenticated user's Clerk ID (if signed in)
@@ -30,7 +40,21 @@ export const submitManufacturerApplication = mutation({
     }
 
     const id = await ctx.db.insert('manufacturers', {
-      ...args,
+      companyName:             args.companyName,
+      contactName:             args.contactName,
+      contactEmail:            args.contactEmail,
+      country:                 args.country,
+      regNumber:               args.regNumber,
+      website:                 args.website,
+      legalEntityName:         args.legalEntityName,
+      contactJobTitle:         args.contactJobTitle,
+      contactPhone:            args.contactPhone,
+      iso13485CertNumber:      args.iso13485CertNumber,
+      iso13485IssuingBody:     args.iso13485IssuingBody,
+      iso13485ExpiryDate:      args.iso13485ExpiryDate,
+      regulatoryRegistrations: args.regulatoryRegistrations,
+      deviceCategories:        args.deviceCategories,
+      geographicMarkets:       args.geographicMarkets,
       clerkUserId,
       status: 'pending',
       submittedAt: Date.now(),

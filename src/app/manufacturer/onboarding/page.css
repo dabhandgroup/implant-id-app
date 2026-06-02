@@ -1,0 +1,94 @@
+.onb{min-height:100vh;display:grid;grid-template-columns:1fr 1.2fr}
+.onb-side{background:linear-gradient(160deg,var(--accent-deep),var(--accent) 60%,var(--accent2));color:#fff;padding:60px 48px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;box-sizing:border-box}
+.onb-side .logo img{height:56px}
+.onb-side .logo-text{color:#fff}
+.onb-side h1{font-size:clamp(28px,3vw,40px);font-weight:500;letter-spacing:-.025em;line-height:1.1;margin:32px 0 16px;color:#fff}
+.onb-side>p{color:rgba(255,255,255,.8);font-size:15px;line-height:1.6;max-width:420px}
+.onb-side .steps{margin-top:40px;display:flex;flex-direction:column;gap:0;flex:1}
+.onb-side-steps{display:flex;flex-direction:column;gap:0}
+.onb-step{display:flex;gap:16px;padding:18px 0;position:relative}
+.onb-step+.onb-step{border-top:1px solid rgba(255,255,255,.12)}
+.onb-step .num{width:32px;height:32px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);display:grid;place-items:center;font-family:var(--ff);font-size:13px;font-weight:600;flex-shrink:0;color:rgba(255,255,255,.6)}
+.onb-step.active .num{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.5);color:#fff}
+.onb-step.done .num{background:var(--accent2);border-color:var(--accent2);color:#051418}
+.onb-step h4{font-family:var(--ff);font-size:14px;font-weight:500;color:rgba(255,255,255,.9);margin-bottom:3px}
+.onb-step p{font-size:12.5px;color:rgba(255,255,255,.55);line-height:1.4}
+.onb-side .trust{margin-top:auto;padding-top:28px;display:flex;gap:16px;flex-wrap:wrap}
+.onb-side .trust span{display:flex;align-items:center;gap:6px;font-family:var(--ff);font-size:11.5px;color:rgba(255,255,255,.6);letter-spacing:.3px}
+.onb-side .trust svg{width:14px;height:14px;opacity:.5}
+.onb-main{background:var(--bg);padding:60px 48px;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto}
+.onb-box{max-width:600px;width:100%}
+.onb-box .ey{margin-bottom:10px}
+.onb-box h2{font-family:var(--ff);font-size:26px;font-weight:500;letter-spacing:-.02em;margin-bottom:6px}
+.onb-box .sub{color:var(--muted);font-size:14.5px;margin-bottom:28px;line-height:1.5}
+.form-section{margin-bottom:28px}
+.form-section h3{font-family:var(--ff);font-size:15px;font-weight:500;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.form-section h3 .num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;display:grid;place-items:center;font-weight:600}
+.form-section .desc{color:var(--muted);font-size:13px;margin-bottom:16px;line-height:1.5}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .field-full{grid-column:1/-1}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:0}
+.field label{font-family:var(--ff);font-size:11.5px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.input{border:1px solid var(--border2);border-radius:10px;padding:11px 14px;font-family:var(--fb);font-size:14.5px;color:var(--text);background:var(--bg2);transition:border-color .15s,box-shadow .15s;outline:none;width:100%;box-sizing:border-box}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.select{appearance:none;border:1px solid var(--border2);border-radius:10px;padding:11px 14px;font-family:var(--fb);font-size:14.5px;color:var(--text);background:var(--bg2) url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230e2a33' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") right 14px center/10px no-repeat;transition:border-color .15s;outline:none;width:100%;box-sizing:border-box}
+.select:focus{border-color:var(--accent)}
+textarea.input{resize:vertical;min-height:80px}
+.dropzone{border:2px dashed var(--border2);border-radius:14px;padding:28px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;color:var(--muted)}
+.dropzone:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 4%,transparent)}
+.dropzone svg{width:32px;height:32px;color:var(--accent);opacity:.5;margin-bottom:8px}
+.dropzone p{font-size:14px;margin-bottom:4px}
+.dropzone .hint{font-size:12px;color:var(--muted2)}
+.form-actions{display:flex;gap:10px;margin-top:24px}
+.form-actions .btn{flex:1;justify-content:center;padding:14px}
+.onb-note{margin-top:20px;background:color-mix(in srgb,var(--accent) 6%,transparent);border:1px solid color-mix(in srgb,var(--accent) 14%,transparent);border-radius:12px;padding:16px 18px;font-size:13px;color:var(--muted);line-height:1.55;display:flex;gap:12px;align-items:flex-start}
+.onb-note svg{flex-shrink:0;width:18px;height:18px;color:var(--accent);margin-top:1px}
+
+/* ── Step progress bar (manufacturer-specific) ───────────────────────────────── */
+.step-progress{display:flex;gap:0;margin-bottom:28px;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.step-progress-item{flex:1;padding:10px 6px;text-align:center;font-family:var(--ff);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);background:var(--bg2);border-right:1px solid var(--border);cursor:default;user-select:none;transition:background .15s,color .15s}
+.step-progress-item:last-child{border-right:none}
+.step-progress-item.done{background:color-mix(in srgb,var(--accent) 8%,transparent);color:var(--accent)}
+.step-progress-item.active{background:var(--accent);color:#fff}
+.step-progress-item .sp-num{display:inline-block;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.2);font-size:10px;line-height:18px;margin-right:5px;text-align:center}
+.step-progress-item.done .sp-num{background:var(--accent2);color:#051418}
+.step-progress-item:not(.active):not(.done) .sp-num{background:var(--border);color:var(--muted2)}
+
+/* ── Checkbox group (device categories, markets) ─────────────────────────────── */
+.check-group{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.check-group label{display:flex;align-items:center;gap:9px;font-family:var(--fb);font-size:14px;color:var(--text);cursor:pointer;padding:9px 12px;border:1px solid var(--border2);border-radius:9px;transition:border-color .15s,background .15s;user-select:none}
+.check-group label:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 4%,transparent)}
+.check-group label input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer}
+.check-group label.checked{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,transparent)}
+
+/* ── Declaration checkboxes ──────────────────────────────────────────────────── */
+.decl-list{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.decl-item{display:flex;align-items:flex-start;gap:10px;padding:13px 14px;border:1px solid var(--border2);border-radius:10px;transition:border-color .15s,background .15s;cursor:pointer}
+.decl-item:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 4%,transparent)}
+.decl-item.checked{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.decl-item input[type="checkbox"]{width:17px;height:17px;accent-color:var(--accent);flex-shrink:0;margin-top:1px;cursor:pointer}
+.decl-item span{font-family:var(--fb);font-size:13.5px;color:var(--text);line-height:1.5}
+
+/* ── Summary card (step 4 review) ────────────────────────────────────────────── */
+.summary-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px 22px;margin-bottom:24px}
+.summary-card h4{font-family:var(--ff);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.summary-row{display:flex;gap:8px;align-items:baseline;margin-bottom:6px;font-size:13.5px}
+.summary-row:last-child{margin-bottom:0}
+.summary-row dt{color:var(--muted);min-width:140px;flex-shrink:0;font-size:12px;font-family:var(--ff);letter-spacing:.3px}
+.summary-row dd{color:var(--text);font-family:var(--fb)}
+.summary-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.summary-tag{display:inline-block;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent-deep);border:1px solid color-mix(in srgb,var(--accent) 20%,transparent);border-radius:20px;padding:2px 9px;font-size:11.5px;font-family:var(--ff);font-weight:500}
+
+@media(max-width:900px){
+  .onb{grid-template-columns:1fr}
+  .onb-side{padding:24px 24px 20px;position:static !important;height:auto !important;overflow:visible}
+  .onb-side h1{font-size:24px;margin:14px 0 0;line-height:1.15}
+  .onb-side>p{display:none}
+  .onb-side .steps{display:none}
+  .onb-side .trust{display:none}
+  .onb-main{padding:28px 20px}
+  .form-grid{grid-template-columns:1fr}
+  .onb-box h2{font-size:22px}
+  .check-group{grid-template-columns:1fr}
+  .summary-row dt{min-width:110px}
+}

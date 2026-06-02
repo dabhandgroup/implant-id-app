@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useClerk }                    from '@clerk/nextjs'
 import { usePathname, useRouter }      from 'next/navigation'
 import { useQuery }                    from 'convex/react'
-import { api as apiBase }              from '../../convex/_generated/api'
+import { api as apiBase }              from '../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 

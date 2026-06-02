@@ -1,8 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useClerk } from '@clerk/nextjs'
-import { usePathname, useRouter } from 'next/navigation'
+import { useClerk }                    from '@clerk/nextjs'
+import { usePathname, useRouter }      from 'next/navigation'
+import { useQuery }                    from 'convex/react'
+import { api as apiBase }              from '../../convex/_generated/api'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = apiBase as any
 
 interface MasterShellProps {
   children: React.ReactNode
@@ -37,6 +41,35 @@ export default function MasterShell({ children }: MasterShellProps) {
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
   const [searchQuery,    setSearchQuery]    = useState('')
+
+  // ── Real-time admin notification data ───────────────────────────────────────
+  const pendingClinics  = useQuery(api.clinics.listApplications,      { status: 'pending' })
+  const pendingMfrs     = useQuery(api.manufacturers.listApplications, { status: 'pending' })
+  const pendingDevices  = useQuery(api.devices.listPendingDevices)
+
+  type AdminNotif = { id: string; title: string; body: string; href: string; type: 'clinic' | 'manufacturer' | 'device'; time: number }
+  const adminNotifs: AdminNotif[] = [
+    ...(pendingClinics ?? []).map((c: {_id:string;facilityName:string;submittedAt:number}) => ({
+      id: c._id, title: `New clinic application · ${c.facilityName}`,
+      body: 'Awaiting your review.',
+      href: `/master/clinics/${c._id}`,
+      type: 'clinic' as const, time: c.submittedAt,
+    })),
+    ...(pendingMfrs ?? []).map((m: {_id:string;companyName:string;submittedAt:number}) => ({
+      id: m._id, title: `New manufacturer application · ${m.companyName}`,
+      body: 'Awaiting your review.',
+      href: `/master/manufacturers/${m._id}`,
+      type: 'manufacturer' as const, time: m.submittedAt,
+    })),
+    ...(pendingDevices ?? []).map((d: {_id:string;deviceType:string;manufacturer:string;publishedAt:number}) => ({
+      id: d._id, title: `Device pending review · ${d.manufacturer}`,
+      body: `${d.deviceType} — awaiting sign-off.`,
+      href: '/master/devices',
+      type: 'device' as const, time: d.publishedAt,
+    })),
+  ].sort((a, b) => b.time - a.time).slice(0, 20)
+
+  const unreadCount = adminNotifs.length
 
   // ⌘K / Ctrl+K focuses the global search bar
   useEffect(() => {
@@ -301,7 +334,7 @@ export default function MasterShell({ children }: MasterShellProps) {
               <span className="dot" />
             </span>
             <span className="label">Notifications</span>
-            <span className="count">2</span>
+            <span className="count">{unreadCount}</span>
           </button>
 
           {/* Settings */}
@@ -517,33 +550,33 @@ export default function MasterShell({ children }: MasterShellProps) {
           <button className="x" onClick={() => setNotifOpen(false)}>✕</button>
         </div>
         <div className="notif-list">
-          <div className="notif-item unread">
-            <div className="notif-ic warn"><IconClock /></div>
-            <div>
-              <b>New clinic application · Harley Street</b>
-              <p>Submitted 24 May 2026. Awaiting your review.</p>
-              <div className="t">Just now · Applications</div>
+          {adminNotifs.length === 0 ? (
+            <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+              No pending items — all clear!
             </div>
-          </div>
-          <div className="notif-item unread">
-            <div className="notif-ic warn"><IconClock /></div>
-            <div>
-              <b>Device pending review · Nucleus 7</b>
-              <p>Submitted 18 May 2026. Awaiting sign-off.</p>
-              <div className="t">2 hours ago · Devices</div>
-            </div>
-          </div>
-          <div className="notif-item">
-            <div className="notif-ic ok"><IconShield /></div>
-            <div>
-              <b>Manchester Orthopaedics approved</b>
-              <p>Clinic is now active on the platform.</p>
-              <div className="t">2 hours ago · Clinics</div>
-            </div>
-          </div>
+          ) : adminNotifs.map(n => (
+            <a
+              key={n.id}
+              href={n.href}
+              className="notif-item unread"
+              style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'flex-start', gap: 10 }}
+              onClick={() => setNotifOpen(false)}
+            >
+              <div className={`notif-ic ${n.type === 'manufacturer' ? 'warn' : n.type === 'device' ? 'warn' : 'warn'}`}>
+                {n.type === 'clinic'        && <IconClock />}
+                {n.type === 'manufacturer' && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="16" height="16"><path d="M2 20h20M4 20V10l8-6 8 6v10M9 20v-6h6v6"/></svg>}
+                {n.type === 'device'        && <IconClock />}
+              </div>
+              <div>
+                <b>{n.title}</b>
+                <p>{n.body}</p>
+                <div className="t">{new Date(n.time).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · {n.type === 'clinic' ? 'Clinics' : n.type === 'manufacturer' ? 'Manufacturers' : 'Devices'}</div>
+              </div>
+            </a>
+          ))}
         </div>
         <div className="notif-foot">
-          <a href="#">Mark all as read</a>
+          <span style={{ color: 'var(--muted2)', fontSize: 12 }}>{unreadCount} pending</span>
           <a href="/master/settings">Settings</a>
         </div>
       </aside>

@@ -149,8 +149,20 @@ export default function EmergencyClient() {
         <div className="app-main">
           <div style={{ maxWidth: 640, margin: '0 auto', padding: '28px 20px 60px' }}>
 
-            {/* Page header */}
-            <div style={{ marginBottom: 24 }}>
+            {/* Print-only header — hidden on screen */}
+            <div className="em-print-header" style={{ display: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <img src="/icon.svg" alt="Implant ID" style={{ width: 28, height: 28 }} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#0e2a33' }}>Implant ID — Emergency Medical Record</div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>portal.implantid.io · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                </div>
+              </div>
+              <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 13, fontWeight: 700, color: '#29869f', letterSpacing: '.05em' }}>{patient.implantIdCode}</div>
+            </div>
+
+            {/* Page header — screen only */}
+            <div className="em-print-hide" style={{ marginBottom: 24 }}>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 6 }}>Emergency info</div>
               <h1 style={{ fontFamily: 'var(--ff)', fontSize: 26, fontWeight: 700, color: 'var(--text)', margin: '0 0 6px', letterSpacing: '-.02em' }}>{fullName}</h1>
               <p style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--muted)', margin: 0 }}>
@@ -158,8 +170,8 @@ export default function EmergencyClient() {
               </p>
             </div>
 
-            {/* Action buttons */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
+            {/* Action buttons — hidden on print */}
+            <div className="em-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
               <button
                 className="btn btn-s"
                 onClick={copyLink}
@@ -182,7 +194,7 @@ export default function EmergencyClient() {
             </div>
 
             {/* MRI status hero */}
-            <div style={{ background: MRI_BG[status], borderRadius: 16, padding: '22px 22px', marginBottom: 16 }}>
+            <div className="em-mri-hero" style={{ background: MRI_BG[status], borderRadius: 16, padding: '22px 22px', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
                 <img
                   src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
@@ -201,7 +213,7 @@ export default function EmergencyClient() {
 
             {/* Contrast allergy */}
             {hasAllergy && (
-              <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '2px solid color-mix(in srgb,var(--err) 30%,transparent)', borderRadius: 14, padding: '16px 18px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div className="em-allergy" style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '2px solid color-mix(in srgb,var(--err) 30%,transparent)', borderRadius: 14, padding: '16px 18px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 <div>
                   <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--err)', marginBottom: 4 }}>Contrast Allergy</div>
@@ -213,7 +225,7 @@ export default function EmergencyClient() {
             )}
 
             {/* Patient identity */}
-            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+            <div className="em-card" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Patient</div>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{fullName}</div>
               <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 14, color: 'var(--accent)', letterSpacing: '.04em', marginBottom: patient.dob ? 10 : 0 }}>{patient.implantIdCode}</div>
@@ -228,7 +240,7 @@ export default function EmergencyClient() {
 
             {/* Implanted device */}
             {(patient.selfReportedDevice || patient.selfReportedDeviceType) && (
-              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+              <div className="em-card" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Implanted Device</div>
                 {patient.selfReportedDeviceType && <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', marginBottom: 4 }}>{patient.selfReportedDeviceType}</div>}
                 {patient.selfReportedDevice && <div style={{ fontFamily: 'var(--ff)', fontSize: 18, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{patient.selfReportedDevice}</div>}
@@ -244,7 +256,7 @@ export default function EmergencyClient() {
 
             {/* Additional notes */}
             {patient.additionalNotes && (
-              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+              <div className="em-card" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 8 }}>Clinical Notes</div>
                 <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{patient.additionalNotes}</div>
               </div>
@@ -252,7 +264,7 @@ export default function EmergencyClient() {
 
             {/* Emergency contact */}
             {patient.emergencyContactName && (
-              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+              <div className="em-card" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Emergency Contact</div>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{patient.emergencyContactName}</div>
                 {patient.emergencyContactRelation && <div style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', marginBottom: 6 }}>{patient.emergencyContactRelation}</div>}

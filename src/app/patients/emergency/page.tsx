@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Suspense }      from 'react'
 import EmergencyClient   from './EmergencyClient'
+import './page.css'
 
 export const metadata: Metadata = { title: 'Emergency Info · Implant ID' }
 export const dynamic = 'force-dynamic'

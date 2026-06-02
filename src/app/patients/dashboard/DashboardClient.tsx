@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useUser, useClerk }           from '@clerk/nextjs'
 import { useQuery, useMutation }        from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
-import { useRouter }                   from 'next/navigation'
+import { useRouter, useSearchParams }   from 'next/navigation'
 import QRCode                          from 'qrcode'
 
 // ── Confetti fall from top ────────────────────────────────────────────────────
@@ -54,6 +54,7 @@ export default function DashboardClient() {
   const { user, isLoaded }  = useUser()
   const { signOut }         = useClerk()
   const router              = useRouter()
+  const searchParams        = useSearchParams()
   const patient             = useQuery(api.patients.getMyPatient)
   const implantSafety       = useQuery(api.patients.getMyImplantSafety)
   const linkedDevices       = useQuery(api.patients.getMyLinkedDevices)
@@ -105,6 +106,16 @@ export default function DashboardClient() {
       .then((url: string) => setQrDataUrl(url))
       .catch(() => {})
   }, [patient?.implantIdCode])
+
+  // Scroll to section if specified in query params
+  useEffect(() => {
+    const section = searchParams.get('section')
+    if (section === 'documents') {
+      setTimeout(() => {
+        document.getElementById('documents-section')?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [searchParams])
 
   // Close dropdowns when clicking outside
   useEffect(() => {

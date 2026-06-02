@@ -354,12 +354,12 @@ export default function AccountClient() {
               </svg>
             </span>
           ) : (
-            <a className="sb-link" href="#" title="Documents &amp; manuals">
+            <button type="button" className="sb-link" onClick={() => router.push('/patients/dashboard?section=documents')} title="Documents & manuals" style={{border: 'none', background: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', font: 'inherit'}}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/>
               </svg>
-              <span>Documents &amp; manuals</span>
-            </a>
+              <span>Documents & manuals</span>
+            </button>
           )}
 
           <span className="sb-section">Find care</span>

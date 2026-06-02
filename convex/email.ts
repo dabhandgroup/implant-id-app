@@ -465,3 +465,147 @@ export const sendSurgeonPlatformInviteEmail = internalAction({
     })
   },
 })
+
+// ── Manufacturer application notification ─────────────────────────────────────
+
+export const sendManufacturerApplicationEmail = internalAction({
+  args: {
+    manufacturerId: v.string(),
+    companyName: v.string(),
+    contactName: v.string(),
+    contactEmail: v.string(),
+    country: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r = resend()
+    await r.emails.send({
+      from: FROM,
+      to: ADMIN_EMAIL,
+      subject: `New manufacturer application — ${args.companyName}`,
+      html: buildEmail({
+        title: 'Manufacturer Application',
+        heading: 'New manufacturer application received',
+        body: `<p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+          A new manufacturer has applied to submit devices to the Implant ID network.
+          Review the details below and approve or reject the application from the admin panel.
+        </p>`,
+        tableRows: [
+          { label: 'Company', value: args.companyName },
+          { label: 'Contact', value: args.contactName },
+          { label: 'Email', value: args.contactEmail },
+          { label: 'Country', value: args.country },
+        ],
+        cta: {
+          label: 'Review application →',
+          url: `https://portal.implantid.io/master/manufacturers/${args.manufacturerId}`,
+        },
+        footerNote: 'This is an automated system notification.',
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})
+
+// ── Manufacturer approval email ───────────────────────────────────────────────
+
+export const sendManufacturerApprovalEmail = internalAction({
+  args: {
+    contactName: v.string(),
+    contactEmail: v.string(),
+    companyName: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r = resend()
+    const firstName = args.contactName.split(' ')[0]
+    await r.emails.send({
+      from: FROM,
+      to: args.contactEmail,
+      subject: `You're approved — welcome to Implant ID`,
+      html: buildEmail({
+        title: 'Manufacturer Approved',
+        heading: `Welcome to Implant ID, ${firstName}!`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            Great news — your application for
+            <strong style="color:#0e2a33;">${args.companyName}</strong>
+            has been reviewed and approved. Your manufacturer account is now active and
+            you can start submitting devices to the Implant ID network.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            To sign in, click the button below and enter your email address.
+            We'll send you a one-time verification code — no password needed.
+          </p>
+        `,
+        highlightBox: {
+          content: `
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                       text-transform:uppercase;color:#29869F;">Sign in with</p>
+            <p style="margin:0;font-size:20px;font-weight:600;color:#1a6a80;
+                       letter-spacing:0.2px;">${args.contactEmail}</p>
+          `,
+        },
+        cta: {
+          label: 'Sign in to your manufacturer portal →',
+          url: `https://portal.implantid.io/manufacturer/login?email=${encodeURIComponent(args.contactEmail)}`,
+        },
+        footerNote: `If you didn't apply to join Implant ID, please contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,
+        includeUnsubscribe: true,
+      }),
+    })
+  },
+})
+
+// ── Manufacturer rejection email ──────────────────────────────────────────────
+
+export const sendManufacturerRejectionEmail = internalAction({
+  args: {
+    contactName: v.string(),
+    contactEmail: v.string(),
+    companyName: v.string(),
+    reviewNotes: v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const r = resend()
+    const firstName = args.contactName.split(' ')[0]
+
+    const notesBlock = args.reviewNotes
+      ? `
+        <div style="background:#fef9ec;border-left:3px solid #f0c040;border-radius:0 8px 8px 0;
+                    padding:16px 20px;margin:24px 0;">
+          <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.2px;
+                     text-transform:uppercase;color:#92700a;">Reviewer note</p>
+          <p style="margin:0;font-size:14px;color:#5a4a0a;line-height:1.6;">${args.reviewNotes}</p>
+        </div>`
+      : ''
+
+    await r.emails.send({
+      from: FROM,
+      to: args.contactEmail,
+      subject: `Your Implant ID application — next steps`,
+      html: buildEmail({
+        title: 'Application Update',
+        heading: `Thank you for applying, ${firstName}`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            Thank you for taking the time to apply to join the Implant ID network.
+            We've carefully reviewed your application for
+            <strong style="color:#0e2a33;">${args.companyName}</strong>.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            At this time, we're unable to move forward with your application.
+            ${args.reviewNotes ? 'Please see the reviewer note below for more details.' : 'Please feel free to reapply in the future.'}
+          </p>
+          ${notesBlock}
+        `,
+        cta: {
+          label: 'Learn more about Implant ID →',
+          url: 'https://implantid.io',
+        },
+        footerNote: `If you have questions, please contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})

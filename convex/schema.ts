@@ -6,13 +6,13 @@ export default defineSchema({
   users: defineTable({
     clerkId: v.string(),
     email: v.string(),
-    role: v.union(v.literal('patient'), v.literal('clinic_staff'), v.literal('surgeon'), v.literal('admin')),
+    role: v.union(v.literal('patient'), v.literal('clinic_staff'), v.literal('surgeon'), v.literal('admin'), v.literal('manufacturer')),
     name: v.string(),
   })
     .index('by_clerk', ['clerkId'])
     .index('by_email', ['email']),
 
-  // Implant device catalogue (managed by platform admin)
+  // Implant device catalogue (managed by platform admin & manufacturers)
   devices: defineTable({
     manufacturer: v.string(),
     model: v.string(),
@@ -32,10 +32,23 @@ export default defineSchema({
     verified: v.boolean(),
     verifiedAt: v.optional(v.number()),
     submittedByManufacturer: v.optional(v.string()),
+    // Manufacturer portal additions
+    submittedByManufacturerId: v.optional(v.id('manufacturers')),
+    status: v.optional(v.union(v.literal('draft'), v.literal('pending_review'), v.literal('live'), v.literal('recalled'))),
+    publishedAt: v.optional(v.number()),   // null = not yet published; set by scheduler after 24h
+    lotNumber: v.optional(v.string()),     // required for recall matching
+    regionalRep: v.optional(v.array(v.object({
+      country: v.string(),
+      name: v.string(),
+      email: v.string(),
+    }))),
+    oem_ownedNotes: v.optional(v.string()),  // OEM-branded patient-facing notes
   })
     .index('by_manufacturer', ['manufacturer'])
     .index('by_mri_status', ['mriStatus'])
-    .index('by_classification', ['classification']),
+    .index('by_classification', ['classification'])
+    .index('by_status', ['status'])
+    .index('by_submitted_manufacturer', ['submittedByManufacturerId']),
 
   // Patient profiles
   patients: defineTable({
@@ -235,4 +248,51 @@ export default defineSchema({
   })
     .index('by_clinic', ['clinicId'])
     .index('by_staff', ['staffId']),
+
+  // Manufacturer applications (pre-approval)
+  manufacturers: defineTable({
+    companyName: v.string(),
+    contactName: v.string(),
+    contactEmail: v.string(),
+    country: v.string(),
+    regNumber: v.optional(v.string()),
+    website: v.optional(v.string()),
+    logoUrl: v.optional(v.string()),
+    status: v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected')),
+    submittedAt: v.number(),
+    reviewedAt: v.optional(v.number()),
+    reviewNotes: v.optional(v.string()),
+    clerkUserId: v.optional(v.string()),
+  })
+    .index('by_status', ['status'])
+    .index('by_email', ['contactEmail'])
+    .index('by_clerk', ['clerkUserId']),
+
+  // Device change requests (manufacturers flag recalls, edits, unsafe flags)
+  deviceChangeRequests: defineTable({
+    deviceId: v.id('devices'),
+    manufacturerId: v.id('manufacturers'),
+    requestType: v.union(v.literal('recall'), v.literal('unsafe'), v.literal('edit'), v.literal('other')),
+    description: v.string(),
+    proposedChanges: v.optional(v.object({
+      mriStatus: v.optional(v.string()),
+      fieldStrengths: v.optional(v.string()),
+      sarLimit: v.optional(v.string()),
+      b1RmsLimit: v.optional(v.string()),
+      slewRateLimit: v.optional(v.string()),
+      gradientLimit: v.optional(v.string()),
+      maxScanTime: v.optional(v.string()),
+      contraindications: v.optional(v.string()),
+    })),
+    lotNumbers: v.optional(v.array(v.string())),
+    affectedRegions: v.optional(v.array(v.string())),
+    status: v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected')),
+    adminNotes: v.optional(v.string()),
+    submittedAt: v.number(),
+    resolvedAt: v.optional(v.number()),
+    publishedAt: v.optional(v.number()),
+  })
+    .index('by_device', ['deviceId'])
+    .index('by_manufacturer', ['manufacturerId'])
+    .index('by_status', ['status']),
 })

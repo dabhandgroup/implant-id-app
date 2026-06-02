@@ -2,54 +2,42 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery, useMutation } from 'convex/react'
+import { api as apiBase } from '../../../../../convex/_generated/api'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = apiBase as any
 
 type Tab = 'pending' | 'all' | 'rejected'
 
-interface PendingMfr {
-  id: string; name: string; contact: string; country: string
-  applied: string; regNumber: string
-}
-interface AllMfr {
-  id: string; name: string; contact: string; country: string
-  status: 'active' | 'pending'; devices: number; joined: string
-}
-interface RejectedMfr {
-  id: string; name: string; contact: string; country: string
-  applied: string; reason: string
-}
 interface ConfirmModal { type: 'approve' | 'reject'; id: string; name: string }
 
-const pendingManufacturers: PendingMfr[] = [
-  { id: 'cochlear',  name: 'Cochlear Ltd', contact: 'implantid@cochlear.com', country: 'Australia',      applied: '18 May 2026', regNumber: 'TGA-2026-048237' },
-  { id: 'acumed',    name: 'Acumed Ltd',   contact: 'accounts@acumed.net',    country: 'United Kingdom', applied: '21 May 2026', regNumber: 'MHRA-2026-MAN-8821' },
-]
-
-const allManufacturers: AllMfr[] = [
-  { id: 'medtronic',     name: 'Medtronic plc',        contact: 'uk@medtronic.com',        country: 'Ireland',        status: 'active',  devices: 312, joined: '10 Jan 2026' },
-  { id: 'zimmer-biomet', name: 'Zimmer Biomet',         contact: 'data@zimmerbiomet.com',   country: 'United States',  status: 'active',  devices: 487, joined: '14 Jan 2026' },
-  { id: 'stryker',       name: 'Stryker Orthopaedics',  contact: 'catalogue@stryker.com',   country: 'United States',  status: 'active',  devices: 214, joined: '20 Feb 2026' },
-  { id: 'cochlear',      name: 'Cochlear Ltd',           contact: 'implantid@cochlear.com',  country: 'Australia',      status: 'pending', devices: 0,   joined: '18 May 2026' },
-  { id: 'acumed',        name: 'Acumed Ltd',             contact: 'accounts@acumed.net',     country: 'United Kingdom', status: 'pending', devices: 0,   joined: '21 May 2026' },
-]
-
-const rejectedManufacturers: RejectedMfr[] = [
-  { id: 'biocore',   name: 'Biocore Medical Ltd',  contact: 'info@biocore-med.com',  country: 'Germany',       applied: '03 Apr 2026', reason: 'Unable to verify regulatory certification' },
-  { id: 'orthotrak', name: 'OrthoTrak Systems',    contact: 'contact@orthotrak.io',  country: 'United States', applied: '14 Apr 2026', reason: 'Incomplete liability insurance documentation' },
-]
+function formatDate(ms: number): string {
+  return new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+}
 
 export default function ManufacturersClient() {
   const router = useRouter()
+
+  // Convex queries
+  const pendingApps = useQuery(api.manufacturers.listApplications, { status: 'pending' })
+  const rejectedApps = useQuery(api.manufacturers.listApplications, { status: 'rejected' })
+  const allMfrs = useQuery(api.manufacturers.listApprovedManufacturers)
+  const review = useMutation(api.manufacturers.reviewApplication)
+
+  // Local state
   const [tab,          setTab]          = useState<Tab>('pending')
   const [confirmModal, setConfirmModal] = useState<ConfirmModal | null>(null)
   const [confirming,   setConfirming]   = useState(false)
   const [confirmed,    setConfirmed]    = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [error,        setError]        = useState('')
 
   function openConfirm(type: 'approve' | 'reject', id: string, name: string) {
     setConfirmModal({ type, id, name })
     setConfirming(false)
     setConfirmed(false)
     setRejectReason('')
+    setError('')
   }
 
   function closeConfirm() {
@@ -57,14 +45,26 @@ export default function ManufacturersClient() {
     setConfirming(false)
     setConfirmed(false)
     setRejectReason('')
+    setError('')
   }
 
   async function handleConfirm() {
+    if (!confirmModal) return
+    setError('')
     setConfirming(true)
-    await new Promise(r => setTimeout(r, 800))
-    setConfirmed(true)
-    await new Promise(r => setTimeout(r, 900))
-    closeConfirm()
+    try {
+      await review({
+        applicationId: confirmModal.id,
+        action: confirmModal.type === 'approve' ? 'approve' : 'reject',
+        reviewNotes: confirmModal.type === 'reject' ? rejectReason : undefined,
+      })
+      setConfirmed(true)
+      await new Promise(r => setTimeout(r, 900))
+      closeConfirm()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      setConfirming(false)
+    }
   }
 
   return (
@@ -97,7 +97,9 @@ export default function ManufacturersClient() {
 
       {/* ── Pending tab ── */}
       {tab === 'pending' && (
-        pendingManufacturers.length === 0
+        pendingApps === undefined
+          ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
+          : pendingApps.length === 0
           ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>No pending manufacturer applications.</div>
           : (
             <div className="m-tbl-wrap">
@@ -113,16 +115,16 @@ export default function ManufacturersClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingManufacturers.map(m => (
-                    <tr key={m.id} onClick={() => router.push(`/master/manufacturers/${m.id}`)} style={{ cursor: 'pointer' }}>
-                      <td style={{ fontWeight: 500 }}>{m.name}</td>
-                      <td style={{ color: 'var(--muted)' }}>{m.contact}</td>
+                  {pendingApps.map(m => (
+                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
+                      <td style={{ fontWeight: 500 }}>{m.companyName}</td>
+                      <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
-                      <td style={{ color: 'var(--muted)' }}>{m.applied}</td>
-                      <td style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)' }}>{m.regNumber}</td>
+                      <td style={{ color: 'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
+                      <td style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)' }}>{m.regNumber || '—'}</td>
                       <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-                        <a href={`/master/manufacturers/${m.id}`} className="m-act">Review Application</a>
-                        <button className="m-act danger" onClick={() => openConfirm('reject', m.id, m.name)}>Reject</button>
+                        <a href={`/master/manufacturers/${m._id}`} className="m-act">Review Application</a>
+                        <button className="m-act danger" onClick={() => openConfirm('reject', m._id, m.companyName)}>Reject</button>
                       </td>
                     </tr>
                   ))}
@@ -134,83 +136,103 @@ export default function ManufacturersClient() {
 
       {/* ── All tab ── */}
       {tab === 'all' && (
-        <div className="m-tbl-wrap">
-          <table className="m-tbl">
-            <thead>
-              <tr>
-                <th>Company</th>
-                <th>Contact</th>
-                <th>Country</th>
-                <th>Status</th>
-                <th>Devices</th>
-                <th>Joined</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allManufacturers.map(m => (
-                <tr key={m.id} onClick={() => router.push(`/master/manufacturers/${m.id}`)} style={{ cursor: 'pointer' }}>
-                  <td style={{ fontWeight: 500 }}>{m.name}</td>
-                  <td style={{ color: 'var(--muted)' }}>{m.contact}</td>
-                  <td>{m.country}</td>
-                  <td>
-                    <span className={`m-status ${m.status}`}>
-                      {m.status === 'active' ? 'Active' : 'Pending'}
-                    </span>
-                  </td>
-                  <td>
-                    {m.devices > 0
-                      ? m.devices.toLocaleString()
-                      : <span style={{ color: 'var(--muted2)' }}>—</span>
-                    }
-                  </td>
-                  <td style={{ color: 'var(--muted)' }}>{m.joined}</td>
-                  <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-                    <a href={`/master/manufacturers/${m.id}`} className="m-act">View</a>
-                    {m.status === 'pending' && (
-                      <button className="m-act approve" onClick={() => openConfirm('approve', m.id, m.name)}>Approve</button>
-                    )}
-                    {m.status === 'active' && (
-                      <button className="m-act danger">Suspend</button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        allMfrs === undefined || pendingApps === undefined
+          ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
+          : (
+            <div className="m-tbl-wrap">
+              <table className="m-tbl">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Contact</th>
+                    <th>Country</th>
+                    <th>Status</th>
+                    <th>Devices</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Approved manufacturers */}
+                  {allMfrs.map(m => (
+                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
+                      <td style={{ fontWeight: 500 }}>{m.companyName}</td>
+                      <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
+                      <td>{m.country}</td>
+                      <td>
+                        <span className="m-status active">Active</span>
+                      </td>
+                      <td>
+                        <span style={{ color: 'var(--muted2)' }}>—</span>
+                      </td>
+                      <td style={{ color: 'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
+                      <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+                        <a href={`/master/manufacturers/${m._id}`} className="m-act">View</a>
+                        <button className="m-act danger">Suspend</button>
+                      </td>
+                    </tr>
+                  ))}
+                  {/* Pending applications */}
+                  {pendingApps.map(m => (
+                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
+                      <td style={{ fontWeight: 500 }}>{m.companyName}</td>
+                      <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
+                      <td>{m.country}</td>
+                      <td>
+                        <span className="m-status pending">Pending</span>
+                      </td>
+                      <td>
+                        <span style={{ color: 'var(--muted2)' }}>—</span>
+                      </td>
+                      <td style={{ color: 'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
+                      <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
+                        <a href={`/master/manufacturers/${m._id}`} className="m-act">View</a>
+                        <button className="m-act approve" onClick={() => openConfirm('approve', m._id, m.companyName)}>Approve</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
       )}
 
       {/* ── Rejected tab ── */}
       {tab === 'rejected' && (
-        <div className="m-tbl-wrap">
-          <table className="m-tbl">
-            <thead>
-              <tr>
-                <th>Company</th>
-                <th>Contact</th>
-                <th>Country</th>
-                <th>Applied</th>
-                <th>Rejection Reason</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rejectedManufacturers.map(m => (
-                <tr key={m.id} onClick={() => router.push(`/master/manufacturers/${m.id}`)} style={{ cursor: 'pointer' }}>
-                  <td style={{ fontWeight: 500 }}>{m.name}</td>
-                  <td style={{ color: 'var(--muted)' }}>{m.contact}</td>
-                  <td>{m.country}</td>
-                  <td style={{ color: 'var(--muted)' }}>{m.applied}</td>
-                  <td style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{m.reason}</td>
-                  <td onClick={e => e.stopPropagation()}>
-                    <button className="m-act">Reconsider</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        rejectedApps === undefined
+          ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
+          : rejectedApps.length === 0
+          ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>No rejected manufacturer applications.</div>
+          : (
+            <div className="m-tbl-wrap">
+              <table className="m-tbl">
+                <thead>
+                  <tr>
+                    <th>Company</th>
+                    <th>Contact</th>
+                    <th>Country</th>
+                    <th>Applied</th>
+                    <th>Rejection Reason</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rejectedApps.map(m => (
+                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
+                      <td style={{ fontWeight: 500 }}>{m.companyName}</td>
+                      <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
+                      <td>{m.country}</td>
+                      <td style={{ color: 'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
+                      <td style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{m.reviewNotes || 'No reason provided'}</td>
+                      <td onClick={e => e.stopPropagation()}>
+                        <button className="m-act" onClick={() => openConfirm('approve', m._id, m.companyName)}>Reconsider</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
       )}
 
       {/* ── Approve modal ── */}
@@ -226,6 +248,11 @@ export default function ManufacturersClient() {
               <h3>Approve manufacturer?</h3>
               <p><strong>{confirmModal.name}</strong></p>
               <p>This will activate their account and allow them to upload devices to the catalogue.</p>
+              {error && (
+                <div style={{ marginTop: 14, background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--err)' }}>
+                  {error}
+                </div>
+              )}
             </div>
             <div className="logout-actions">
               <button className="btn" onClick={closeConfirm} disabled={confirming}>Cancel</button>
@@ -257,6 +284,11 @@ export default function ManufacturersClient() {
                 value={rejectReason}
                 onChange={e => setRejectReason(e.target.value)}
               />
+              {error && (
+                <div style={{ marginTop: 14, background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--err)' }}>
+                  {error}
+                </div>
+              )}
             </div>
             <div className="logout-actions">
               <button className="btn" onClick={closeConfirm} disabled={confirming}>Cancel</button>

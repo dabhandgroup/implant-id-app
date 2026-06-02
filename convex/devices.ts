@@ -1,14 +1,45 @@
 import { mutation, query } from './_generated/server'
 import { v }              from 'convex/values'
 
-/** List all devices in the catalogue, ordered by creation time ascending. */
+/** List all LIVE devices in the catalogue (patient/clinic facing). */
 export const listDevices = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
     return ctx.db
       .query('devices')
+      .withIndex('by_status', (q) => q.eq('status', 'live'))
       .order('asc')
       .take(args.limit ?? 200)
+  },
+})
+
+/** List all devices regardless of status (master admin only). */
+export const listAllDevices = query({
+  args: { limit: v.optional(v.number()), status: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    if (args.status) {
+      return ctx.db
+        .query('devices')
+        .withIndex('by_status', (q) => q.eq('status', args.status!))
+        .order('desc')
+        .take(args.limit ?? 200)
+    }
+    return ctx.db
+      .query('devices')
+      .order('desc')
+      .take(args.limit ?? 200)
+  },
+})
+
+/** List devices pending review (24h auto-publish window). */
+export const listPendingDevices = query({
+  args: {},
+  handler: async (ctx) => {
+    return ctx.db
+      .query('devices')
+      .withIndex('by_status', (q) => q.eq('status', 'pending_review'))
+      .order('asc')
+      .take(100)
   },
 })
 
@@ -36,6 +67,13 @@ export const addDevice = mutation({
     maxScanTime:        v.optional(v.string()),   // minutes per sequence
     contraindications:  v.optional(v.string()),
     approvedRegions:    v.optional(v.array(v.string())),
+    lotNumber:          v.optional(v.string()),
+    regionalRep:        v.optional(v.array(v.object({
+      country: v.string(),
+      name: v.string(),
+      email: v.string(),
+    }))),
+    oem_ownedNotes:     v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return ctx.db.insert('devices', {
@@ -52,6 +90,11 @@ export const addDevice = mutation({
       maxScanTime:      args.maxScanTime,
       contraindications: args.contraindications,
       approvedRegions:  args.approvedRegions,
+      lotNumber:        args.lotNumber,
+      regionalRep:      args.regionalRep,
+      oem_ownedNotes:   args.oem_ownedNotes,
+      status:           'live',
+      publishedAt:      Date.now(),
       verified:         false,
     })
   },

@@ -2,6 +2,22 @@ import { mutation, query, internalAction, internalMutation } from './_generated/
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
 
+/** Generate a one-time Convex storage upload URL for manufacturer documents. */
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
+/** Get a public URL for a stored document (admin only). */
+export const getStorageUrl = query({
+  args: { storageId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId)
+  },
+})
+
 // ── Applications ──────────────────────────────────────────────────────────────
 
 /** Submit a new manufacturer application. */
@@ -23,6 +39,12 @@ export const submitManufacturerApplication = mutation({
     regulatoryRegistrations: v.optional(v.string()),
     deviceCategories:        v.optional(v.array(v.string())),
     geographicMarkets:       v.optional(v.array(v.string())),
+    // Supporting document storage IDs
+    docCompanyRegistration:  v.optional(v.string()),
+    docIso13485:             v.optional(v.string()),
+    docRegulatoryCert:       v.optional(v.string()),
+    docLetterhead:           v.optional(v.string()),
+    docMriSampleData:        v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Capture the authenticated user's Clerk ID (if signed in)
@@ -55,6 +77,11 @@ export const submitManufacturerApplication = mutation({
       regulatoryRegistrations: args.regulatoryRegistrations,
       deviceCategories:        args.deviceCategories,
       geographicMarkets:       args.geographicMarkets,
+      docCompanyRegistration:  args.docCompanyRegistration,
+      docIso13485:             args.docIso13485,
+      docRegulatoryCert:       args.docRegulatoryCert,
+      docLetterhead:           args.docLetterhead,
+      docMriSampleData:        args.docMriSampleData,
       clerkUserId,
       status: 'pending',
       submittedAt: Date.now(),

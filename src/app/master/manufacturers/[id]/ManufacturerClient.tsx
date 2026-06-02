@@ -138,6 +138,36 @@ export default function ManufacturerClient({ id }: Props) {
         </div>
       </div>
 
+      {/* ── Supporting documents ── */}
+      {(mfr.docCompanyRegistration || mfr.docIso13485 || mfr.docRegulatoryCert || mfr.docLetterhead || mfr.docMriSampleData) && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Supporting Documents</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10 }}>
+            {([
+              { id: mfr.docCompanyRegistration, label: 'Certificate of Incorporation' },
+              { id: mfr.docIso13485,            label: 'ISO 13485 Certificate' },
+              { id: mfr.docRegulatoryCert,      label: 'Regulatory Certificate' },
+              { id: mfr.docLetterhead,          label: 'Company Letterhead Statement' },
+              { id: mfr.docMriSampleData,       label: 'Sample MRI Safety Data' },
+            ] as const).filter(d => d.id).map(doc => (
+              <a
+                key={doc.label}
+                href={`/api/storage/${doc.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', textDecoration: 'none', color: 'var(--text)', transition: 'border-color .15s' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <div>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500 }}>{doc.label}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--accent)', marginTop: 1 }}>View / Download →</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Review notes ── */}
       {mfr.reviewNotes && (
         <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 24 }}>

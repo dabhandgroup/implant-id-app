@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useMutation } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 
@@ -39,8 +39,14 @@ const STEPS = [
   { n: 1, label: 'Company details',         desc: 'Legal entity, registration and website' },
   { n: 2, label: 'Regulatory & products',   desc: 'ISO 13485, certifications and device categories' },
   { n: 3, label: 'Contact person',          desc: 'Authorised contact for this application' },
-  { n: 4, label: 'Declaration & submit',    desc: 'Review your application and confirm' },
+  { n: 4, label: 'Supporting documents',    desc: 'Upload certificates and verification documents' },
+  { n: 5, label: 'Declaration & submit',    desc: 'Review your application and confirm' },
 ]
+
+// ── Document upload helper types ─────────────────────────────────────────────
+type DocKey = 'docCompanyRegistration' | 'docIso13485' | 'docRegulatoryCert' | 'docLetterhead' | 'docMriSampleData'
+interface DocState { storageId: string | null; fileName: string; uploading: boolean; error: string }
+const emptyDoc = (): DocState => ({ storageId: null, fileName: '', uploading: false, error: '' })
 
 // ── Left panel ─────────────────────────────────────────────────────────────────
 
@@ -143,6 +149,7 @@ function ErrorBanner({ message }: { message: string }) {
 export default function ManufacturerOnboardingClient() {
   // ── All hooks unconditionally at the top ──────────────────────────────────
   const submitApplication = useMutation(api.manufacturers.submitManufacturerApplication)
+  const generateUploadUrl = useMutation(api.manufacturers.generateUploadUrl)
 
   // Step
   const [step, setStep] = useState(1)
@@ -169,7 +176,17 @@ export default function ManufacturerOnboardingClient() {
   const [contactEmail,     setContactEmail]     = useState('')
   const [contactPhone,     setContactPhone]     = useState('')
 
-  // Step 4 — Declaration
+  // Step 4 — Documents
+  const [docs, setDocs] = useState<Record<DocKey, DocState>>({
+    docCompanyRegistration: emptyDoc(),
+    docIso13485:            emptyDoc(),
+    docRegulatoryCert:      emptyDoc(),
+    docLetterhead:          emptyDoc(),
+    docMriSampleData:       emptyDoc(),
+  })
+  const fileInputRefs = useRef<Partial<Record<DocKey, HTMLInputElement | null>>>({})
+
+  // Step 5 — Declaration
   const [decl1, setDecl1] = useState(false)
   const [decl2, setDecl2] = useState(false)
   const [decl3, setDecl3] = useState(false)
@@ -181,6 +198,24 @@ export default function ManufacturerOnboardingClient() {
   const [done,    setDone]    = useState(false)
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  // ── Document upload ────────────────────────────────────────────────────────
+  async function handleDocUpload(key: DocKey, file: File) {
+    setDocs(prev => ({ ...prev, [key]: { ...prev[key], uploading: true, error: '' } }))
+    try {
+      const uploadUrl = await generateUploadUrl()
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+      if (!res.ok) throw new Error('Upload failed')
+      const { storageId } = await res.json() as { storageId: string }
+      setDocs(prev => ({ ...prev, [key]: { storageId, fileName: file.name, uploading: false, error: '' } }))
+    } catch {
+      setDocs(prev => ({ ...prev, [key]: { ...prev[key], uploading: false, error: 'Upload failed — try again' } }))
+    }
+  }
 
   function toggleCategory(cat: string) {
     setDeviceCategories(prev =>
@@ -223,6 +258,14 @@ export default function ManufacturerOnboardingClient() {
   }
 
   function validateStep4(): string {
+    if (!docs.docCompanyRegistration.storageId) return 'Upload your Certificate of Incorporation'
+    if (!docs.docIso13485.storageId)            return 'Upload your ISO 13485 Certificate'
+    if (!docs.docRegulatoryCert.storageId)      return 'Upload at least one regulatory certificate (FDA/MHRA/CE/TGA)'
+    if (!docs.docLetterhead.storageId)          return 'Upload a company letterhead statement'
+    return ''
+  }
+
+  function validateStep5(): string {
     if (!decl1) return 'You must confirm all information is accurate and complete'
     if (!decl2) return 'You must confirm you are authorised to submit this application'
     if (!decl3) return 'You must accept responsibility for MRI safety data accuracy'
@@ -238,6 +281,7 @@ export default function ManufacturerOnboardingClient() {
     if (step === 1) err = validateStep1()
     if (step === 2) err = validateStep2()
     if (step === 3) err = validateStep3()
+    if (step === 4) err = validateStep4()
     if (err) { setError(err); return }
     setStep(s => s + 1)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -255,31 +299,34 @@ export default function ManufacturerOnboardingClient() {
     e.preventDefault()
     setError('')
 
-    const err = validateStep4()
+    const err = validateStep5()
     if (err) { setError(err); return }
 
     setLoading(true)
     const contactName = `${contactFirstName.trim()} ${contactLastName.trim()}`.trim()
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (api.manufacturers.submitManufacturerApplication as any)({
-        companyName:            companyName.trim() || legalEntityName.trim(),
+      await submitApplication({
+        companyName:             companyName.trim() || legalEntityName.trim(),
         contactName,
-        contactEmail:           contactEmail.trim().toLowerCase(),
+        contactEmail:            contactEmail.trim().toLowerCase(),
         country,
-        regNumber:              regNumber.trim()              || undefined,
-        website:                website.trim()                || undefined,
-        legalEntityName:        legalEntityName.trim()        || undefined,
-        contactJobTitle:        contactJobTitle.trim()        || undefined,
-        contactPhone:           contactPhone.trim()           || undefined,
-        iso13485CertNumber:     iso13485CertNumber.trim()     || undefined,
-        iso13485IssuingBody:    iso13485IssuingBody.trim()    || undefined,
-        iso13485ExpiryDate:     iso13485ExpiryDate            || undefined,
-        deviceCategories:       deviceCategories.length > 0  ? deviceCategories  : undefined,
-        geographicMarkets:      geographicMarkets.length > 0 ? geographicMarkets : undefined,
+        regNumber:               regNumber.trim()               || undefined,
+        website:                 website.trim()                 || undefined,
+        legalEntityName:         legalEntityName.trim()         || undefined,
+        contactJobTitle:         contactJobTitle.trim()         || undefined,
+        contactPhone:            contactPhone.trim()            || undefined,
+        iso13485CertNumber:      iso13485CertNumber.trim()      || undefined,
+        iso13485IssuingBody:     iso13485IssuingBody.trim()     || undefined,
+        iso13485ExpiryDate:      iso13485ExpiryDate             || undefined,
+        deviceCategories:        deviceCategories.length > 0   ? deviceCategories  : undefined,
+        geographicMarkets:       geographicMarkets.length > 0  ? geographicMarkets : undefined,
         regulatoryRegistrations: regulatoryRegistrations.trim() || undefined,
-        declaration:            true,
+        docCompanyRegistration:  docs.docCompanyRegistration.storageId ?? undefined,
+        docIso13485:             docs.docIso13485.storageId            ?? undefined,
+        docRegulatoryCert:       docs.docRegulatoryCert.storageId      ?? undefined,
+        docLetterhead:           docs.docLetterhead.storageId          ?? undefined,
+        docMriSampleData:        docs.docMriSampleData.storageId       ?? undefined,
       })
       setDone(true)
     } catch (err) {
@@ -745,14 +792,105 @@ export default function ManufacturerOnboardingClient() {
             )}
 
             {/* ════════════════════════════════════════════════════════════════
-                STEP 4 — Declaration & submit
+                STEP 4 — Supporting documents
             ════════════════════════════════════════════════════════════════ */}
             {step === 4 && (
+              <>
+                <div className="form-section">
+                  <h3><span className="num">4</span>Supporting documents</h3>
+                  <p className="desc">
+                    Upload certificates and verification documents. These allow our team to confirm your regulatory
+                    standing before granting access. Files must be PDF, JPG or PNG — max 20 MB each.
+                  </p>
+
+                  {([
+                    { key: 'docCompanyRegistration' as DocKey, label: 'Certificate of Incorporation', required: true,  hint: 'Government-issued proof your business is legally registered and active.' },
+                    { key: 'docIso13485'            as DocKey, label: 'ISO 13485 Certificate',        required: true,  hint: 'Current, in-date certificate from a recognised accreditation body.' },
+                    { key: 'docRegulatoryCert'      as DocKey, label: 'Primary Regulatory Certificate', required: true, hint: 'FDA 510(k)/PMA, CE certificate, UKCA, TGA ARTG, or equivalent.' },
+                    { key: 'docLetterhead'          as DocKey, label: 'Company Letterhead Statement', required: true,  hint: 'Signed statement on headed paper confirming accuracy of this submission.' },
+                    { key: 'docMriSampleData'       as DocKey, label: 'Sample MRI Safety Data Sheet', required: false, hint: 'Optional — a representative example of your MRI safety documentation.' },
+                  ] as const).map(({ key, label, required, hint }) => {
+                    const doc = docs[key]
+                    return (
+                      <div key={key} style={{ marginBottom: 20, padding: '18px 20px', background: 'var(--bg)', border: `1px solid ${doc.storageId ? 'var(--ok)' : 'var(--border)'}`, borderRadius: 12, transition: 'border-color .15s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                            {label}
+                            {required && <span style={{ color: 'var(--err)', marginLeft: 4 }}>*</span>}
+                          </div>
+                          {doc.storageId && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ok)', fontSize: 12, fontWeight: 600 }}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                              Uploaded
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 12 }}>{hint}</div>
+
+                        {doc.storageId ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            <span style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--text)', flex: 1 }}>{doc.fileName}</span>
+                            <button type="button" className="btn" style={{ fontSize: 12, padding: '5px 12px' }}
+                              onClick={() => setDocs(prev => ({ ...prev, [key]: emptyDoc() }))}>
+                              Replace
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            <input
+                              ref={el => { fileInputRefs.current[key] = el }}
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png"
+                              style={{ display: 'none' }}
+                              onChange={e => { const f = e.target.files?.[0]; if (f) handleDocUpload(key, f) }}
+                            />
+                            <button type="button" className="btn"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13 }}
+                              disabled={doc.uploading}
+                              onClick={() => fileInputRefs.current[key]?.click()}
+                            >
+                              {doc.uploading ? (
+                                <>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'dash-spin 0.8s linear infinite' }}><circle cx="12" cy="12" r="9" strokeDasharray="28" strokeDashoffset="10"/></svg>
+                                  Uploading…
+                                </>
+                              ) : (
+                                <>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                  Choose file
+                                </>
+                              )}
+                            </button>
+                            {doc.error && <div style={{ marginTop: 6, fontSize: 12.5, color: 'var(--err)' }}>{doc.error}</div>}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <ErrorBanner message={error} />
+
+                <div className="form-actions">
+                  <button type="button" className="btn" onClick={handleBack}>← Back</button>
+                  <button type="button" className="btn btn-s" onClick={handleNext}
+                    disabled={Object.values(docs).some(d => d.uploading)}>
+                    Continue →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ════════════════════════════════════════════════════════════════
+                STEP 5 — Declaration & submit
+            ════════════════════════════════════════════════════════════════ */}
+            {step === 5 && (
               <>
                 {/* Summary */}
                 <div className="form-section">
                   <h3>
-                    <span className="num">4</span>
+                    <span className="num">5</span>
                     Application summary
                   </h3>
                   <p className="desc">Review the details you've provided before submitting.</p>
@@ -853,7 +991,7 @@ export default function ManufacturerOnboardingClient() {
                 {/* Declaration */}
                 <div className="form-section">
                   <h3>
-                    <span className="num">4</span>
+                    <span className="num">5</span>
                     Declaration
                     <span style={{ color: 'var(--err)', marginLeft: 2 }}>*</span>
                   </h3>

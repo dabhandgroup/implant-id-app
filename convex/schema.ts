@@ -274,6 +274,12 @@ export default defineSchema({
     regulatoryRegistrations:  v.optional(v.string()),  // free-text list
     deviceCategories:         v.optional(v.array(v.string())),
     geographicMarkets:        v.optional(v.array(v.string())),
+    // Supporting documents (Convex storage IDs)
+    docCompanyRegistration:   v.optional(v.string()),  // Certificate of Incorporation
+    docIso13485:              v.optional(v.string()),  // ISO 13485 cert
+    docRegulatoryCert:        v.optional(v.string()),  // FDA/MHRA/CE etc.
+    docLetterhead:            v.optional(v.string()),  // Company letterhead statement
+    docMriSampleData:         v.optional(v.string()),  // Optional: sample MRI safety sheet
     // Admin
     status: v.union(v.literal('pending'), v.literal('approved'), v.literal('rejected')),
     submittedAt: v.number(),

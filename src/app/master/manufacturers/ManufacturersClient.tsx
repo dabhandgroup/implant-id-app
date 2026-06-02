@@ -117,8 +117,8 @@ export default function ManufacturersClient() {
     try {
       await review({
         applicationId: confirmModal.id,
-        action: confirmModal.type === 'approve' ? 'approve' : 'reject',
-        reviewNotes: confirmModal.type === 'reject' ? rejectReason : undefined,
+        decision: confirmModal.type === 'approve' ? 'approved' : 'rejected',
+        notes: confirmModal.type === 'reject' ? rejectReason : undefined,
       })
       setConfirmed(true)
       await new Promise(r => setTimeout(r, 900))

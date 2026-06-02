@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useUser, useClerk }   from '@clerk/nextjs'
 import { useRouter }           from 'next/navigation'
 import { useQuery, useMutation } from 'convex/react'
-import { api as apiBase }      from '../../../convex/_generated/api'
+import { api as apiBase }      from '../../../../convex/_generated/api'
 import QRCode                  from 'qrcode'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any

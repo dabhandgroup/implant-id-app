@@ -791,7 +791,6 @@ export default function DashboardClient() {
                 <input ref={photoInputRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={handlePhotoUpload} />
               </div>
               <div>
-                <div className="ey">Your implant record</div>
                 <h1>Hi {firstName}</h1>
                 <p className="sub">Everything about your implant, in one place. Share it at any clinic with one tap.</p>
               </div>

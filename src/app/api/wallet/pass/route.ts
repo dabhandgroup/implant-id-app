@@ -31,29 +31,21 @@ function pub(name: string) {
 const ICON_SM         = pub('icon-29.png')
 const ICON_MD         = pub('icon-58.png')
 const ICON_LG         = pub('icon-87.png')
-// White logo (from email template) — clean on coloured card backgrounds
-const LOGO_SM         = pub('wallet-logo.png')
-const LOGO_MD         = pub('wallet-logo@2x.png')
-// MRI badge thumbnails: icon + label text side by side
-const MRI_SAFE_BADGE        = pub('mr-safe-badge.png')
-const MRI_SAFE_BADGE_2X     = pub('mr-safe-badge@2x.png')
-const MRI_CONDITIONAL_BADGE = pub('mr-conditional-badge.png')
-const MRI_CONDITIONAL_2X    = pub('mr-conditional-badge@2x.png')
-const MRI_UNSAFE_BADGE      = pub('mr-unsafe-badge.png')
-const MRI_UNSAFE_BADGE_2X   = pub('mr-unsafe-badge@2x.png')
+// White logo — shows clearly on coloured card backgrounds
+const LOGO_SM = pub('wallet-logo.png')
+const LOGO_MD = pub('wallet-logo@2x.png')
 
 const MRI_LABEL: Record<string, string> = {
   safe: 'MR Safe', conditional: 'MR Conditional', unsafe: 'MR Unsafe — Do Not Scan',
 }
 const MRI_BG: Record<string, string> = {
-  safe:        'rgb(22,101,52)',    // green
-  conditional: 'rgb(234,88,12)',   // proper orange (not dark brown)
+  safe:        'rgb(21,128,61)',    // green
+  conditional: 'rgb(220,76,0)',    // deep orange
   unsafe:      'rgb(185,28,28)',   // red
 }
 const PENDING_BG = 'rgb(100,116,139)'
 const DEFAULT_BG = 'rgb(41,134,159)'
 const WHITE      = 'rgb(255,255,255)'
-const LABEL_C    = 'rgb(220,240,248)'
 
 /** Extract PEM cert + key from a .p12 buffer using node-forge */
 function parsePkcs12(p12Buffer: Buffer, passphrase: string): { certPem: string; keyPem: string } {
@@ -130,13 +122,12 @@ export async function GET() {
     teamIdentifier:     teamId,
     organizationName:   'Implant ID',
     description:        'Implant ID Patient Pass',
-    logoText:           'Implant ID',
+    // No logoText — the logo image is the brand; text next to it causes overlap
     foregroundColor:    WHITE,
     backgroundColor:    bgColor,
-    labelColor:         LIGHT_LABEL,
+    labelColor:         'rgb(255,220,180)',
     barcodes: [
       {
-        // Full URL so clinic can scan directly into the patient record
         message:         `https://portal.implantid.io/scan/${patient.implantIdCode}`,
         format:          'PKBarcodeFormatQR',
         messageEncoding: 'iso-8859-1',
@@ -144,17 +135,24 @@ export async function GET() {
       },
     ],
     generic: {
-      // headerFields appear top-right in the pass header — shows MRI status prominently
+      // headerFields: top-right — keep very short so it doesn't overlap the logo
       headerFields: [
-        { key: 'mriHeader', label: 'MRI STATUS', value: safety ? mriLabel : (isPending ? 'Pending' : '—') },
+        {
+          key:   'mriShort',
+          label: 'MRI',
+          value: safety === 'safe' ? 'SAFE' : safety === 'conditional' ? 'CONDITIONAL' : safety === 'unsafe' ? 'UNSAFE' : 'PENDING',
+        },
       ],
-      primaryField: [
-        { key: 'implantId', label: 'IMPLANT ID', value: patient.implantIdCode },
-      ],
-      secondaryFields: [
+      // primaryField: largest text — patient name is most immediately useful
+      primaryFields: [
         { key: 'patientName', label: 'PATIENT', value: fullName },
-        { key: 'device',      label: 'DEVICE',  value: deviceName },
       ],
+      // secondaryFields: MRI status full label + device name
+      secondaryFields: [
+        { key: 'mriStatus', label: 'MRI STATUS', value: mriLabel },
+        { key: 'device',    label: 'DEVICE',     value: deviceName },
+      ],
+      // auxiliaryFields: implant date + surgeon
       auxiliaryFields: [
         ...(patient.selfReportedImplantYear ? [{
           key:   'implantDate',
@@ -168,9 +166,10 @@ export async function GET() {
           label: 'SURGEON',
           value: patient.selfReportedSurgeon,
         }] : []),
+        { key: 'implantId', label: 'IMPLANT ID', value: patient.implantIdCode },
         ...(patient.contrastAllergy ? [{
           key:   'allergyFront',
-          label: '⚠ CONTRAST ALLERGY',
+          label: 'CONTRAST ALLERGY',
           value: patient.contrastAllergyNote
             ? patient.contrastAllergyNote.slice(0, 40)
             : 'Documented — notify radiology',
@@ -225,18 +224,8 @@ export async function GET() {
       ? wwdrBuffer.toString('utf-8')
       : derToPem(wwdrBuffer)
 
-    // MRI badge thumbnail: icon + label text side by side
-    const mriBadge   = safety === 'safe' ? MRI_SAFE_BADGE
-                     : safety === 'conditional' ? MRI_CONDITIONAL_BADGE
-                     : safety === 'unsafe' ? MRI_UNSAFE_BADGE
-                     : null
-    const mriBadge2x = safety === 'safe' ? MRI_SAFE_BADGE_2X
-                     : safety === 'conditional' ? MRI_CONDITIONAL_2X
-                     : safety === 'unsafe' ? MRI_UNSAFE_BADGE_2X
-                     : null
-
     const pass = new PKPass(
-      // Files — pass.json + icon images + MRI badge thumbnail
+      // Files — pass.json + icon images (no thumbnail — was causing MRI badge to clip)
       {
         'pass.json':      Buffer.from(JSON.stringify(passJson)),
         'icon.png':       ICON_SM,
@@ -244,10 +233,6 @@ export async function GET() {
         'icon@3x.png':    ICON_LG,
         'logo.png':       LOGO_SM,
         'logo@2x.png':    LOGO_MD,
-        ...(mriBadge ? {
-          'thumbnail.png':    mriBadge,
-          'thumbnail@2x.png': mriBadge2x ?? mriBadge,
-        } : {}),
       },
       // Certificates — all in PEM format
       {
@@ -277,5 +262,3 @@ export async function GET() {
   }
 }
 
-// Fix missing constant reference
-const LIGHT_LABEL = 'rgb(220,240,248)'

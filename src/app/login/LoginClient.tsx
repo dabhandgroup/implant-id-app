@@ -110,9 +110,9 @@ export default function LoginClient() {
   // If the user arrived via the approval email link, their email is pre-filled
   const prefillEmail = searchParams.get('email') ?? ''
 
-  // Clerk 7 signals API — signIn/signUp are always defined
+  // Clerk 7 signals API
   const { signIn } = useSignIn()
-  const { signUp } = useSignUp()
+  const { signUp } = useSignUp() // still needed for patient sign-up flow
   // Already-signed-in detection — hooks must all be at top, unconditionally
   const { isLoaded, isSignedIn, user } = useUser()
 
@@ -144,8 +144,6 @@ export default function LoginClient() {
   const [clEmail,    setClEmail]    = useState(prefillEmail)
   const [clPassword, setClPassword] = useState('')
   const [clShowPw,   setClShowPw]   = useState(false)
-  // true when we fell back to signUp (account didn't exist) — affects verify flow
-  const [clIsSignUp, setClIsSignUp] = useState(false)
 
   // patient email phase
   const [ptEmail,    setPtEmail]    = useState('')
@@ -161,37 +159,23 @@ export default function LoginClient() {
   const [mfaDest,    setMfaDest]    = useState('')   // remembered so verify can redirect
 
   // ── Auto-send OTP when arriving via approval email link ───────────────────
-  // 1. Try sign-in (account may already exist from backend pre-creation)
-  // 2. If Clerk says "no account" → automatically create one via sign-up flow
-  //    (the person proved they own the email by clicking the link and will prove
-  //    it again by entering the OTP code that Clerk sends)
-  // Guard ref prevents double-firing in React strict mode
+  // Account is always pre-created by the backend on application submission.
+  // This just triggers the email code so they land straight on the OTP screen.
   const autoSent = useRef(false)
   useEffect(() => {
-    if (!prefillEmail || autoSent.current || !signIn || !signUp) return
+    if (!prefillEmail || autoSent.current || !signIn) return
     autoSent.current = true
     ;(async () => {
       setLoading(true)
       try {
-        // ── Try sign-in first ──────────────────────────────────────────────
         const { error: ce } = await signIn.create({ identifier: prefillEmail })
-        if (!ce) {
-          const { error: se } = await signIn.emailCode.sendCode()
-          if (se) { setError(se.message ?? 'Could not send code'); return }
-          setOtp(['', '', '', '', '', ''])
-          setClPhase('email-otp')
+        if (ce) {
+          setError('No account found for this email. Please contact support@implantid.io.')
           return
         }
-
-        // ── Account not found — create it via sign-up ──────────────────────
-        // Security: OTP proves email ownership; role stamped after verification
-        const { error: sue } = await signUp.create({ emailAddress: prefillEmail })
-        if (sue) { setError(sue.message ?? 'Could not create account'); return }
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: vpe } = await (signUp as any).verifications.sendEmailCode()
-        if (vpe) { setError((vpe as any).message ?? 'Could not send code'); return }
+        const { error: se } = await signIn.emailCode.sendCode()
+        if (se) { setError(se.message ?? 'Could not send code'); return }
         setOtp(['', '', '', '', '', ''])
-        setClIsSignUp(true)
         setClPhase('email-otp')
       } catch {
         setError('Could not send code — enter your email below and click Continue')
@@ -199,7 +183,7 @@ export default function LoginClient() {
         setLoading(false)
       }
     })()
-  }, [signIn, signUp, prefillEmail]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [signIn, prefillEmail]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -322,24 +306,13 @@ export default function LoginClient() {
     if (!clEmail.trim()) return err('Enter your email')
     setLoading(true); setError('')
     try {
-      // Try sign-in (account pre-created by invite flow)
-      const { error: ce } = await signIn!.create({ identifier: clEmail })
-      if (!ce) {
-        const { error: se } = await signIn!.emailCode.sendCode()
-        if (se) return err(se.message ?? 'Could not send code')
-        setOtp(['','','','','','']); setClPhase('email-otp')
-        return
+      const { error: ce } = await signIn!.create({ identifier: clEmail.trim() })
+      if (ce) {
+        return err('No account found for this email. If you were recently approved, please wait a few minutes then try again, or contact support@implantid.io.')
       }
-      // Account not found — create it now via sign-up
-      // (the invite's Clerk pre-creation may have failed; this is the safety net)
-      const { error: sue } = await signUp!.create({ emailAddress: clEmail.trim() })
-      if (sue) return err(sue.message ?? 'Could not send code — contact your admin if you were just invited')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: vpe } = await (signUp! as any).verifications.sendEmailCode()
-      if (vpe) return err((vpe as any).message ?? 'Could not send code')
-      setOtp(['','','','','',''])
-      setClIsSignUp(true)
-      setClPhase('email-otp')
+      const { error: se } = await signIn!.emailCode.sendCode()
+      if (se) return err(se.message ?? 'Could not send code')
+      setOtp(['','','','','','']); setClPhase('email-otp')
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 
@@ -348,30 +321,10 @@ export default function LoginClient() {
     if (c.length < 6) return err('Enter the 6-digit code')
     setLoading(true); setError('')
     try {
-      if (clIsSignUp) {
-        // New account path — Clerk v7 sign-up verification
-        // attemptEmailAddressVerification was removed in Clerk v7; use attemptVerification
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await (signUp! as any).attemptVerification({ strategy: 'email_code', code: c })
-        if (result.status !== 'complete') {
-          return err(result.verifications?.emailAddress?.error?.message ?? 'Invalid code')
-        }
-        // After sign-up completes, sign them in directly so they land in the portal
-        // without needing to go through login again
-        const { error: si } = await signIn!.create({ identifier: clEmail })
-        if (!si) {
-          const { error: se } = await signIn!.emailCode.sendCode()
-          if (!se) { setClIsSignUp(false); setOtp(['','','','','','']); return }
-        }
-        router.replace('/login')
-      } else {
-        // Existing account path — normal sign-in OTP
-        const { error: ve } = await signIn!.emailCode.verifyCode({ code: c })
-        if (ve) return err(ve.message ?? 'Invalid code')
-        // finalizeAndGo always redirects to /clinics/dashboard but requireRole
-        // on that layout will bounce surgeons to /surgeons/dashboard automatically.
-        await finalizeAndGo('/clinics/dashboard')
-      }
+      const { error: ve } = await signIn!.emailCode.verifyCode({ code: c })
+      if (ve) return err(ve.message ?? 'Invalid code — check the code and try again')
+      // requireRole on /clinics/dashboard bounces surgeons to /surgeons/dashboard automatically
+      await finalizeAndGo('/clinics/dashboard')
     } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
   }
 

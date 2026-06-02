@@ -9,39 +9,53 @@ import { Id }                    from '../../../../../convex/_generated/dataMode
 const api = apiBase as any
 
 type ActionType = 'approve' | 'reject'
-
 interface Props { id: string }
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
-
 function getInitials(name: string) {
   const w = name.trim().split(/\s+/)
   return w.length === 1 ? w[0].slice(0, 2).toUpperCase() : (w[0][0] + w[1][0]).toUpperCase()
 }
 
-function InfoCard({ label, value }: { label: string; value?: string | string[] | null }) {
-  if (!value || (Array.isArray(value) && value.length === 0)) return null
+/** A labelled field inside a panel */
+function Field({ label, value }: { label: string; value?: string | null }) {
+  if (!value) return null
   return (
-    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
-      <div style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted2)', marginBottom: 6, letterSpacing: '.5px', textTransform: 'uppercase' }}>{label}</div>
-      {Array.isArray(value) ? (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-          {value.map(v => (
-            <span key={v} style={{ background: 'color-mix(in srgb,var(--accent) 10%,transparent)', color: 'var(--accent)', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 6 }}>{v}</span>
-          ))}
-        </div>
-      ) : (
-        <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)' }}>{value}</div>
-      )}
+    <div>
+      <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '.6px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', lineHeight: 1.4 }}>{value}</div>
     </div>
   )
 }
 
-function SectionLabel({ label }: { label: string }) {
+/** A row of pill tags */
+function TagField({ label, values }: { label: string; values?: string[] | null }) {
+  if (!values?.length) return null
   return (
-    <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12, marginTop: 24 }}>{label}</div>
+    <div>
+      <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '.6px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>{label}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {values.map(v => (
+          <span key={v} style={{ background: 'color-mix(in srgb,var(--accent) 10%,transparent)', color: 'var(--accent)', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 6 }}>{v}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** A section panel containing a grid of fields */
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
+      <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)' }}>
+        <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)' }}>{title}</div>
+      </div>
+      <div style={{ padding: '20px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '18px 24px' }}>
+        {children}
+      </div>
+    </div>
   )
 }
 
@@ -79,77 +93,76 @@ export default function ManufacturerClient({ id }: Props) {
 
   const isPending  = mfr.status === 'pending'
   const isApproved = mfr.status === 'approved'
-  const isRejected = mfr.status === 'rejected'
   const colour     = isPending ? '#d97706' : isApproved ? 'var(--ok)' : 'var(--err)'
-  const statusLabel = mfr.status.charAt(0).toUpperCase() + mfr.status.slice(1)
 
   return (
     <div className="m-content">
       <button onClick={() => router.push('/master/manufacturers')} className="m-back"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 13.5, background: 'transparent', border: 0, cursor: 'pointer', padding: 0, marginBottom: 24 }}>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 13.5, background: 'transparent', border: 0, cursor: 'pointer', padding: 0, marginBottom: 20 }}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
         Back to Manufacturers
       </button>
 
-      {/* ── Profile header card ── */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '28px 32px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 22 }}>
-        <div style={{ width: 64, height: 64, borderRadius: 16, flexShrink: 0, background: 'color-mix(in srgb,var(--accent) 14%,transparent)', border: '1.5px solid color-mix(in srgb,var(--accent) 28%,transparent)', display: 'grid', placeItems: 'center' }}>
-          <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 22, color: 'var(--accent)' }}>{getInitials(mfr.companyName)}</span>
+      {/* ── Profile header ── */}
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20 }}>
+        <div style={{ width: 60, height: 60, borderRadius: 14, flexShrink: 0, background: 'color-mix(in srgb,var(--accent) 14%,transparent)', border: '1.5px solid color-mix(in srgb,var(--accent) 28%,transparent)', display: 'grid', placeItems: 'center' }}>
+          <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 20, color: 'var(--accent)' }}>{getInitials(mfr.companyName)}</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ marginBottom: 8 }}>{mfr.companyName}</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: colour, background: `color-mix(in srgb,${colour} 10%,transparent)`, border: `1px solid color-mix(in srgb,${colour} 25%,transparent)`, borderRadius: 8, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>
+          <h2 style={{ marginBottom: 6, fontFamily: 'var(--ff)' }}>{mfr.companyName}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 700, color: colour, background: `color-mix(in srgb,${colour} 10%,transparent)`, border: `1px solid color-mix(in srgb,${colour} 25%,transparent)`, borderRadius: 7, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>
               {isPending && <span style={{ width: 6, height: 6, borderRadius: '50%', background: colour, display: 'inline-block' }} />}
-              {statusLabel}
+              {mfr.status.charAt(0).toUpperCase() + mfr.status.slice(1)}
             </span>
             <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>Applied {formatDate(mfr.submittedAt)}</span>
             {mfr.country && <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>{mfr.country}</span>}
+            {mfr.website && <a href={mfr.website.startsWith('http') ? mfr.website : `https://${mfr.website}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>{mfr.website}</a>}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          {(isPending || isRejected) && <button className="btn btn-s" onClick={() => openConfirm('approve')}>Approve ✓</button>}
+          {(isPending || mfr.status === 'rejected') && <button className="btn btn-s" onClick={() => openConfirm('approve')}>Approve ✓</button>}
           {(isPending || isApproved) && <button className="btn btn-danger" onClick={() => openConfirm('reject')}>{isApproved ? 'Suspend' : 'Reject'}</button>}
         </div>
       </div>
 
-      {/* ── Company Identity ── */}
-      <SectionLabel label="Company Identity" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
-        <InfoCard label="Legal Entity Name"        value={mfr.legalEntityName} />
-        <InfoCard label="Trading / Brand Name"     value={mfr.companyName} />
-        <InfoCard label="Registration Number"      value={mfr.regNumber} />
-        <InfoCard label="Country of Incorporation" value={mfr.country} />
-        <InfoCard label="Website"                  value={mfr.website} />
-      </div>
+      {/* ── Company Identity panel ── */}
+      <Panel title="Company Identity">
+        <Field label="Legal entity name"        value={mfr.legalEntityName} />
+        <Field label="Trading / brand name"     value={mfr.companyName} />
+        <Field label="Registration number"      value={mfr.regNumber} />
+        <Field label="Country of incorporation" value={mfr.country} />
+      </Panel>
 
-      {/* ── Regulatory ── */}
-      <SectionLabel label="Regulatory" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
-        <InfoCard label="ISO 13485 Certificate No." value={mfr.iso13485CertNumber} />
-        <InfoCard label="ISO 13485 Issuing Body"    value={mfr.iso13485IssuingBody} />
-        <InfoCard label="ISO 13485 Expiry Date"     value={mfr.iso13485ExpiryDate} />
-        <InfoCard label="Other Registrations"       value={mfr.regulatoryRegistrations} />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
-        <InfoCard label="Device Categories" value={mfr.deviceCategories} />
-        <InfoCard label="Geographic Markets" value={mfr.geographicMarkets} />
-      </div>
+      {/* ── Regulatory panel ── */}
+      <Panel title="Regulatory">
+        <Field label="ISO 13485 cert no."  value={mfr.iso13485CertNumber} />
+        <Field label="Issuing body"        value={mfr.iso13485IssuingBody} />
+        <Field label="Expiry date"         value={mfr.iso13485ExpiryDate} />
+        <Field label="Other registrations" value={mfr.regulatoryRegistrations} />
+        <div style={{ gridColumn: '1/-1' }}>
+          <TagField label="Device categories"  values={mfr.deviceCategories} />
+        </div>
+        <div style={{ gridColumn: '1/-1' }}>
+          <TagField label="Geographic markets" values={mfr.geographicMarkets} />
+        </div>
+      </Panel>
 
-      {/* ── Primary Contact ── */}
-      <SectionLabel label="Primary Contact" />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
-        <InfoCard label="Name"      value={mfr.contactName} />
-        <InfoCard label="Job Title" value={mfr.contactJobTitle} />
-        <InfoCard label="Email"     value={mfr.contactEmail} />
-        <InfoCard label="Phone"     value={mfr.contactPhone} />
-      </div>
+      {/* ── Primary Contact panel ── */}
+      <Panel title="Primary Contact">
+        <Field label="Name"      value={mfr.contactName} />
+        <Field label="Job title" value={mfr.contactJobTitle} />
+        <Field label="Email"     value={mfr.contactEmail} />
+        <Field label="Phone"     value={mfr.contactPhone} />
+      </Panel>
 
-      {/* ── Supporting Documents ── */}
+      {/* ── Supporting Documents panel ── */}
       {(mfr.docCompanyRegistration || mfr.docIso13485 || mfr.docRegulatoryCert || mfr.docLetterhead || mfr.docMriSampleData) && (
-        <>
-          <SectionLabel label="Supporting Documents" />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)' }}>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)' }}>Supporting Documents</div>
+          </div>
+          <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {([
               { id: mfr.docCompanyRegistration, label: 'Certificate of Incorporation' },
               { id: mfr.docIso13485,            label: 'ISO 13485 Certificate' },
@@ -158,26 +171,24 @@ export default function ManufacturerClient({ id }: Props) {
               { id: mfr.docMriSampleData,       label: 'Sample MRI Safety Data' },
             ] as const).filter(d => d.id).map(doc => (
               <a key={doc.label} href={`/api/storage/${doc.id}`} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', textDecoration: 'none', color: 'var(--text)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', color: 'var(--text)' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                <div>
-                  <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500 }}>{doc.label}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--accent)', marginTop: 1 }}>View / Download →</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500 }}>{doc.label}</div>
                 </div>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent)' }}>View / Download →</div>
               </a>
             ))}
           </div>
-        </>
+        </div>
       )}
 
-      {/* ── Review Notes ── */}
+      {/* Review notes */}
       {mfr.reviewNotes && (
-        <>
-          <SectionLabel label="Review Notes" />
-          <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 12, padding: '16px 18px' }}>
-            <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)' }}>{mfr.reviewNotes}</div>
-          </div>
-        </>
+        <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--err)', marginBottom: 6 }}>Review Notes</div>
+          <div style={{ fontFamily: 'var(--fb)', fontSize: 14 }}>{mfr.reviewNotes}</div>
+        </div>
       )}
 
       {/* ── Approve modal ── */}
@@ -194,9 +205,7 @@ export default function ManufacturerClient({ id }: Props) {
             </div>
             <div className="logout-actions">
               <button className="btn" onClick={closeConfirm} disabled={submitting}>Cancel</button>
-              <button className="btn btn-s" onClick={handleConfirm} disabled={submitting}>
-                {submitting ? 'Approving…' : 'Approve'}
-              </button>
+              <button className="btn btn-s" onClick={handleConfirm} disabled={submitting}>{submitting ? 'Approving…' : 'Approve'}</button>
             </div>
           </div>
         </div>

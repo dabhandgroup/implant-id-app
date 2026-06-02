@@ -546,7 +546,7 @@ export const sendManufacturerApprovalEmail = internalAction({
         },
         cta: {
           label: 'Sign in to your manufacturer portal →',
-          url: `https://portal.implantid.io/manufacturer/login?email=${encodeURIComponent(args.contactEmail)}`,
+          url: `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`,
         },
         footerNote: `If you didn't apply to join Implant ID, please contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,
@@ -594,7 +594,7 @@ export const sendManufacturerInviteEmail = internalAction({
         },
         cta: {
           label: 'Sign in to your manufacturer portal →',
-          url: `https://portal.implantid.io/manufacturer/sign-up?email=${encodeURIComponent(args.contactEmail)}`,
+          url: `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`,
         },
         footerNote: `If you weren't expecting this invitation, please contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,

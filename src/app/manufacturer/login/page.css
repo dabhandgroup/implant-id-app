@@ -1,0 +1,99 @@
+/* ── Manufacturer login — dark two-column layout ─────────────────────────── */
+
+.mauth {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+/* Left panel */
+.mauth-side {
+  background: linear-gradient(160deg, #0a1f27 0%, #0e2a33 45%, #0f3040 100%);
+  color: #fff;
+  padding: 52px 56px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.mauth-side .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; margin-bottom: 56px }
+.mauth-side .logo img { height: 36px; filter: brightness(0) invert(1) }
+.mauth-side .logo .logo-text { color: #fff; font-family: var(--ff); font-weight: 700; font-size: 20px }
+.mauth-side .logo .logo-text span { color: rgba(255,255,255,.55) }
+
+.mauth-side .body { flex: 1 }
+.mauth-side .body h2 { font-family: var(--ff); font-size: clamp(26px,3.5vw,38px); font-weight: 500; line-height: 1.15; letter-spacing: -.025em; margin: 0 0 14px; color: #fff }
+.mauth-side .body > p { color: rgba(255,255,255,.65); font-size: 15px; line-height: 1.6; max-width: 360px; margin: 0 0 40px }
+
+.mauth-feats { display: flex; flex-direction: column; gap: 22px }
+.mauth-feat { display: flex; align-items: flex-start; gap: 14px }
+.mauth-feat .i { width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); display: grid; place-items: center; flex-shrink: 0 }
+.mauth-feat .i svg { width: 18px; height: 18px; color: rgba(255,255,255,.7) }
+.mauth-feat b { display: block; font-family: var(--ff); font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 3px }
+.mauth-feat span { font-size: 13px; color: rgba(255,255,255,.5); line-height: 1.45 }
+
+.mauth-side .quote { margin-top: auto; padding-top: 28px; border-top: 1px solid rgba(255,255,255,.1) }
+.mauth-side .quote p { font-family: Georgia, serif; font-style: italic; font-size: 14px; color: rgba(255,255,255,.6); line-height: 1.6; margin: 0 0 8px }
+.mauth-side .quote cite { font-family: var(--ff); font-size: 11px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: rgba(255,255,255,.35) }
+
+/* Right panel */
+.mauth-main { background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 60px 48px }
+.mauth-box { width: 100%; max-width: 440px }
+
+.mauth-box .ey { font-family: var(--ff); font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px }
+.mauth-box h1 { font-family: var(--ff); font-size: clamp(24px,2.5vw,30px); font-weight: 500; letter-spacing: -.025em; margin: 0 0 10px }
+.mauth-box .sub { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0 0 32px }
+
+.mauth-btn {
+  width: 100%; padding: 14px; background: var(--accent); color: #fff;
+  border: none; border-radius: 10px; font-family: var(--ff); font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: background .15s; margin-top: 4px;
+}
+.mauth-btn:hover { background: var(--accent-deep) }
+.mauth-btn:disabled { opacity: .6; cursor: not-allowed }
+
+.mauth-divider { text-align: center; color: var(--muted2); font-size: 13px; margin: 22px 0; position: relative }
+.mauth-divider::before, .mauth-divider::after { content: ''; position: absolute; top: 50%; width: 42%; height: 1px; background: var(--border) }
+.mauth-divider::before { left: 0 }
+.mauth-divider::after { right: 0 }
+
+.mauth-alt { text-align: center; font-size: 13.5px; color: var(--muted); margin: 0 0 8px }
+.mauth-alt a { color: var(--accent); text-decoration: none; font-weight: 600 }
+.mauth-alt a:hover { text-decoration: underline }
+
+.mauth-foot { margin-top: 28px; text-align: center; font-size: 12.5px; color: var(--muted2) }
+.mauth-foot a { color: var(--muted); text-decoration: none }
+.mauth-foot a:hover { color: var(--accent) }
+
+/* OTP input row */
+.mauth-otp { display: flex; gap: 8px; margin: 16px 0 4px }
+.mauth-otp input {
+  width: 46px; height: 52px; text-align: center; font-size: 22px; font-weight: 600;
+  font-family: var(--ff); border: 1.5px solid var(--border2); border-radius: 10px;
+  background: var(--bg); color: var(--text); outline: none; box-sizing: border-box;
+  transition: border-color .15s;
+}
+.mauth-otp input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent) }
+
+/* Error banner */
+.mauth-err {
+  background: color-mix(in srgb,var(--err) 8%,transparent);
+  border: 1px solid color-mix(in srgb,var(--err) 20%,transparent);
+  border-radius: 8px; padding: 10px 14px; font-size: 13.5px; color: var(--err);
+  margin-bottom: 16px;
+}
+
+/* Input with icon */
+.i-wrap { position: relative }
+.i-wrap .i-ic { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--muted2); pointer-events: none }
+.i-wrap .input { padding-left: 40px }
+
+@media(max-width:900px) {
+  .mauth { grid-template-columns: 1fr }
+  .mauth-side { display: none }
+  .mauth-main { padding: 40px 24px }
+}

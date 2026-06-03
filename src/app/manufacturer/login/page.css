@@ -38,14 +38,29 @@ body{background:#050e11;color:#eaf4f7}
 .mauth-box .input:focus{outline:0;border-color:#29a8cc;box-shadow:0 0 0 3px rgba(41,168,204,.2);background:rgba(234,244,247,.08)}
 
 /* Override Chrome autofill white background on dark inputs */
+/* Two-layer autofill fix — animation + solid inset shadow */
+@keyframes mauth-autofill-dark {
+  0%   { background-color: #060f16; color: #eaf4f7; }
+  100% { background-color: #060f16; color: #eaf4f7; }
+}
+
 .mauth-box .input:-webkit-autofill,
 .mauth-box .input:-webkit-autofill:hover,
-.mauth-box .input:-webkit-autofill:focus {
-  -webkit-box-shadow:0 0 0 1000px #0d1f27 inset !important;
-  -webkit-text-fill-color:#eaf4f7 !important;
-  caret-color:#eaf4f7;
-  transition:background-color 5000s ease-in-out 0s;
+.mauth-box .input:-webkit-autofill:focus,
+.mauth-box .input:-webkit-autofill:active {
+  animation-name: mauth-autofill-dark;
+  animation-fill-mode: both;
+  animation-duration: 86400s;
+  -webkit-box-shadow: 0 0 0 1000px #060f16 inset !important;
+  box-shadow: 0 0 0 1000px #060f16 inset !important;
+  -webkit-text-fill-color: #eaf4f7 !important;
+  color: #eaf4f7 !important;
+  caret-color: #eaf4f7;
 }
+
+/* Icon stacking context */
+.mauth-box .i-wrap { position: relative; isolation: isolate; }
+.mauth-box .i-ic   { z-index: 2; }
 .mauth-row{display:flex;justify-content:space-between;align-items:center;margin:8px 0 22px;font-size:13px}
 .mauth-row label{color:rgba(234,244,247,.7);display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-family:var(--fb)}
 .mauth-row label input{accent-color:#29a8cc}

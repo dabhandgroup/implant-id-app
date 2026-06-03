@@ -304,17 +304,32 @@
 }
 
 /* ── Chrome autofill override ──────────────────────────────────────────────────
-   Chrome turns autofilled inputs white/yellow and hides the leading icon.
-   The inset box-shadow trick forces our dark background to persist,
-   -webkit-text-fill-color keeps the text white,
-   and the long transition delay stops Chrome from ever showing its own colour. */
+   Two-layer fix for modern Chrome (108+):
+   1. @keyframes animation — more reliable than shadow alone in new Chrome
+   2. inset box-shadow with SOLID hex (rgba fails in Chrome's autofill renderer)
+   3. transition delay trick keeps Chrome's own colour from ever appearing
+   4. z-index:2 on the icon keeps it above Chrome's autofill pseudo-element  */
+
+@keyframes mstr-autofill-dark {
+  0%   { background-color: #0c1b27; color: #eaf4f7; }
+  100% { background-color: #0c1b27; color: #eaf4f7; }
+}
+
 .mstr-input:-webkit-autofill,
 .mstr-input:-webkit-autofill:hover,
 .mstr-input:-webkit-autofill:focus,
 .mstr-input:-webkit-autofill:active {
-  -webkit-box-shadow:0 0 0 1000px rgba(20,38,48,.98) inset !important;
-  -webkit-text-fill-color:#fff !important;
-  caret-color:#fff;
-  transition:background-color 86400s ease-in-out 0s;
-  border-color:rgba(234,244,247,.12) !important;
+  animation-name: mstr-autofill-dark;
+  animation-fill-mode: both;
+  animation-duration: 86400s; /* effectively never ends */
+  -webkit-box-shadow: 0 0 0 1000px #0c1b27 inset !important;
+  box-shadow: 0 0 0 1000px #0c1b27 inset !important;
+  -webkit-text-fill-color: #eaf4f7 !important;
+  color: #eaf4f7 !important;
+  caret-color: #eaf4f7;
+  border-color: rgba(234,244,247,.12) !important;
 }
+
+/* Icon must sit above Chrome's autofill overlay layer */
+.mstr-i-wrap { position: relative; isolation: isolate; }
+.mstr-i-ic   { z-index: 2; }

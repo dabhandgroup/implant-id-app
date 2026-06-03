@@ -819,18 +819,31 @@ html,body{overflow-x:clip}
 .mini-lang-btn .flag-circle{width:18px;height:18px;font-size:12px}
 
 /* ── Global Chrome autofill fix ──────────────────────────────────────────── */
-/* ── Chrome autofill fix ─────────────────────────────────────────────────────
-   Apply ONLY to .input class (light-themed form fields).
-   Dark-themed pages (master login, manufacturer login) have their own
-   page-level overrides — we must NOT stomp those with a broad selector.
-   The inset box-shadow technique is the only reliable cross-browser way
-   to override Chrome's autofill yellow/white background. */
+/* ── Chrome autofill fix (light-theme .input fields) ────────────────────────
+   Two-layer fix: @keyframes animation (reliable in Chrome 108+) + inset
+   box-shadow with SOLID hex (CSS variables / rgba are unreliable in Chrome's
+   autofill pseudo-element renderer).
+   Dark-themed pages have their own page-level rules that take precedence. */
+
+@keyframes autofill-light {
+  0%   { background-color: #f1f5f9; color: #0e2a33; }
+  100% { background-color: #f1f5f9; color: #0e2a33; }
+}
+
 .input:-webkit-autofill,
 .input:-webkit-autofill:hover,
 .input:-webkit-autofill:focus,
 .input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--bg2, #fff) inset !important;
-  -webkit-text-fill-color: var(--text, #0e2a33) !important;
-  caret-color: var(--text, #0e2a33) !important;
-  transition: background-color 5000s ease-in-out 0s;
+  animation-name: autofill-light;
+  animation-fill-mode: both;
+  animation-duration: 86400s;
+  -webkit-box-shadow: 0 0 0 1000px #f1f5f9 inset !important;
+  box-shadow: 0 0 0 1000px #f1f5f9 inset !important;
+  -webkit-text-fill-color: #0e2a33 !important;
+  color: #0e2a33 !important;
+  caret-color: #0e2a33;
 }
+
+/* Icon must sit above Chrome's autofill overlay — applies globally */
+.i-wrap { isolation: isolate; }
+.i-wrap .i-ic { z-index: 2; }

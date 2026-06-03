@@ -419,8 +419,9 @@ export default function MasterShell({ children }: MasterShellProps) {
               <span className="m-badge">Master</span>
             </h1>
 
-            {/* Global search bar */}
+            {/* Global search bar — hidden on mobile (search is in bottom nav) */}
             <form
+              className="search-form-master"
               style={{ flex: 1, maxWidth: 420, margin: '0 20px', position: 'relative' }}
               onSubmit={e => { e.preventDefault(); if (searchQuery.trim()) router.push(`/master/search?q=${encodeURIComponent(searchQuery)}`) }}
             >
@@ -449,7 +450,7 @@ export default function MasterShell({ children }: MasterShellProps) {
               </kbd>
             </form>
 
-            <div className="app-top-r">
+            <div className="app-top-r app-top-btn-add">
               <button className="btn btn-s" onClick={() => window.location.href = '/master/devices/add'}>
                 + Add device
               </button>

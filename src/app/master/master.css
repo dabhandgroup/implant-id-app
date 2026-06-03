@@ -217,17 +217,64 @@ body{background:var(--bg);color:var(--text)}
 .bulk-row-flag.warn{background:color-mix(in srgb,var(--warn) 10%,transparent);color:var(--warn)}
 .bulk-row-flag.err{background:color-mix(in srgb,var(--err) 10%,transparent);color:var(--err)}
 
-/* Mobile */
+/* ── Mobile responsive ──────────────────────────────────────────────────── */
 @media(max-width:900px){
-  .m-kpi-row{grid-template-columns:1fr 1fr}
-  .m-content{padding:20px 16px 40px}
-  .m-top{padding:12px 16px}
+  /* Content */
+  .m-content{padding:16px 14px 100px;max-width:100%}
+  .m-h{margin-bottom:16px}
+  .m-h h2{font-size:20px}
+
+  /* Top bar: hide search (in mob-nav) and "+ Add device", show only title */
+  .app-top .search-form-master{display:none !important}
+  .app-top .app-top-btn-add{display:none !important}
+
+  /* KPI grid: 2 columns on tablet, 1 on phone */
+  .m-kpi-row{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+  .m-kpi{padding:14px 16px}
+  .m-kpi .v{font-size:24px}
+
+  /* Two-col layout stacks */
   .m-two{grid-template-columns:1fr}
+
+  /* Tables: allow horizontal scroll within card, don't let them break layout */
+  .m-tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .m-tbl{min-width:500px}
+  .m-tbl th,.m-tbl td{padding:10px 12px;font-size:13px}
+
+  /* Table toolbar: stack on mobile */
+  .m-tbl-toolbar{flex-direction:column;align-items:stretch;gap:10px}
+  .m-tbl-toolbar .search{max-width:100%}
+
+  /* Form grids: single column */
   .form-grid{grid-template-columns:1fr}
-  .form-grid-3{grid-template-columns:1fr 1fr}
+  .form-grid-3{grid-template-columns:1fr}
+  .form-card{padding:16px 14px}
+
+  /* Tabs: allow scroll */
+  .m-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:3px}
+  .m-tab{flex:0 0 auto;padding:8px 14px;font-size:12.5px}
+
+  /* Info grid: single column */
+  .m-info-grid{grid-template-columns:1fr}
+
+  /* Bulk upload */
+  .bulk-step{padding:16px 14px}
+  .bulk-mapping th,.bulk-mapping td{padding:8px 10px;font-size:12px}
 }
 
-/* Hide table search bar on mobile — not enough room next to action buttons */
+@media(max-width:540px){
+  /* Phone: single column KPI */
+  .m-kpi-row{grid-template-columns:1fr}
+
+  /* Smaller table text */
+  .m-tbl{min-width:420px}
+  .m-tbl th,.m-tbl td{padding:9px 10px;font-size:12.5px}
+
+  /* Form grids fully single column */
+  .form-grid-3{grid-template-columns:1fr}
+}
+
+/* Hide table search bar on mobile — redundant, search is in bottom nav */
 @media(max-width:768px){
   .m-tbl-toolbar .search{display:none}
 }

@@ -858,16 +858,33 @@ textarea:-webkit-autofill:focus {
   background-attachment: fixed !important;
 }
 
-/* Icon wrapper: establish stacking context so child icon stays above autofill overlay */
+/* Icon wrapper: render icon as ::before pseudo-element */
 .i-wrap {
   position: relative;
 }
 
-/* Icon: stay absolutely positioned, MUCH higher z-index to defeat autofill overlay */
-.i-wrap .i-ic {
+/* Input: disable Chrome's autofill styling */
+.i-wrap input {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Icon rendered on wrapper as ::before — mail icon by default (email/text inputs) */
+.i-wrap::before {
+  content: '✉';
   position: absolute;
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 9999 !important;
+  color: var(--muted2);
+  font-size: 16px;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Lock icon for password input fields */
+.i-wrap:has(input[type="password"])::before {
+  content: '🔒';
+  font-size: 14px;
 }

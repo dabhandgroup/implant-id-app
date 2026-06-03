@@ -817,3 +817,16 @@ html,body{overflow-x:clip}
 /* Flag circle - shared */
 .flag-circle{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--bg);font-size:14px;line-height:1;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 10%,transparent)}
 .mini-lang-btn .flag-circle{width:18px;height:18px;font-size:12px}
+
+/* ── Global Chrome autofill fix ──────────────────────────────────────────── */
+/* Chrome overrides input background to white on autofill. This forces the
+   fill to match the input's intended background regardless of theme. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg2, #fff) inset !important;
+  -webkit-text-fill-color: var(--text, #0e2a33) !important;
+  caret-color: var(--text, #0e2a33) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}

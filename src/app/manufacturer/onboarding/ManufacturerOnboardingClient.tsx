@@ -388,7 +388,26 @@ export default function ManufacturerOnboardingClient() {
           </div>
 
           <h2 className="onb-box h2">Apply to join the network</h2>
-          <p className="sub" style={{ marginBottom: 28 }}>We&apos;ll review within 5–10 business days. Step {step} of {STEPS.length}.</p>
+          <p className="sub">We&apos;ll review within 5–10 business days.</p>
+
+          {/* Simple step indicator — 5 dots + current step label */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '16px 0 24px' }}>
+            {STEPS.map(s => (
+              <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 8, flex: s.n === step ? 1 : 'none' }}>
+                <div style={{
+                  width: s.n === step ? 10 : 8, height: s.n === step ? 10 : 8,
+                  borderRadius: '50%', flexShrink: 0,
+                  background: s.n < step ? 'var(--ok)' : s.n === step ? 'var(--accent)' : 'var(--border)',
+                  transition: 'all .2s',
+                }} />
+                {s.n === step && (
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                    {s.label} · step {s.n} of {STEPS.length}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
 
           <form onSubmit={handleSubmit} noValidate>
 

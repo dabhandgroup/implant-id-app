@@ -15,6 +15,7 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
   const mfr          = useQuery(api.manufacturers.getMyManufacturer)
 
   const [collapsed,    setCollapsed]    = useState(false)
+  const [mobOpen,      setMobOpen]      = useState(false)
   const [logoutOpen,   setLogoutOpen]   = useState(false)
   const [profileOpen,  setProfileOpen]  = useState(false)
 
@@ -25,8 +26,9 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
 
   return (
     <>
+      <div className={`sb-back${mobOpen ? ' open' : ''}`} onClick={() => setMobOpen(false)} />
       <div className={`app${collapsed ? ' collapsed' : ''}`}>
-        <aside className="sidebar">
+        <aside className={`sidebar${mobOpen ? ' open' : ''}`}>
           <div className="sb-logo">
             <a href="/manufacturer/dashboard" className="logo">
               <img src="/icon.svg" alt="" />
@@ -89,9 +91,42 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
         </aside>
 
         <div className="app-main">
+          {/* Mobile header */}
+          <div className="mob-header">
+            <a href="/manufacturer/dashboard" className="mob-header-logo">
+              <img src="/icon.svg" alt="" /><span className="logo-text"><b>Implant</b><span>ID</span></span>
+            </a>
+          </div>
+
           {children}
         </div>
       </div>
+
+      {/* Mobile bottom nav */}
+      <nav className="mob-nav" aria-label="Mobile navigation">
+        <div className="mob-nav-tabs">
+          <a href="/manufacturer/dashboard" className={`mob-nav-tab${isActive('/manufacturer/dashboard') ? ' active' : ''}`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+            <span className="t">Overview</span>
+          </a>
+          <a href="/manufacturer/devices" className={`mob-nav-tab${isActive('/manufacturer/devices') ? ' active' : ''}`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <span className="t">Devices</span>
+          </a>
+          <a href="/manufacturer/devices/bulk" className={`mob-nav-tab${isActive('/manufacturer/devices/bulk') ? ' active' : ''}`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span className="t">Upload</span>
+          </a>
+          <a href="/manufacturer/settings" className={`mob-nav-tab${isActive('/manufacturer/settings') ? ' active' : ''}`}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+            <span className="t">Account</span>
+          </a>
+          <button className="mob-nav-tab mob-nav-menu-btn" onClick={() => setMobOpen(v => !v)} aria-label="Toggle menu">
+            <div className="ham-ic"><span /><span /><span /></div>
+            <span className="t">Menu</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Logout modal */}
       {logoutOpen && (

@@ -545,7 +545,10 @@ export const getPatientById = query({
       )
     ).filter(Boolean)
 
-    return { ...patient, devices }
+    const patientUser = await ctx.db.get(patient.userId)
+    const email = patientUser?.email || null
+
+    return { ...patient, devices, email }
   },
 })
 

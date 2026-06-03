@@ -225,6 +225,7 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* Info cards grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12, marginBottom: 24 }}>
+        <InfoCard label="Email"                 value={(patient as any).email} />
         <InfoCard label="Date of birth"         value={patient.dob} />
         <InfoCard label="Phone"                 value={patient.phone} />
         <InfoCard label="Country of birth"      value={patient.countryOfBirth} />

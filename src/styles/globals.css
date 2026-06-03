@@ -822,25 +822,33 @@ html,body{overflow-x:clip}
 .mini-lang-btn .flag-circle{width:18px;height:18px;font-size:12px}
 
 /* ── Global Chrome autofill fix ──────────────────────────────────────────── */
-/* Chrome autofill override: fill with background color + text color using
-   --bg2 and --text custom properties, which automatically adapt to light/dark.
-   Apply to ALL autofillable input types (email, password, tel, url, address).
-   Icon layering: explicit z-index and position ensure icons sit above the
-   autofill overlay on all backgrounds. */
+/* Chrome autofill: disable the default autofill animation entirely by setting
+   a 99999s transition-delay. This allows our CSS to override immediately.
+   Then apply solid colors (not variables, as they don't work in -webkit-autofill).
+   Apply to ALL autofillable inputs. */
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0e2a33 !important;
+  color: #0e2a33 !important;
+  caret-color: #0e2a33 !important;
+  -webkit-transition: background-color 99999s ease-in-out 0s !important;
+  transition: background-color 99999s ease-in-out 0s !important;
+}
+
 textarea:-webkit-autofill,
 textarea:-webkit-autofill:hover,
-textarea:-webkit-autofill:focus,
-textarea:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px var(--bg2) inset !important;
-  box-shadow: 0 0 0 1000px var(--bg2) inset !important;
-  -webkit-text-fill-color: var(--text) !important;
-  color: var(--text) !important;
-  caret-color: var(--text);
+textarea:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0e2a33 !important;
+  color: #0e2a33 !important;
+  caret-color: #0e2a33 !important;
+  -webkit-transition: background-color 99999s ease-in-out 0s !important;
+  transition: background-color 99999s ease-in-out 0s !important;
 }
 
 /* Icon wrapper: establish stacking context so child icon stays above autofill overlay */

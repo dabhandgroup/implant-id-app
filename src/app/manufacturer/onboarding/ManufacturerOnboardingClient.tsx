@@ -109,46 +109,6 @@ function SidePanel({ step }: { step: number }) {
   )
 }
 
-// ── Step progress — minimal inline dots ──────────────────────────────────────
-
-function StepBar({ step }: { step: number }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 32 }} role="list" aria-label="Application progress">
-      {STEPS.map((s, i) => {
-        const done   = s.n < step
-        const active = s.n === step
-        return (
-          <div key={s.n} style={{ display: 'flex', alignItems: 'center' }} role="listitem">
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700,
-                background: done ? 'var(--ok)' : active ? 'var(--accent)' : 'var(--border)',
-                color: done || active ? '#fff' : 'var(--muted)',
-                transition: 'all .2s',
-              }}>
-                {done
-                  ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="13" height="13"><path d="M20 6L9 17l-5-5"/></svg>
-                  : s.n}
-              </div>
-              <span style={{
-                fontFamily: 'var(--ff)', fontSize: 10.5, fontWeight: active ? 600 : 400,
-                color: active ? 'var(--text)' : done ? 'var(--ok)' : 'var(--muted2)',
-                whiteSpace: 'nowrap', letterSpacing: '.1px',
-              }}>
-                {s.label}
-              </span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div style={{ width: 36, height: 2, background: done ? 'var(--ok)' : 'var(--border)', margin: '0 4px', marginBottom: 20, flexShrink: 0, transition: 'background .2s' }} />
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 // ── Error banner ──────────────────────────────────────────────────────────────
 
 function ErrorBanner({ message }: { message: string }) {
@@ -428,10 +388,7 @@ export default function ManufacturerOnboardingClient() {
           </div>
 
           <h2 className="onb-box h2">Apply to join the network</h2>
-          <p className="sub">Complete all four steps and we'll review your application within 5–10 business days.</p>
-
-          {/* Step progress bar */}
-          <StepBar step={step} />
+          <p className="sub" style={{ marginBottom: 28 }}>We&apos;ll review within 5–10 business days. Step {step} of {STEPS.length}.</p>
 
           <form onSubmit={handleSubmit} noValidate>
 
@@ -442,7 +399,6 @@ export default function ManufacturerOnboardingClient() {
               <>
                 <div className="form-section">
                   <h3>
-                    <span className="num">1</span>
                     Company details
                   </h3>
                   <p className="desc">Provide your company's registered details exactly as they appear on official documents.</p>
@@ -551,7 +507,6 @@ export default function ManufacturerOnboardingClient() {
               <>
                 <div className="form-section">
                   <h3>
-                    <span className="num">2</span>
                     ISO 13485 certification
                   </h3>
                   <p className="desc">ISO 13485 certification is required for all manufacturers on the Implant ID platform.</p>
@@ -697,7 +652,6 @@ export default function ManufacturerOnboardingClient() {
               <>
                 <div className="form-section">
                   <h3>
-                    <span className="num">3</span>
                     Contact person
                   </h3>
                   <p className="desc">
@@ -812,7 +766,8 @@ export default function ManufacturerOnboardingClient() {
             {step === 4 && (
               <>
                 <div className="form-section">
-                  <h3><span className="num">4</span>Supporting documents</h3>
+                  <h3>
+                    Supporting documents</h3>
                   <p className="desc">
                     Upload certificates and verification documents. These allow our team to confirm your regulatory
                     standing before granting access. Files must be PDF, JPG or PNG — max 20 MB each.
@@ -905,7 +860,6 @@ export default function ManufacturerOnboardingClient() {
                 {/* Summary */}
                 <div className="form-section">
                   <h3>
-                    <span className="num">5</span>
                     Application summary
                   </h3>
                   <p className="desc">Review the details you've provided before submitting.</p>
@@ -1006,7 +960,6 @@ export default function ManufacturerOnboardingClient() {
                 {/* Declaration */}
                 <div className="form-section">
                   <h3>
-                    <span className="num">5</span>
                     Declaration
                     <span style={{ color: 'var(--err)', marginLeft: 2 }}>*</span>
                   </h3>

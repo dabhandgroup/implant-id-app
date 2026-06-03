@@ -15,7 +15,7 @@ export const masterSearch = query({
     const q = raw.toLowerCase()
 
     // ── Patients ────────────────────────────────────────────────────────────
-    const allPatients = await ctx.db.query('patients').order('desc').take(500)
+    const allPatients = await ctx.db.query('patients').order('desc').take(200)
     const patients = allPatients
       .filter(p =>
         `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) ||

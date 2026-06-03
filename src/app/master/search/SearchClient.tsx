@@ -105,7 +105,19 @@ export default function SearchClient() {
       </div>
 
       {/* States */}
-      {loading && <div style={{ color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14, padding: '16px 0' }}>Searching…</div>}
+      {loading && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+          {[1,2,3].map(i => (
+            <div key={i} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--border)', animation: 'pulse 1.5s ease-in-out infinite', flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ height: 13, borderRadius: 4, background: 'var(--border)', marginBottom: 7, width: `${55 + i * 10}%`, animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ height: 11, borderRadius: 4, background: 'var(--border)', width: '40%', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {!loading && debounced.length < 2 && (
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 24px', textAlign: 'center' }}>

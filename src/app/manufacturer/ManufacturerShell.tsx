@@ -122,7 +122,7 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
             <span className="t">Account</span>
           </a>
           <button className="mob-nav-tab mob-nav-menu-btn" onClick={() => setMobOpen(v => !v)} aria-label="Toggle menu">
-            <div className="ham-ic"><span /><span /><span /></div>
+            <div className={`ham-ic${mobOpen ? ' open' : ''}`}><span /><span /><span /></div>
             <span className="t">Menu</span>
           </button>
         </div>

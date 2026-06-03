@@ -760,6 +760,9 @@ html,body{overflow-x:clip}
 .app:has(.sidebar.open) .mob-nav-menu-btn .ham-ic span:nth-child(2){opacity:0}
 .app:has(.sidebar.open) .mob-nav-menu-btn .ham-ic span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 .app:has(.sidebar.open) .mob-nav-menu-btn{color:var(--text)}
+.ham-ic.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.ham-ic.open span:nth-child(2){opacity:0}
+.ham-ic.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 
 /* Mobile (≤900px) */
 @media(max-width:900px){

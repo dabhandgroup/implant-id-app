@@ -469,17 +469,7 @@ export default function DashboardClient() {
                           className="code-input"
                           style={{ width:42, height:50, fontSize:22 }}
                           onKeyDown={e => {
-                            if (/^\d$/.test(e.key)) {
-                              e.preventDefault()
-                              const next = [...wEmailCode]; next[i] = e.key; setWEmailCode(next)
-                              if (i < 5) {
-                                wCodeRefs.current[i+1]?.focus()
-                              } else {
-                                // Last box filled — auto-submit with fresh code string
-                                const full = next.join('')
-                                if (full.length === 6) doVerifyEmail(full)
-                              }
-                            } else if (e.key === 'Backspace') {
+                            if (e.key === 'Backspace') {
                               e.preventDefault()
                               if (wEmailCode[i]) {
                                 const next = [...wEmailCode]; next[i] = ''; setWEmailCode(next)
@@ -494,14 +484,24 @@ export default function DashboardClient() {
                             }
                           }}
                           onChange={e => {
-                            // iOS SMS autofill fills the whole value at once
                             const raw = e.target.value.replace(/\D/g,'')
-                            if (raw.length > 1) {
-                              const next = ['','','','','','']
-                              raw.slice(0,6).split('').forEach((c,j) => { next[j] = c })
+                            if (!raw) return
+                            if (raw.length >= 6) {
+                              // iOS/Android autofill delivers full code at once
+                              const next = raw.slice(0,6).split('')
                               setWEmailCode(next)
-                              wCodeRefs.current[Math.min(raw.length - 1, 5)]?.focus()
-                              if (raw.length >= 6) doVerifyEmail(raw.slice(0,6))
+                              wCodeRefs.current[5]?.focus()
+                              doVerifyEmail(raw.slice(0,6))
+                            } else {
+                              // Single digit typed — take the last char (handles replace on non-empty input)
+                              const digit = raw[raw.length - 1]
+                              const next = [...wEmailCode]; next[i] = digit; setWEmailCode(next)
+                              if (i < 5) {
+                                wCodeRefs.current[i+1]?.focus()
+                              } else {
+                                const full = next.join('')
+                                if (full.length === 6) doVerifyEmail(full)
+                              }
                             }
                           }}
                           onPaste={e => {

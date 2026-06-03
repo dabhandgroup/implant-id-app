@@ -507,7 +507,7 @@ export default function MasterShell({ children }: MasterShellProps) {
             onClick={mobOpen ? closeMob : openMob}
             aria-label="Toggle menu"
           >
-            <div className="ham-ic">
+            <div className={`ham-ic${mobOpen ? ' open' : ''}`}>
               <span />
               <span />
               <span />

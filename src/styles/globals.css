@@ -819,12 +819,16 @@ html,body{overflow-x:clip}
 .mini-lang-btn .flag-circle{width:18px;height:18px;font-size:12px}
 
 /* ── Global Chrome autofill fix ──────────────────────────────────────────── */
-/* Chrome overrides input background to white on autofill. This forces the
-   fill to match the input's intended background regardless of theme. */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
+/* ── Chrome autofill fix ─────────────────────────────────────────────────────
+   Apply ONLY to .input class (light-themed form fields).
+   Dark-themed pages (master login, manufacturer login) have their own
+   page-level overrides — we must NOT stomp those with a broad selector.
+   The inset box-shadow technique is the only reliable cross-browser way
+   to override Chrome's autofill yellow/white background. */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px var(--bg2, #fff) inset !important;
   -webkit-text-fill-color: var(--text, #0e2a33) !important;
   caret-color: var(--text, #0e2a33) !important;

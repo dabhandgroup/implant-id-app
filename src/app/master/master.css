@@ -286,6 +286,13 @@ body{background:var(--bg);color:var(--text)}
   .m-settings-grid{grid-template-columns:1fr !important}
 }
 
+/* Patients: table on desktop, cards on mobile */
+.m-patients-mobile{display:none}
+@media(max-width:700px){
+  .m-patients-desktop{display:none}
+  .m-patients-mobile{display:block}
+}
+
 /* Hide table search bar on mobile — redundant, search is in bottom nav */
 @media(max-width:768px){
   .m-tbl-toolbar .search{display:none}

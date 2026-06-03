@@ -48,8 +48,8 @@ function OtpRow({ otp, setOtp, onComplete }: OtpProps) {
 type Phase = 'email' | 'otp'
 
 export default function ManufacturerLoginClient() {
-  const { signIn, isLoaded } = useSignIn()
-  const { isSignedIn, user } = useUser()
+  const { signIn } = useSignIn()
+  const { isLoaded, isSignedIn, user } = useUser()
   const router       = useRouter()
   const searchParams = useSearchParams()
   const prefillEmail = searchParams.get('email') ?? ''

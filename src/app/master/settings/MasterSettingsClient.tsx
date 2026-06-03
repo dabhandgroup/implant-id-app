@@ -206,7 +206,8 @@ export default function MasterSettingsClient() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 24, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'min(200px, 100%) 1fr', gap: 24, alignItems: 'start' }}
+        className="m-settings-grid">
         {/* Settings nav */}
         <nav style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
           {(['security', 'profile', 'admins'] as const).map(s => (

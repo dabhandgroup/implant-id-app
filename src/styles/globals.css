@@ -822,33 +822,40 @@ html,body{overflow-x:clip}
 .mini-lang-btn .flag-circle{width:18px;height:18px;font-size:12px}
 
 /* ── Global Chrome autofill fix ──────────────────────────────────────────── */
-/* Chrome autofill: disable the default autofill animation entirely by setting
-   a 99999s transition-delay. This allows our CSS to override immediately.
-   Then apply solid colors (not variables, as they don't work in -webkit-autofill).
-   Apply to ALL autofillable inputs. */
+/* Chrome autofill override: use background-image + box-shadow combo + high z-index.
+   Background-image covers the autofill overlay; transition-delay disables animation.
+   Icon gets much higher z-index to float above. */
 
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
-  box-shadow: 0 0 0 1000px #ffffff inset !important;
   -webkit-text-fill-color: #0e2a33 !important;
   color: #0e2a33 !important;
   caret-color: #0e2a33 !important;
-  -webkit-transition: background-color 99999s ease-in-out 0s !important;
-  transition: background-color 99999s ease-in-out 0s !important;
+  -webkit-transition: background-color 99999s ease-in-out 0s, -webkit-text-fill-color 99999s ease-in-out 0s !important;
+  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s !important;
+  background-image: linear-gradient(to bottom, #ffffff, #ffffff) !important;
+  background-size: 100% 100% !important;
+  background-position: 0 0 !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
 }
 
 textarea:-webkit-autofill,
 textarea:-webkit-autofill:hover,
 textarea:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
-  box-shadow: 0 0 0 1000px #ffffff inset !important;
   -webkit-text-fill-color: #0e2a33 !important;
   color: #0e2a33 !important;
   caret-color: #0e2a33 !important;
-  -webkit-transition: background-color 99999s ease-in-out 0s !important;
-  transition: background-color 99999s ease-in-out 0s !important;
+  -webkit-transition: background-color 99999s ease-in-out 0s, -webkit-text-fill-color 99999s ease-in-out 0s !important;
+  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s !important;
+  background-image: linear-gradient(to bottom, #ffffff, #ffffff) !important;
+  background-size: 100% 100% !important;
+  background-position: 0 0 !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
 }
 
 /* Icon wrapper: establish stacking context so child icon stays above autofill overlay */
@@ -856,8 +863,11 @@ textarea:-webkit-autofill:focus {
   position: relative;
 }
 
-/* Icon: stay absolutely positioned for proper layout, high z-index for autofill visibility */
+/* Icon: stay absolutely positioned, MUCH higher z-index to defeat autofill overlay */
 .i-wrap .i-ic {
   position: absolute;
-  z-index: 1;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999 !important;
 }

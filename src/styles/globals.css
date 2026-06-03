@@ -854,11 +854,10 @@ textarea:-webkit-autofill:focus {
 /* Icon wrapper: establish stacking context so child icon stays above autofill overlay */
 .i-wrap {
   position: relative;
-  z-index: 0;
 }
 
-/* Icon: explicit position + high z-index ensures visibility above autofill background */
+/* Icon: stay absolutely positioned for proper layout, high z-index for autofill visibility */
 .i-wrap .i-ic {
-  position: relative;
+  position: absolute;
   z-index: 1;
 }

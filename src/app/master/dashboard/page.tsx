@@ -1,7 +1,7 @@
 'use client'
 import { useQuery }    from 'convex/react'
 import { useRouter }   from 'next/navigation'
-import { api as apiBase } from '../../../convex/_generated/api'
+import { api as apiBase } from '../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 

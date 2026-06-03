@@ -10,7 +10,7 @@ export default function MasterDashboardPage() {
 
   // Real Convex data
   const pendingClinics  = useQuery(api.clinics.listApplications,       { status: 'pending' })
-  const activeClinics   = useQuery(api.clinics.listApprovedClinics  ?? api.clinics.listClinics)
+  const activeClinics   = useQuery(api.clinics.listClinics)
   const pendingMfrs     = useQuery(api.manufacturers.listApplications, { status: 'pending' })
   const allMfrs         = useQuery(api.manufacturers.listApprovedManufacturers)
   const allPatients     = useQuery(api.patients.listAllPatients,        {})

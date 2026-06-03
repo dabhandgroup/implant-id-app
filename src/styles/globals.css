@@ -821,70 +821,53 @@ html,body{overflow-x:clip}
 .flag-circle{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--bg);font-size:14px;line-height:1;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 1px color-mix(in srgb,var(--text) 10%,transparent)}
 .mini-lang-btn .flag-circle{width:18px;height:18px;font-size:12px}
 
-/* ── Global Chrome autofill fix ──────────────────────────────────────────── */
-/* Chrome autofill override: use background-image + box-shadow combo + high z-index.
-   Background-image covers the autofill overlay; transition-delay disables animation.
-   Icon gets much higher z-index to float above. */
+/* ── Chrome autofill override (light theme) ─────────────────────────────── */
+/* Strategy: inset box-shadow covers Chrome's forced background-color.        */
+/* SVG data URI in background-image puts the icon INSIDE the input layer,     */
+/* which Chrome cannot override — making it immune to the autofill overlay.   */
+/* color-scheme: light tells the browser to render autofill UI in light mode. */
 
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
-  -webkit-text-fill-color: #0e2a33 !important;
-  color: #0e2a33 !important;
-  caret-color: #0e2a33 !important;
-  -webkit-transition: background-color 99999s ease-in-out 0s, -webkit-text-fill-color 99999s ease-in-out 0s !important;
-  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s !important;
-  background-image: linear-gradient(to bottom, #ffffff, #ffffff) !important;
-  background-size: 100% 100% !important;
-  background-position: 0 0 !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
+.input, textarea.input {
+  color-scheme: light;
 }
 
-textarea:-webkit-autofill,
-textarea:-webkit-autofill:hover,
-textarea:-webkit-autofill:focus {
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+textarea.input:-webkit-autofill,
+textarea.input:-webkit-autofill:hover,
+textarea.input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
   -webkit-text-fill-color: #0e2a33 !important;
-  color: #0e2a33 !important;
   caret-color: #0e2a33 !important;
-  -webkit-transition: background-color 99999s ease-in-out 0s, -webkit-text-fill-color 99999s ease-in-out 0s !important;
-  transition: background-color 99999s ease-in-out 0s, color 99999s ease-in-out 0s !important;
-  background-image: linear-gradient(to bottom, #ffffff, #ffffff) !important;
-  background-size: 100% 100% !important;
-  background-position: 0 0 !important;
-  background-repeat: no-repeat !important;
-  background-attachment: fixed !important;
+  transition: background-color 99999s 0s !important;
 }
 
-/* Icon wrapper: render icon as ::before pseudo-element */
+/* Icon inputs: paint the mail icon inside the input via background-image.    */
+/* This renders in the input's own layer — autofill cannot cover it.          */
+.i-wrap .input:-webkit-autofill,
+.i-wrap .input:-webkit-autofill:hover,
+.i-wrap .input:-webkit-autofill:focus {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='rgba(14,42,51,.44)' stroke-width='1.7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z'/%3E%3Cpath d='m22 6-10 7L2 6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: 14px center !important;
+  background-size: 16px 16px !important;
+}
+
+/* Password inputs: lock icon */
+.i-wrap input[type="password"]:-webkit-autofill,
+.i-wrap input[type="password"]:-webkit-autofill:hover,
+.i-wrap input[type="password"]:-webkit-autofill:focus {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='rgba(14,42,51,.44)' stroke-width='1.7' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: 14px center !important;
+  background-size: 16px 16px !important;
+}
+
+/* i-wrap icon: high z-index so it sits above any autofill overlay */
 .i-wrap {
   position: relative;
 }
-
-/* Input: disable Chrome's autofill styling */
-.i-wrap input {
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-/* Icon rendered on wrapper as ::before — mail icon by default (email/text inputs) */
-.i-wrap::before {
-  content: '✉';
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted2);
-  font-size: 16px;
-  line-height: 1;
-  pointer-events: none;
+.i-wrap .i-ic {
   z-index: 10;
-}
-
-/* Lock icon for password input fields */
-.i-wrap:has(input[type="password"])::before {
-  content: '🔒';
-  font-size: 14px;
 }

@@ -34,12 +34,14 @@ const SCHEMA_FIELDS: { key: SchemaKey; label: string; required: boolean }[] = [
 const ALIASES: Record<string, SchemaKey> = {
   // name
   'device name': 'name', 'device_name': 'name', 'name': 'name',
-  // manufacturer
-  'manufacturer': 'manufacturer', 'manufacturer_id': 'manufacturer', 'common_name': 'manufacturer',
-  'manufacturer name': 'manufacturer',
+  // manufacturer — includes FK annotation variants from the xlsx
+  'manufacturer': 'manufacturer', 'manufacturer_id': 'manufacturer',
+  'manufacturer_id (fk → 🏭 manufacturers)': 'manufacturer',
+  'manufacturer_id\n(fk → 🏭 manufacturers)': 'manufacturer',
+  'common_name': 'manufacturer', 'manufacturer name': 'manufacturer',
   // model
-  'model number': 'model', 'model_number': 'model', 'model no': 'model', 'model no.': 'model',
-  'model': 'model',
+  'model number': 'model', 'model_number': 'model', 'model no': 'model',
+  'model no.': 'model', 'model': 'model',
   // device type
   'device type': 'deviceType', 'device_type': 'deviceType', 'category': 'deviceType',
   'device category': 'deviceType',
@@ -50,18 +52,20 @@ const ALIASES: Record<string, SchemaKey> = {
   'classification': 'classification',
   // field strengths
   'field strengths': 'fieldStrengths', 'approved tesla': 'fieldStrengths',
-  'field_strength_1.5t': 'fieldStrengths',
+  'field_strength_1.5t': 'fieldStrengths', 'field_strength_3t': 'fieldStrengths',
   // sar
   'wb sar': 'sarLimit', 'sar value': 'sarLimit', 'max sar': 'sarLimit',
-  'regiona_max_sar_wb (w/kg)': 'sarLimit', 'sara limit': 'sarLimit',
+  'regiona_max_sar_wb (w/kg)': 'sarLimit', 'regionb_max_sar_wb (w/kg)': 'sarLimit',
   // b1
   'b1 rms': 'b1RmsLimit', 'max b1 rms': 'b1RmsLimit',
+  'regiona_max_b1_rms (µt)': 'b1RmsLimit', 'regionb_max_b1_rms (µt)': 'b1RmsLimit',
   // slew rate
   'slew rate': 'slewRateLimit', 'max slew rate (t/m/s)': 'slewRateLimit',
   // scan time
   'max scan time': 'maxScanTime', 'max scan time mins': 'maxScanTime',
   // contraindications
   'contraindications': 'contraindications', 'entry notes': 'contraindications',
+  'field_strength_notes': 'contraindications',
   // source
   'source url': 'sourceUrl', 'source link': 'sourceUrl', 'document_url': 'sourceUrl',
   // notes
@@ -141,20 +145,31 @@ async function parseFile(file: File): Promise<{ columns: string[]; rows: Record<
   const sheetName = dataSheets[0] ?? wb.SheetNames[0]
   const ws = wb.Sheets[sheetName]
 
-  // Find the header row (first row with 3+ non-empty cells that looks like column names)
+  // Find the header row: prefer the row whose cells best match known field aliases.
+  // Spreadsheets often have multi-row headers (title → section labels → field names)
+  // so we score each candidate row and pick the highest scorer.
   const range = XLSX.utils.decode_range(ws['!ref'] ?? 'A1:A1')
+  const aliasKeys = Object.keys(ALIASES)
   let headerRow = 0
-  for (let r = 0; r <= Math.min(5, range.e.r); r++) {
-    let filledCells = 0
+  let bestScore = -1
+  for (let r = 0; r <= Math.min(8, range.e.r); r++) {
+    const cells: string[] = []
     for (let c = range.s.c; c <= range.e.c; c++) {
       const cell = ws[XLSX.utils.encode_cell({ r, c })]
-      if (cell?.v && String(cell.v).length > 1) filledCells++
+      if (cell?.v) cells.push(String(cell.v).toLowerCase().replace(/\n/g, ' ').trim())
     }
-    if (filledCells >= 3) { headerRow = r; break }
+    // Score = number of cells that match a known alias
+    const score = cells.filter(v => aliasKeys.includes(v)).length
+    if (score > bestScore) { bestScore = score; headerRow = r }
+    // If we find a strong match early, stop scanning
+    if (score >= 3) break
   }
 
   const json = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }) as string[][]
-  const headers = (json[headerRow] ?? []).map(h => String(h).trim())
+  // Normalise headers: strip newlines and parenthetical FK annotations
+  const headers = (json[headerRow] ?? []).map(h =>
+    String(h).replace(/\n/g, ' ').replace(/\s*\(FK.*?\)/gi, '').trim()
+  )
   const rows: Record<string, string>[] = []
   for (let r = headerRow + 1; r < json.length; r++) {
     const row = json[r] ?? []

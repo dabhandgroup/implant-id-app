@@ -116,6 +116,7 @@
   height:16px;
   color:rgba(234,244,247,.5);
   pointer-events:none;
+  z-index:2; /* sit above Chrome autofill overlay */
 }
 
 /* Input */

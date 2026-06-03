@@ -81,7 +81,9 @@ export default function ManufacturerClient({ id }: Props) {
         decision: confirmAction === 'approve' ? 'approved' : 'rejected',
         notes: confirmAction === 'reject' && rejectNotes.trim() ? rejectNotes.trim() : undefined,
       })
-      router.push('/master/manufacturers')
+      // Stay on page — Convex reactively updates the status badge.
+      // Immediate navigation triggers Clerk auth middleware redirect to /login.
+      setConfirmAction(null); setSubmitError('')
     } catch (e) {
       setSubmitError((e as { message?: string })?.message ?? 'Something went wrong')
       setSubmitting(false)

@@ -7,7 +7,7 @@ body{background:#050e11;color:#eaf4f7;min-height:100vh;display:grid;place-items:
 .adm-box p{color:rgba(234,244,247,.65);font-size:14px;margin-bottom:28px;line-height:1.55}
 .adm-field{margin-bottom:14px}
 .adm-field label{display:block;font-family:var(--ff);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:rgba(234,244,247,.55);margin-bottom:6px;font-weight:600}
-.adm-field input{width:100%;background:rgba(234,244,247,.05);border:1px solid rgba(234,244,247,.12);border-radius:10px;padding:13px 15px;color:#fff;font-family:var(--fb);font-size:14px;transition:all .15s;outline:none;box-sizing:border-box}
+.adm-field input{width:100%;background-color:#0d1c24;border:1px solid rgba(234,244,247,.12);border-radius:10px;padding:13px 15px;color:#eaf4f7;font-family:var(--fb);font-size:14px;color-scheme:dark;transition:background-color 99999s ease-in-out,color 99999s ease-in-out,-webkit-text-fill-color 99999s ease-in-out,border-color .15s,box-shadow .15s;outline:none;box-sizing:border-box}
 .adm-field input:focus{outline:0;border-color:#29a8cc;box-shadow:0 0 0 3px rgba(41,168,204,.2)}
 .adm-pw-wrap{position:relative}
 .adm-pw-wrap input{padding-right:44px}
@@ -22,7 +22,8 @@ body{background:#050e11;color:#eaf4f7;min-height:100vh;display:grid;place-items:
 .adm-err{background:rgba(220,60,60,.12);border:1px solid rgba(220,60,60,.28);border-radius:10px;padding:10px 14px;font-size:13.5px;color:#ff7b7b;margin-bottom:18px}
 .adm-2fa-label{font-family:var(--ff);font-size:12.5px;color:rgba(234,244,247,.6);margin-bottom:10px;line-height:1.5}
 .adm-2fa{display:flex;gap:6px;margin-top:8px;justify-content:space-between}
-.adm-2fa input{flex:1;text-align:center;font-family:var(--ff);font-size:18px;letter-spacing:.3em;font-weight:600;padding:12px 0;background:rgba(234,244,247,.05);border:1px solid rgba(234,244,247,.12);border-radius:10px;color:#fff;outline:none;transition:border-color .15s,box-shadow .15s;box-sizing:border-box}
+.adm-field input:-webkit-autofill,.adm-field input:-webkit-autofill:hover,.adm-field input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px #0d1c24 inset !important;-webkit-text-fill-color:#eaf4f7 !important;caret-color:#eaf4f7 !important}
+.adm-2fa input{flex:1;text-align:center;font-family:var(--ff);font-size:18px;letter-spacing:.3em;font-weight:600;padding:12px 0;background-color:#0d1c24;border:1px solid rgba(234,244,247,.12);border-radius:10px;color:#eaf4f7;color-scheme:dark;outline:none;transition:background-color 99999s ease-in-out,color 99999s ease-in-out,-webkit-text-fill-color 99999s ease-in-out,border-color .15s,box-shadow .15s;box-sizing:border-box}
 .adm-2fa input:focus{border-color:#29a8cc;box-shadow:0 0 0 3px rgba(41,168,204,.2)}
 .adm-link{background:none;border:0;color:#7de1ff;font-family:var(--ff);font-size:13px;font-weight:600;cursor:pointer;padding:0;text-decoration:none}
 .adm-link:hover{text-decoration:underline}

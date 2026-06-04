@@ -832,7 +832,7 @@ html,body{overflow-x:clip}
    at the same instant as the autofill — there is no "before" state to hold. */
 .input, textarea.input {
   color-scheme: light;
-  transition: background-color 99999s ease-in-out, border-color .15s, box-shadow .15s;
+  transition: background-color 99999s ease-in-out, color 99999s ease-in-out, -webkit-text-fill-color 99999s ease-in-out, border-color .15s, box-shadow .15s;
 }
 
 .input:-webkit-autofill,

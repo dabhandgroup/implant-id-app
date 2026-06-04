@@ -86,6 +86,9 @@ export const addDevice = mutation({
       email: v.string(),
     }))),
     oem_ownedNotes:     v.optional(v.string()),
+    sourceUrl:          v.optional(v.string()),
+    pdfLinks:           v.optional(v.array(v.string())),
+    sourcesRaw:         v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return ctx.db.insert('devices', {
@@ -105,6 +108,9 @@ export const addDevice = mutation({
       lotNumber:        args.lotNumber,
       regionalRep:      args.regionalRep,
       oem_ownedNotes:   args.oem_ownedNotes,
+      sourceUrl:        args.sourceUrl,
+      pdfLinks:         args.pdfLinks,
+      sourcesRaw:       args.sourcesRaw,
       status:           'live',
       publishedAt:      Date.now(),
       verified:         false,

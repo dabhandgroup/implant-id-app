@@ -43,6 +43,9 @@ export default defineSchema({
       email: v.string(),
     }))),
     oem_ownedNotes: v.optional(v.string()),  // OEM-branded patient-facing notes
+    sourceUrl:  v.optional(v.string()),      // Primary source URL or PDF link
+    pdfLinks:   v.optional(v.array(v.string())), // All PDF links found during scrape
+    sourcesRaw: v.optional(v.string()),      // JSON-stringified _sources_consulted array
   })
     .index('by_manufacturer', ['manufacturer'])
     .index('by_mri_status', ['mriStatus'])

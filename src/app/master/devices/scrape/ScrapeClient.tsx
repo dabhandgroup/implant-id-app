@@ -256,6 +256,9 @@ export default function ScrapeClient() {
         sarLimit:          editSarLimit || undefined,
         b1RmsLimit:        editB1Rms || undefined,
         contraindications: editContra || undefined,
+        sourceUrl:         (result?.mapped as any)?.sourceUrl || undefined,
+        pdfLinks:          pdfLinks.length > 0 ? pdfLinks : undefined,
+        sourcesRaw:        sources.length > 0 ? JSON.stringify(sources) : undefined,
       })
       setAdded(true)
     } catch (e) {

@@ -111,15 +111,18 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
       {/* MRI status hero card */}
       <div style={{ background: MRI_BG[status], borderRadius: 16, padding: '28px 32px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 20 }}>
-        <img
-          src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : status === 'unsafe' ? '/mr-unsafe.svg' : '/mr-conditional.svg'}
-          alt={MRI_LABEL[status]}
-          style={{ width: 56, height: 56, flexShrink: 0 }}
-        />
+        {/* Icon with white circle background */}
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <img
+            src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : status === 'unsafe' ? '/mr-unsafe.svg' : '/mr-conditional.svg'}
+            alt={MRI_LABEL[status]}
+            style={{ width: 52, height: 52 }}
+          />
+        </div>
         <div>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.4px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>MRI Safety Status</div>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 26, fontWeight: 700, color: '#fff' }}>{MRI_LABEL[status]}</div>
-          {device.fieldStrengths && <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Tested at: {device.fieldStrengths}</div>}
+          {device.fieldStrengths && <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>Field strengths: {device.fieldStrengths}</div>}
         </div>
       </div>
 
@@ -149,6 +152,56 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', lineHeight: 1.65 }}>{device.contraindications}</div>
         </div>
       )}
+
+      {/* Sources — PDF links + web sources consulted during scrape */}
+      {((device as any).pdfLinks?.length > 0 || (device as any).sourceUrl || (device as any).sourcesRaw) && (() => {
+        const pdfLinks: string[]  = (device as any).pdfLinks ?? []
+        const sourceUrl: string   = (device as any).sourceUrl ?? ''
+        const webSources: Array<{ id: string; type?: string; title?: string; url?: string; accessible?: boolean }> =
+          (() => { try { return JSON.parse((device as any).sourcesRaw ?? '[]') } catch { return [] } })()
+
+        return (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Sources</div>
+
+            {/* PDF / primary source */}
+            {(pdfLinks.length > 0 || sourceUrl) && (
+              <div style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--accent-deep)', marginBottom: 8 }}>📄 Source documents (IFU / MRI Manual)</div>
+                {(pdfLinks.length > 0 ? pdfLinks : [sourceUrl]).map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'var(--bg2)', borderRadius: 6, marginBottom: 6, textDecoration: 'none', border: '1px solid var(--border)' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0 }}>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent)', wordBreak: 'break-all' }}>{url}</span>
+                  </a>
+                ))}
+              </div>
+            )}
+
+            {/* Web sources consulted */}
+            {webSources.length > 0 && (
+              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--muted2)', marginBottom: 8 }}>Web sources consulted</div>
+                {webSources.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'flex-start' }}>
+                    <span style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, flexShrink: 0,
+                      background: s.accessible !== false ? 'color-mix(in srgb,var(--ok) 12%,transparent)' : 'color-mix(in srgb,var(--err) 10%,transparent)',
+                      color: s.accessible !== false ? 'var(--ok)' : 'var(--err)' }}>
+                      {s.accessible !== false ? '✓' : '⚠'} {s.type ?? 'src'}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      {s.title && <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--text)' }}>{s.title}</div>}
+                      {s.url && <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11.5, color: 'var(--accent)', wordBreak: 'break-all' }}>{s.url}</a>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Patient linkage warning */}
       {device.patientCount > 0 && (

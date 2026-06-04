@@ -45,57 +45,79 @@ export default function MasterDevicesClient() {
         </div>
       </div>
 
-      <div className="m-tbl-wrap">
-        {devices.length === 0 ? (
-          <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>
-            No devices in catalogue yet.{' '}
-            <a href="/master/devices/add" style={{ color: 'var(--accent)' }}>Add the first device →</a>
+      {devices.length === 0 ? (
+        <div className="m-tbl-wrap" style={{ padding: '48px 0', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>
+          No devices in catalogue yet.{' '}
+          <a href="/master/devices/add" style={{ color: 'var(--accent)' }}>Add the first device →</a>
+        </div>
+      ) : (
+        <>
+          {/* ── Desktop table ── */}
+          <div className="m-tbl-wrap m-devices-table">
+            <table className="m-tbl">
+              <thead>
+                <tr>
+                  <th>Manufacturer</th>
+                  <th>Model</th>
+                  <th>Type</th>
+                  <th>MRI Status</th>
+                  <th>Classification</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                {devices.map((d: any) => {
+                  const mri = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
+                  return (
+                    <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/master/devices/${d._id}`)}>
+                      <td style={{ fontWeight: 500 }}>{d.manufacturer}</td>
+                      <td>{d.model}</td>
+                      <td style={{ color: 'var(--muted)', fontSize: 13 }}>{d.deviceType}</td>
+                      <td>
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:12, fontWeight:600, color:mri.color, padding:'3px 8px', borderRadius:4, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, letterSpacing:'.3px' }}>
+                          {mri.label}
+                        </span>
+                      </td>
+                      <td style={{ color:'var(--muted)', fontSize:13, textTransform:'capitalize' }}>{d.classification}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <table className="m-tbl">
-            <thead>
-              <tr>
-                <th>Manufacturer</th>
-                <th>Model</th>
-                <th>Type</th>
-                <th>MRI Status</th>
-                <th>Classification</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {devices.map((d: any) => {
-                const mri = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
-                return (
-                  <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/master/devices/${d._id}`)}>
-                    <td style={{ fontWeight: 500 }}>{d.manufacturer}</td>
-                    <td>{d.model}</td>
-                    <td style={{ color: 'var(--muted)', fontSize: 13 }}>{d.deviceType}</td>
-                    <td>
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        fontFamily: 'var(--ff)',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: mri.color,
-                        padding: '3px 8px',
-                        borderRadius: 4,
-                        background: `color-mix(in srgb,${mri.color} 12%,transparent)`,
-                        letterSpacing: '.3px',
-                      }}>
-                        {mri.label}
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--muted)', fontSize: 13, textTransform: 'capitalize' }}>{d.classification}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+
+          {/* ── Mobile cards ── */}
+          <div className="m-devices-cards">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {devices.map((d: any) => {
+              const mri = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
+              return (
+                <div
+                  key={d._id}
+                  onClick={() => router.push(`/master/devices/${d._id}`)}
+                  style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', cursor:'pointer', marginBottom:10, display:'flex', alignItems:'center', gap:14 }}
+                >
+                  {/* MRI colour bar */}
+                  <div style={{ width:4, alignSelf:'stretch', borderRadius:2, background:mri.color, flexShrink:0 }} />
+
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:2 }}>{d.manufacturer}</div>
+                    <div style={{ fontFamily:'var(--fb)', fontSize:14, color:'var(--text)', fontWeight:500, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.model}</div>
+                    <div style={{ fontSize:12, color:'var(--muted)', textTransform:'capitalize' }}>{d.deviceType} · {d.classification}</div>
+                  </div>
+
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
+                    <span style={{ fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, color:mri.color, padding:'3px 8px', borderRadius:4, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, whiteSpace:'nowrap' }}>
+                      {mri.label}
+                    </span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.7"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
     </div>
   )
 }

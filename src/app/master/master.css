@@ -295,6 +295,13 @@ body{background:var(--bg);color:var(--text)}
   .m-patients-mobile{display:block}
 }
 
+/* Devices: table on desktop, cards on mobile */
+.m-devices-cards { display: none }
+@media(max-width:700px) {
+  .m-devices-table { display: none }
+  .m-devices-cards { display: block }
+}
+
 /* Hide table search bar on mobile — redundant, search is in bottom nav */
 @media(max-width:768px){
   .m-tbl-toolbar .search{display:none}

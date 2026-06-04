@@ -19,39 +19,36 @@ function brandedEmail(body: string, subject: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${subject}</title>
   <style>
-    body { margin: 0; padding: 0; background: #f5f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    .wrap { max-width: 560px; margin: 40px auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    .head { background: #0a0a0a; padding: 24px 32px; display: flex; align-items: center; gap: 10px; }
-    .head-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-    .head-mark { width: 28px; height: 28px; }
-    .head-name { color: #fff; font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
-    .head-name span { color: #4f8ef7; font-weight: 400; }
-    .body { padding: 36px 32px 28px; color: #1a1a1a; font-size: 15px; line-height: 1.6; }
-    .body p { margin: 0 0 16px; }
-    .code-box { background: #f0f4ff; border: 1.5px solid #c7d7fd; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
-    .code-box .code { font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #1a1a1a; font-family: 'SF Mono', 'Fira Code', monospace; }
-    .code-box .expires { font-size: 12px; color: #666; margin-top: 8px; }
-    .footer { border-top: 1px solid #f0f0f0; padding: 20px 32px; font-size: 12px; color: #999; line-height: 1.5; }
-    .footer a { color: #4f8ef7; text-decoration: none; }
+    body { margin: 0; padding: 40px 16px 48px; background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .wrap { max-width: 560px; margin: 0 auto; }
+    .head { background: #ffffff; padding: 20px 40px; text-align: center; }
+    .head img { width: 180px; height: auto; display: block; margin: 0 auto; }
+    .divider { background: #e2e8f0; height: 1px; margin: 0; }
+    .body { background: #ffffff; padding: 36px 40px; color: #1a1a1a; font-size: 15px; line-height: 1.6; }
+    .body p { margin: 0 0 16px; color: #64748b; font-size: 15px; line-height: 24px; }
+    .body h1 { margin: 0 0 24px; color: #0e2a33; font-size: 26px; line-height: 32px; font-weight: 700; }
+    .code-box { background: #e8f5f9; border-radius: 12px; padding: 28px; text-align: center; margin: 0 0 28px; }
+    .code-label { font-size: 12px; color: #29869f; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 1px; }
+    .code { font-size: 40px; font-weight: 700; color: #1a6a80; letter-spacing: 6px; font-family: 'SF Mono', 'Fira Code', monospace; margin: 0; }
+    .muted { font-size: 12px; color: #94a3b8; line-height: 20px; margin: 0 0 28px; }
+    .footer { background: transparent; padding: 20px 40px 16px; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.5; }
+    .footer a { color: #94a3b8; text-decoration: underline; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="head">
-      <div class="head-logo">
-        <svg class="head-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="32" height="32" rx="8" fill="#4f8ef7"/>
-          <path d="M10 22V10h4v12h-4zm8-12h4v12h-4V10z" fill="#fff"/>
-        </svg>
-        <span class="head-name">Implant<span>ID</span></span>
-      </div>
+      <a href="https://portal.implantid.io">
+        <img src="https://portal.implantid.io/images/email-logo.png" alt="Implant ID" />
+      </a>
     </div>
+    <div class="divider"></div>
     <div class="body">
       ${body}
     </div>
     <div class="footer">
-      <p>You received this email because an action was taken on your Implant ID account. If you did not request this, you can safely ignore this email.</p>
-      <p>Implant ID · <a href="https://implantid.io">implantid.io</a></p>
+      <p style="margin:0 0 6px;">Questions? Contact <a href="mailto:support@implantid.io">support@implantid.io</a></p>
+      <p style="margin:0;">© ${new Date().getFullYear()} ImplantID.io · All rights reserved.</p>
     </div>
   </div>
 </body>

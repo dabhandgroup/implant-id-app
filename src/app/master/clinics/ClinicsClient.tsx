@@ -68,7 +68,7 @@ export default function ClinicsClient() {
       {/* ── Tabs ── */}
       <div className="m-tabs">
         <button className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
-          Pending Applications
+          Pending
           {pendingCount > 0 && (
             <span style={{ marginLeft: 6, background: 'var(--warn)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
               {pendingCount}

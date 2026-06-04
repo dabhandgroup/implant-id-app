@@ -33,7 +33,7 @@ body{background:#050e11;color:#eaf4f7}
 .mauth-box .field label{font-family:var(--ff);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:rgba(234,244,247,.55);font-weight:600;display:block;margin-bottom:6px}
 .mauth-box .i-wrap{position:relative}
 .mauth-box .i-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:rgba(234,244,247,.5);pointer-events:none;z-index:2}
-.mauth-box .input{width:100%;background:rgba(234,244,247,.05);border:1px solid rgba(234,244,247,.12);border-radius:10px;padding:13px 15px 13px 42px;color:#fff;font-family:var(--fb);font-size:14px;transition:all .15s}
+.mauth-box .input{width:100%;background-color:#060f16;border:1px solid rgba(234,244,247,.12);border-radius:10px;padding:13px 15px 13px 42px;color:#fff;font-family:var(--fb);font-size:14px;transition:background-color 99999s ease-in-out,border-color .15s,box-shadow .15s}
 .mauth-box .input::placeholder{color:rgba(234,244,247,.35)}
 .mauth-box .input:focus{outline:0;border-color:#29a8cc;box-shadow:0 0 0 3px rgba(41,168,204,.2);background:rgba(234,244,247,.08)}
 
@@ -74,8 +74,7 @@ body{background:#050e11;color:#eaf4f7}
   /* Force text colour */
   -webkit-text-fill-color: #eaf4f7 !important;
   caret-color: #eaf4f7 !important;
-  /* Prevent Chrome's background-color transition from ever firing */
-  transition: background-color 99999s 0s !important;
+  /* transition lives on the element rule — not here (must pre-exist autofill) */
   /* Paint the mail icon inside the input's own rendering layer.
      Dark stroke (rgba(234,244,247,.5)) matches the placeholder/icon colour. */
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='rgba(234,244,247,.5)' stroke-width='1.7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z'/%3E%3Cpath d='m22 6-10 7L2 6'/%3E%3C/svg%3E") !important;

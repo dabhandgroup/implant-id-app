@@ -122,14 +122,21 @@
 /* Input */
 .mstr-input{
   width:100%;
-  background:rgba(234,244,247,.05);
+  /* Solid background-color is required for the autofill transition trick.
+     Semi-transparent rgba() has no "before" value to hold — use a computed
+     solid equivalent of rgba(234,244,247,.05) over #050e11 ≈ #0d1c24.
+     The 99999s transition means any browser attempt to change background-color
+     (e.g. iOS autofill) takes 99999 seconds — visually it never changes. */
+  background-color:#0d1c24;
   border:1px solid rgba(234,244,247,.12);
   border-radius:10px;
   padding:13px 15px 13px 42px;
   color:#fff;
   font-family:var(--fb);
   font-size:14px;
-  transition:all .15s;
+  /* transition must be on the ELEMENT (not inside :-webkit-autofill) so it
+     is already running before autofill fires and can slow the colour change */
+  transition:background-color 99999s ease-in-out, border-color .15s, box-shadow .15s;
   outline:none;
   box-sizing:border-box;
 }
@@ -317,12 +324,12 @@
 .mstr-input:-webkit-autofill:hover,
 .mstr-input:-webkit-autofill:focus,
 .mstr-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 1000px #0c1b27 inset !important;
-  box-shadow: 0 0 0 1000px #0c1b27 inset !important;
+  -webkit-box-shadow: 0 0 0 1000px #0d1c24 inset !important;
+  box-shadow: 0 0 0 1000px #0d1c24 inset !important;
   -webkit-text-fill-color: #eaf4f7 !important;
   caret-color: #eaf4f7 !important;
   border-color: rgba(234,244,247,.12) !important;
-  transition: background-color 99999s 0s !important;
+  /* transition lives on the element rule above — not here */
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='rgba(234,244,247,.5)' stroke-width='1.7' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z'/%3E%3Cpath d='m22 6-10 7L2 6'/%3E%3C/svg%3E") !important;
   background-repeat: no-repeat !important;
   background-position: 14px center !important;

@@ -827,8 +827,12 @@ html,body{overflow-x:clip}
 /* which Chrome cannot override — making it immune to the autofill overlay.   */
 /* color-scheme: light tells the browser to render autofill UI in light mode. */
 
+/* color-scheme + transition must both live on the ELEMENT rule so they are
+   active before autofill fires. A transition inside :-webkit-autofill starts
+   at the same instant as the autofill — there is no "before" state to hold. */
 .input, textarea.input {
   color-scheme: light;
+  transition: background-color 99999s ease-in-out, border-color .15s, box-shadow .15s;
 }
 
 .input:-webkit-autofill,
@@ -840,7 +844,6 @@ textarea.input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
   -webkit-text-fill-color: #0e2a33 !important;
   caret-color: #0e2a33 !important;
-  transition: background-color 99999s 0s !important;
 }
 
 /* Icon inputs: paint the mail icon inside the input via background-image.    */

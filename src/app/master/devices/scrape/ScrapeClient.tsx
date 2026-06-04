@@ -47,7 +47,7 @@ interface ScrapeResult {
 
 // ── History row ───────────────────────────────────────────────────────────────
 
-function HistoryRow({ job, onLoad }: { job: any; onLoad: (job: any) => void }) {
+function HistoryRow({ job, isActive, onLoad }: { job: any; isActive: boolean; onLoad: (job: any) => void }) {
   const isComplete = job.status === 'complete'
   const isError    = job.status === 'error'
   const isPending  = job.status === 'pending'
@@ -55,52 +55,62 @@ function HistoryRow({ job, onLoad }: { job: any; onLoad: (job: any) => void }) {
   const conf       = job.result?.raw?.confidence_pct as number | undefined
 
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', borderBottom:'1px solid var(--border)', cursor: isComplete ? 'pointer' : 'default' }}
+    <div
       onClick={() => isComplete && onLoad(job)}
+      style={{
+        display:'flex', alignItems:'center', gap:14, padding:'13px 18px',
+        borderBottom:'1px solid var(--border)',
+        cursor: isComplete ? 'pointer' : 'default',
+        background: isActive ? 'color-mix(in srgb,var(--accent) 6%,transparent)' : 'transparent',
+        transition: 'background .15s',
+      }}
     >
       {/* Status dot */}
       <div style={{ width:8, height:8, borderRadius:'50%', flexShrink:0,
-        background: isComplete ? 'var(--ok)' : isError ? 'var(--err)' : 'var(--accent)' }} />
+        background: isComplete ? 'var(--ok)' : isError ? 'var(--err)' : 'var(--accent)',
+        boxShadow: isPending ? '0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)' : 'none',
+      }} />
 
       {/* Device info */}
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:500, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {job.manufacturer} — {job.model}
         </div>
-        <div style={{ fontSize:11.5, color:'var(--muted)', marginTop:2 }}>
+        <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>
           {new Date(job.createdAt).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
           {' · '}
-          {isPending ? 'In progress…' : isError ? job.errorMessage ?? 'Error' : `${job.deviceType}`}
+          <span style={{ textTransform:'capitalize' }}>
+            {isPending ? 'In progress…' : isError ? (job.errorMessage ?? 'Error') : job.deviceType}
+          </span>
         </div>
       </div>
 
       {/* MRI badge */}
       {isComplete && mri && (
         <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
-          <MriIcon status={mri} size={14} />
-          <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color: MRI_COLOUR[mri] }}>{MRI_LABEL[mri]}</span>
+          <MriIcon status={mri} size={15} />
+          <span style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:600, color: MRI_COLOUR[mri] }}>{MRI_LABEL[mri]}</span>
         </div>
       )}
 
       {/* Confidence */}
       {isComplete && conf !== undefined && (
-        <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, color: conf >= 80 ? 'var(--ok)' : conf >= 50 ? '#f59e0b' : 'var(--err)', flexShrink:0 }}>
+        <div style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:700, color: conf >= 80 ? 'var(--ok)' : conf >= 50 ? '#f59e0b' : 'var(--err)', flexShrink:0, minWidth:36, textAlign:'right' }}>
           {conf}%
         </div>
       )}
 
-      {/* Load button */}
+      {/* CTA */}
       {isComplete && (
-        <div style={{ fontFamily:'var(--ff)', fontSize:11.5, color:'var(--accent)', flexShrink:0 }}>
-          Load →
+        <div style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'var(--accent)', fontWeight:500, flexShrink:0 }}>
+          {isActive ? 'Loaded' : 'Load →'}
         </div>
       )}
-
-      {/* Pending spinner */}
       {isPending && (
-        <div style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted)', flexShrink:0 }}>
-          running…
-        </div>
+        <div style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--accent)', flexShrink:0 }}>running…</div>
+      )}
+      {isError && (
+        <div style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--err)', flexShrink:0 }}>failed</div>
       )}
     </div>
   )
@@ -128,7 +138,9 @@ export default function ScrapeClient() {
   const timerRef                  = useRef<ReturnType<typeof setInterval> | null>(null)
   const [error,     setError]     = useState('')
   const [result,    setResult]    = useState<ScrapeResult | null>(null)
-  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const [activeJobId,  setActiveJobId]  = useState<string | null>(null)
+  const [loadedJobId,  setLoadedJobId]  = useState<string | null>(null)
+  const resultsRef                      = useRef<HTMLDivElement | null>(null)
 
   // Elapsed timer
   useEffect(() => {
@@ -175,10 +187,13 @@ export default function ScrapeClient() {
   function loadFromHistory(job: any) {
     if (!job.result) return
     loadResult(job.result as ScrapeResult)
-    // Pre-fill form fields
+    setLoadedJobId(job._id)
     setManufacturer(job.manufacturer)
     setModel(job.model)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    // Scroll to results panel below the form
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
   }
 
   async function handleScrape(e: React.FormEvent) {
@@ -214,6 +229,7 @@ export default function ScrapeClient() {
 
       // Persist result to Convex so it shows in history
       await completeJob({ jobId, result: data })
+      setLoadedJobId(String(jobId))
       loadResult(data)
     } catch {
       const msg = 'Network error — please try again'
@@ -262,19 +278,20 @@ export default function ScrapeClient() {
         ← Back to devices
       </a>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:28, alignItems:'start' }}>
-
-        {/* ── Left: form + results ── */}
-        <div>
-          <div className="m-h" style={{ marginBottom:20 }}>
-            <div>
-              <h2>Scrape device data</h2>
-              <div className="sub">
-                Enter a manufacturer + model and let AI extract the MRI safety fields from the official IFU or web sources.
-                Review the results before adding to the catalogue.
-              </div>
+      <div>
+        {/* ── Header ── */}
+        <div className="m-h" style={{ marginBottom:20 }}>
+          <div>
+            <h2>Scrape device data</h2>
+            <div className="sub">
+              Enter a manufacturer + model and let AI extract the MRI safety fields from the official IFU or web sources.
+              Review the results before adding to the catalogue.
             </div>
           </div>
+        </div>
+
+        {/* ── Form (capped width for readability) ── */}
+        <div style={{ maxWidth: 760 }}>
 
           <form onSubmit={handleScrape}>
             {/* Device type tabs */}
@@ -386,9 +403,11 @@ export default function ScrapeClient() {
             </div>
           )}
 
-          {/* Results */}
-          {result && (
-            <div style={{ marginTop: 24 }}>
+        </div>{/* end maxWidth:760 form wrapper */}
+
+        {/* Results — full width */}
+        {result && (
+          <div ref={resultsRef} style={{ marginTop: 24 }}>
               {/* Confidence banner */}
               <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, padding:'12px 16px', borderRadius:10, background: confPct >= 80 ? 'color-mix(in srgb,var(--ok) 8%,transparent)' : 'color-mix(in srgb,#f59e0b 8%,transparent)', border: `1px solid color-mix(in srgb,${confPct >= 80 ? 'var(--ok)' : '#f59e0b'} 20%,transparent)` }}>
                 <div style={{ fontSize:22, fontWeight:700, color: confPct >= 80 ? 'var(--ok)' : '#b45309', fontFamily:'var(--ff)', width:48, flexShrink:0 }}>{confPct}%</div>
@@ -518,41 +537,45 @@ export default function ScrapeClient() {
               )}
             </div>
           )}
-        </div>
+        {/* ── Scrape history — full width, below everything ── */}
+        {(history === undefined || history.length > 0) && (
+          <div style={{ marginTop: result ? 40 : 32 }}>
+            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
 
-        {/* ── Right: scrape history ── */}
-        <div style={{ position:'sticky', top:80 }}>
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
-            <div style={{ padding:'14px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-              <div style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:600, color:'var(--text)' }}>
-                Scrape history
+              {/* Header */}
+              <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>
+                  Scrape history
+                </div>
+                {pendingJobs.length > 0 && (
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)', animation:'pending-pulse 1s ease-in-out infinite', display:'block' }} />
+                    <span style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--accent)' }}>
+                      {pendingJobs.length} running
+                    </span>
+                  </div>
+                )}
               </div>
-              {pendingJobs.length > 0 && (
-                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                  <span style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)', animation:'pending-pulse 1s ease-in-out infinite', display:'block' }} />
-                  <span style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--accent)' }}>{pendingJobs.length} running</span>
+
+              {/* Rows */}
+              {history === undefined ? (
+                <div style={{ padding:'20px', color:'var(--muted)', fontSize:13, fontFamily:'var(--ff)' }}>Loading…</div>
+              ) : (
+                <div>
+                  {history.map((job: any) => (
+                    <HistoryRow
+                      key={job._id}
+                      job={job}
+                      isActive={job._id === loadedJobId}
+                      onLoad={loadFromHistory}
+                    />
+                  ))}
                 </div>
               )}
-            </div>
 
-            {history === undefined ? (
-              <div style={{ padding:'20px 16px', color:'var(--muted)', fontSize:13, fontFamily:'var(--ff)' }}>Loading…</div>
-            ) : history.length === 0 ? (
-              <div style={{ padding:'20px 16px', color:'var(--muted)', fontSize:13, fontFamily:'var(--ff)', textAlign:'center' }}>
-                No scrapes yet — run your first extraction above.
-              </div>
-            ) : (
-              <div>
-                {history.map((job: any) => (
-                  <HistoryRow key={job._id} job={job} onLoad={loadFromHistory} />
-                ))}
-              </div>
-            )}
+            </div>
           </div>
-          <p style={{ fontFamily:'var(--ff)', fontSize:11.5, color:'var(--muted)', textAlign:'center', marginTop:8 }}>
-            Click any completed scrape to load its results
-          </p>
-        </div>
+        )}
 
       </div>
     </div>

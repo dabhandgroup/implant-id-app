@@ -131,12 +131,13 @@
   border:1px solid rgba(234,244,247,.12);
   border-radius:10px;
   padding:13px 15px 13px 42px;
-  color:#fff;
+  color:#eaf4f7;
   font-family:var(--fb);
   font-size:14px;
-  /* transition must be on the ELEMENT (not inside :-webkit-autofill) so it
-     is already running before autofill fires and can slow the colour change */
-  transition:background-color 99999s ease-in-out, border-color .15s, box-shadow .15s;
+  /* All three colour properties must be in the transition so iOS autofill
+     cannot change any of them — the 99999s delay means the change never
+     completes within any human-visible timeframe */
+  transition:background-color 99999s ease-in-out, color 99999s ease-in-out, -webkit-text-fill-color 99999s ease-in-out, border-color .15s, box-shadow .15s;
   outline:none;
   box-sizing:border-box;
 }

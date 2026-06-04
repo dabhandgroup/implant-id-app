@@ -167,6 +167,7 @@ export default function ScrapeClient() {
   const [adding,   setAdding]   = useState(false)
   const [added,    setAdded]    = useState(false)
   const [addError, setAddError] = useState('')
+  const [certified, setCertified] = useState(false)
 
   function loadResult(data: ScrapeResult) {
     setResult(data)
@@ -182,6 +183,7 @@ export default function ScrapeClient() {
     setEditContra(m.contraindications ?? '')
     setAdded(false)
     setAddError('')
+    setCertified(false)
   }
 
   function loadFromHistory(job: any) {
@@ -265,6 +267,7 @@ export default function ScrapeClient() {
 
   const rawConfidence = result?.raw as Record<string, unknown> | undefined
   const sources       = (rawConfidence?._sources_consulted as Array<{ id: string; type?: string; title?: string; url?: string; accessible?: boolean }>) ?? []
+  const pdfLinks      = (result?.mapped as any)?.pdfLinks as string[] | undefined ?? []
   const fieldConf     = (rawConfidence?._field_confidence as Record<string, string>) ?? {}
   const conflicts     = (rawConfidence?._conflicts as Array<{ field: string; values: Array<{ value: unknown; source_id: string }> }>) ?? []
   const needsReview   = (rawConfidence?.needs_review as string[]) ?? []
@@ -499,7 +502,25 @@ export default function ScrapeClient() {
                 </div>
               </div>
 
-              {/* Sources */}
+              {/* PDF sources — prominent for clinic verification */}
+              {pdfLinks.length > 0 && (
+                <div style={{ background:'color-mix(in srgb,var(--accent) 6%,transparent)', border:'1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius:10, padding:'14px 16px', marginBottom:16 }}>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--accent-deep)', marginBottom:10 }}>
+                    📄 Source documents (IFU / MRI Manual)
+                  </div>
+                  <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>These PDFs were found during extraction. Clinicians can use these to independently verify the data below.</div>
+                  {pdfLinks.map((url, i) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                      style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 10px', background:'var(--bg2)', borderRadius:7, marginBottom:6, textDecoration:'none', border:'1px solid var(--border)' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink:0 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <span style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'var(--accent)', wordBreak:'break-all' }}>{url}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              {/* Web sources consulted */}
               {sources.length > 0 && (
                 <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', marginBottom:16 }}>
                   <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--muted2)', marginBottom:10 }}>Sources consulted</div>
@@ -517,7 +538,7 @@ export default function ScrapeClient() {
                 </div>
               )}
 
-              {/* Add to catalogue */}
+              {/* Certification + Add to catalogue */}
               {added ? (
                 <div style={{ background:'color-mix(in srgb,var(--ok) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--ok) 25%,transparent)', borderRadius:10, padding:'14px 18px', display:'flex', alignItems:'center', gap:10 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -526,13 +547,26 @@ export default function ScrapeClient() {
                 </div>
               ) : (
                 <>
+                  {/* Certification checkbox — mandatory before adding */}
+                  <div style={{ background:'color-mix(in srgb,var(--warn) 6%,transparent)', border:'1px solid color-mix(in srgb,var(--warn) 25%,transparent)', borderRadius:10, padding:'14px 16px', marginBottom:14 }}>
+                    <label style={{ display:'flex', alignItems:'flex-start', gap:10, cursor:'pointer' }}>
+                      <input type="checkbox" checked={certified} onChange={e => setCertified(e.target.checked)}
+                        style={{ marginTop:2, accentColor:'var(--accent)', width:15, height:15, flexShrink:0 }} />
+                      <span style={{ fontFamily:'var(--fb)', fontSize:13, color:'var(--text)', lineHeight:1.5 }}>
+                        I have independently verified the MRI safety data above against the manufacturer's IFU or official source documentation.
+                        I certify this information is accurate and authorised for submission to the Implant ID device catalogue.
+                      </span>
+                    </label>
+                  </div>
                   {addError && <div style={{ color:'var(--err)', fontSize:13, marginBottom:8, fontFamily:'var(--ff)' }}>{addError}</div>}
-                  <button className="btn btn-s btn-block" disabled={adding || !editManufacturer || !editModel} onClick={handleAddToDb} style={{ fontSize:14 }}>
+                  <button className="btn btn-s btn-block" disabled={adding || !editManufacturer || !editModel || !certified} onClick={handleAddToDb} style={{ fontSize:14 }}>
                     {adding ? 'Adding…' : '+ Add to device catalogue'}
                   </button>
-                  <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted)', textAlign:'center', marginTop:8 }}>
-                    Review the fields above before adding. You can edit any value directly.
-                  </p>
+                  {!certified && (
+                    <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted)', textAlign:'center', marginTop:8 }}>
+                      You must verify the data and tick the box above before adding.
+                    </p>
+                  )}
                 </>
               )}
             </div>

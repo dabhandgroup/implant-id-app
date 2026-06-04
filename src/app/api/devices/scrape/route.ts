@@ -51,11 +51,14 @@ function buildSystemPrompt(opts: { deviceType: string; useWebSearch: boolean }) 
   "<schema_field>": <value|null>,
   "_provenance": { "<field>": { "source_id": "S1", "quote": "<exact sentence>", "note": "<optional>" } },
   "_sources_consulted": [{ "id": "S1", "type": "ifu|oem-web|thirdparty", "title": "...", "url": "...", "accessible": true }],
+  "_pdf_links": ["<direct PDF URL>"],
   "_conflicts": [{ "field": "<name>", "values": [{ "value": "...", "source_id": "S1" }] }],
   "_field_confidence": { "<field>": "High|Medium|Low" },
   "needs_review": ["<field>"],
   "confidence_pct": <0-100>
 }
+
+IMPORTANT: "_pdf_links" must contain every direct .pdf URL you encounter — IFUs, MRI Technical Manuals, product leaflets, safety guides. These are shown to clinicians for verification. If a page links to a PDF, include the full PDF URL, not the page URL. If no PDFs are found, return an empty array.
 Units: SAR W/kg, B1+rms µT, slew rate T/m/s.`
 
   let note = `\n\nDevice type: ${opts.deviceType}. Populate these schema fields (use exactly these keys): ${fields.join(', ')}.`
@@ -71,7 +74,7 @@ Units: SAR W/kg, B1+rms µT, slew rate T/m/s.`
 
 // ── Map AI output → our Convex device schema ─────────────────────────────────
 
-function mapToDeviceSchema(parsed: Record<string, unknown>, deviceType: string) {
+function mapToDeviceSchema(parsed: Record<string, unknown>, deviceType: string, ifuUrl?: string) {
   const cls = String(parsed.mri_classification ?? '').toLowerCase()
   const mriStatus =
     cls.includes('unsafe') ? 'unsafe' :
@@ -102,6 +105,11 @@ function mapToDeviceSchema(parsed: Record<string, unknown>, deviceType: string) 
     approvedRegions:   Array.isArray(parsed.approved_regions)
                          ? (parsed.approved_regions as string[])
                          : undefined,
+    // Primary source URL: first extracted PDF, then the reference URL provided
+    sourceUrl: Array.isArray(parsed._pdf_links) && (parsed._pdf_links as string[]).length > 0
+                 ? (parsed._pdf_links as string[])[0]
+                 : ifuUrl ?? undefined,
+    pdfLinks: Array.isArray(parsed._pdf_links) ? (parsed._pdf_links as string[]) : [],
   }
 }
 
@@ -188,7 +196,7 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Could not parse model output as JSON.' }, { status: 422 })
   }
 
-  const mapped = mapToDeviceSchema(parsed, deviceType)
+  const mapped = mapToDeviceSchema(parsed, deviceType, ifuUrl)
 
   return Response.json({
     mapped,           // ready to pass straight to addDevice mutation

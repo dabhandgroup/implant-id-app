@@ -33,7 +33,7 @@ body{background:#050e11;color:#eaf4f7}
 .mauth-box .field label{font-family:var(--ff);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:rgba(234,244,247,.55);font-weight:600;display:block;margin-bottom:6px}
 .mauth-box .i-wrap{position:relative}
 .mauth-box .i-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:rgba(234,244,247,.5);pointer-events:none;z-index:2}
-.mauth-box .input{width:100%;background-color:#060f16;border:1px solid rgba(234,244,247,.12);border-radius:10px;padding:13px 15px 13px 42px;color:#fff;font-family:var(--fb);font-size:14px;transition:background-color 99999s ease-in-out,border-color .15s,box-shadow .15s}
+.mauth-box .input{width:100%;background-color:#060f16;border:1px solid rgba(234,244,247,.12);border-radius:10px;padding:13px 15px 13px 42px;color:#eaf4f7;font-family:var(--fb);font-size:14px;transition:background-color 99999s ease-in-out,color 99999s ease-in-out,-webkit-text-fill-color 99999s ease-in-out,border-color .15s,box-shadow .15s}
 .mauth-box .input::placeholder{color:rgba(234,244,247,.35)}
 .mauth-box .input:focus{outline:0;border-color:#29a8cc;box-shadow:0 0 0 3px rgba(41,168,204,.2);background:rgba(234,244,247,.08)}
 

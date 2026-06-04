@@ -160,32 +160,23 @@ export default function ManufacturersClient() {
       {/* ── Pending tab ── */}
       {tab === 'pending' && (
         pendingApps === undefined
-          ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
+          ? <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'40px 20px', textAlign:'center', color:'var(--muted)' }}>Loading…</div>
           : pendingApps.length === 0
-          ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>No pending manufacturer applications.</div>
-          : (
-            <div className="m-tbl-wrap">
+          ? <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'40px 20px', textAlign:'center', color:'var(--muted)' }}>No pending manufacturer applications.</div>
+          : (<>
+            <div className="m-tbl-wrap m-list-table">
               <table className="m-tbl">
-                <thead>
-                  <tr>
-                    <th>Company</th>
-                    <th>Contact</th>
-                    <th>Country</th>
-                    <th>Applied</th>
-                    <th>Reg. Number</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+                <thead><tr><th>Company</th><th>Contact</th><th>Country</th><th>Applied</th><th>Reg. Number</th><th>Actions</th></tr></thead>
                 <tbody>
                   {pendingApps.map((m: Manufacturer) => (
-                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
-                      <td style={{ fontWeight: 500 }}>{m.companyName}</td>
-                      <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
+                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
+                      <td style={{ fontWeight:500 }}>{m.companyName}</td>
+                      <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
-                      <td style={{ color: 'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
-                      <td style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)' }}>{m.regNumber || '—'}</td>
-                      <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-                        <a href={`/master/manufacturers/${m._id}`} className="m-act">Review Application</a>
+                      <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
+                      <td style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted)' }}>{m.regNumber || '—'}</td>
+                      <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}>
+                        <a href={`/master/manufacturers/${m._id}`} className="m-act">Review</a>
                         <button className="m-act danger" onClick={() => openConfirm('reject', m._id, m.companyName)}>Reject</button>
                       </td>
                     </tr>
@@ -193,108 +184,116 @@ export default function ManufacturersClient() {
                 </tbody>
               </table>
             </div>
-          )
+            <div className="m-list-cards">
+              {pendingApps.map((m: Manufacturer) => (
+                <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
+                  style={{ background:'var(--bg2)', border:'1px solid color-mix(in srgb,var(--warn) 30%,var(--border))', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:5 }}>
+                    <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.companyName}</div>
+                    <span className="m-status pending" style={{ flexShrink:0, marginLeft:8 }}>Pending</span>
+                  </div>
+                  <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:10 }}>{m.country} · {formatDate(m.submittedAt)}</div>
+                  <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:12 }}>{m.contactEmail}</div>
+                  <div style={{ display:'flex', gap:8 }} onClick={e => e.stopPropagation()}>
+                    <button className="btn btn-s" style={{ fontSize:12, flex:1 }} onClick={() => openConfirm('approve', m._id, m.companyName)}>Approve</button>
+                    <button className="btn" style={{ fontSize:12, flex:1 }} onClick={() => router.push(`/master/manufacturers/${m._id}`)}>Review</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>)
       )}
 
       {/* ── All tab ── */}
       {tab === 'all' && (
         allMfrs === undefined || pendingApps === undefined
-          ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
-          : (
-            <div className="m-tbl-wrap">
+          ? <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'40px 20px', textAlign:'center', color:'var(--muted)' }}>Loading…</div>
+          : (<>
+            <div className="m-tbl-wrap m-list-table">
               <table className="m-tbl">
-                <thead>
-                  <tr>
-                    <th>Company</th>
-                    <th>Contact</th>
-                    <th>Country</th>
-                    <th>Status</th>
-                    <th>Devices</th>
-                    <th>Joined</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+                <thead><tr><th>Company</th><th>Contact</th><th>Country</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
                 <tbody>
-                  {/* Approved manufacturers */}
                   {allMfrs.map((m: Manufacturer) => (
-                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
-                      <td style={{ fontWeight: 500 }}>{m.companyName}</td>
-                      <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
+                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
+                      <td style={{ fontWeight:500 }}>{m.companyName}</td>
+                      <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
-                      <td>
-                        <span className="m-status active">Active</span>
-                      </td>
-                      <td>
-                        <span style={{ color: 'var(--muted2)' }}>—</span>
-                      </td>
-                      <td style={{ color: 'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
-                      <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-                        <a href={`/master/manufacturers/${m._id}`} className="m-act">View</a>
-                        <button className="m-act danger">Suspend</button>
-                      </td>
+                      <td><span className="m-status active">Active</span></td>
+                      <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
+                      <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}><a href={`/master/manufacturers/${m._id}`} className="m-act">View</a></td>
                     </tr>
                   ))}
-                  {/* Pending applications */}
                   {pendingApps.map((m: Manufacturer) => (
-                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
-                      <td style={{ fontWeight: 500 }}>{m.companyName}</td>
-                      <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
+                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
+                      <td style={{ fontWeight:500 }}>{m.companyName}</td>
+                      <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
-                      <td>
-                        <span className="m-status pending">Pending</span>
-                      </td>
-                      <td>
-                        <span style={{ color: 'var(--muted2)' }}>—</span>
-                      </td>
-                      <td style={{ color: 'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
-                      <td style={{ display: 'flex', gap: 6 }} onClick={e => e.stopPropagation()}>
-                        <a href={`/master/manufacturers/${m._id}`} className="m-act">View</a>
-                        <button className="m-act approve" onClick={() => openConfirm('approve', m._id, m.companyName)}>Approve</button>
-                      </td>
+                      <td><span className="m-status pending">Pending</span></td>
+                      <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
+                      <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}><a href={`/master/manufacturers/${m._id}`} className="m-act">View</a></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )
+            <div className="m-list-cards">
+              {[...allMfrs.map((m: Manufacturer) => ({ ...m, _status:'active' })), ...pendingApps.map((m: Manufacturer) => ({ ...m, _status:'pending' }))].map((m: any) => (
+                <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
+                  style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14 }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:3 }}>{m.companyName}</div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)' }}>{m.contactEmail}</div>
+                    <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>{m.country}</div>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+                    <span className={`m-status ${m._status}`}>{m._status === 'active' ? 'Active' : 'Pending'}</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.7"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>)
       )}
 
       {/* ── Rejected tab ── */}
       {tab === 'rejected' && (
         rejectedApps === undefined
-          ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>Loading…</div>
+          ? <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'40px 20px', textAlign:'center', color:'var(--muted)' }}>Loading…</div>
           : rejectedApps.length === 0
-          ? <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 20px', textAlign: 'center', color: 'var(--muted)' }}>No rejected manufacturer applications.</div>
-          : (
-            <div className="m-tbl-wrap">
+          ? <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'40px 20px', textAlign:'center', color:'var(--muted)' }}>No rejected manufacturer applications.</div>
+          : (<>
+            <div className="m-tbl-wrap m-list-table">
               <table className="m-tbl">
-                <thead>
-                  <tr>
-                    <th>Company</th>
-                    <th>Contact</th>
-                    <th>Country</th>
-                    <th>Applied</th>
-                    <th>Rejection Reason</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+                <thead><tr><th>Company</th><th>Contact</th><th>Country</th><th>Applied</th><th>Rejection Reason</th><th>Actions</th></tr></thead>
                 <tbody>
                   {rejectedApps.map((m: Manufacturer) => (
-                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor: 'pointer' }}>
-                      <td style={{ fontWeight: 500 }}>{m.companyName}</td>
-                      <td style={{ color: 'var(--muted)' }}>{m.contactEmail}</td>
+                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
+                      <td style={{ fontWeight:500 }}>{m.companyName}</td>
+                      <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
-                      <td style={{ color: 'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
-                      <td style={{ color: 'var(--muted)', fontStyle: 'italic' }}>{m.reviewNotes || 'No reason provided'}</td>
-                      <td onClick={e => e.stopPropagation()}>
-                        <button className="m-act" onClick={() => openConfirm('approve', m._id, m.companyName)}>Reconsider</button>
-                      </td>
+                      <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
+                      <td style={{ color:'var(--muted)', fontStyle:'italic' }}>{m.reviewNotes || 'No reason provided'}</td>
+                      <td onClick={e => e.stopPropagation()}><button className="m-act" onClick={() => openConfirm('approve', m._id, m.companyName)}>Reconsider</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )
+            <div className="m-list-cards">
+              {rejectedApps.map((m: Manufacturer) => (
+                <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
+                  style={{ background:'var(--bg2)', border:'1px solid color-mix(in srgb,var(--err) 20%,var(--border))', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:5 }}>
+                    <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.companyName}</div>
+                    <span style={{ flexShrink:0, marginLeft:8, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--err)', padding:'2px 8px', borderRadius:4, background:'color-mix(in srgb,var(--err) 10%,transparent)' }}>Rejected</span>
+                  </div>
+                  <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:2 }}>{m.country} · {formatDate(m.submittedAt)}</div>
+                  <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom: m.reviewNotes ? 8 : 0 }}>{m.contactEmail}</div>
+                  {m.reviewNotes && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', marginTop:6, padding:'8px 10px', background:'var(--bg)', borderRadius:6 }}>{m.reviewNotes}</div>}
+                </div>
+              ))}
+            </div>
+          </>)
       )}
 
       {/* ── Approve modal ── */}

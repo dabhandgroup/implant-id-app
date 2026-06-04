@@ -94,8 +94,8 @@ body{background:var(--bg);color:var(--text)}
 .m-signout:hover{color:var(--err)}
 
 /* Tabs */
-.m-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:4px}
-.m-tab{flex:1;padding:8px 16px;border-radius:7px;font-family:var(--ff);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;background:transparent;border:0;transition:all .15s;white-space:nowrap}
+.m-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:4px;justify-content:center}
+.m-tab{flex:1;padding:8px 16px;border-radius:7px;font-family:var(--ff);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;background:transparent;border:0;transition:all .15s;white-space:nowrap;text-align:center}
 .m-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .m-tab:hover:not(.active){color:var(--text)}
 
@@ -295,11 +295,14 @@ body{background:var(--bg);color:var(--text)}
   .m-patients-mobile{display:block}
 }
 
-/* Devices: table on desktop, cards on mobile */
-.m-devices-cards { display: none }
+/* List pages: table on desktop, cards on mobile */
+.m-devices-cards,
+.m-list-cards { display: none }
 @media(max-width:700px) {
-  .m-devices-table { display: none }
-  .m-devices-cards { display: block }
+  .m-devices-table,
+  .m-list-table { display: none }
+  .m-devices-cards,
+  .m-list-cards { display: block }
 }
 
 /* Hide table search bar on mobile — redundant, search is in bottom nav */

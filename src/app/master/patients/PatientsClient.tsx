@@ -78,43 +78,46 @@ export default function PatientsClient() {
         <button className="m-act">Filter by status</button>
       </div>
 
-      <div className="m-tbl-wrap">
+      {/* Desktop table */}
+      <div className="m-tbl-wrap m-list-table">
         <table className="m-tbl">
           <thead>
             <tr>
-              <th>Patient ID</th>
-              <th>Name</th>
-              <th>Registered</th>
-              <th>Status</th>
-              <th>Clinic</th>
-              <th>Devices</th>
-              <th>Last Active</th>
+              <th>Patient ID</th><th>Name</th><th>Registered</th><th>Status</th><th>Clinic</th><th>Devices</th><th>Last Active</th>
             </tr>
           </thead>
           <tbody>
             {patients.map(p => (
-              <tr
-                key={p.id}
-                onClick={() => router.push(`/master/patients/${p.id}`)}
-                style={{ cursor: 'pointer' }}
-              >
-                <td style={{ fontFamily: 'var(--ff)', letterSpacing: '.04em', color: 'var(--accent)' }}>
-                  {p.patientId}
-                </td>
-                <td style={{ fontWeight: 500 }}>{p.name}</td>
-                <td style={{ color: 'var(--muted)' }}>{p.registered}</td>
-                <td>
-                  <span className={`m-status ${p.verified}`}>
-                    {p.verified === 'active' ? 'Active' : 'Pending'}
-                  </span>
-                </td>
+              <tr key={p.id} onClick={() => router.push(`/master/patients/${p.id}`)} style={{ cursor: 'pointer' }}>
+                <td style={{ fontFamily:'var(--ff)', letterSpacing:'.04em', color:'var(--accent)' }}>{p.patientId}</td>
+                <td style={{ fontWeight:500 }}>{p.name}</td>
+                <td style={{ color:'var(--muted)' }}>{p.registered}</td>
+                <td><span className={`m-status ${p.verified}`}>{p.verified === 'active' ? 'Active' : 'Pending'}</span></td>
                 <td>{p.clinic}</td>
                 <td>{p.devices}</td>
-                <td style={{ color: 'var(--muted)' }}>{p.lastActive}</td>
+                <td style={{ color:'var(--muted)' }}>{p.lastActive}</td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="m-list-cards">
+        {patients.map(p => (
+          <div key={p.id} onClick={() => router.push(`/master/patients/${p.id}`)}
+            style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14 }}>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
+                <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{p.name}</div>
+                <span className={`m-status ${p.verified}`} style={{ fontSize:10 }}>{p.verified === 'active' ? 'Active' : 'Pending'}</span>
+              </div>
+              <div style={{ fontFamily:'var(--ff)', fontSize:11.5, color:'var(--accent)', letterSpacing:'.04em', marginBottom:2 }}>{p.patientId}</div>
+              <div style={{ fontSize:12, color:'var(--muted)' }}>{p.clinic} · {p.devices} device{p.devices !== 1 ? 's' : ''}</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.7" style={{ flexShrink:0 }}><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        ))}
       </div>
     </div>
   )

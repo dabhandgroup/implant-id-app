@@ -91,26 +91,14 @@ export default function ClinicsClient() {
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 24px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>
             No pending applications.
           </div>
-        ) : (
-          <div className="m-tbl-wrap">
+        ) : (<>
+          {/* Desktop table */}
+          <div className="m-tbl-wrap m-list-table">
             <table className="m-tbl">
-              <thead>
-                <tr>
-                  <th>Clinic Name</th>
-                  <th>Facility Type</th>
-                  <th>Country</th>
-                  <th>Contact Email</th>
-                  <th>Submitted</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Clinic Name</th><th>Facility Type</th><th>Country</th><th>Contact Email</th><th>Submitted</th><th>Actions</th></tr></thead>
               <tbody>
                 {pendingApps.map(app => (
-                  <tr
-                    key={app._id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => router.push('/master/clinics/' + app._id)}
-                  >
+                  <tr key={app._id} style={{ cursor: 'pointer' }} onClick={() => router.push('/master/clinics/' + app._id)}>
                     <td style={{ fontWeight: 500 }}>{app.facilityName}</td>
                     <td>{app.facilityType}</td>
                     <td>{app.facilityCountry}</td>
@@ -118,25 +106,9 @@ export default function ClinicsClient() {
                     <td style={{ whiteSpace: 'nowrap' }}>{formatDate(app.submittedAt)}</td>
                     <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className="m-act"
-                          onClick={() => router.push('/master/clinics/' + app._id)}
-                        >
-                          View
-                        </button>
-                        <button
-                          className="m-act approve"
-                          onClick={e => handleQuickApprove(e, app._id)}
-                          disabled={reviewing}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          className="m-act reject"
-                          onClick={() => router.push('/master/clinics/' + app._id)}
-                        >
-                          Reject
-                        </button>
+                        <button className="m-act" onClick={() => router.push('/master/clinics/' + app._id)}>View</button>
+                        <button className="m-act approve" onClick={e => handleQuickApprove(e, app._id)} disabled={reviewing}>Approve</button>
+                        <button className="m-act reject" onClick={() => router.push('/master/clinics/' + app._id)}>Reject</button>
                       </div>
                     </td>
                   </tr>
@@ -144,7 +116,25 @@ export default function ClinicsClient() {
               </tbody>
             </table>
           </div>
-        )
+          {/* Mobile cards */}
+          <div className="m-list-cards">
+            {pendingApps.map(app => (
+              <div key={app._id} onClick={() => router.push('/master/clinics/' + app._id)}
+                style={{ background:'var(--bg2)', border:'1px solid color-mix(in srgb,var(--warn) 30%,var(--border))', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{app.facilityName}</div>
+                  <span className="m-status pending" style={{ flexShrink:0, marginLeft:8 }}>Pending</span>
+                </div>
+                <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:10 }}>{app.facilityType} · {app.facilityCountry} · {formatDate(app.submittedAt)}</div>
+                <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:12 }}>{app.contactEmail}</div>
+                <div style={{ display:'flex', gap:8 }} onClick={e => e.stopPropagation()}>
+                  <button className="btn btn-s" style={{ fontSize:12, flex:1 }} onClick={e => handleQuickApprove(e, app._id)} disabled={reviewing}>Approve</button>
+                  <button className="btn btn-danger" style={{ fontSize:12, flex:1 }} onClick={() => router.push('/master/clinics/' + app._id)}>Review / Reject</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>)
       )}
 
       {/* ── All Clinics tab ── */}
@@ -155,25 +145,14 @@ export default function ClinicsClient() {
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 24px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>
             No active clinics yet. Approve a pending application to get started.
           </div>
-        ) : (
-          <div className="m-tbl-wrap">
+        ) : (<>
+          {/* Desktop table */}
+          <div className="m-tbl-wrap m-list-table">
             <table className="m-tbl">
-              <thead>
-                <tr>
-                  <th>Clinic Name</th>
-                  <th>Contact Email</th>
-                  <th>Phone</th>
-                  <th>Status</th>
-                  <th>Approved</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Clinic Name</th><th>Contact Email</th><th>Phone</th><th>Status</th><th>Approved</th></tr></thead>
               <tbody>
                 {approvedApps.map(app => (
-                  <tr
-                    key={app._id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => router.push('/master/clinics/' + app._id)}
-                  >
+                  <tr key={app._id} style={{ cursor: 'pointer' }} onClick={() => router.push('/master/clinics/' + app._id)}>
                     <td style={{ fontWeight: 500 }}>{app.facilityName}</td>
                     <td>{app.contactEmail}</td>
                     <td>{app.facilityPhone ?? app.contactPhone ?? '—'}</td>
@@ -184,7 +163,24 @@ export default function ClinicsClient() {
               </tbody>
             </table>
           </div>
-        )
+          {/* Mobile cards */}
+          <div className="m-list-cards">
+            {approvedApps.map(app => (
+              <div key={app._id} onClick={() => router.push('/master/clinics/' + app._id)}
+                style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14 }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:3 }}>{app.facilityName}</div>
+                  <div style={{ fontSize:12.5, color:'var(--muted)' }}>{app.contactEmail}</div>
+                  <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>{app.facilityPhone ?? app.contactPhone ?? ''}</div>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+                  <span className="m-status active">Active</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.7"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>)
       )}
 
       {/* ── Rejected tab ── */}
@@ -195,26 +191,14 @@ export default function ClinicsClient() {
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '40px 24px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14 }}>
             No rejected applications.
           </div>
-        ) : (
-          <div className="m-tbl-wrap">
+        ) : (<>
+          {/* Desktop table */}
+          <div className="m-tbl-wrap m-list-table">
             <table className="m-tbl">
-              <thead>
-                <tr>
-                  <th>Clinic Name</th>
-                  <th>Country</th>
-                  <th>Contact Email</th>
-                  <th>Submitted</th>
-                  <th>Reviewed</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Clinic Name</th><th>Country</th><th>Contact Email</th><th>Submitted</th><th>Reviewed</th><th>Notes</th></tr></thead>
               <tbody>
                 {rejectedApps.map(app => (
-                  <tr
-                    key={app._id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => router.push('/master/clinics/' + app._id)}
-                  >
+                  <tr key={app._id} style={{ cursor: 'pointer' }} onClick={() => router.push('/master/clinics/' + app._id)}>
                     <td style={{ fontWeight: 500 }}>{app.facilityName}</td>
                     <td>{app.facilityCountry}</td>
                     <td>{app.contactEmail}</td>
@@ -226,7 +210,22 @@ export default function ClinicsClient() {
               </tbody>
             </table>
           </div>
-        )
+          {/* Mobile cards */}
+          <div className="m-list-cards">
+            {rejectedApps.map(app => (
+              <div key={app._id} onClick={() => router.push('/master/clinics/' + app._id)}
+                style={{ background:'var(--bg2)', border:'1px solid color-mix(in srgb,var(--err) 20%,var(--border))', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4 }}>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{app.facilityName}</div>
+                  <span style={{ flexShrink:0, marginLeft:8, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--err)', padding:'2px 8px', borderRadius:4, background:'color-mix(in srgb,var(--err) 10%,transparent)' }}>Rejected</span>
+                </div>
+                <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:2 }}>{app.facilityCountry} · {formatDate(app.submittedAt)}</div>
+                <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom: app.reviewNotes ? 8 : 0 }}>{app.contactEmail}</div>
+                {app.reviewNotes && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', marginTop:6, padding:'8px 10px', background:'var(--bg)', borderRadius:6 }}>{app.reviewNotes}</div>}
+              </div>
+            ))}
+          </div>
+        </>)
       )}
     </div>
   )

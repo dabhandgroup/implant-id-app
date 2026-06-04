@@ -63,6 +63,8 @@ body{background:var(--bg);color:var(--text)}
 
 /* Three-column insight row — stacks on mobile */
 .m-insight-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:0}
+/* Grid children must have min-width:0 so they don't overflow on mobile */
+.m-insight-row>*,.m-two>*{min-width:0}
 
 /* Recent activity */
 .m-activity{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden}

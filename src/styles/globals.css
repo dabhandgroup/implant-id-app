@@ -775,8 +775,8 @@ html,body{overflow-x:clip}
   .sidebar .sb-logo{display:none!important}
   /* Neutralise ALL collapsed-state overrides inside the mobile drawer */
   .sidebar .sb-link span,.sidebar .sb-bot .name,.sidebar .sb-bot .role,.sidebar .sb-notif .label,.sidebar .sb-notif .count{max-width:200px!important;opacity:1!important;margin-left:0!important}
-  /* Section headers: remove overflow constraints so text is never clipped */
-  .sidebar .sb-section{opacity:1!important;padding:16px 15px 6px!important}
+  /* Section headers: remove overflow + nowrap constraints so text is never clipped */
+  .sidebar .sb-section{opacity:1!important;padding:16px 15px 6px!important;overflow:visible!important;white-space:normal!important}
   /* sb-bot: always left-aligned on mobile regardless of collapsed state */
   .sidebar .sb-bot{justify-content:flex-start!important;padding:10px!important;gap:10px!important}
   .sidebar .sb-bot .chev{display:block!important}

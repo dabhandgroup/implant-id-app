@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { useRouter }   from 'next/navigation'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,10 +45,76 @@ interface ScrapeResult {
   status: string
 }
 
+// ── History row ───────────────────────────────────────────────────────────────
+
+function HistoryRow({ job, onLoad }: { job: any; onLoad: (job: any) => void }) {
+  const isComplete = job.status === 'complete'
+  const isError    = job.status === 'error'
+  const isPending  = job.status === 'pending'
+  const mri        = job.result?.mapped?.mriStatus
+  const conf       = job.result?.raw?.confidence_pct as number | undefined
+
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', borderBottom:'1px solid var(--border)', cursor: isComplete ? 'pointer' : 'default' }}
+      onClick={() => isComplete && onLoad(job)}
+    >
+      {/* Status dot */}
+      <div style={{ width:8, height:8, borderRadius:'50%', flexShrink:0,
+        background: isComplete ? 'var(--ok)' : isError ? 'var(--err)' : 'var(--accent)' }} />
+
+      {/* Device info */}
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:500, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          {job.manufacturer} — {job.model}
+        </div>
+        <div style={{ fontSize:11.5, color:'var(--muted)', marginTop:2 }}>
+          {new Date(job.createdAt).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
+          {' · '}
+          {isPending ? 'In progress…' : isError ? job.errorMessage ?? 'Error' : `${job.deviceType}`}
+        </div>
+      </div>
+
+      {/* MRI badge */}
+      {isComplete && mri && (
+        <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
+          <MriIcon status={mri} size={14} />
+          <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color: MRI_COLOUR[mri] }}>{MRI_LABEL[mri]}</span>
+        </div>
+      )}
+
+      {/* Confidence */}
+      {isComplete && conf !== undefined && (
+        <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, color: conf >= 80 ? 'var(--ok)' : conf >= 50 ? '#f59e0b' : 'var(--err)', flexShrink:0 }}>
+          {conf}%
+        </div>
+      )}
+
+      {/* Load button */}
+      {isComplete && (
+        <div style={{ fontFamily:'var(--ff)', fontSize:11.5, color:'var(--accent)', flexShrink:0 }}>
+          Load →
+        </div>
+      )}
+
+      {/* Pending spinner */}
+      {isPending && (
+        <div style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted)', flexShrink:0 }}>
+          running…
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function ScrapeClient() {
-  // ── All hooks unconditionally at top ─────────────────────────────────────
-  const router     = useRouter()
-  const addDevice  = useMutation(api.devices.addDevice)
+  const router            = useRouter()
+  const addDevice         = useMutation(api.devices.addDevice)
+  const createJob         = useMutation(api.scrapeJobs.createScrapeJob)
+  const completeJob       = useMutation(api.scrapeJobs.completeScrapeJob)
+  const failJob           = useMutation(api.scrapeJobs.failScrapeJob)
+  const history           = useQuery(api.scrapeJobs.listScrapeJobs, { limit: 15 })
 
   const [manufacturer, setManufacturer] = useState('')
   const [model,        setModel]        = useState('')
@@ -62,8 +128,9 @@ export default function ScrapeClient() {
   const timerRef                  = useRef<ReturnType<typeof setInterval> | null>(null)
   const [error,     setError]     = useState('')
   const [result,    setResult]    = useState<ScrapeResult | null>(null)
+  const [activeJobId, setActiveJobId] = useState<string | null>(null)
 
-  // Elapsed timer — starts/stops with loading state
+  // Elapsed timer
   useEffect(() => {
     if (loading) {
       setElapsed(0)
@@ -74,7 +141,7 @@ export default function ScrapeClient() {
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
   }, [loading])
 
-  // Editable mapped fields (pre-filled from scrape, user can adjust)
+  // Editable mapped fields
   const [editManufacturer,  setEditManufacturer]  = useState('')
   const [editModel,         setEditModel]         = useState('')
   const [editDeviceType,    setEditDeviceType]     = useState('')
@@ -89,7 +156,30 @@ export default function ScrapeClient() {
   const [added,    setAdded]    = useState(false)
   const [addError, setAddError] = useState('')
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  function loadResult(data: ScrapeResult) {
+    setResult(data)
+    const m = data.mapped
+    setEditManufacturer(m.manufacturer)
+    setEditModel(m.model)
+    setEditDeviceType(m.deviceType)
+    setEditMriStatus(m.mriStatus)
+    setEditClassification(m.classification)
+    setEditFieldStrengths(m.fieldStrengths ?? '')
+    setEditSarLimit(m.sarLimit ?? '')
+    setEditB1Rms(m.b1RmsLimit ?? '')
+    setEditContra(m.contraindications ?? '')
+    setAdded(false)
+    setAddError('')
+  }
+
+  function loadFromHistory(job: any) {
+    if (!job.result) return
+    loadResult(job.result as ScrapeResult)
+    // Pre-fill form fields
+    setManufacturer(job.manufacturer)
+    setModel(job.model)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   async function handleScrape(e: React.FormEvent) {
     e.preventDefault()
@@ -97,6 +187,15 @@ export default function ScrapeClient() {
     setResult(null)
     setAdded(false)
     setLoading(true)
+
+    // Create a persisted job record immediately so it survives navigation
+    const jobId = await createJob({
+      manufacturer,
+      model,
+      deviceType,
+      ifuUrl: ifuUrl || undefined,
+    })
+    setActiveJobId(String(jobId))
 
     try {
       const res = await fetch('/api/devices/scrape', {
@@ -107,26 +206,22 @@ export default function ScrapeClient() {
       const data = await res.json() as ScrapeResult & { error?: string }
 
       if (!res.ok || data.error) {
-        setError(data.error ?? 'Extraction failed')
+        const msg = data.error ?? 'Extraction failed'
+        await failJob({ jobId, errorMessage: msg })
+        setError(msg)
         return
       }
 
-      setResult(data)
-      // Pre-fill editable fields
-      const m = data.mapped
-      setEditManufacturer(m.manufacturer)
-      setEditModel(m.model)
-      setEditDeviceType(m.deviceType)
-      setEditMriStatus(m.mriStatus)
-      setEditClassification(m.classification)
-      setEditFieldStrengths(m.fieldStrengths ?? '')
-      setEditSarLimit(m.sarLimit ?? '')
-      setEditB1Rms(m.b1RmsLimit ?? '')
-      setEditContra(m.contraindications ?? '')
+      // Persist result to Convex so it shows in history
+      await completeJob({ jobId, result: data })
+      loadResult(data)
     } catch {
-      setError('Network error — please try again')
+      const msg = 'Network error — please try again'
+      await failJob({ jobId, errorMessage: msg }).catch(() => {})
+      setError(msg)
     } finally {
       setLoading(false)
+      setActiveJobId(null)
     }
   }
 
@@ -152,8 +247,6 @@ export default function ScrapeClient() {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   const rawConfidence = result?.raw as Record<string, unknown> | undefined
   const sources       = (rawConfidence?._sources_consulted as Array<{ id: string; type?: string; title?: string; url?: string; accessible?: boolean }>) ?? []
   const fieldConf     = (rawConfidence?._field_confidence as Record<string, string>) ?? {}
@@ -161,25 +254,29 @@ export default function ScrapeClient() {
   const needsReview   = (rawConfidence?.needs_review as string[]) ?? []
   const confPct       = (rawConfidence?.confidence_pct as number) ?? 0
 
+  const pendingJobs   = (history ?? []).filter((j: any) => j.status === 'pending')
+
   return (
     <div className="m-content">
       <a href="/master/devices" className="m-back" style={{ display:'inline-flex',alignItems:'center',gap:6,color:'var(--muted)',fontFamily:'var(--ff)',fontSize:13.5,textDecoration:'none',marginBottom:24 }}>
         ← Back to devices
       </a>
 
-      <div className="m-h">
-        <div>
-          <h2>Scrape device data</h2>
-          <div className="sub">
-            Enter a manufacturer + model and let AI extract the MRI safety fields from the official IFU or web sources.
-            Review the results before adding to the catalogue.
-          </div>
-        </div>
-      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 340px', gap:28, alignItems:'start' }}>
 
-      {/* ── Input form — full width, max 760px ── */}
-      <div style={{ maxWidth: 760 }}>
-        <form onSubmit={handleScrape}>
+        {/* ── Left: form + results ── */}
+        <div>
+          <div className="m-h" style={{ marginBottom:20 }}>
+            <div>
+              <h2>Scrape device data</h2>
+              <div className="sub">
+                Enter a manufacturer + model and let AI extract the MRI safety fields from the official IFU or web sources.
+                Review the results before adding to the catalogue.
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleScrape}>
             {/* Device type tabs */}
             <div style={{ display:'flex', gap:6, marginBottom:16 }}>
               {(['active','passive','temp','legacy'] as DeviceType[]).map(t => (
@@ -237,12 +334,12 @@ export default function ScrapeClient() {
               </div>
             )}
 
-            <button type="submit" className="btn btn-s btn-block" disabled={loading} style={{ fontSize:14 }}>
+            <button type="submit" className="btn btn-s btn-block" disabled={loading || !manufacturer || !model} style={{ fontSize:14 }}>
               {loading ? `⏳ Extracting data… ${elapsed}s` : '🔍 Extract device data'}
             </button>
           </form>
 
-          {/* ── Progress panel ── */}
+          {/* Progress panel */}
           {loading && (
             <div style={{ marginTop:16, padding:'18px 20px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12 }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
@@ -253,19 +350,18 @@ export default function ScrapeClient() {
                   {elapsed}s elapsed
                 </div>
               </div>
-
               {webSearch && (
                 <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                   {[
-                    { label:`${manufacturer || 'OEM'} official website`,        delay: 0  },
-                    { label:`${manufacturer || 'Manufacturer'} IFU / manual library`, delay: 3  },
-                    { label:'FDA medical device database',                       delay: 6  },
-                    { label:'EU MDR / EUDAMED registry',                        delay: 10 },
-                    { label:'Third-party MRI safety databases',                  delay: 15 },
-                    { label:'Cross-referencing extracted parameters',            delay: 20 },
+                    { label:`${manufacturer || 'OEM'} official website`,                delay: 0  },
+                    { label:`${manufacturer || 'Manufacturer'} IFU / manual library`,   delay: 3  },
+                    { label:'FDA medical device database',                               delay: 6  },
+                    { label:'EU MDR / EUDAMED registry',                                delay: 10 },
+                    { label:'Third-party MRI safety databases',                          delay: 15 },
+                    { label:'Cross-referencing extracted parameters',                    delay: 20 },
                   ].map((s, i) => {
-                    const active  = elapsed >= s.delay
-                    const done    = i < Math.floor(elapsed / 5)
+                    const active = elapsed >= s.delay
+                    const done   = i < Math.floor(elapsed / 5)
                     return (
                       <div key={s.label} style={{ display:'flex', alignItems:'center', gap:10, opacity: active ? 1 : 0.3, transition:'opacity .5s' }}>
                         <div style={{ width:16, height:16, borderRadius:'50%', flexShrink:0, border:`2px solid ${done ? 'var(--ok)' : active ? 'var(--accent)' : 'var(--border)'}`, background: done ? 'var(--ok)' : 'transparent', display:'grid', placeItems:'center' }}>
@@ -282,7 +378,6 @@ export default function ScrapeClient() {
                   })}
                 </div>
               )}
-
               {!webSearch && (
                 <div style={{ fontFamily:'var(--fb)', fontSize:13, color:'var(--muted)' }}>
                   Parsing the provided {ifuUrl ? 'URL' : 'text'} and extracting MRI safety parameters…
@@ -290,149 +385,176 @@ export default function ScrapeClient() {
               )}
             </div>
           )}
-      </div>
 
-        {/* ── Results — below form, full width ── */}
-        {result && (
-          <div style={{ maxWidth: 760, marginTop: 24 }}>
-            {/* Confidence banner */}
-            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, padding:'12px 16px', borderRadius:10, background: confPct >= 80 ? 'color-mix(in srgb,var(--ok) 8%,transparent)' : 'color-mix(in srgb,#f59e0b 8%,transparent)', border: `1px solid color-mix(in srgb,${confPct >= 80 ? 'var(--ok)' : '#f59e0b'} 20%,transparent)` }}>
-              <div style={{ fontSize:22, fontWeight:700, color: confPct >= 80 ? 'var(--ok)' : '#b45309', fontFamily:'var(--ff)', width:48, flexShrink:0 }}>{confPct}%</div>
-              <div>
-                <div style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:600, color:'var(--text)' }}>
-                  {confPct >= 80 ? 'High confidence' : confPct >= 50 ? 'Medium confidence — review flagged fields' : 'Low confidence — manual verification required'}
-                </div>
-                {needsReview.length > 0 && <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>Review: {needsReview.join(', ')}</div>}
-              </div>
-            </div>
-
-            {/* Conflicts */}
-            {conflicts.length > 0 && (
-              <div style={{ marginBottom:12, padding:'10px 14px', borderRadius:8, background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', fontSize:13 }}>
-                <div style={{ fontFamily:'var(--ff)', fontWeight:600, color:'var(--err)', marginBottom:4 }}>⚠ Source conflicts — verify before adding</div>
-                {conflicts.map((c, i) => (
-                  <div key={i} style={{ color:'var(--muted)', fontSize:12 }}>
-                    <strong>{c.field}</strong>: {c.values.map(v => `"${v.value}" (${v.source_id})`).join(' vs ')}
+          {/* Results */}
+          {result && (
+            <div style={{ marginTop: 24 }}>
+              {/* Confidence banner */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, padding:'12px 16px', borderRadius:10, background: confPct >= 80 ? 'color-mix(in srgb,var(--ok) 8%,transparent)' : 'color-mix(in srgb,#f59e0b 8%,transparent)', border: `1px solid color-mix(in srgb,${confPct >= 80 ? 'var(--ok)' : '#f59e0b'} 20%,transparent)` }}>
+                <div style={{ fontSize:22, fontWeight:700, color: confPct >= 80 ? 'var(--ok)' : '#b45309', fontFamily:'var(--ff)', width:48, flexShrink:0 }}>{confPct}%</div>
+                <div>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:600, color:'var(--text)' }}>
+                    {confPct >= 80 ? 'High confidence' : confPct >= 50 ? 'Medium confidence — review flagged fields' : 'Low confidence — manual verification required'}
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Editable extracted fields */}
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'18px 20px', marginBottom:16 }}>
-              <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--muted2)', marginBottom:14, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                Extracted fields
-                <span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', textTransform:'none', letterSpacing:0 }}>Edit before saving</span>
+                  {needsReview.length > 0 && <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>Review: {needsReview.join(', ')}</div>}
+                </div>
               </div>
 
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-                {[
-                  { label:'Manufacturer', value:editManufacturer, set:setEditManufacturer, conf:fieldConf.manufacturer },
-                  { label:'Model',        value:editModel,        set:setEditModel,        conf:fieldConf.device_name },
-                  { label:'Device type',  value:editDeviceType,   set:setEditDeviceType,   conf:fieldConf.device_type },
-                  { label:'Field strengths', value:editFieldStrengths, set:setEditFieldStrengths, conf:fieldConf.field_strength_15t },
-                  { label:'SAR limit',    value:editSarLimit,     set:setEditSarLimit,     conf:fieldConf.whole_body_sar_limit },
-                  { label:'B1+rms limit', value:editB1Rms,        set:setEditB1Rms,        conf:fieldConf.b1rms_limit },
-                ].map(f => (
-                  <div key={f.label}>
-                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                      <label style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted2)' }}>{f.label}</label>
-                      {f.conf && (
-                        <span style={{ fontSize:10, fontWeight:600, color: CONFIDENCE_COLOUR[f.conf] ?? 'var(--muted)' }}>{f.conf}</span>
-                      )}
+              {conflicts.length > 0 && (
+                <div style={{ marginBottom:12, padding:'10px 14px', borderRadius:8, background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', fontSize:13 }}>
+                  <div style={{ fontFamily:'var(--ff)', fontWeight:600, color:'var(--err)', marginBottom:4 }}>⚠ Source conflicts — verify before adding</div>
+                  {conflicts.map((c, i) => (
+                    <div key={i} style={{ color:'var(--muted)', fontSize:12 }}>
+                      <strong>{c.field}</strong>: {c.values.map(v => `"${v.value}" (${v.source_id})`).join(' vs ')}
                     </div>
-                    <input className="input" type="text" value={f.value} onChange={e => f.set(e.target.value)} style={{ fontSize:13 }} />
-                  </div>
-                ))}
-              </div>
-
-              {/* MRI Status */}
-              <div style={{ marginTop:12 }}>
-                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-                  <label style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted2)' }}>MRI Status</label>
-                  {fieldConf.mri_classification && (
-                    <span style={{ fontSize:10, fontWeight:600, color: CONFIDENCE_COLOUR[fieldConf.mri_classification] ?? 'var(--muted)' }}>{fieldConf.mri_classification}</span>
-                  )}
-                </div>
-                <div style={{ display:'flex', gap:8 }}>
-                  {(['safe','conditional','unsafe','unknown'] as const).map(s => (
-                    <button key={s} type="button"
-                      style={{ flex:1, padding:'8px 6px', borderRadius:6, cursor:'pointer', fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, transition:'all .15s',
-                        background: editMriStatus === s ? (s === 'safe' ? 'var(--ok)' : s === 'conditional' ? '#d97706' : s === 'unsafe' ? 'var(--err)' : 'var(--muted)') : 'var(--bg)',
-                        color:      editMriStatus === s ? '#fff' : 'var(--muted)',
-                        border:     editMriStatus === s ? '2px solid transparent' : '1px solid var(--border)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                      }}
-                      onClick={() => setEditMriStatus(s)}
-                    >
-                      {s !== 'unknown' && <MriIcon status={s} size={16} />}
-                      {MRI_LABEL[s]}
-                    </button>
                   ))}
                 </div>
-              </div>
+              )}
 
-              {/* Classification */}
-              <div style={{ marginTop:12 }}>
-                <label style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted2)', display:'block', marginBottom:6 }}>Classification</label>
-                <div style={{ display:'flex', gap:8 }}>
-                  {(['active','passive','legacy'] as const).map(c => (
-                    <button key={c} type="button"
-                      className={editClassification === c ? 'btn btn-s' : 'btn'}
-                      style={{ flex:1, fontSize:12, textTransform:'capitalize' }}
-                      onClick={() => setEditClassification(c)}
-                    >
-                      {c}
-                    </button>
+              {/* Editable extracted fields */}
+              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'18px 20px', marginBottom:16 }}>
+                <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--muted2)', marginBottom:14, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  Extracted fields
+                  <span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', textTransform:'none', letterSpacing:0 }}>Edit before saving</span>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                  {[
+                    { label:'Manufacturer',    value:editManufacturer,  set:setEditManufacturer,  conf:fieldConf.manufacturer },
+                    { label:'Model',           value:editModel,         set:setEditModel,         conf:fieldConf.device_name },
+                    { label:'Device type',     value:editDeviceType,    set:setEditDeviceType,    conf:fieldConf.device_type },
+                    { label:'Field strengths', value:editFieldStrengths,set:setEditFieldStrengths,conf:fieldConf.field_strength_15t },
+                    { label:'SAR limit',       value:editSarLimit,      set:setEditSarLimit,      conf:fieldConf.whole_body_sar_limit },
+                    { label:'B1+rms limit',    value:editB1Rms,         set:setEditB1Rms,         conf:fieldConf.b1rms_limit },
+                  ].map(f => (
+                    <div key={f.label}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                        <label style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted2)' }}>{f.label}</label>
+                        {f.conf && <span style={{ fontSize:10, fontWeight:600, color: CONFIDENCE_COLOUR[f.conf] ?? 'var(--muted)' }}>{f.conf}</span>}
+                      </div>
+                      <input className="input" type="text" value={f.value} onChange={e => f.set(e.target.value)} style={{ fontSize:13 }} />
+                    </div>
                   ))}
+                </div>
+                {/* MRI Status */}
+                <div style={{ marginTop:12 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                    <label style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted2)' }}>MRI Status</label>
+                    {fieldConf.mri_classification && <span style={{ fontSize:10, fontWeight:600, color: CONFIDENCE_COLOUR[fieldConf.mri_classification] ?? 'var(--muted)' }}>{fieldConf.mri_classification}</span>}
+                  </div>
+                  <div style={{ display:'flex', gap:8 }}>
+                    {(['safe','conditional','unsafe','unknown'] as const).map(s => (
+                      <button key={s} type="button"
+                        style={{ flex:1, padding:'8px 6px', borderRadius:6, cursor:'pointer', fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, transition:'all .15s',
+                          background: editMriStatus === s ? (s === 'safe' ? 'var(--ok)' : s === 'conditional' ? '#d97706' : s === 'unsafe' ? 'var(--err)' : 'var(--muted)') : 'var(--bg)',
+                          color:      editMriStatus === s ? '#fff' : 'var(--muted)',
+                          border:     editMriStatus === s ? '2px solid transparent' : '1px solid var(--border)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        }}
+                        onClick={() => setEditMriStatus(s)}
+                      >
+                        {s !== 'unknown' && <MriIcon status={s} size={16} />}
+                        {MRI_LABEL[s]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Classification */}
+                <div style={{ marginTop:12 }}>
+                  <label style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted2)', display:'block', marginBottom:6 }}>Classification</label>
+                  <div style={{ display:'flex', gap:8 }}>
+                    {(['active','passive','legacy'] as const).map(c => (
+                      <button key={c} type="button"
+                        className={editClassification === c ? 'btn btn-s' : 'btn'}
+                        style={{ flex:1, fontSize:12, textTransform:'capitalize' }}
+                        onClick={() => setEditClassification(c)}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Contraindications */}
+                <div style={{ marginTop:12 }}>
+                  <label style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted2)', display:'block', marginBottom:4 }}>Contraindications / special conditions</label>
+                  <textarea className="input" rows={3} value={editContra} onChange={e => setEditContra(e.target.value)} style={{ resize:'vertical', fontSize:13 }} />
                 </div>
               </div>
 
-              {/* Contraindications */}
-              <div style={{ marginTop:12 }}>
-                <label style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted2)', display:'block', marginBottom:4 }}>Contraindications / special conditions</label>
-                <textarea className="input" rows={3} value={editContra} onChange={e => setEditContra(e.target.value)} style={{ resize:'vertical', fontSize:13 }} />
+              {/* Sources */}
+              {sources.length > 0 && (
+                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', marginBottom:16 }}>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--muted2)', marginBottom:10 }}>Sources consulted</div>
+                  {sources.map((s, i) => (
+                    <div key={i} style={{ display:'flex', gap:8, marginBottom:6, alignItems:'flex-start' }}>
+                      <span style={{ fontFamily:'var(--ff)', fontSize:10, fontWeight:600, padding:'2px 6px', borderRadius:4, background: s.accessible !== false ? 'color-mix(in srgb,var(--ok) 12%,transparent)' : 'color-mix(in srgb,var(--err) 10%,transparent)', color: s.accessible !== false ? 'var(--ok)' : 'var(--err)', flexShrink:0 }}>
+                        {s.accessible !== false ? '✓' : '⚠'} {s.type ?? 'src'}
+                      </span>
+                      <div>
+                        {s.title && <div style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'var(--text)' }}>{s.title}</div>}
+                        {s.url && <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:11.5, color:'var(--accent)', wordBreak:'break-all' }}>{s.url}</a>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Add to catalogue */}
+              {added ? (
+                <div style={{ background:'color-mix(in srgb,var(--ok) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--ok) 25%,transparent)', borderRadius:10, padding:'14px 18px', display:'flex', alignItems:'center', gap:10 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  <span style={{ fontFamily:'var(--ff)', fontSize:13.5, color:'var(--ok)', fontWeight:500 }}>Added to device catalogue</span>
+                  <button className="btn" style={{ marginLeft:'auto', fontSize:12 }} onClick={() => router.push('/master/devices')}>View all devices</button>
+                </div>
+              ) : (
+                <>
+                  {addError && <div style={{ color:'var(--err)', fontSize:13, marginBottom:8, fontFamily:'var(--ff)' }}>{addError}</div>}
+                  <button className="btn btn-s btn-block" disabled={adding || !editManufacturer || !editModel} onClick={handleAddToDb} style={{ fontSize:14 }}>
+                    {adding ? 'Adding…' : '+ Add to device catalogue'}
+                  </button>
+                  <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted)', textAlign:'center', marginTop:8 }}>
+                    Review the fields above before adding. You can edit any value directly.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── Right: scrape history ── */}
+        <div style={{ position:'sticky', top:80 }}>
+          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
+            <div style={{ padding:'14px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:600, color:'var(--text)' }}>
+                Scrape history
               </div>
+              {pendingJobs.length > 0 && (
+                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                  <span style={{ width:7, height:7, borderRadius:'50%', background:'var(--accent)', animation:'pending-pulse 1s ease-in-out infinite', display:'block' }} />
+                  <span style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--accent)' }}>{pendingJobs.length} running</span>
+                </div>
+              )}
             </div>
 
-            {/* Sources */}
-            {sources.length > 0 && (
-              <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'14px 16px', marginBottom:16 }}>
-                <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--muted2)', marginBottom:10 }}>Sources consulted</div>
-                {sources.map((s, i) => (
-                  <div key={i} style={{ display:'flex', gap:8, marginBottom:6, alignItems:'flex-start' }}>
-                    <span style={{ fontFamily:'var(--ff)', fontSize:10, fontWeight:600, padding:'2px 6px', borderRadius:4, background: s.accessible !== false ? 'color-mix(in srgb,var(--ok) 12%,transparent)' : 'color-mix(in srgb,var(--err) 10%,transparent)', color: s.accessible !== false ? 'var(--ok)' : 'var(--err)', flexShrink:0 }}>
-                      {s.accessible !== false ? '✓' : '⚠'} {s.type ?? 'src'}
-                    </span>
-                    <div>
-                      {s.title && <div style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'var(--text)' }}>{s.title}</div>}
-                      {s.url && <a href={s.url} target="_blank" rel="noopener noreferrer" style={{ fontSize:11.5, color:'var(--accent)', wordBreak:'break-all' }}>{s.url}</a>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add to catalogue */}
-            {added ? (
-              <div style={{ background:'color-mix(in srgb,var(--ok) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--ok) 25%,transparent)', borderRadius:10, padding:'14px 18px', display:'flex', alignItems:'center', gap:10 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                <span style={{ fontFamily:'var(--ff)', fontSize:13.5, color:'var(--ok)', fontWeight:500 }}>Added to device catalogue</span>
-                <button className="btn" style={{ marginLeft:'auto', fontSize:12 }} onClick={() => router.push('/master/devices')}>View all devices</button>
+            {history === undefined ? (
+              <div style={{ padding:'20px 16px', color:'var(--muted)', fontSize:13, fontFamily:'var(--ff)' }}>Loading…</div>
+            ) : history.length === 0 ? (
+              <div style={{ padding:'20px 16px', color:'var(--muted)', fontSize:13, fontFamily:'var(--ff)', textAlign:'center' }}>
+                No scrapes yet — run your first extraction above.
               </div>
             ) : (
-              <>
-                {addError && <div style={{ color:'var(--err)', fontSize:13, marginBottom:8, fontFamily:'var(--ff)' }}>{addError}</div>}
-                <button className="btn btn-s btn-block" disabled={adding || !editManufacturer || !editModel} onClick={handleAddToDb} style={{ fontSize:14 }}>
-                  {adding ? 'Adding…' : '+ Add to device catalogue'}
-                </button>
-                <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted)', textAlign:'center', marginTop:8 }}>
-                  Review the fields above before adding. You can edit any value directly.
-                </p>
-              </>
+              <div>
+                {history.map((job: any) => (
+                  <HistoryRow key={job._id} job={job} onLoad={loadFromHistory} />
+                ))}
+              </div>
             )}
           </div>
-        )}
+          <p style={{ fontFamily:'var(--ff)', fontSize:11.5, color:'var(--muted)', textAlign:'center', marginTop:8 }}>
+            Click any completed scrape to load its results
+          </p>
+        </div>
+
+      </div>
     </div>
   )
 }

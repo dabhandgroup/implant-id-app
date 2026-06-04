@@ -14,7 +14,7 @@ export default function MasterDashboardPage() {
   const pendingMfrs     = useQuery(api.manufacturers.listApplications, { status: 'pending' })
   const allMfrs         = useQuery(api.manufacturers.listApprovedManufacturers)
   const allPatients     = useQuery(api.patients.listAllPatients,        {})
-  const allDevices      = useQuery(api.devices.listAllDevices)
+  const allDevices      = useQuery(api.devices.listAllDevices, { status: 'live' })
   const pendingDevices  = useQuery(api.devices.listPendingDevices)
 
   const pendingCount   = pendingClinics?.length ?? 0

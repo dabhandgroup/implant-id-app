@@ -291,6 +291,20 @@ export default defineSchema({
     .index('by_email', ['contactEmail'])
     .index('by_clerk', ['clerkUserId']),
 
+  // Scrape jobs — persisted so results survive navigation and show as history
+  scrapeJobs: defineTable({
+    manufacturer:  v.string(),
+    model:         v.string(),
+    deviceType:    v.string(),
+    ifuUrl:        v.optional(v.string()),
+    status:        v.union(v.literal('pending'), v.literal('complete'), v.literal('error')),
+    result:        v.optional(v.any()),
+    errorMessage:  v.optional(v.string()),
+    createdAt:     v.number(),
+    completedAt:   v.optional(v.number()),
+  })
+    .index('by_created', ['createdAt']),
+
   // Device change requests (manufacturers flag recalls, edits, unsafe flags)
   deviceChangeRequests: defineTable({
     deviceId: v.id('devices'),

@@ -259,9 +259,9 @@ body{background:var(--bg);color:var(--text)}
   .form-grid-3{grid-template-columns:1fr}
   .form-card{padding:16px 14px}
 
-  /* Tabs: allow scroll */
-  .m-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:3px}
-  .m-tab{flex:0 0 auto;padding:8px 14px;font-size:12.5px}
+  /* Tabs: stay full-width, equal columns — no horizontal scroll */
+  .m-tabs{flex-wrap:nowrap;padding:3px}
+  .m-tab{flex:1;padding:8px 6px;font-size:12px;min-width:0}
 
   /* Info grid: single column */
   .m-info-grid{grid-template-columns:1fr}

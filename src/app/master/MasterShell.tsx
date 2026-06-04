@@ -41,8 +41,6 @@ export default function MasterShell({ children }: MasterShellProps) {
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
   const [searchQuery,    setSearchQuery]    = useState('')
-  const [mobSearchOpen,  setMobSearchOpen]  = useState(false)
-  const mobSearchRef = useRef<HTMLInputElement>(null)
 
   // ── Real-time admin notification data ───────────────────────────────────────
   const pendingClinics  = useQuery(api.clinics.listApplications,      { status: 'pending' })
@@ -486,14 +484,14 @@ export default function MasterShell({ children }: MasterShellProps) {
             <IconPatients />
             <span className="t">Patients</span>
           </a>
-          <button
-            className="mob-nav-tab"
+          <a
+            href="/master/search"
+            className={`mob-nav-tab${isActive('/master/search') ? ' active' : ''}`}
             aria-label="Search"
-            onClick={() => { setMobSearchOpen(true); setTimeout(() => mobSearchRef.current?.focus(), 50) }}
           >
             <IconSearch />
             <span className="t">Search</span>
-          </button>
+          </a>
           <a
             href="/master/clinics"
             className={`mob-nav-tab${isActive('/master/clinics') ? ' active' : ''}`}
@@ -517,70 +515,6 @@ export default function MasterShell({ children }: MasterShellProps) {
         </div>
       </nav>
 
-      {/* ── Mobile search drawer ── */}
-      {mobSearchOpen && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(4px)' }}
-          onClick={() => { setMobSearchOpen(false); setSearchQuery('') }}
-        />
-      )}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 201,
-        background: 'var(--bg2)', borderRadius: '16px 16px 0 0',
-        borderTop: '1px solid var(--border)',
-        padding: '16px 16px 32px',
-        transform: mobSearchOpen ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform .28s cubic-bezier(.4,0,.2,1)',
-        boxShadow: '0 -8px 40px rgba(0,0,0,.12)',
-      }}>
-        {/* Handle */}
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 12, padding: '0 14px', height: 48 }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.7">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            ref={mobSearchRef}
-            type="text"
-            placeholder="Search patients, devices, clinics…"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && searchQuery.trim()) {
-                setMobSearchOpen(false)
-                router.push(`/master/search?q=${encodeURIComponent(searchQuery.trim())}`)
-                setSearchQuery('')
-              }
-              if (e.key === 'Escape') { setMobSearchOpen(false); setSearchQuery('') }
-            }}
-            style={{ flex: 1, border: 0, background: 'transparent', fontFamily: 'var(--fb)', fontSize: 16, color: 'var(--text)', outline: 'none' }}
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: 0, fontSize: 18, lineHeight: 1 }}>×</button>
-          )}
-        </div>
-        {searchQuery.trim() && (
-          <button
-            className="btn btn-s"
-            style={{ width: '100%', marginTop: 12, justifyContent: 'center' }}
-            onClick={() => {
-              setMobSearchOpen(false)
-              router.push(`/master/search?q=${encodeURIComponent(searchQuery.trim())}`)
-              setSearchQuery('')
-            }}
-          >
-            Search for &ldquo;{searchQuery}&rdquo; →
-          </button>
-        )}
-        <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {['Patients', 'Devices', 'Clinics', 'Manufacturers'].map(q => (
-            <button key={q} className="btn" style={{ fontSize: 12, padding: '5px 12px' }}
-              onClick={() => { setMobSearchOpen(false); router.push(`/master/search?q=${encodeURIComponent(q)}`); setSearchQuery('') }}>
-              {q}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* ── Sign-out confirmation modal ── */}
       {signOutConfirm && (

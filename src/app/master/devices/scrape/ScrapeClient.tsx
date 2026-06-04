@@ -85,25 +85,25 @@ function HistoryRow({ job, isActive, onLoad }: { job: any; isActive: boolean; on
         </div>
       </div>
 
-      {/* MRI badge */}
-      {isComplete && mri && (
-        <div style={{ display:'flex', alignItems:'center', gap:5, flexShrink:0 }}>
-          <MriIcon status={mri} size={15} />
-          <span style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:600, color: MRI_COLOUR[mri] }}>{MRI_LABEL[mri]}</span>
-        </div>
-      )}
-
-      {/* Confidence */}
-      {isComplete && conf !== undefined && (
-        <div style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:700, color: conf >= 80 ? 'var(--ok)' : conf >= 50 ? '#f59e0b' : 'var(--err)', flexShrink:0, minWidth:36, textAlign:'right' }}>
-          {conf}%
-        </div>
-      )}
-
-      {/* CTA */}
+      {/* Right: MRI badge, confidence, CTA — stacked column so nothing wraps or overflows */}
       {isComplete && (
-        <div style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'var(--accent)', fontWeight:500, flexShrink:0 }}>
-          {isActive ? 'Loaded' : 'Load →'}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+          {mri && (
+            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+              <MriIcon status={mri} size={13} />
+              <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:MRI_COLOUR[mri], whiteSpace:'nowrap' }}>{MRI_LABEL[mri]}</span>
+            </div>
+          )}
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            {conf !== undefined && (
+              <span style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:700, color: conf >= 80 ? 'var(--ok)' : conf >= 50 ? '#f59e0b' : 'var(--err)' }}>
+                {conf}%
+              </span>
+            )}
+            <span style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--accent)', fontWeight:500 }}>
+              {isActive ? 'Loaded' : 'Load →'}
+            </span>
+          </div>
         </div>
       )}
       {isPending && (

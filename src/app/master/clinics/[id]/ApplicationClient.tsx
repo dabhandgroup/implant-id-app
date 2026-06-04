@@ -187,7 +187,7 @@ export default function ApplicationClient({ id }: { id: string }) {
       </div>
 
       {/* ── Contact + Clinic details ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+      <div className="form-grid" style={{ marginBottom: 16 }}>
 
         {/* Contact card */}
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px' }}>
@@ -239,7 +239,7 @@ export default function ApplicationClient({ id }: { id: string }) {
           <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 14 }}>
             Registration &amp; Compliance
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16 }}>
             {app.registrationNum && (
               <InfoField label={app.regulatoryBody ?? 'Registration Number'} value={app.registrationNum} />
             )}
@@ -303,7 +303,7 @@ export default function ApplicationClient({ id }: { id: string }) {
           <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 14 }}>
             Facility Capacity
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 16 }}>
             {app.mriScannerCount != null && (
               <InfoField label="MRI Scanners" value={String(app.mriScannerCount)} />
             )}

@@ -68,8 +68,13 @@ const ALIASES: Record<string, SchemaKey> = {
   'field_strength_notes': 'contraindications',
   // source
   'source url': 'sourceUrl', 'source link': 'sourceUrl', 'document_url': 'sourceUrl',
+  'source_url': 'sourceUrl',
   // notes
   'notes': 'notes', 'internal notes': 'notes',
+  // template exact matches (wb_sar_limit_w_kg etc.)
+  'wb_sar_limit_w_kg': 'sarLimit',
+  'b1_rms_limit_ut': 'b1RmsLimit',
+  'field_strengths': 'fieldStrengths',
 }
 
 // ── MRI status normaliser ─────────────────────────────────────────────────────
@@ -115,6 +120,45 @@ function validateRow(raw: Record<string, string>): ParsedRow {
     warnings,
     data,
   }
+}
+
+// ── CSV template download ─────────────────────────────────────────────────────
+// Gives masters a clean, pre-labelled template they can fill and re-upload.
+// Column names exactly match ALIASES above so auto-mapping is guaranteed.
+
+const CSV_TEMPLATE_HEADERS = [
+  'device_name', 'manufacturer', 'model_number', 'device_type',
+  'mri_classification', 'field_strengths', 'wb_sar_limit_w_kg',
+  'b1_rms_limit_ut', 'contraindications', 'source_url', 'notes',
+]
+
+const CSV_TEMPLATE_EXAMPLES = [
+  [
+    'Azure XT DR MRI SureScan', 'Medtronic', 'W3DR01', 'Pacemaker',
+    'MR Conditional', '1.5T and 3T', '2', '2',
+    'Full-body scanning permitted when complete SureScan system is implanted.',
+    'https://manuals.medtronic.com', '',
+  ],
+  [
+    'Zilver PTX Drug-Eluting Stent', 'Cook Medical', 'Zilver PTX',
+    'Vascular Stent', 'MR Conditional', '1.5T and 3T', '2', '',
+    'Tested per ASTM standards. No restrictions on scan region.',
+    'https://www.cookmedical.com', '',
+  ],
+]
+
+function downloadCsvTemplate() {
+  const escape = (v: string) => `"${v.replace(/"/g, '""')}"`
+  const rows = [
+    CSV_TEMPLATE_HEADERS.map(escape).join(','),
+    ...CSV_TEMPLATE_EXAMPLES.map(r => r.map(escape).join(',')),
+  ]
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = 'implantid-device-template.csv'
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 // ── File parsing ──────────────────────────────────────────────────────────────
@@ -345,6 +389,14 @@ export default function BulkUploadClient({ returnUrl = '/master/devices' }: Prop
               </svg>
               <div className="dz-title">{parsing ? 'Parsing file…' : 'Drop your CSV or Excel file here, or click to browse'}</div>
               <div className="dz-sub">Accepts .csv, .xlsx, .xls — max 50 MB</div>
+              <button
+                type="button"
+                className="btn"
+                style={{ marginTop: 16, fontSize: 12.5 }}
+                onClick={e => { e.stopPropagation(); downloadCsvTemplate() }}
+              >
+                ↓ Download CSV template
+              </button>
             </div>
           </div>
         ) : (

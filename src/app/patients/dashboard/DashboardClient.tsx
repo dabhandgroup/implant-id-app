@@ -845,7 +845,14 @@ export default function DashboardClient() {
                     <span style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.92)', letterSpacing:'.3px', whiteSpace:'nowrap' }}>
                       {implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
                     </span>
-                    <div style={{ width:46, height:46, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'grid', placeItems:'center', flexShrink:0, padding:4 }}>
+                    {/* MR Safe = square container (matches ISO standard square logo)
+                        MR Conditional + MR Unsafe = circle container (matches circular logos) */}
+                    <div style={{
+                      width:46, height:46,
+                      borderRadius: implantSafety === 'safe' ? 6 : '50%',
+                      background:'rgba(255,255,255,0.92)',
+                      display:'grid', placeItems:'center', flexShrink:0, padding:4,
+                    }}>
                       <img
                         src={implantSafety === 'safe' ? '/mr-safe.svg' : implantSafety === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
                         alt={implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}

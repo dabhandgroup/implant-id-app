@@ -838,25 +838,20 @@ export default function DashboardClient() {
                   </div>
                 </div>
 
-                {/* MRI status — top right, label + icon */}
+                {/* MRI status — top right. Layout is IDENTICAL across all statuses.
+                    Only the icon image changes. Same white circle, same size, same label. */}
                 {!isPending && implantSafety ? (
                   <div className="pb-mri">
                     <span style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.92)', letterSpacing:'.3px', whiteSpace:'nowrap' }}>
                       {implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
                     </span>
-                    {/* Conditional: icon alone (yellow triangle always readable on orange)
-                        Safe/Unsafe: wrap in a white shape so they're visible on matching bg colours */}
-                    {implantSafety === 'conditional' ? (
-                      <img src="/mr-conditional.svg" alt="MR Conditional" style={{ width:42, height:42, display:'block', flexShrink:0 }} />
-                    ) : implantSafety === 'safe' ? (
-                      <div style={{ width:45, height:45, borderRadius:0, background:'rgba(255,255,255,0.92)', display:'grid', placeItems:'center', flexShrink:0, padding:4 }}>
-                        <img src="/mr-safe.svg" alt="MR Safe" style={{ width:'100%', height:'100%', display:'block' }} />
-                      </div>
-                    ) : (
-                      <div style={{ width:45, height:45, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'grid', placeItems:'center', flexShrink:0, padding:5 }}>
-                        <img src="/mr-unsafe.svg" alt="MR Unsafe" style={{ width:'100%', height:'100%', display:'block' }} />
-                      </div>
-                    )}
+                    <div style={{ width:46, height:46, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'grid', placeItems:'center', flexShrink:0, padding:4 }}>
+                      <img
+                        src={implantSafety === 'safe' ? '/mr-safe.svg' : implantSafety === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
+                        alt={implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
+                        style={{ width:'100%', height:'100%', display:'block' }}
+                      />
+                    </div>
                   </div>
                 ) : !isPending ? (
                   <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(34,197,94,0.20)', border:'1px solid rgba(34,197,94,0.4)', borderRadius:999, padding:'5px 12px', fontFamily:'var(--ff)', fontSize:11, fontWeight:700, color:'#bbf7d0', letterSpacing:'.3px', flexShrink:0 }}>

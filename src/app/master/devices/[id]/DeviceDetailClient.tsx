@@ -111,12 +111,12 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
       {/* MRI status hero card */}
       <div style={{ background: MRI_BG[status], borderRadius: 16, padding: '28px 32px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 20 }}>
-        {/* Icon with solid white circle background, half-padding = icon fills more of the circle */}
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {/* Icon: identical container for every status — only the image changes */}
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', display: 'grid', placeItems: 'center', flexShrink: 0, padding: 6 }}>
           <img
             src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : status === 'unsafe' ? '/mr-unsafe.svg' : '/mr-conditional.svg'}
             alt={MRI_LABEL[status]}
-            style={{ width: 56, height: 56 }}
+            style={{ width: '100%', height: '100%', display: 'block' }}
           />
         </div>
         <div>

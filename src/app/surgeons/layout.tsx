@@ -1,6 +1,5 @@
 import { requireRole } from '@/lib/requireRole'
 import SurgeonShell    from '@/components/SurgeonShell'
-import '@/app/master/master.css'
 
 export default async function SurgeonsLayout({
   children,

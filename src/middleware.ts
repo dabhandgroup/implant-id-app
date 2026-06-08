@@ -35,9 +35,10 @@ export default clerkMiddleware(async (auth, req) => {
   const path = req.nextUrl.pathname
 
   if (role) {
-    // Clinic routes — only clinic_staff and admin (except the public onboarding form)
+    // Clinic routes — clinic_staff, surgeon, and admin (except the public onboarding form)
+    // Surgeons can access clinic routes so they can reach the shared implant library, etc.
     if (path.startsWith('/clinics') && !path.startsWith('/clinics/onboarding')
-        && role !== 'clinic_staff' && role !== 'admin') {
+        && role !== 'clinic_staff' && role !== 'surgeon' && role !== 'admin') {
       return NextResponse.redirect(new URL('/patients/dashboard', req.url))
     }
     // Patient routes — only patient and admin; register is public so skip it

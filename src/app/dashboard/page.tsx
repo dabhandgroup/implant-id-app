@@ -14,5 +14,7 @@ export default async function Dashboard() {
 
   if (role === 'patient')      redirect('/patients/dashboard')
   if (role === 'admin')        redirect('/admin/dashboard')
+  if (role === 'surgeon')      redirect('/surgeons/dashboard')
+  if (role === 'manufacturer') redirect('/manufacturer/dashboard')
   redirect('/clinics/dashboard')  // clinic_staff or role not yet set
 }

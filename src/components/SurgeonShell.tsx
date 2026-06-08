@@ -35,6 +35,12 @@ const IconScan = () => (
   </svg>
 )
 
+const IconLibrary = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/>
+  </svg>
+)
+
 const IconGear = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
     <circle cx="12" cy="12" r="3"/>
@@ -83,6 +89,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard',        href: '/surgeons/dashboard', Icon: IconDashboard },
   { label: 'My Patients',      href: '/surgeons/patients',  Icon: IconPatients  },
   { label: 'Look Up Patient',  href: '/surgeons/scan',      Icon: IconScan      },
+  { label: 'Implant library',  href: '/clinics/library',    Icon: IconLibrary   },
   { label: 'Settings',         href: '/surgeons/settings',  Icon: IconGear      },
 ]
 

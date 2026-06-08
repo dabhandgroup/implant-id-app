@@ -286,7 +286,9 @@ export default function MasterShell({ children }: MasterShellProps) {
             className={`sb-link${isActive('/master/clinics') || isActive('/master/applications') ? ' active' : ''}`}
           >
             <IconClinics /><span>Clinics</span>
-            <span className="pill">3</span>
+            {(pendingClinics?.length ?? 0) > 0 && (
+              <span className="pill">{pendingClinics!.length}</span>
+            )}
           </a>
           <a href="/master/manufacturers" className={`sb-link${isActive('/master/manufacturers') ? ' active' : ''}`}>
             <IconMfr /><span>Manufacturers</span>

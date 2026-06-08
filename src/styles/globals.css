@@ -522,6 +522,15 @@ footer::before{content:"";position:absolute;top:-200px;left:50%;transform:transl
 .logout-body p{color:var(--muted);font-size:14px;line-height:1.55}
 .logout-actions{padding:16px 22px 22px;display:flex;gap:10px}
 .logout-actions .btn{flex:1;justify-content:center}
+/* Confirmation modals (approve/reject/unapprove) — separate from sign-out to avoid LogoutHandler intercept */
+.confirm-back{position:fixed;inset:0;background:rgba(8,19,23,.6);backdrop-filter:blur(4px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.confirm-back.open{display:flex}
+.confirm-modal{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 40px 80px -20px rgba(0,0,0,.4)}
+.confirm-body{padding:28px 28px 24px;text-align:center}
+.confirm-body h3{font-family:var(--ff);font-size:19px;letter-spacing:-.015em;margin-bottom:8px}
+.confirm-body p{color:var(--muted);font-size:14px;line-height:1.55}
+.confirm-actions{padding:16px 22px 22px;display:flex;gap:10px}
+.confirm-actions .btn{flex:1;justify-content:center}
 .btn-danger{background:var(--err);color:#fff;border-color:var(--err)}
 .btn-danger:hover{background:#a03929;border-color:#a03929}
 

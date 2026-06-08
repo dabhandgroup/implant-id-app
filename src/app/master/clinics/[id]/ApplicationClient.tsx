@@ -361,9 +361,9 @@ export default function ApplicationClient({ id }: { id: string }) {
 
       {/* ── Confirmation modal ── */}
       {confirmAction && (
-        <div className="logout-back open" onClick={closeConfirm}>
-          <div className="logout-modal" onClick={e => e.stopPropagation()}>
-            <div className="logout-body">
+        <div className="confirm-back open" onClick={closeConfirm}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="confirm-body">
               {confirmAction === 'approve' ? (
                 <>
                   <div style={{
@@ -452,7 +452,7 @@ export default function ApplicationClient({ id }: { id: string }) {
                 </div>
               )}
             </div>
-            <div className="logout-actions">
+            <div className="confirm-actions">
               <button className="btn" onClick={closeConfirm} disabled={submitting}>Cancel</button>
               {confirmAction === 'approve' ? (
                 <button className="btn btn-s" onClick={handleConfirm} disabled={submitting}>

@@ -71,13 +71,15 @@ export default function ApplicationClient({ id }: { id: string }) {
                          ? rejectNotes.trim()
                          : undefined,
       })
-      // Stay on page — navigating immediately after triggers Clerk's auth
-      // middleware before the session fully processes, causing a redirect to /login.
-      // The Convex query will reactively update the status on this page.
       setConfirmAction(null)
       setSubmitError('')
+      // Navigate back to clinics list after a short delay so Clerk's auth
+      // middleware has time to settle before the next page load.
+      // Immediate navigation can redirect to /login before the session processes.
+      setTimeout(() => router.push('/master/clinics'), 350)
     } catch (e) {
       setSubmitError((e as { message?: string })?.message ?? 'Something went wrong')
+    } finally {
       setSubmitting(false)
     }
   }

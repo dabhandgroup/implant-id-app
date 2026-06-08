@@ -157,10 +157,10 @@ export const getMe = query({
   },
 })
 
-/** Create a Clerk account for a new admin (passwordless, email OTP sign-in). */
+/** Create a Clerk account for a new admin (passwordless, email OTP sign-in) and send invite email. */
 export const createAdminClerkAccount = internalAction({
   args: { email: v.string(), name: v.string() },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const secretKey = process.env.CLERK_SECRET_KEY
     if (!secretKey) { console.error('[admin invite] CLERK_SECRET_KEY not set'); return }
 
@@ -177,6 +177,8 @@ export const createAdminClerkAccount = internalAction({
           body: JSON.stringify({ public_metadata: { role: 'admin' } }),
         })
         console.log('[admin invite] Updated existing Clerk user to admin:', args.email)
+        // Send invite email even for existing users being promoted
+        await ctx.runAction(internal.email.sendAdminInviteEmail, { email: args.email, name: args.name })
         return
       }
     }
@@ -197,6 +199,8 @@ export const createAdminClerkAccount = internalAction({
     if (res.ok) {
       const u = await res.json() as { id: string }
       console.log('[admin invite] Created Clerk admin account', u.id, 'for', args.email)
+      // Send welcome / login instructions email
+      await ctx.runAction(internal.email.sendAdminInviteEmail, { email: args.email, name: args.name })
     } else {
       console.error('[admin invite] Clerk creation failed:', res.status, await res.text())
     }

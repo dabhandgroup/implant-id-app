@@ -657,3 +657,52 @@ export const sendManufacturerRejectionEmail = internalAction({
     })
   },
 })
+
+// ── Master admin invitation email ─────────────────────────────────────────────
+
+export const sendAdminInviteEmail = internalAction({
+  args: {
+    name:  v.string(),
+    email: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r         = resend()
+    const firstName = args.name.split(' ')[0]
+    await r.emails.send({
+      from:    FROM,
+      to:      args.email,
+      subject: `You've been added as a master admin — Implant ID`,
+      html: buildEmail({
+        title:   'Master Admin Access',
+        heading: `Welcome to the team, ${firstName}`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            You've been granted <strong style="color:#0e2a33;">master admin access</strong>
+            to the Implant ID platform. You can now manage clinic applications, manufacturer
+            onboarding, device records, and platform settings.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Sign in using the email address this message was sent to.
+            You'll receive a one-time verification code each time you log in —
+            no password is required.
+          </p>
+        `,
+        highlightBox: {
+          content: `
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                       text-transform:uppercase;color:#29869F;">Sign in with</p>
+            <p style="margin:0;font-size:20px;font-weight:600;color:#1a6a80;
+                       letter-spacing:0.2px;">${args.email}</p>
+          `,
+        },
+        cta: {
+          label: 'Sign in to master admin →',
+          url:   'https://portal.implantid.io/master/login',
+        },
+        footerNote: `If you weren't expecting this invitation, please contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})

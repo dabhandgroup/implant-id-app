@@ -382,6 +382,69 @@ export const lookupByImplantId = query({
   },
 })
 
+/**
+ * Look up a patient by Implant ID code for the clinic scan page.
+ * Returns the patient summary including the internal _id so the clinic can
+ * call getPatientDeviceLinks and recordPatientLookup as follow-up queries.
+ * No authentication required — the code acts as the access token.
+ */
+export const getPatientByCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_implant_code', (q) => q.eq('implantIdCode', args.code.trim().toUpperCase()))
+      .unique()
+    if (!patient) return null
+
+    return {
+      _id:                      patient._id,
+      implantIdCode:            patient.implantIdCode,
+      firstName:                patient.firstName,
+      lastName:                 patient.lastName,
+      dob:                      patient.dob,
+      heightCm:                 patient.heightCm,
+      weightKg:                 patient.weightKg,
+      contrastAllergy:          patient.contrastAllergy,
+      contrastAllergyNote:      patient.contrastAllergyNote,
+      verificationStatus:       patient.verificationStatus ?? 'pending',
+      selfReportedDevice:       patient.selfReportedDevice,
+      selfReportedManufacturer: patient.selfReportedManufacturer,
+      selfReportedModelNumber:  patient.selfReportedModelNumber,
+    }
+  },
+})
+
+/**
+ * All active device links for a patient — for the clinic scan expand-parameters panel.
+ * Clinic passes the _id returned from getPatientByCode.
+ */
+export const getPatientDeviceLinks = query({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_patient', (q) => q.eq('patientId', args.patientId))
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .collect()
+
+    return Promise.all(
+      links.map(async (l) => {
+        const d = await ctx.db.get(l.deviceId)
+        return {
+          _id:         l._id,
+          deviceId:    l.deviceId,
+          deviceName:  d ? d.model : undefined,
+          deviceType:  d?.deviceType,
+          serialNumber: l.serialNumber,
+          implantDate:  l.implantDate,
+          status:       l.status,
+        }
+      }),
+    )
+  },
+})
+
 /** Patient counts for the surgeon dashboard stats cards. */
 export const getSurgeonPatientCounts = query({
   args: {},

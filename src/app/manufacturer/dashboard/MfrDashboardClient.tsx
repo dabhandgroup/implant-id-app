@@ -173,34 +173,40 @@ export default function MfrDashboardClient() {
                   </div>
                 </div>
 
-                <div className="dev-tbl">
-                  <table>
-                    <thead><tr><th>Device</th><th>Type</th><th>Field strengths</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
-                    <tbody>
-                      {recent.length === 0 ? (
-                        <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px' }}>No devices yet. <button className="dev-action-btn" onClick={() => setTab('add')}>Add your first device</button></td></tr>
-                      ) : (recent as any[]).map(d => (
-                        <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => setTab('devices')}>
-                          <td>
-                            <div className="dev-name">{d.deviceType || d.manufacturer}</div>
-                            <div className="dev-models">{d.model} · {d.manufacturer}</div>
-                          </td>
-                          <td>{d.deviceType || '—'}</td>
-                          <td>{d.fieldStrengths || '—'}</td>
-                          <td>
-                            <span className={`dev-status ${d.status === 'live' ? 'ok' : d.status === 'pending_review' ? 'warn' : 'draft'}`}>
-                              {d.status === 'live' && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>}
-                              {d.status === 'pending_review' && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>}
-                              {d.status === 'live' ? 'Live' : d.status === 'pending_review' ? 'Pending 24h' : 'Draft'}
-                            </span>
-                          </td>
-                          <td>{formatDate(d.publishedAt)}</td>
-                          <td><button className="dev-action-btn">Edit</button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                {recent.length === 0 ? (
+                  <div className="dev-empty">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+                    <p>No devices yet</p>
+                    <button className="btn btn-s" onClick={() => setTab('add')}>Add your first device</button>
+                  </div>
+                ) : (
+                  <div className="dev-tbl dev-tbl-ov">
+                    <table>
+                      <thead><tr><th>Device</th><th>Type</th><th>Field strengths</th><th>Status</th><th>Submitted</th><th></th></tr></thead>
+                      <tbody>
+                        {(recent as any[]).map(d => (
+                          <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => setTab('devices')}>
+                            <td>
+                              <div className="dev-name">{d.deviceType || d.manufacturer}</div>
+                              <div className="dev-models">{d.model} · {d.manufacturer}</div>
+                            </td>
+                            <td>{d.deviceType || '—'}</td>
+                            <td>{d.fieldStrengths || '—'}</td>
+                            <td>
+                              <span className={`dev-status ${d.status === 'live' ? 'ok' : d.status === 'pending_review' ? 'warn' : 'draft'}`}>
+                                {d.status === 'live' && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6 9 17l-5-5"/></svg>}
+                                {d.status === 'pending_review' && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>}
+                                {d.status === 'live' ? 'Live' : d.status === 'pending_review' ? 'Pending 24h' : 'Draft'}
+                              </span>
+                            </td>
+                            <td>{formatDate(d.publishedAt)}</td>
+                            <td><button className="dev-action-btn">Edit</button></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 

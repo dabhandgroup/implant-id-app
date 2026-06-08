@@ -681,38 +681,52 @@ export default async function DevicePage(
                   </div>
                 )}
 
-                {/* Documents card */}
+                {/* Sources & References card */}
                 {docs.length > 0 && (
                   <div className="dv-card">
-                    <div className="dv-card-head">Documents</div>
-                    {docs.map((doc) => (
-                      <a
-                        key={doc.doc_id}
-                        href={doc.document_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="doc-row"
-                      >
-                        <div className="doc-ic">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                            <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-                          </svg>
-                        </div>
-                        <div className="doc-body">
-                          <div className="doc-title">{doc.document_title}</div>
-                          <div className="doc-meta">
-                            {doc.document_version && <span>{doc.document_version}</span>}
-                            {doc.document_version && doc.document_date && <span> &middot; </span>}
-                            {doc.document_date && <span>{fmtDate(doc.document_date)}</span>}
-                            {doc.source_type && <> &middot; {doc.source_type}</>}
+                    <div className="dv-card-head">Sources &amp; References</div>
+                    <p className="src-desc">Verify this data directly on the manufacturer&apos;s website before any clinical decision.</p>
+                    {docs.map((doc) => {
+                      const isProductPage = doc.source_type === 'Manufacturer product page' || doc.source_type === 'Manufacturer spec sheet'
+                      return (
+                        <a
+                          key={doc.doc_id}
+                          href={doc.document_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="doc-row"
+                          aria-label={`Open ${doc.document_title} on manufacturer website (opens in new tab)`}
+                        >
+                          <div className={`doc-ic${isProductPage ? ' doc-ic-web' : ''}`}>
+                            {isProductPage ? (
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                              </svg>
+                            ) : (
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+                              </svg>
+                            )}
                           </div>
-                        </div>
-                        <svg className="doc-link-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" />
-                        </svg>
-                      </a>
-                    ))}
+                          <div className="doc-body">
+                            <div className="doc-title">{doc.document_title}</div>
+                            <div className="doc-meta">
+                              {doc.source_type && <span className="src-type-tag">{doc.source_type}</span>}
+                              {doc.document_version && <span> &middot; {doc.document_version}</span>}
+                              {doc.document_date && <span> &middot; {fmtDate(doc.document_date)}</span>}
+                            </div>
+                          </div>
+                          <svg className="doc-link-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" />
+                          </svg>
+                        </a>
+                      )
+                    })}
+                    <p className="src-disclaimer">
+                      Implant ID aggregates publicly available manufacturer documentation. Always verify MRI safety conditions against the current manufacturer IFU before scanning.
+                    </p>
                   </div>
                 )}
 

@@ -2,6 +2,7 @@ import './page.css'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getDeviceByModel, getManufacturer, getDocuments } from '@/data/devices'
+import { currentUser } from '@clerk/nextjs/server'
 
 // ── Metadata ───────────────────────────────────────────────────────────────
 
@@ -58,6 +59,13 @@ export default async function DevicePage(
   const { model } = await params
   const device = getDeviceByModel(model)
   if (!device) notFound()
+
+  // Real signed-in user for sidebar profile
+  const clerkUser   = await currentUser()
+  const userName    = clerkUser?.fullName ?? clerkUser?.emailAddresses?.[0]?.emailAddress ?? 'Clinic staff'
+  const userInitials = clerkUser?.firstName?.[0] && clerkUser?.lastName?.[0]
+    ? `${clerkUser.firstName[0]}${clerkUser.lastName[0]}`.toUpperCase()
+    : (clerkUser?.firstName?.[0]?.toUpperCase() ?? 'CS')
 
   const manufacturer = getManufacturer(device.manufacturer_id)
   const docs = getDocuments(device.device_id)
@@ -181,14 +189,13 @@ export default async function DevicePage(
               <span className="dot" />
             </span>
             <span className="label">Notifications</span>
-            <span className="count">3</span>
           </button>
 
           <div className="sb-bot">
-            <div className="av">DO</div>
+            <div className="av">{userInitials}</div>
             <div>
-              <div className="name">Dr Okafor</div>
-              <div className="role">Northside Imaging</div>
+              <div className="name">{userName}</div>
+              <div className="role">Clinic staff</div>
             </div>
             <span className="chev">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

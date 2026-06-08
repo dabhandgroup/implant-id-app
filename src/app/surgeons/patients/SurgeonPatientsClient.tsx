@@ -11,7 +11,7 @@ function formatDate(ts: number) {
 
 export default function SurgeonPatientsClient() {
   const router   = useRouter()
-  const patients = useQuery(api.clinics.listClinicPatients)
+  const patients = useQuery(api.patients.getSurgeonPatients)
   const [search, setSearch] = useState('')
 
   const filtered = (patients ?? []).filter((p: any) =>

@@ -63,6 +63,9 @@ export default function DashboardClient() {
   const markWelcomeSeen        = useMutation(api.patients.markWelcomeSeen)
   const markRead               = useMutation(api.patients.markAllNotificationsRead)
   const shareRecordWithClinic  = useMutation(api.patients.shareRecordWithClinic)
+  const clinicAccess           = useQuery((api as any).patients.getMyClinicAccess)
+  const addImplantMut          = useMutation((api as any).patients.addSelfReportedImplant)
+  const revokeAccessMut        = useMutation((api as any).patients.revokeClinicAccess)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [qrDataUrl,     setQrDataUrl]     = useState<string>('')
@@ -92,6 +95,16 @@ export default function DashboardClient() {
   const [wResendAt,         setWResendAt]         = useState(0)
   const [wResendCountdown,  setWResendCountdown]  = useState(0)
   const [wEmailDone,        setWEmailDone]        = useState(false)
+
+  // Phase 2 — add another implant modal
+  const [implantOpen,    setImplantOpen]    = useState(false)
+  const [implantSaving,  setImplantSaving]  = useState(false)
+  const [implantErr,     setImplantErr]     = useState('')
+  const [implantForm,    setImplantForm]    = useState({ device: '', manufacturer: '', deviceType: '', modelNumber: '', implantMonth: '', implantYear: '' })
+
+  // Phase 4 — revoke clinic access confirmation
+  const [revokeId,    setRevokeId]    = useState<string | null>(null)
+  const [revoking,    setRevoking]    = useState(false)
 
   const [photoUploading, setPhotoUploading] = useState(false)
   const photoInputRef   = useRef<HTMLInputElement>(null)
@@ -299,6 +312,44 @@ export default function DashboardClient() {
     setWEmailResent(true)
     setTimeout(() => setWEmailResent(false), 2500)
   }
+
+  async function doAddImplant(e: React.FormEvent) {
+    e.preventDefault()
+    if (!implantForm.device.trim()) { setImplantErr('Device name is required'); return }
+    setImplantSaving(true); setImplantErr('')
+    try {
+      await addImplantMut({
+        device:       implantForm.device.trim(),
+        manufacturer: implantForm.manufacturer.trim() || undefined,
+        deviceType:   implantForm.deviceType.trim() || undefined,
+        modelNumber:  implantForm.modelNumber.trim() || undefined,
+        implantMonth: implantForm.implantMonth || undefined,
+        implantYear:  implantForm.implantYear || undefined,
+      })
+      setImplantOpen(false)
+      setImplantForm({ device: '', manufacturer: '', deviceType: '', modelNumber: '', implantMonth: '', implantYear: '' })
+    } catch { setImplantErr('Failed to save — please try again') }
+    finally   { setImplantSaving(false) }
+  }
+
+  async function doRevoke() {
+    if (!revokeId) return
+    setRevoking(true)
+    try {
+      await revokeAccessMut({ requestId: revokeId as any })
+      setRevokeId(null)
+    } catch { /* non-fatal — query will refresh */ }
+    finally { setRevoking(false) }
+  }
+
+  // Parse additional self-reported implants from JSON
+  const extraImplants: Array<{ device: string; manufacturer?: string; deviceType?: string; modelNumber?: string; implantMonth?: string; implantYear?: string; addedAt?: number }> = (() => {
+    try { return JSON.parse((patient as any).selfReportedImplants ?? '[]') }
+    catch { return [] }
+  })()
+
+  const DEVICE_TYPES = ['Pacemaker','ICD (Defibrillator)','CRT device','Neurostimulator / DBS','Cochlear implant','Retinal implant','Hip replacement','Knee replacement','Shoulder replacement','Spinal implant','Breast implant','Stent','Heart valve','Other']
+  const MONTH_NAMES  = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
   return (
     <>
@@ -1108,6 +1159,193 @@ export default function DashboardClient() {
               </div>
             </div>
 
+            {/* ── Your implants (Phase 2) ────────────────────────────── */}
+            <div className="sec">
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+                <h2 style={{ margin:0 }}>Your implants</h2>
+                <button
+                  className="btn"
+                  onClick={() => setImplantOpen(true)}
+                  style={{ display:'flex', alignItems:'center', gap:6 }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  Add another
+                </button>
+              </div>
+
+              {/* Verified linked devices */}
+              {linkedDevices && (linkedDevices as any[]).length > 0 && (linkedDevices as any[]).map((d: any) => (
+                <div key={String(d._id)} style={{
+                  background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12,
+                  padding:'14px 18px', marginBottom:10, display:'flex', alignItems:'flex-start', gap:12,
+                }}>
+                  <div style={{
+                    width:38, height:38, borderRadius:10, flexShrink:0,
+                    background:'color-mix(in srgb,var(--ok) 10%,transparent)',
+                    border:'1px solid color-mix(in srgb,var(--ok) 22%,transparent)',
+                    display:'grid', placeItems:'center',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="1.7" aria-hidden="true">
+                      <path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
+                      <span style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>
+                        {d.manufacturer} {d.name}
+                      </span>
+                      <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--ok)', background:'color-mix(in srgb,var(--ok) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
+                        Verified
+                      </span>
+                    </div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)', display:'flex', gap:12, flexWrap:'wrap' }}>
+                      {d.deviceType && <span>{d.deviceType}</span>}
+                      {d.serialNumber && <span>S/N: {d.serialNumber}</span>}
+                      {d.implantDate && <span>Implanted: {d.implantDate}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Primary self-reported device (if not already in linkedDevices) */}
+              {patient.selfReportedDevice && (!linkedDevices || (linkedDevices as any[]).length === 0) && (
+                <div style={{
+                  background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12,
+                  padding:'14px 18px', marginBottom:10, display:'flex', alignItems:'flex-start', gap:12,
+                }}>
+                  <div style={{
+                    width:38, height:38, borderRadius:10, flexShrink:0,
+                    background:'color-mix(in srgb,#f59e0b 10%,transparent)',
+                    border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)',
+                    display:'grid', placeItems:'center',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.7" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
+                      <span style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>
+                        {patient.selfReportedDevice}
+                      </span>
+                      <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'color-mix(in srgb,#f59e0b 10%,transparent)', border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
+                        Pending verification
+                      </span>
+                    </div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)', display:'flex', gap:12, flexWrap:'wrap' }}>
+                      {(patient as any).selfReportedManufacturer && <span>{(patient as any).selfReportedManufacturer}</span>}
+                      {(patient as any).selfReportedModelNumber && <span>Model: {(patient as any).selfReportedModelNumber}</span>}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Additional self-reported implants */}
+              {extraImplants.map((imp, i) => (
+                <div key={i} style={{
+                  background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12,
+                  padding:'14px 18px', marginBottom:10, display:'flex', alignItems:'flex-start', gap:12,
+                }}>
+                  <div style={{
+                    width:38, height:38, borderRadius:10, flexShrink:0,
+                    background:'color-mix(in srgb,#f59e0b 10%,transparent)',
+                    border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)',
+                    display:'grid', placeItems:'center',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.7" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
+                      <span style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>{imp.device}</span>
+                      <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'color-mix(in srgb,#f59e0b 10%,transparent)', border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
+                        Pending verification
+                      </span>
+                    </div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)', display:'flex', gap:12, flexWrap:'wrap' }}>
+                      {imp.manufacturer && <span>{imp.manufacturer}</span>}
+                      {imp.deviceType && <span>{imp.deviceType}</span>}
+                      {imp.modelNumber && <span>Model: {imp.modelNumber}</span>}
+                      {imp.implantYear && <span>Implanted: {imp.implantMonth ? `${MONTH_NAMES[parseInt(imp.implantMonth)-1]?.slice(0,3)} ` : ''}{imp.implantYear}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Empty state — no devices at all */}
+              {(!patient.selfReportedDevice) && (!linkedDevices || (linkedDevices as any[]).length === 0) && extraImplants.length === 0 && (
+                <div style={{
+                  background:'var(--bg2)', border:'1px dashed var(--border2)', borderRadius:12,
+                  padding:'28px 24px', textAlign:'center', color:'var(--muted2)', fontFamily:'var(--ff)', fontSize:14,
+                }}>
+                  No implants recorded yet.{' '}
+                  <button className="link-btn" onClick={() => setImplantOpen(true)}>Add your first implant →</button>
+                </div>
+              )}
+            </div>
+
+            {/* ── Who has access (Phase 4) — verified patients only ──── */}
+            {!isPending && (
+              <div className="sec">
+                <h2>Clinic access</h2>
+                <p className="sub" style={{ marginTop:-6, marginBottom:16 }}>
+                  Clinics you have shared your record with. You can revoke access at any time.
+                </p>
+
+                {clinicAccess === undefined && (
+                  <div style={{ color:'var(--muted)', fontSize:14 }}>Loading…</div>
+                )}
+
+                {clinicAccess !== undefined && (clinicAccess as any[]).length === 0 && (
+                  <div style={{
+                    background:'var(--bg2)', border:'1px dashed var(--border2)', borderRadius:12,
+                    padding:'24px', textAlign:'center', color:'var(--muted2)', fontFamily:'var(--ff)', fontSize:14,
+                  }}>
+                    No clinics have access to your record yet.{' '}
+                    <button className="link-btn" onClick={() => setWallOpen(true)}>Share with a clinic →</button>
+                  </div>
+                )}
+
+                {clinicAccess !== undefined && (clinicAccess as any[]).length > 0 && (
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    {(clinicAccess as any[]).map((a: any) => (
+                      <div key={a._id} style={{
+                        background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12,
+                        padding:'14px 18px', display:'flex', alignItems:'center', gap:14,
+                      }}>
+                        <div style={{
+                          width:36, height:36, borderRadius:9, flexShrink:0,
+                          background:'color-mix(in srgb,var(--accent) 10%,transparent)',
+                          display:'grid', placeItems:'center',
+                          fontFamily:'var(--ff)', fontWeight:700, fontSize:12, color:'var(--accent)',
+                        }}>
+                          {(a.clinicName as string).slice(0,2).toUpperCase()}
+                        </div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontFamily:'var(--ff)', fontWeight:500, fontSize:14, color:'var(--text)' }}>{a.clinicName}</div>
+                          {a.clinicCity && <div style={{ fontSize:12, color:'var(--muted)' }}>{a.clinicCity}</div>}
+                          <div style={{ fontSize:12, color:'var(--muted2)', marginTop:1 }}>
+                            Access granted {new Date(a.grantedAt).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}
+                          </div>
+                        </div>
+                        <button
+                          className="btn btn-danger"
+                          onClick={() => setRevokeId(a._id)}
+                          style={{ fontSize:12.5 }}
+                          aria-label={`Revoke ${a.clinicName} access`}
+                        >
+                          Revoke
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Documents placeholder */}
             <div id="documents-section" className="sec">
               <h2>Your documents</h2>
@@ -1382,6 +1620,108 @@ export default function DashboardClient() {
           </div>
         </div>
       </div>
+
+      {/* ── Add another implant modal (Phase 2) ──────────────────────── */}
+      {implantOpen && (
+        <div
+          style={{ position:'fixed', inset:0, background:'rgba(8,19,23,.6)', backdropFilter:'blur(4px)', zIndex:999, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}
+          onClick={e => { if (e.target === e.currentTarget) { setImplantOpen(false); setImplantErr('') } }}
+        >
+          <div style={{ width:'100%', maxWidth:440, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden', boxShadow:'0 40px 80px -20px rgba(0,0,0,.4)' }}>
+            <div style={{ padding:'22px 24px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div>
+                <h3 style={{ fontFamily:'var(--ff)', fontSize:17, fontWeight:700, margin:0, letterSpacing:'-.015em' }}>Add another implant</h3>
+                <p style={{ fontFamily:'var(--ff)', fontSize:13, color:'var(--muted)', margin:'3px 0 0' }}>Self-reported — will be verified by your clinic</p>
+              </div>
+              <button onClick={() => { setImplantOpen(false); setImplantErr('') }} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:18, padding:4, lineHeight:1 }}>✕</button>
+            </div>
+            <form onSubmit={doAddImplant} style={{ padding:'20px 24px 24px' }}>
+              <div className="field" style={{ marginBottom:14 }}>
+                <label htmlFor="imp-device" style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>
+                  Device name <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
+                </label>
+                <input id="imp-device" className="input" type="text" placeholder="e.g. Medtronic Micra AV"
+                  value={implantForm.device} onChange={e => setImplantForm(f => ({ ...f, device: e.target.value }))}
+                  autoFocus required />
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+                <div className="field">
+                  <label htmlFor="imp-mfr" style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Manufacturer</label>
+                  <input id="imp-mfr" className="input" type="text" placeholder="e.g. Medtronic"
+                    value={implantForm.manufacturer} onChange={e => setImplantForm(f => ({ ...f, manufacturer: e.target.value }))} />
+                </div>
+                <div className="field">
+                  <label htmlFor="imp-model" style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Model number</label>
+                  <input id="imp-model" className="input" type="text" placeholder="e.g. MC1VR01"
+                    value={implantForm.modelNumber} onChange={e => setImplantForm(f => ({ ...f, modelNumber: e.target.value }))} />
+                </div>
+              </div>
+              <div className="field" style={{ marginBottom:14 }}>
+                <label htmlFor="imp-type" style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Device type</label>
+                <select id="imp-type" className="input"
+                  value={implantForm.deviceType} onChange={e => setImplantForm(f => ({ ...f, deviceType: e.target.value }))}
+                  style={{ appearance:'auto' }}>
+                  <option value="">Select type…</option>
+                  {DEVICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
+                <div className="field">
+                  <label htmlFor="imp-month" style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Implant month</label>
+                  <select id="imp-month" className="input"
+                    value={implantForm.implantMonth} onChange={e => setImplantForm(f => ({ ...f, implantMonth: e.target.value }))}
+                    style={{ appearance:'auto' }}>
+                    <option value="">Month (optional)</option>
+                    {MONTH_NAMES.map((m,i) => <option key={m} value={String(i+1).padStart(2,'0')}>{m}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="imp-year" style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Implant year</label>
+                  <input id="imp-year" className="input" type="number" placeholder="e.g. 2021" min="1980" max="2030"
+                    value={implantForm.implantYear} onChange={e => setImplantForm(f => ({ ...f, implantYear: e.target.value }))} />
+                </div>
+              </div>
+              {implantErr && (
+                <div style={{ background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:10, padding:'10px 14px', color:'var(--err)', fontSize:13, marginBottom:14 }}>{implantErr}</div>
+              )}
+              <div style={{ display:'flex', gap:10 }}>
+                <button type="button" className="btn btn-lg" style={{ flex:1, justifyContent:'center' }} onClick={() => { setImplantOpen(false); setImplantErr('') }}>Cancel</button>
+                <button type="submit" className="btn btn-s btn-lg" style={{ flex:1, justifyContent:'center' }} disabled={implantSaving || !implantForm.device.trim()}>
+                  {implantSaving ? 'Saving…' : 'Save implant'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Revoke clinic access confirmation (Phase 4) ───────────────── */}
+      {revokeId && (
+        <div
+          style={{ position:'fixed', inset:0, background:'rgba(8,19,23,.6)', backdropFilter:'blur(4px)', zIndex:999, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}
+          onClick={e => { if (e.target === e.currentTarget && !revoking) setRevokeId(null) }}
+        >
+          <div style={{ width:'100%', maxWidth:400, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden', boxShadow:'0 40px 80px -20px rgba(0,0,0,.4)' }}>
+            <div style={{ padding:'28px 28px 20px', textAlign:'center' }}>
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 22%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" aria-hidden="true">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <h3 style={{ fontFamily:'var(--ff)', fontSize:18, fontWeight:700, marginBottom:8 }}>Revoke clinic access?</h3>
+              <p style={{ fontFamily:'var(--ff)', fontSize:14, color:'var(--muted)', lineHeight:1.55, marginBottom:0 }}>
+                This clinic will no longer be able to view your implant record. You can re-share at any time from the Share with clinic option.
+              </p>
+            </div>
+            <div style={{ padding:'0 22px 22px', display:'flex', gap:10 }}>
+              <button className="btn btn-lg" style={{ flex:1, justifyContent:'center' }} onClick={() => setRevokeId(null)} disabled={revoking}>Keep access</button>
+              <button className="btn btn-danger btn-lg" style={{ flex:1, justifyContent:'center' }} onClick={doRevoke} disabled={revoking}>
+                {revoking ? 'Revoking…' : 'Yes, revoke'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .wtab{background:transparent;border:0;font-family:var(--ff);font-size:12.5px;font-weight:500;color:var(--muted);padding:8px 14px;border-radius:999px;cursor:pointer;transition:all .15s}

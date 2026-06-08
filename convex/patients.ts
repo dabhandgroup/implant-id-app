@@ -834,6 +834,198 @@ export const removePatientDevice = mutation({
   },
 })
 
+// ── Surgeon portal ────────────────────────────────────────────────────────────
+
+/**
+ * List all patients who have an approved access request at the surgeon's clinic.
+ * Mirrors listClinicPatients in clinics.ts but keyed to the current user's staff row.
+ */
+export const getSurgeonPatients = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) return []
+
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) return []
+
+    const requests = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .filter((q) => q.eq(q.field('status'), 'approved'))
+      .collect()
+
+    const patientIds = [...new Set(requests.map((r) => r.patientId))]
+    const patients = (await Promise.all(patientIds.map((id) => ctx.db.get(id)))).filter(Boolean)
+
+    return patients.map((p) => ({
+      _id:                p!._id,
+      implantIdCode:      p!.implantIdCode,
+      firstName:          p!.firstName,
+      lastName:           p!.lastName,
+      dob:                p!.dob,
+      selfReportedDevice: p!.selfReportedDevice,
+      verificationStatus: p!.verificationStatus ?? 'pending',
+      lastAccessed: requests
+        .filter((r) => r.patientId === p!._id)
+        .sort((a, b) => b.requestedAt - a.requestedAt)[0]?.requestedAt,
+    }))
+  },
+})
+
+// ── Patient-facing access management ─────────────────────────────────────────
+
+/**
+ * Return the list of approved access grants for the current patient,
+ * with clinic name and grant date.
+ */
+export const getMyClinicAccess = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) return []
+
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) return []
+
+    const requests = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .filter((q) => q.eq(q.field('status'), 'approved'))
+      .collect()
+
+    // Deduplicate by clinic — one entry per clinic
+    const seen = new Set<string>()
+    const unique = requests.filter((r) => {
+      const k = r.clinicId.toString()
+      if (seen.has(k)) return false
+      seen.add(k)
+      return true
+    })
+
+    return Promise.all(
+      unique.map(async (r) => {
+        const clinic = await ctx.db.get(r.clinicId)
+        return {
+          _id:         r._id,
+          clinicId:    r.clinicId,
+          clinicName:  clinic?.name ?? 'Unknown clinic',
+          clinicCity:  clinic?.city,
+          grantedAt:   r.requestedAt,
+        }
+      }),
+    )
+  },
+})
+
+/**
+ * Revoke a clinic's access — sets the accessRequest to 'declined'.
+ * Patient can only revoke their own access grants.
+ */
+export const revokeClinicAccess = mutation({
+  args: { requestId: v.id('accessRequests') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) throw new Error('Patient record not found')
+
+    const request = await ctx.db.get(args.requestId)
+    if (!request) throw new Error('Access request not found')
+    if (request.patientId !== patient._id) throw new Error('Not authorised')
+
+    await ctx.db.patch(args.requestId, { status: 'declined', resolvedAt: Date.now() })
+
+    // Also decline all other approved requests from the same clinic for this patient
+    const others = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', request.clinicId))
+      .filter((q) => q.eq(q.field('patientId'), patient._id))
+      .filter((q) => q.eq(q.field('status'), 'approved'))
+      .collect()
+    await Promise.all(others.map((o) => ctx.db.patch(o._id, { status: 'declined', resolvedAt: Date.now() })))
+  },
+})
+
+// ── Patient self-reported multi-device ────────────────────────────────────────
+
+/**
+ * Add an additional self-reported implant to the patient's record.
+ * Stored as a JSON array in the selfReportedImplants field.
+ */
+export const addSelfReportedImplant = mutation({
+  args: {
+    device:       v.string(),
+    manufacturer: v.optional(v.string()),
+    deviceType:   v.optional(v.string()),
+    modelNumber:  v.optional(v.string()),
+    implantMonth: v.optional(v.string()),
+    implantYear:  v.optional(v.string()),
+    hospital:     v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) throw new Error('Patient record not found')
+
+    const existing: unknown[] = (() => {
+      try { return JSON.parse(patient.selfReportedImplants ?? '[]') }
+      catch { return [] }
+    })()
+
+    const updated = [
+      ...existing,
+      {
+        device:       args.device,
+        manufacturer: args.manufacturer,
+        deviceType:   args.deviceType,
+        modelNumber:  args.modelNumber,
+        implantMonth: args.implantMonth,
+        implantYear:  args.implantYear,
+        hospital:     args.hospital,
+        addedAt:      Date.now(),
+      },
+    ]
+
+    await ctx.db.patch(patient._id, { selfReportedImplants: JSON.stringify(updated) })
+  },
+})
+
 /** Record a patient lookup by clinic staff — writes audit log and notifies patient. */
 export const recordPatientLookup = mutation({
   args: {

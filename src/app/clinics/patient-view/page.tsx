@@ -1,17 +1,17 @@
-import './page.css'
-import { html } from './content'
-import ScriptLoader from '@/components/ScriptLoader'
+import { Suspense } from 'react'
+import PatientViewClient from './PatientViewClient'
 import type { Metadata } from 'next'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
-  title: "Trevor Hughes \u00b7 Implant ID",
+  title: 'Patient record · Implant ID',
 }
 
 export default function Page() {
   return (
-    <>
-      <div dangerouslySetInnerHTML={{ __html: html }} />
-      <ScriptLoader scripts={["/scripts/clinics-patient-view-0.js", "/scripts/clinics-patient-view-1.js", "/scripts/clinics-patient-view-2.js"]} />
-    </>
+    <Suspense fallback={<div style={{ minHeight: '60vh' }} />}>
+      <PatientViewClient />
+    </Suspense>
   )
 }

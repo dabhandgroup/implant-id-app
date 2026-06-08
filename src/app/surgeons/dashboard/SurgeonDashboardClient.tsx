@@ -10,20 +10,21 @@ export default function SurgeonDashboardClient() {
   const { user } = useUser()
 
   // All hooks unconditionally at top
-  const patients = useQuery(api.clinics.listClinicPatients)
+  const patients = useQuery(api.patients.getSurgeonPatients)
+  const counts   = useQuery(api.patients.getSurgeonPatientCounts)
 
   // Derived stats
-  const total    = patients?.length ?? '—'
-  const verified = patients ? patients.filter((p: any) => p.verificationStatus === 'active').length   : '—'
-  const pending  = patients ? patients.filter((p: any) => p.verificationStatus !== 'active').length   : '—'
+  const total    = counts?.total    ?? (patients === undefined ? '—' : patients.length)
+  const verified = counts?.verified ?? (patients ? patients.filter((p: any) => p.verificationStatus === 'active').length : '—')
+  const pending  = counts?.awaitingVerification ?? (patients ? patients.filter((p: any) => p.verificationStatus !== 'active').length : '—')
 
   const firstName = user?.firstName ?? 'Surgeon'
 
   const stats = [
-    { label: 'Total Patients',        value: total,   color: 'var(--accent)' },
-    { label: 'Verified',              value: verified, color: 'var(--ok)'    },
-    { label: 'Awaiting Verification', value: pending,  color: '#f59e0b'      },
-    { label: 'Pending Review',        value: '—',      color: 'var(--err)'   },
+    { label: 'Total Patients',        value: total,    color: 'var(--accent)' },
+    { label: 'Verified',              value: verified,  color: 'var(--ok)'    },
+    { label: 'Awaiting Verification', value: pending,   color: '#f59e0b'      },
+    { label: 'Pending Review',        value: counts?.pendingReview ?? '—', color: 'var(--err)' },
   ]
 
   return (
@@ -138,7 +139,7 @@ export default function SurgeonDashboardClient() {
               View All Patients
             </div>
             <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>
-              Patients shared with your clinic
+              Patients who shared their record with your clinic
             </div>
           </div>
         </a>

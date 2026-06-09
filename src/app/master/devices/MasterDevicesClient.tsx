@@ -12,6 +12,12 @@ const MRI_COLOURS: Record<string, { color: string; label: string }> = {
   unknown:     { color: 'var(--muted)', label: 'Unknown' },
 }
 
+const MRI_ICON: Record<string, string> = {
+  safe:        '/mr-safe.svg',
+  conditional: '/mr-conditional.svg',
+  unsafe:      '/mr-unsafe.svg',
+}
+
 export default function MasterDevicesClient() {
   const devices = useQuery(api.devices.listDevices)
   const router  = useRouter()
@@ -67,16 +73,18 @@ export default function MasterDevicesClient() {
               <tbody>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {devices.map((d: any) => {
-                  const mri = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
+                  const mri  = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
+                  const icon = MRI_ICON[d.mriStatus]
                   return (
                     <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/master/devices/${d._id}`)}>
                       <td style={{ fontWeight: 500 }}>{d.manufacturer}</td>
                       <td>{d.model}</td>
                       <td style={{ color: 'var(--muted)', fontSize: 13 }}>{d.deviceType}</td>
                       <td>
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px', borderRadius:4, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, letterSpacing:'.2px' }}>
-                          {d.mriStatus && d.mriStatus !== 'unknown' && (
-                            <img src={d.mriStatus === 'safe' ? '/mr-safe.svg' : d.mriStatus === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'} alt="" aria-hidden="true" style={{ width:16, height:16, display:'block', flexShrink:0 }} />
+                        {/* whiteSpace:nowrap stops 'MR Conditional' wrapping inside the badge */}
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px 3px 4px', borderRadius:6, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, letterSpacing:'.2px', whiteSpace:'nowrap' }}>
+                          {icon && (
+                            <img src={icon} alt="" aria-hidden="true" style={{ width:20, height:20, display:'block', flexShrink:0 }} />
                           )}
                           {mri.label}
                         </span>
@@ -93,7 +101,8 @@ export default function MasterDevicesClient() {
           <div className="m-devices-cards">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {devices.map((d: any) => {
-              const mri = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
+              const mri  = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
+              const icon = MRI_ICON[d.mriStatus]
               return (
                 <div
                   key={d._id}
@@ -110,7 +119,10 @@ export default function MasterDevicesClient() {
                   </div>
 
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
-                    <span style={{ fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, color:mri.color, padding:'3px 8px', borderRadius:4, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, whiteSpace:'nowrap' }}>
+                    <span style={{ fontFamily:'var(--ff)', display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px 3px 4px', borderRadius:6, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, whiteSpace:'nowrap' }}>
+                      {icon && (
+                        <img src={icon} alt="" aria-hidden="true" style={{ width:20, height:20, display:'block', flexShrink:0 }} />
+                      )}
                       {mri.label}
                     </span>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.7"><polyline points="9 18 15 12 9 6"/></svg>

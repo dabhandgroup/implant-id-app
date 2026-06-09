@@ -343,29 +343,30 @@ export default function MasterShell({ children }: MasterShellProps) {
           </a>
 
           {/* ── Profile ── */}
-          <div
-            className="sb-bot"
-            onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setProfileOpen(p => !p) }}
-          >
-            <div className="av">MA</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="name">Master Admin</div>
-              <div className="role">Implant ID</div>
+          <div className="sb-profile-wrap">
+            <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
+              <a href="/master/settings">
+                <IconUser />Account settings
+              </a>
+              <a href="mailto:hello@implantid.io">
+                <IconHelp />Help &amp; support
+              </a>
+              <hr />
+              <button className="danger" onClick={requestSignOut}>
+                <IconOut />Sign out
+              </button>
             </div>
-            <span className="chev"><IconChevU /></span>
-          </div>
-
-          <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
-            <a href="/master/settings">
-              <IconUser />Account settings
-            </a>
-            <a href="mailto:hello@implantid.io">
-              <IconHelp />Help &amp; support
-            </a>
-            <hr />
-            <button className="danger" onClick={requestSignOut}>
-              <IconOut />Sign out
-            </button>
+            <div
+              className="sb-bot"
+              onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setProfileOpen(p => !p) }}
+            >
+              <div className="av">MA</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="name">Master Admin</div>
+                <div className="role">Implant ID</div>
+              </div>
+              <span className="chev"><IconChevU /></span>
+            </div>
           </div>
 
         </aside>

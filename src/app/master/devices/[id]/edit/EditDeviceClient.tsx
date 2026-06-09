@@ -1,413 +1,305 @@
 'use client'
 
-import { useState } from 'react'
-import { CustomSelect } from '@/components/ui/CustomSelect'
+import { useState, useEffect } from 'react'
+import { useQuery, useMutation } from 'convex/react'
+import { useRouter }            from 'next/navigation'
+import { api as apiBase }       from '../../../../../convex/_generated/api'
+import { Id }                   from '../../../../../convex/_generated/dataModel'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = apiBase as any
 
-interface DeviceData {
-  name: string
-  manufacturer: string
-  category: string
-  model: string
-  mri: string
-  mriStatus: 'safe' | 'conditional' | 'unsafe'
-  status: 'active' | 'draft'
-  published: string
-  description: string
-  teslaRating: string
-  sarLimit: string
-  bodyRegion: string
-  regNumber: string
-  docName: string
-}
+type MriStatus      = 'safe' | 'conditional' | 'unsafe' | 'unknown'
+type Classification = 'active' | 'passive' | 'legacy'
 
-const deviceData: Record<string, DeviceData> = {
-  'acumed-total-hip': {
-    name: 'Acumed Total Hip System',
-    manufacturer: 'Acumed Ltd',
-    category: 'Hip Replacement',
-    model: 'ACU-TH-7742',
-    mri: 'MR Conditional',
-    mriStatus: 'conditional',
-    status: 'active',
-    published: '12 Feb 2026',
-    description:
-      'The Acumed Total Hip System is a cementless hip replacement designed for patients with severe hip arthritis. Features a titanium alloy stem with hydroxyapatite coating for enhanced osseointegration.',
-    teslaRating: '1.5T, 3T',
-    sarLimit: '2 W/kg whole-body',
-    bodyRegion: 'Hip / Pelvis',
-    regNumber: 'MHRA-CA-ACU-7742',
-    docName: 'Acumed_TotalHip_MRI_Conditions.pdf',
-  },
-  'zimmer-oxford-knee': {
-    name: 'Zimmer Biomet Oxford Knee',
-    manufacturer: 'Zimmer Biomet',
-    category: 'Knee Replacement',
-    model: 'ZB-OK-PMU3',
-    mri: 'MR Safe',
-    mriStatus: 'safe',
-    status: 'active',
-    published: '16 Jan 2026',
-    description:
-      'The Oxford Partial Knee is a minimally invasive unicompartmental knee replacement for patients with medial compartment osteoarthritis. Preserves the cruciate ligaments for more natural knee kinematics.',
-    teslaRating: 'No restrictions',
-    sarLimit: 'No restrictions',
-    bodyRegion: 'Knee',
-    regNumber: 'FDA-510K-ZB-OK-PMU3',
-    docName: 'Zimmer_OxfordKnee_IFU.pdf',
-  },
-  'medtronic-micra': {
-    name: 'Medtronic Micra AV',
-    manufacturer: 'Medtronic plc',
-    category: 'Cardiac Pacemaker',
-    model: 'MDT-MICRA-AV2',
-    mri: 'MR Conditional',
-    mriStatus: 'conditional',
-    status: 'active',
-    published: '12 Jan 2026',
-    description:
-      "The Micra AV is the world's smallest dual-sensor, physiologically responsive pacemaker. Delivered transcatheterly and implanted directly in the right ventricle, it provides AV-synchronous pacing without transvenous leads.",
-    teslaRating: '1.5T only',
-    sarLimit: '2 W/kg whole-body, 3.2 W/kg head',
-    bodyRegion: 'Cardiac',
-    regNumber: 'CE-MDT-MICRA-AV2',
-    docName: 'Medtronic_MicraAV_MRI_Conditions.pdf',
-  },
-  'stryker-tritanium': {
-    name: 'Stryker Tritanium PL Cage',
-    manufacturer: 'Stryker Orthopaedics',
-    category: 'Spinal Implant',
-    model: 'STR-TT-PL-S',
-    mri: 'MR Safe',
-    mriStatus: 'safe',
-    status: 'draft',
-    published: '—',
-    description:
-      'The Tritanium PL Posterior Lumbar Cage is an interbody fusion device with a highly porous titanium structure designed to mimic cancellous bone. The open architecture promotes bone in-growth and vascularisation.',
-    teslaRating: 'No restrictions',
-    sarLimit: 'No restrictions',
-    bodyRegion: 'Lumbar Spine',
-    regNumber: 'FDA-510K-STR-TT-PL',
-    docName: 'Stryker_Tritanium_ProductLeaflet.pdf',
-  },
-  'cochlear-nucleus': {
-    name: 'Cochlear Nucleus Profile Plus',
-    manufacturer: 'Cochlear Ltd',
-    category: 'Cochlear Implant',
-    model: 'COC-CI-N7-P',
-    mri: 'MR Unsafe',
-    mriStatus: 'unsafe',
-    status: 'active',
-    published: '5 Mar 2026',
-    description:
-      'The Nucleus Profile Plus cochlear implant features the Slim Modiolar electrode array for precise placement within the cochlea. The off-stylet design allows for a softer, more traumatic insertion technique.',
-    teslaRating: 'Not MRI compatible',
-    sarLimit: 'Not applicable',
-    bodyRegion: 'Cochlea / Inner Ear',
-    regNumber: 'TGA-AUST-COC-N7P',
-    docName: 'Cochlear_Nucleus7_IFU.pdf',
-  },
-}
-
-const categoryOptions = [
-  'Hip Replacement',
-  'Knee Replacement',
-  'Shoulder Implant',
-  'Spinal Implant',
-  'Cardiac Pacemaker',
-  'ICD / Defibrillator',
-  'Cochlear Implant',
-  'Spinal Cord Stimulator',
-  'Deep Brain Stimulator',
-  'Drug Delivery Pump',
-  'Vascular Stent',
-  'Dental Implant',
-  'Intraocular Lens',
-  'Other',
+const MRI_OPTIONS: { value: MriStatus; label: string; color: string; bg: string; icon?: string }[] = [
+  { value: 'safe',        label: 'MR Safe',        color: 'var(--ok)',   bg: 'color-mix(in srgb,var(--ok) 10%,transparent)',  icon: '/mr-safe.svg' },
+  { value: 'conditional', label: 'MR Conditional',  color: '#b45309',    bg: 'color-mix(in srgb,#f59e0b 10%,transparent)',     icon: '/mr-conditional.svg' },
+  { value: 'unsafe',      label: 'MR Unsafe',       color: 'var(--err)', bg: 'color-mix(in srgb,var(--err) 10%,transparent)',  icon: '/mr-unsafe.svg' },
+  { value: 'unknown',     label: 'Unknown',          color: 'var(--muted)', bg: 'var(--bg)', icon: undefined },
 ]
 
-const regionOptions = [
-  'Cardiac / Thoracic',
-  'Orthopaedic — Lower Limb',
-  'Orthopaedic — Upper Limb',
-  'Spine / Neurovascular',
-  'Cranial / Skull',
-  'Head & Neck',
-  'Abdominal',
-  'Cochlea / Inner Ear',
-  'Urological / Pelvic',
-  'Multi-region',
-]
+const REGION_OPTIONS = ['UK', 'EU', 'USA', 'Canada', 'Australia', 'New Zealand', 'Global']
+
+function Divider() {
+  return <div style={{ height: 1, background: 'var(--border)', margin: '28px 0' }} />
+}
+
+function SectionHeader({ title, sub }: { title: string; sub?: string }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <h3 style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)', margin: 0 }}>{title}</h3>
+      {sub && <p style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', margin: '4px 0 0' }}>{sub}</p>}
+    </div>
+  )
+}
 
 export default function EditDeviceClient({ id }: { id: string }) {
-  const device = deviceData[id]
+  const router       = useRouter()
+  const device       = useQuery(api.devices.getDeviceById, { id: id as Id<'devices'> })
+  const updateDevice = useMutation(api.devices.updateDevice)
 
-  // All hooks unconditionally at top
-  const [name,        setName]        = useState(device?.name ?? '')
-  const [category,    setCategory]    = useState(device?.category ?? '')
-  const [model,       setModel]       = useState(device?.model ?? '')
-  const [bodyRegion,  setBodyRegion]  = useState(device?.bodyRegion ?? '')
-  const [regNumber,   setRegNumber]   = useState(device?.regNumber ?? '')
-  const [description, setDescription] = useState(device?.description ?? '')
-  const [mriClass,    setMriClass]    = useState<'safe' | 'conditional' | 'unsafe' | ''>(
-    device?.mriStatus ?? ''
-  )
-  const [teslaRating, setTeslaRating] = useState(device?.teslaRating ?? '')
-  const [sarLimit,    setSarLimit]    = useState(device?.sarLimit ?? '')
-  const [mriNotes,    setMriNotes]    = useState('')
-  const [saving,      setSaving]      = useState(false)
-  const [saved,       setSaved]       = useState(false)
+  // ── All hooks unconditionally at top ─────────────────────────────────────
+  const [manufacturer,    setManufacturer]    = useState('')
+  const [model,           setModel]           = useState('')
+  const [deviceType,      setDeviceType]      = useState('')
+  const [classification,  setClassification]  = useState<Classification>('active')
+  const [mriStatus,       setMriStatus]       = useState<MriStatus>('conditional')
+  const [fieldStrengths,  setFieldStrengths]  = useState('')
+  const [sarLimit,        setSarLimit]        = useState('')
+  const [b1RmsLimit,      setB1RmsLimit]      = useState('')
+  const [slewRateLimit,   setSlewRateLimit]   = useState('')
+  const [gradientLimit,   setGradientLimit]   = useState('')
+  const [maxScanTime,     setMaxScanTime]     = useState('')
+  const [contraindications, setContraindications] = useState('')
+  const [approvedRegions, setApprovedRegions] = useState<string[]>([])
+  const [sourceUrls,      setSourceUrls]      = useState<{ url: string; label: string }[]>([{ url: '', label: '' }])
+  const [hydrated,        setHydrated]        = useState(false)
+  const [saving,          setSaving]          = useState(false)
+  const [error,           setError]           = useState('')
 
-  if (!device) {
+  // Populate form from loaded device (run once when device first loads)
+  useEffect(() => {
+    if (!device || hydrated) return
+    setManufacturer(device.manufacturer ?? '')
+    setModel(device.model ?? '')
+    setDeviceType(device.deviceType ?? '')
+    setClassification((device.classification as Classification) ?? 'active')
+    setMriStatus((device.mriStatus as MriStatus) ?? 'conditional')
+    setFieldStrengths(device.fieldStrengths ?? '')
+    setSarLimit(device.sarLimit ?? '')
+    setB1RmsLimit(device.b1RmsLimit ?? '')
+    setSlewRateLimit(device.slewRateLimit ?? '')
+    setGradientLimit(device.gradientLimit ?? '')
+    setMaxScanTime(device.maxScanTime ?? '')
+    setContraindications(device.contraindications ?? '')
+    setApprovedRegions(device.approvedRegions ?? [])
+    const existingSources = (device as any).sourceUrls
+    setSourceUrls(
+      existingSources?.length > 0
+        ? existingSources.map((s: any) => ({ url: s.url, label: s.label ?? '' }))
+        : [{ url: '', label: '' }]
+    )
+    setHydrated(true)
+  }, [device, hydrated])
+
+  // ── Loading / error guards ─────────────────────────────────────────────
+  if (device === undefined) {
     return (
       <div className="m-content">
-        <a href="/master/devices" className="m-back">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Back to Devices
-        </a>
-        <div className="m-h">
-          <div>
-            <h2>Edit Device</h2>
-            <div className="sub">ID: {id}</div>
-          </div>
-        </div>
-        <p style={{ color: 'var(--muted)', fontFamily: 'var(--fb)', fontSize: 14 }}>
-          Device not found.
-        </p>
+        <div style={{ color: 'var(--muted)', fontSize: 14, padding: '48px 0', fontFamily: 'var(--ff)' }}>Loading…</div>
+      </div>
+    )
+  }
+  if (device === null) {
+    return (
+      <div className="m-content">
+        <a href="/master/devices" className="m-back">← Back to Devices</a>
+        <div className="m-h"><div><h2>Device not found</h2></div></div>
       </div>
     )
   }
 
-  async function handleSave() {
-    setSaving(true)
-    await new Promise(r => setTimeout(r, 900))
-    setSaving(false)
-    setSaved(true)
-    await new Promise(r => setTimeout(r, 1200))
-    window.location.href = `/master/devices/${id}`
+  function toggleRegion(r: string) {
+    setApprovedRegions(prev =>
+      prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]
+    )
   }
 
-  const canSave = name.trim() && category && mriClass
+  function addSourceRow() { setSourceUrls(p => [...p, { url: '', label: '' }]) }
+  function removeSourceRow(i: number) { setSourceUrls(p => p.filter((_, j) => j !== i)) }
+  function updateSourceRow(i: number, field: 'url' | 'label', val: string) {
+    setSourceUrls(p => p.map((s, j) => j === i ? { ...s, [field]: val } : s))
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    if (!manufacturer.trim()) { setError('Manufacturer is required'); return }
+    if (!model.trim())        { setError('Model is required'); return }
+    if (!deviceType.trim())   { setError('Device type is required'); return }
+
+    setSaving(true)
+    try {
+      const cleanSources = sourceUrls.filter(s => s.url.trim())
+        .map(s => ({ url: s.url.trim(), label: s.label.trim() || undefined }))
+      await updateDevice({
+        id:               id as Id<'devices'>,
+        manufacturer:     manufacturer.trim(),
+        model:            model.trim(),
+        deviceType:       deviceType.trim(),
+        classification,
+        mriStatus,
+        fieldStrengths:   fieldStrengths.trim()    || undefined,
+        sarLimit:         sarLimit.trim()           || undefined,
+        b1RmsLimit:       b1RmsLimit.trim()         || undefined,
+        slewRateLimit:    slewRateLimit.trim()      || undefined,
+        gradientLimit:    gradientLimit.trim()      || undefined,
+        maxScanTime:      maxScanTime.trim()        || undefined,
+        contraindications:contraindications.trim()  || undefined,
+        approvedRegions:  approvedRegions.length > 0 ? approvedRegions : undefined,
+        sourceUrls:       cleanSources.length > 0  ? cleanSources : undefined,
+      })
+      router.push(`/master/devices/${id}`)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save — please try again.')
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="m-content">
-      <a href={`/master/devices/${id}`} className="m-back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <polyline points="15 18 9 12 15 6" />
-        </svg>
-        Back to {device.name}
+      <a href={`/master/devices/${id}`} className="m-back" style={{ display:'inline-flex', alignItems:'center', gap:6, background:'none', border:0, cursor:'pointer', color:'var(--muted)', fontFamily:'var(--ff)', fontSize:13.5, padding:0, marginBottom:24, textDecoration:'none' }}>
+        ← Back to {device.manufacturer} {device.model}
       </a>
 
-      <div className="m-h">
+      <div className="m-h" style={{ marginBottom: 24 }}>
         <div>
           <h2>Edit Device</h2>
-          <div className="sub">{device.manufacturer} · {device.model}</div>
+          <div className="sub">{device.manufacturer} · {(device as any).deviceCode ?? device.model}</div>
         </div>
       </div>
 
-      {/* ── Section 1: Device Identity ── */}
-      <div className="form-card">
-        <div className="form-section-h">
-          <div className="form-num">1</div>
-          <h3>Device Identity</h3>
-        </div>
-        <p className="form-desc">Core identification fields for this device record.</p>
+      <form onSubmit={handleSave} style={{ maxWidth: 820 }}>
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 36px' }}>
 
-        <div className="form-grid">
-          <div className="field field-full">
-            <label>
-              Device Name <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
-            </label>
-            <input
-              className="input"
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g. Acumed Total Hip System"
-            />
+          {/* ── 1. Identity ── */}
+          <SectionHeader title="Device identity" sub="Core identifiers used across the platform and in patient records." />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div className="field">
+              <label>Manufacturer <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+              <input className="input" type="text" value={manufacturer} onChange={e => setManufacturer(e.target.value)} placeholder="e.g. Medtronic" />
+            </div>
+            <div className="field">
+              <label>Model <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+              <input className="input" type="text" value={model} onChange={e => setModel(e.target.value)} placeholder="e.g. Azure XT DR MRI" />
+            </div>
+            <div className="field">
+              <label>Device type <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+              <input className="input" type="text" value={deviceType} onChange={e => setDeviceType(e.target.value)} placeholder="e.g. Cardiac Pacemaker" />
+            </div>
+            <div className="field">
+              <label>Classification</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {(['active', 'passive', 'legacy'] as Classification[]).map(c => (
+                  <button key={c} type="button" onClick={() => setClassification(c)}
+                    style={{ flex:1, padding:'9px 4px', borderRadius:8, cursor:'pointer', fontFamily:'var(--ff)', fontSize:13, fontWeight: classification===c ? 600 : 400, border:`1.5px solid ${classification===c ? 'var(--accent)' : 'var(--border)'}`, background: classification===c ? 'color-mix(in srgb,var(--accent) 12%,transparent)' : 'transparent', color: classification===c ? 'var(--accent-deep)' : 'var(--muted)', transition:'all .15s', textTransform:'capitalize' }}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
+          <Divider />
+
+          {/* ── 2. MRI Status ── */}
+          <SectionHeader title="MRI safety status" sub="Select the internationally-recognised classification. Drives patient card colour and clinic alerts." />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 24 }}>
+            {MRI_OPTIONS.map(opt => {
+              const active = mriStatus === opt.value
+              return (
+                <button key={opt.value} type="button" onClick={() => setMriStatus(opt.value)}
+                  style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10, padding:'16px 10px', borderRadius:12, cursor:'pointer', transition:'all .15s', border:`2px solid ${active ? opt.color : 'var(--border)'}`, background: active ? opt.bg : 'transparent' }}>
+                  {opt.icon
+                    ? <img src={opt.icon} alt={opt.label} style={{ width:40, height:40 }} />
+                    : <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--border)', display:'grid', placeItems:'center' }}><span style={{ fontSize:10, fontFamily:'var(--ff)', color:'var(--muted)', fontWeight:700 }}>?</span></div>
+                  }
+                  <div style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight: active ? 700 : 500, color: active ? opt.color : 'var(--muted)', textAlign:'center', lineHeight:1.3 }}>{opt.label}</div>
+                </button>
+              )
+            })}
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>Field strengths tested / approved</label>
+            <input className="input" type="text" placeholder="e.g. 1.5T, 3.0T" value={fieldStrengths} onChange={e => setFieldStrengths(e.target.value)} />
+          </div>
+
+          <Divider />
+
+          {/* ── 3. Technical Parameters ── */}
+          <SectionHeader title="MRI technical parameters" sub="Radiographers use these to configure the scanner safely for MR Conditional devices." />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+            <div className="field"><label>Whole-body SAR limit</label><input className="input" type="text" placeholder="e.g. 2.0 W/kg" value={sarLimit} onChange={e => setSarLimit(e.target.value)} /></div>
+            <div className="field"><label>B1+rms limit</label><input className="input" type="text" placeholder="e.g. 2.0 µT" value={b1RmsLimit} onChange={e => setB1RmsLimit(e.target.value)} /></div>
+            <div className="field"><label>Slew rate limit</label><input className="input" type="text" placeholder="e.g. 200 T/m/s" value={slewRateLimit} onChange={e => setSlewRateLimit(e.target.value)} /></div>
+            <div className="field"><label>Gradient limit</label><input className="input" type="text" placeholder="e.g. 80 mT/m" value={gradientLimit} onChange={e => setGradientLimit(e.target.value)} /></div>
+            <div className="field"><label>Max scan time / sequence</label><input className="input" type="text" placeholder="e.g. 15 min" value={maxScanTime} onChange={e => setMaxScanTime(e.target.value)} /></div>
+          </div>
+
+          <Divider />
+
+          {/* ── 4. Contraindications ── */}
+          <SectionHeader title="Contraindications &amp; conditions" sub="Known contraindications, lead restrictions, post-op wait periods, or special scanning protocols." />
           <div className="field">
-            <label>
-              Category <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
-            </label>
-            <CustomSelect
-              options={categoryOptions}
-              value={category}
-              onChange={setCategory}
-              placeholder="Select category"
+            <label>Contraindications / special conditions</label>
+            <textarea className="input" rows={4}
+              placeholder="e.g. Not compatible with abandoned leads. Post-implant wait: 6 weeks…"
+              value={contraindications} onChange={e => setContraindications(e.target.value)}
+              style={{ resize: 'vertical' }}
             />
           </div>
 
-          <div className="field">
-            <label>Model / Part Number</label>
-            <input
-              className="input"
-              type="text"
-              value={model}
-              onChange={e => setModel(e.target.value)}
-              placeholder="e.g. ACU-TH-7742"
-            />
+          <Divider />
+
+          {/* ── 5. Approved Regions ── */}
+          <SectionHeader title="Approved regions" sub="Select all regions where this device has MRI approval." />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {REGION_OPTIONS.map(r => {
+              const on = approvedRegions.includes(r)
+              return (
+                <button key={r} type="button" onClick={() => toggleRegion(r)}
+                  style={{ padding:'7px 16px', borderRadius:8, cursor:'pointer', transition:'all .15s', fontFamily:'var(--ff)', fontSize:13, fontWeight: on ? 600 : 400, border:`1.5px solid ${on ? 'var(--accent)' : 'var(--border)'}`, background: on ? 'color-mix(in srgb,var(--accent) 10%,transparent)' : 'transparent', color: on ? 'var(--accent-deep)' : 'var(--muted)' }}>
+                  {r}
+                </button>
+              )
+            })}
           </div>
 
-          <div className="field">
-            <label>Body Region</label>
-            <CustomSelect
-              options={regionOptions}
-              value={bodyRegion}
-              onChange={setBodyRegion}
-              placeholder="Select region"
-            />
-          </div>
+          <Divider />
 
-          <div className="field">
-            <label>Regulatory Number</label>
-            <input
-              className="input"
-              type="text"
-              value={regNumber}
-              onChange={e => setRegNumber(e.target.value)}
-              placeholder="e.g. MHRA-CA-ACU-7742"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Section 2: Description ── */}
-      <div className="form-card">
-        <div className="form-section-h">
-          <div className="form-num">2</div>
-          <h3>Description</h3>
-        </div>
-        <p className="form-desc">Clinician-facing description shown on the device record and patient card.</p>
-
-        <div className="field">
-          <label>Device Description</label>
-          <textarea
-            className="input"
-            rows={5}
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="Describe the device, its intended use, and key clinical features…"
-            style={{ resize: 'vertical' }}
-          />
-        </div>
-      </div>
-
-      {/* ── Section 3: MRI Classification ── */}
-      <div className="form-card">
-        <div className="form-section-h">
-          <div className="form-num">3</div>
-          <h3>MRI Classification</h3>
-        </div>
-        <p className="form-desc">
-          MRI safety classification per ASTM F2503. This determines scan restrictions shown to radiographers.
-        </p>
-
-        <label style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 10 }}>
-          MRI Status <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
-        </label>
-        <div className="mri-toggles">
-          {(['safe', 'conditional', 'unsafe'] as const).map(cls => (
-            <button
-              key={cls}
-              type="button"
-              className={`mri-toggle${mriClass === cls ? ` sel-${cls}` : ''}`}
-              onClick={() => setMriClass(cls)}
-              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              <img src={`/mr-${cls}.svg`} width="22" height="22" alt="" style={{ flexShrink: 0, opacity: mriClass === cls ? 1 : 0.55 }} />
-              {cls === 'safe' ? 'MR Safe' : cls === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
+          {/* ── 6. Sources ── */}
+          <SectionHeader title="Source documents &amp; references" sub="IFU PDFs, manufacturer safety pages, or clinical references. Displayed on the device record and to clinic users." />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {sourceUrls.map((s, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 200px 36px', gap: 8, alignItems: 'flex-start' }}>
+                <div className="field" style={{ margin: 0 }}>
+                  {i === 0 && <label style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:5 }}>URL</label>}
+                  <input className="input" type="url" placeholder="https://www.medtronic.com/mri-manual.pdf"
+                    value={s.url} onChange={e => updateSourceRow(i, 'url', e.target.value)} />
+                </div>
+                <div className="field" style={{ margin: 0 }}>
+                  {i === 0 && <label style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:5 }}>Label (optional)</label>}
+                  <input className="input" type="text" placeholder="e.g. IFU PDF"
+                    value={s.label} onChange={e => updateSourceRow(i, 'label', e.target.value)} />
+                </div>
+                <button type="button" onClick={() => removeSourceRow(i)}
+                  style={{ alignSelf:'flex-end', height:42, width:36, display:'grid', placeItems:'center', background:'none', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', color:'var(--err)' }}
+                  aria-label="Remove source">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={addSourceRow}
+              style={{ alignSelf:'flex-start', display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add another source
             </button>
-          ))}
+          </div>
+
+          {/* ── Error + Actions ── */}
+          {error && (
+            <div style={{ marginTop: 24, background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)' }}>
+              {error}
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 24, marginTop: 28, borderTop: '1px solid var(--border)' }}>
+            <a href={`/master/devices/${id}`} className="btn">Cancel</a>
+            <button className="btn btn-s" type="submit" disabled={saving}>
+              {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
         </div>
-
-        {/* Conditional SAR fields */}
-        {mriClass === 'conditional' && (
-          <div className="form-grid" style={{ marginTop: 16 }}>
-            <div className="field">
-              <label>Tesla Rating</label>
-              <input
-                className="input"
-                type="text"
-                value={teslaRating}
-                onChange={e => setTeslaRating(e.target.value)}
-                placeholder="e.g. 1.5T, 3T"
-              />
-            </div>
-            <div className="field">
-              <label>SAR Limit</label>
-              <input
-                className="input"
-                type="text"
-                value={sarLimit}
-                onChange={e => setSarLimit(e.target.value)}
-                placeholder="e.g. 2 W/kg whole-body"
-              />
-            </div>
-            <div className="field field-full">
-              <label>Additional MRI Notes</label>
-              <textarea
-                className="input"
-                rows={3}
-                value={mriNotes}
-                onChange={e => setMriNotes(e.target.value)}
-                placeholder="Scan orientation restrictions, coil exclusions, post-implant wait times…"
-                style={{ resize: 'vertical' }}
-              />
-            </div>
-          </div>
-        )}
-
-        {mriClass === 'safe' && (
-          <div
-            style={{
-              marginTop: 14,
-              padding: '12px 16px',
-              background: 'color-mix(in srgb,var(--ok) 8%,transparent)',
-              border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)',
-              borderRadius: 10,
-              fontFamily: 'var(--fb)',
-              fontSize: 13.5,
-              color: 'var(--ok)',
-            }}
-          >
-            MR Safe — no scan restrictions. All field strengths and orientations permitted.
-          </div>
-        )}
-
-        {mriClass === 'unsafe' && (
-          <div
-            style={{
-              marginTop: 14,
-              padding: '12px 16px',
-              background: 'color-mix(in srgb,var(--err) 8%,transparent)',
-              border: '1px solid color-mix(in srgb,var(--err) 22%,transparent)',
-              borderRadius: 10,
-              fontFamily: 'var(--fb)',
-              fontSize: 13.5,
-              color: 'var(--err)',
-            }}
-          >
-            MR Unsafe — this device is contraindicated for MRI. Patients will be flagged accordingly.
-          </div>
-        )}
-      </div>
-
-      {/* ── Footer ── */}
-      <div className="form-footer">
-        <a href={`/master/devices/${id}`} className="btn">
-          Cancel
-        </a>
-        <button
-          className="btn btn-s"
-          onClick={handleSave}
-          disabled={!canSave || saving}
-        >
-          {saved ? '✓ Saved' : saving ? 'Saving…' : 'Save Changes'}
-        </button>
-      </div>
+      </form>
     </div>
   )
 }

@@ -88,6 +88,9 @@ export default function AddDeviceClient() {
   // Approved regions
   const [approvedRegions, setApprovedRegions] = useState<string[]>([])
 
+  // Sources (URLs / IFU links)
+  const [sourceUrls, setSourceUrls] = useState<{ url: string; label: string }[]>([{ url: '', label: '' }])
+
   // Form state
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
@@ -96,6 +99,12 @@ export default function AddDeviceClient() {
     setApprovedRegions(prev =>
       prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]
     )
+  }
+
+  function addSourceRow() { setSourceUrls(p => [...p, { url: '', label: '' }]) }
+  function removeSourceRow(i: number) { setSourceUrls(p => p.filter((_, j) => j !== i)) }
+  function updateSourceRow(i: number, field: 'url' | 'label', val: string) {
+    setSourceUrls(p => p.map((s, j) => j === i ? { ...s, [field]: val } : s))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -107,6 +116,8 @@ export default function AddDeviceClient() {
 
     setLoading(true)
     try {
+      const cleanSources = sourceUrls.filter(s => s.url.trim())
+        .map(s => ({ url: s.url.trim(), label: s.label.trim() || undefined }))
       await addDevice({
         manufacturer:      manufacturer.trim(),
         model:             model.trim(),
@@ -121,6 +132,7 @@ export default function AddDeviceClient() {
         maxScanTime:       maxScanTime.trim()       || undefined,
         contraindications: contraindications.trim() || undefined,
         approvedRegions:   approvedRegions.length > 0 ? approvedRegions : undefined,
+        sourceUrls:        cleanSources.length > 0 ? cleanSources : undefined,
       })
       router.push('/master/devices')
     } catch (err: unknown) {
@@ -301,6 +313,40 @@ export default function AddDeviceClient() {
                 </button>
               )
             })}
+          </div>
+
+          <Divider />
+
+          {/* ── Section 6: Sources ── */}
+          <SectionHeader
+            title="Source documents &amp; references"
+            sub="Add URLs to IFU PDFs, manufacturer safety pages, or clinical references. These are displayed on the device record and may be shown to clinic users."
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {sourceUrls.map((s, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 200px 36px', gap: 8, alignItems: 'flex-start' }}>
+                <div className="field" style={{ margin: 0 }}>
+                  {i === 0 && <label style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:5 }}>URL</label>}
+                  <input className="input" type="url" placeholder="https://www.medtronic.com/mri-manual.pdf"
+                    value={s.url} onChange={e => updateSourceRow(i, 'url', e.target.value)} />
+                </div>
+                <div className="field" style={{ margin: 0 }}>
+                  {i === 0 && <label style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:5 }}>Label (optional)</label>}
+                  <input className="input" type="text" placeholder="e.g. IFU PDF"
+                    value={s.label} onChange={e => updateSourceRow(i, 'label', e.target.value)} />
+                </div>
+                <button type="button" onClick={() => removeSourceRow(i)}
+                  style={{ alignSelf: i === 0 ? 'flex-end' : 'center', marginBottom: i === 0 ? 0 : 0, height:42, width:36, display:'grid', placeItems:'center', background:'none', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', color:'var(--err)', flexShrink:0 }}
+                  aria-label="Remove source">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={addSourceRow}
+              style={{ alignSelf: 'flex-start', display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add another source
+            </button>
           </div>
 
           {/* ── Error + Actions ── */}

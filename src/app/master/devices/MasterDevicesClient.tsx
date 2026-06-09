@@ -66,7 +66,7 @@ export default function MasterDevicesClient() {
                   <th>Manufacturer</th>
                   <th>Model</th>
                   <th>Type</th>
-                  <th>MRI Status</th>
+                  <th style={{ minWidth: 160 }}>MRI Status</th>
                   <th>Class.</th>
                 </tr>
               </thead>
@@ -84,7 +84,7 @@ export default function MasterDevicesClient() {
                         {/* whiteSpace:nowrap stops 'MR Conditional' wrapping inside the badge */}
                         <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px 3px 4px', borderRadius:6, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, letterSpacing:'.2px', whiteSpace:'nowrap' }}>
                           {icon && (
-                            <img src={icon} alt="" aria-hidden="true" style={{ width:20, height:20, display:'block', flexShrink:0 }} />
+                            <img src={icon} alt="" aria-hidden="true" style={{ width:24, height:24, display:'block', flexShrink:0 }} />
                           )}
                           {mri.label}
                         </span>
@@ -121,7 +121,7 @@ export default function MasterDevicesClient() {
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
                     <span style={{ fontFamily:'var(--ff)', display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px 3px 4px', borderRadius:6, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, whiteSpace:'nowrap' }}>
                       {icon && (
-                        <img src={icon} alt="" aria-hidden="true" style={{ width:20, height:20, display:'block', flexShrink:0 }} />
+                        <img src={icon} alt="" aria-hidden="true" style={{ width:24, height:24, display:'block', flexShrink:0 }} />
                       )}
                       {mri.label}
                     </span>

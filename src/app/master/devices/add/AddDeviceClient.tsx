@@ -118,7 +118,7 @@ export default function AddDeviceClient() {
     try {
       const cleanSources = sourceUrls.filter(s => s.url.trim())
         .map(s => ({ url: s.url.trim(), label: s.label.trim() || undefined }))
-      await addDevice({
+      const result = await addDevice({
         manufacturer:      manufacturer.trim(),
         model:             model.trim(),
         deviceType:        deviceType.trim(),
@@ -134,7 +134,10 @@ export default function AddDeviceClient() {
         approvedRegions:   approvedRegions.length > 0 ? approvedRegions : undefined,
         sourceUrls:        cleanSources.length > 0 ? cleanSources : undefined,
       })
-      router.push('/master/devices')
+      // Redirect to the new device using its readable code (e.g. DID-MDTAZU-J7K2)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const slug = (result as any)?.deviceCode ?? (result as any)?.id ?? ''
+      router.push(slug ? `/master/devices/${slug}` : '/master/devices')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to add device — try again.')
       setLoading(false)

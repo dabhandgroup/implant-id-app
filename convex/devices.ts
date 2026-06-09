@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server'
 import { v }              from 'convex/values'
+import type { Id }        from './_generated/dataModel'
 
 // ── Device code generator ──────────────────────────────────────────────────
 // Format: DID-[3 MFR][3 MODEL]-[4 ID tail]
@@ -131,7 +132,7 @@ export const addDevice = mutation({
     // Auto-generate human-readable device code from the Convex ID
     const deviceCode = makeDeviceCode(args.manufacturer, args.model, String(id))
     await ctx.db.patch(id, { deviceCode })
-    return id
+    return { id: String(id), deviceCode }
   },
 })
 
@@ -285,5 +286,49 @@ export const deleteDevice = mutation({
     }
 
     await ctx.db.delete(args.id)
+  },
+})
+
+/**
+ * Get a device by its deviceCode slug (e.g. "DID-MDTAZU-J7K2") OR Convex ID.
+ * Used for slug-based routing so URLs are human-readable.
+ */
+export const getDeviceBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    if (args.slug.startsWith('DID-')) {
+      const d = await ctx.db.query('devices')
+        .withIndex('by_device_code', (q) => q.eq('deviceCode', args.slug))
+        .unique()
+      if (d) return d
+    }
+    // Fallback: treat as Convex _id (handles old bookmarks / devices without a code)
+    try { return await ctx.db.get(args.slug as Id<'devices'>) } catch { return null }
+  },
+})
+
+/**
+ * Same as getDeviceWithUsage but resolves by slug first, then Convex ID.
+ * Used by DeviceDetailClient so the URL can be /master/devices/DID-MDTAZU-J7K2.
+ */
+export const getDeviceWithUsageBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    let device = null
+    if (args.slug.startsWith('DID-')) {
+      device = await ctx.db.query('devices')
+        .withIndex('by_device_code', (q) => q.eq('deviceCode', args.slug))
+        .unique()
+    }
+    if (!device) {
+      try { device = await ctx.db.get(args.slug as Id<'devices'>) } catch { /* invalid id */ }
+    }
+    if (!device) return null
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_device', (q) => q.eq('deviceId', device._id))
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .collect()
+    return { ...device, patientCount: links.length }
   },
 })

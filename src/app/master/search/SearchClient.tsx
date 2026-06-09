@@ -190,7 +190,7 @@ export default function SearchClient() {
                     {MRI_LABEL[d.mriStatus] ?? d.mriStatus}
                   </span>
                 }
-                href={`/master/devices/${d._id}`}
+                href={`/master/devices/${d.deviceCode ?? d._id}`}
               />
               )
             })}

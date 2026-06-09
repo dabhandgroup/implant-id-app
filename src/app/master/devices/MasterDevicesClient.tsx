@@ -76,7 +76,7 @@ export default function MasterDevicesClient() {
                   const mri  = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
                   const icon = MRI_ICON[d.mriStatus]
                   return (
-                    <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/master/devices/${d._id}`)}>
+                    <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/master/devices/${d.deviceCode ?? d._id}`)}>
                       <td style={{ fontWeight: 500 }}>{d.manufacturer}</td>
                       <td>{d.model}</td>
                       <td style={{ color: 'var(--muted)', fontSize: 13 }}>{d.deviceType}</td>
@@ -106,7 +106,7 @@ export default function MasterDevicesClient() {
               return (
                 <div
                   key={d._id}
-                  onClick={() => router.push(`/master/devices/${d._id}`)}
+                  onClick={() => router.push(`/master/devices/${d.deviceCode ?? d._id}`)}
                   style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', cursor:'pointer', marginBottom:10, display:'flex', alignItems:'center', gap:14 }}
                 >
                   {/* MRI colour bar */}

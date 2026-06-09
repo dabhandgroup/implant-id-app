@@ -35,7 +35,7 @@ function SectionHeader({ title, sub }: { title: string; sub?: string }) {
 
 export default function EditDeviceClient({ id }: { id: string }) {
   const router       = useRouter()
-  const device       = useQuery(api.devices.getDeviceById, { id: id as Id<'devices'> })
+  const device       = useQuery(api.devices.getDeviceBySlug, { slug: id })
   const updateDevice = useMutation(api.devices.updateDevice)
 
   // ── All hooks unconditionally at top ─────────────────────────────────────
@@ -123,7 +123,7 @@ export default function EditDeviceClient({ id }: { id: string }) {
       const cleanSources = sourceUrls.filter(s => s.url.trim())
         .map(s => ({ url: s.url.trim(), label: s.label.trim() || undefined }))
       await updateDevice({
-        id:               id as Id<'devices'>,
+        id:               device._id,
         manufacturer:     manufacturer.trim(),
         model:            model.trim(),
         deviceType:       deviceType.trim(),
@@ -139,7 +139,7 @@ export default function EditDeviceClient({ id }: { id: string }) {
         approvedRegions:  approvedRegions.length > 0 ? approvedRegions : undefined,
         sourceUrls:       cleanSources.length > 0  ? cleanSources : undefined,
       })
-      router.push(`/master/devices/${id}`)
+      router.push(`/master/devices/${(device as any).deviceCode ?? id}`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save — please try again.')
       setSaving(false)
@@ -148,7 +148,7 @@ export default function EditDeviceClient({ id }: { id: string }) {
 
   return (
     <div className="m-content">
-      <a href={`/master/devices/${id}`} className="m-back" style={{ display:'inline-flex', alignItems:'center', gap:6, background:'none', border:0, cursor:'pointer', color:'var(--muted)', fontFamily:'var(--ff)', fontSize:13.5, padding:0, marginBottom:24, textDecoration:'none' }}>
+      <a href={`/master/devices/${(device as any).deviceCode ?? id}`} className="m-back" style={{ display:'inline-flex', alignItems:'center', gap:6, background:'none', border:0, cursor:'pointer', color:'var(--muted)', fontFamily:'var(--ff)', fontSize:13.5, padding:0, marginBottom:24, textDecoration:'none' }}>
         ← Back to {device.manufacturer} {device.model}
       </a>
 

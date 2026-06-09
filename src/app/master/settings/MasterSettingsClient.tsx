@@ -46,13 +46,25 @@ export default function MasterSettingsClient() {
   const router              = useRouter()
 
   // ── Admin user management ─────────────────────────────────────────────────
-  const admins      = useQuery(api.users.listAdmins)
-  const inviteAdmin = useMutation(api.users.inviteAdmin)
+  const admins           = useQuery(api.users.listAdmins)
+  const inviteAdmin      = useMutation(api.users.inviteAdmin)
+  const updateAdmin      = useMutation(api.users.updateAdmin)
+  const removeAdmin      = useMutation(api.users.removeAdmin)
+  const resendAdminInvite = useMutation(api.users.resendAdminInvite)
   const [inviteName,  setInviteName]  = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting,    setInviting]    = useState(false)
   const [inviteErr,   setInviteErr]   = useState('')
   const [inviteDone,  setInviteDone]  = useState(false)
+
+  // Edit / remove state
+  const [editingId,   setEditingId]   = useState<string | null>(null)
+  const [editName,    setEditName]    = useState('')
+  const [editSaving,  setEditSaving]  = useState(false)
+  const [editErr,     setEditErr]     = useState('')
+  const [removingId,  setRemovingId]  = useState<string | null>(null)
+  const [resendingId, setResendingId] = useState<string | null>(null)
+  const [resendDone,  setResendDone]  = useState<string | null>(null)
 
   async function handleInviteAdmin(e: React.FormEvent) {
     e.preventDefault()
@@ -61,11 +73,47 @@ export default function MasterSettingsClient() {
     try {
       await inviteAdmin({ email: inviteEmail.trim().toLowerCase(), name: inviteName.trim() })
       setInviteDone(true); setInviteName(''); setInviteEmail('')
-      setTimeout(() => setInviteDone(false), 3000)
+      setTimeout(() => setInviteDone(false), 4000)
     } catch (e) {
       setInviteErr((e as { message?: string })?.message ?? 'Failed — try again')
     } finally {
       setInviting(false)
+    }
+  }
+
+  async function handleEditAdmin(id: string) {
+    setEditSaving(true); setEditErr('')
+    try {
+      await updateAdmin({ userId: id as never, name: editName.trim() })
+      setEditingId(null)
+    } catch (e) {
+      setEditErr((e as { message?: string })?.message ?? 'Failed — try again')
+    } finally {
+      setEditSaving(false)
+    }
+  }
+
+  async function handleRemoveAdmin(id: string) {
+    setRemovingId(id)
+    try {
+      await removeAdmin({ userId: id as never })
+    } catch (e) {
+      alert((e as { message?: string })?.message ?? 'Failed to remove admin')
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
+  async function handleResendInvite(id: string) {
+    setResendingId(id)
+    try {
+      await resendAdminInvite({ userId: id as never })
+      setResendDone(id)
+      setTimeout(() => setResendDone(null), 3000)
+    } catch (e) {
+      alert((e as { message?: string })?.message ?? 'Failed to resend')
+    } finally {
+      setResendingId(null)
     }
   }
 
@@ -458,24 +506,89 @@ export default function MasterSettingsClient() {
                 ) : admins.length === 0 ? (
                   <div style={{ color: 'var(--muted)', fontSize: 13 }}>No admins found.</div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-                    {(admins as {_id:string; name:string; email:string; clerkId:string}[]).map((a, i) => (
-                      <div key={a._id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: i % 2 === 0 ? 'var(--bg)' : 'transparent' }}>
-                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'linear-gradient(140deg,var(--accent),var(--accent2))', display: 'grid', placeItems: 'center', color: '#fff', fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
-                          {a.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {(admins as {_id:string; name:string; email:string; clerkId:string}[]).map((a) => {
+                      const isMe      = a.email === email
+                      const isPending = !a.clerkId
+                      const isEditing = editingId === a._id
+                      return (
+                        <div key={a._id} style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                          {/* Main row */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px' }}>
+                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(140deg,var(--accent),var(--accent2))', display: 'grid', placeItems: 'center', color: '#fff', fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                              {a.name.split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0, 2)}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{a.name}</div>
+                              <div style={{ fontSize: 12.5, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.email}</div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                              {isMe && (
+                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 10%,transparent)', padding: '2px 8px', borderRadius: 5 }}>You</span>
+                              )}
+                              <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: isPending ? '#b45309' : 'var(--ok)', background: isPending ? 'color-mix(in srgb,#f59e0b 10%,transparent)' : 'color-mix(in srgb,var(--ok) 10%,transparent)', padding: '2px 8px', borderRadius: 5 }}>
+                                {isPending ? 'Pending' : 'Active'}
+                              </span>
+                              {/* Edit button */}
+                              <button
+                                className="btn"
+                                style={{ padding: '4px 10px', fontSize: 12 }}
+                                onClick={() => { setEditingId(isEditing ? null : a._id); setEditName(a.name); setEditErr('') }}
+                                aria-label="Edit admin"
+                              >
+                                {isEditing ? 'Cancel' : 'Edit'}
+                              </button>
+                              {/* Remove button — hidden for self */}
+                              {!isMe && (
+                                <button
+                                  className="btn btn-danger"
+                                  style={{ padding: '4px 10px', fontSize: 12 }}
+                                  onClick={() => { if (confirm(`Remove ${a.name} as master admin?`)) handleRemoveAdmin(a._id) }}
+                                  disabled={removingId === a._id}
+                                  aria-label="Remove admin"
+                                >
+                                  {removingId === a._id ? 'Removing…' : 'Remove'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Expanded edit panel */}
+                          {isEditing && (
+                            <div style={{ borderTop: '1px solid var(--border)', padding: '14px 16px', background: 'var(--bg)' }}>
+                              <div className="field" style={{ marginBottom: 10 }}>
+                                <label>Display name</label>
+                                <input
+                                  className="input"
+                                  value={editName}
+                                  onChange={e => setEditName(e.target.value)}
+                                  placeholder="Full name"
+                                />
+                              </div>
+                              {editErr && <div style={{ fontSize: 13, color: 'var(--err)', marginBottom: 8 }}>{editErr}</div>}
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <button
+                                  className="btn btn-s"
+                                  onClick={() => handleEditAdmin(a._id)}
+                                  disabled={editSaving || !editName.trim()}
+                                >
+                                  {editSaving ? 'Saving…' : 'Save name'}
+                                </button>
+                                {isPending && (
+                                  <button
+                                    className="btn"
+                                    onClick={() => handleResendInvite(a._id)}
+                                    disabled={resendingId === a._id}
+                                  >
+                                    {resendDone === a._id ? '✓ Invite sent' : resendingId === a._id ? 'Sending…' : 'Resend invite'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{a.name}</div>
-                          <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{a.email}</div>
-                        </div>
-                        {a.email === email && (
-                          <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 10%,transparent)', padding: '2px 8px', borderRadius: 5 }}>You</span>
-                        )}
-                        <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--ok)', background: 'color-mix(in srgb,var(--ok) 10%,transparent)', padding: '2px 8px', borderRadius: 5 }}>
-                          {a.clerkId ? 'Active' : 'Pending'}
-                        </span>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>

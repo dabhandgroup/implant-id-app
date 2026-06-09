@@ -1,4 +1,4 @@
-import { mutation, query, internalAction } from './_generated/server'
+import { mutation, query, internalAction, internalMutation } from './_generated/server'
 import { v }                               from 'convex/values'
 import { internal }                        from './_generated/api'
 
@@ -199,10 +199,81 @@ export const createAdminClerkAccount = internalAction({
     if (res.ok) {
       const u = await res.json() as { id: string }
       console.log('[admin invite] Created Clerk admin account', u.id, 'for', args.email)
+      // Link the new Clerk ID back to the Convex placeholder row
+      await ctx.runMutation(internal.users.linkAdminClerkId, { email: args.email, clerkId: u.id })
       // Send welcome / login instructions email
       await ctx.runAction(internal.email.sendAdminInviteEmail, { email: args.email, name: args.name })
     } else {
       console.error('[admin invite] Clerk creation failed:', res.status, await res.text())
     }
+  },
+})
+
+/** Internal — links a Clerk ID back to the placeholder user row created during invite. */
+export const linkAdminClerkId = internalMutation({
+  args: { email: v.string(), clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.query('users').withIndex('by_email', q => q.eq('email', args.email)).unique()
+    if (user && !user.clerkId) {
+      await ctx.db.patch(user._id, { clerkId: args.clerkId })
+    }
+  },
+})
+
+/** Update a master admin's display name. Admin-only. Cannot edit yourself. */
+export const updateAdmin = mutation({
+  args: { userId: v.id('users'), name: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const me = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!me || me.role !== 'admin') throw new Error('Admin only')
+    const target = await ctx.db.get(args.userId)
+    if (!target || target.role !== 'admin') throw new Error('Not an admin user')
+    await ctx.db.patch(args.userId, { name: args.name.trim() })
+  },
+})
+
+/** Remove a master admin. Cannot remove yourself. Admin-only. */
+export const removeAdmin = mutation({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const me = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!me || me.role !== 'admin') throw new Error('Admin only')
+    if (me._id === args.userId) throw new Error('Cannot remove yourself')
+    const target = await ctx.db.get(args.userId)
+    if (!target || target.role !== 'admin') throw new Error('Not an admin user')
+    // Optionally downgrade in Clerk if they have an account
+    if (target.clerkId) {
+      const secretKey = process.env.CLERK_SECRET_KEY
+      if (secretKey) {
+        await fetch(`https://api.clerk.com/v1/users/${target.clerkId}/metadata`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ public_metadata: { role: 'patient' } }),
+        }).catch(() => {/* non-fatal */})
+      }
+    }
+    await ctx.db.delete(args.userId)
+  },
+})
+
+/** Resend invite email to a pending admin. Admin-only. */
+export const resendAdminInvite = mutation({
+  args: { userId: v.id('users') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const me = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!me || me.role !== 'admin') throw new Error('Admin only')
+    const target = await ctx.db.get(args.userId)
+    if (!target || target.role !== 'admin') throw new Error('Not an admin user')
+    // Re-run the Clerk account creation + email (idempotent — updates existing if already created)
+    await ctx.scheduler.runAfter(0, internal.users.createAdminClerkAccount, {
+      email: target.email,
+      name:  target.name,
+    })
   },
 })

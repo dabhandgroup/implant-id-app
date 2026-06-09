@@ -122,8 +122,12 @@ export const inviteAdmin = mutation({
     // Check if already exists in Convex
     const existing = await ctx.db.query('users').withIndex('by_email', q => q.eq('email', args.email)).unique()
     if (existing) {
-      // Promote to admin if not already
+      // Promote to admin if not already, then send invite email regardless
       await ctx.db.patch(existing._id, { role: 'admin', name: args.name })
+      await ctx.scheduler.runAfter(0, internal.users.createAdminClerkAccount, {
+        email: args.email,
+        name:  args.name,
+      })
       return existing._id
     }
 

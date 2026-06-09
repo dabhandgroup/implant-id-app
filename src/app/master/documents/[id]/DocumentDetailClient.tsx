@@ -1,6 +1,15 @@
 'use client'
 
 import { useState } from 'react'
+import { useQuery } from 'convex/react'
+import { api as apiBase } from '../../../../../convex/_generated/api'
+
+// Cast to any — `documents` module added to _generated/api after `npx convex deploy`
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = apiBase as any
+
+// Legacy IDs are the 6 hardcoded contracts below. All other IDs are Convex document IDs.
+const LEGACY_IDS = new Set(['1', '2', '3', '4', '5', '6'])
 
 // ── Contract data — one per document ─────────────────────────────────────────
 
@@ -593,8 +602,57 @@ export default function DocumentDetailClient({ id }: { id: string }) {
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // ── ALL hooks must be called unconditionally (hooks rule) ─────────────────
+  const isLegacy = LEGACY_IDS.has(id)
+  // Skip the Convex query for legacy IDs — returns undefined while loading, then the doc
+  const convexDoc = useQuery(api.documents.getDocument, isLegacy ? 'skip' : { id })
+
+  // ── Legacy IDs: use hardcoded contracts ───────────────────────────────────
   const contract = contracts[id]
 
+  // ── Convex document view ──────────────────────────────────────────────────
+  // For non-legacy IDs, render a source document card instead of a contract
+  if (!isLegacy) {
+    if (convexDoc === undefined) {
+      return (
+        <div className="m-content">
+          <a href="/master/documents" className="m-back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Back to Documents
+          </a>
+          <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--fb)', fontSize: 14 }}>
+            Loading…
+          </div>
+        </div>
+      )
+    }
+
+    if (!convexDoc) {
+      return (
+        <div className="m-content">
+          <a href="/master/documents" className="m-back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Back to Documents
+          </a>
+          <div className="m-h">
+            <div>
+              <h2>Document not found</h2>
+              <div className="sub">ID: {id}</div>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    // Render a clean source document view
+    return <SourceDocView doc={convexDoc} />
+  }
+
+  // ── Legacy ID: fallback "not found" (shouldn't happen with seeded data) ───
   if (!contract) {
     return (
       <div className="m-content">
@@ -999,6 +1057,130 @@ export default function DocumentDetailClient({ id }: { id: string }) {
               </div>
             </a>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── SourceDocView — renders a Convex source document (IFU, manual, spec sheet) ──
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function SourceDocView({ doc }: { doc: any }) {
+  const tc = typeColour(doc.docType)
+  const devices = (doc.deviceNames ?? []).join(', ')
+
+  return (
+    <div className="m-content">
+      <a href="/master/documents" className="m-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        Back to Documents
+      </a>
+
+      <div className="m-h" style={{ marginBottom: 20 }}>
+        <div>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {doc.title}
+            <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, background: tc.bg, border: `1px solid ${tc.border}`, color: tc.text, borderRadius: 7, padding: '3px 9px' }}>
+              {doc.docType}
+            </span>
+          </h2>
+          <div className="sub">{doc.manufacturer}{devices ? ` — ${devices}` : ''}</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18, alignItems: 'start' }}>
+        {/* Main card */}
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 18 }}>Document Details</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px' }}>
+            {[
+              { label: 'Manufacturer', value: doc.manufacturer },
+              { label: 'Document Type', value: doc.docType },
+              { label: 'Version / Ref', value: doc.documentVersion || '—' },
+              { label: 'Document Date', value: doc.documentDate || '—' },
+              { label: 'Date Retrieved', value: doc.dateRetrieved || '—' },
+              { label: 'Status', value: doc.status === 'live' ? 'Live' : 'Superseded' },
+            ].map(row => (
+              <div key={row.label}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 9.5, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', fontWeight: 600, marginBottom: 2 }}>{row.label}</div>
+                <div style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--text)' }}>{row.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {devices && (
+            <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 9.5, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', fontWeight: 600, marginBottom: 6 }}>Associated Devices</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {(doc.deviceNames ?? []).map((name: string) => (
+                  <span key={name} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 7, padding: '3px 10px', fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--text)' }}>
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {doc.notes && (
+            <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 9.5, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', fontWeight: 600, marginBottom: 6 }}>Notes</div>
+              <p style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>{doc.notes}</p>
+            </div>
+          )}
+
+          {doc.verifiedBy && (
+            <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--border)' }}>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 9.5, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', fontWeight: 600, marginBottom: 4 }}>Verified By</div>
+              <div style={{ fontFamily: 'var(--fb)', fontSize: 12.5, color: 'var(--ok)' }}>✓ {doc.verifiedBy}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* External link */}
+          {doc.sourceUrl && (
+            <a
+              href={doc.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                background: 'var(--bg2)',
+                border: '1px solid var(--border)',
+                borderRadius: 13,
+                padding: '14px 16px',
+                textDecoration: 'none',
+                transition: 'border-color .15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = '')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" style={{ flexShrink: 0 }}>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              <div>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600, color: 'var(--accent)' }}>View source document</div>
+                <div style={{ fontFamily: 'var(--fb)', fontSize: 11.5, color: 'var(--muted)', marginTop: 1, wordBreak: 'break-all' }}>
+                  {doc.sourceUrl.replace('https://', '').split('/')[0]}
+                </div>
+              </div>
+            </a>
+          )}
+
+          {/* Status badge */}
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 13, padding: '14px 16px' }}>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Status</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: doc.status === 'live' ? 'color-mix(in srgb,var(--ok) 10%,transparent)' : 'color-mix(in srgb,var(--muted) 10%,transparent)', border: `1.5px solid color-mix(in srgb,${doc.status === 'live' ? 'var(--ok)' : 'var(--muted)'} 30%,transparent)`, fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 700, color: doc.status === 'live' ? 'var(--ok)' : 'var(--muted)' }}>
+              {doc.status === 'live' ? '✓ Live' : '⚠ Superseded'}
+            </div>
+          </div>
         </div>
       </div>
     </div>

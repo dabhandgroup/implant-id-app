@@ -1,76 +1,40 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useQuery } from 'convex/react'
+import { api as apiBase } from '../../../../convex/_generated/api'
 
-const docs = [
-  {
-    id: '1',
-    name: 'Medtronic_Micra_AV_MRI_Conditions.pdf',
-    type: 'MRI Conditions',
-    manufacturer: 'Medtronic plc',
-    device: 'Micra AV Pacemaker',
-    uploaded: '12 Jan 2026',
-  },
-  {
-    id: '2',
-    name: 'ZimmerBiomet_Oxford_Knee_IFU.pdf',
-    type: 'Instructions for Use',
-    manufacturer: 'Zimmer Biomet',
-    device: 'Oxford Knee System',
-    uploaded: '16 Jan 2026',
-  },
-  {
-    id: '3',
-    name: 'Stryker_Tritanium_PL_ProductLeaflet.pdf',
-    type: 'Product Leaflet',
-    manufacturer: 'Stryker Orthopaedics',
-    device: 'Tritanium PL Cage',
-    uploaded: '22 Feb 2026',
-  },
-  {
-    id: '4',
-    name: 'Medtronic_RevealLINQ_IFU.pdf',
-    type: 'Instructions for Use',
-    manufacturer: 'Medtronic plc',
-    device: 'Reveal LINQ ICM',
-    uploaded: '12 Jan 2026',
-  },
-  {
-    id: '5',
-    name: 'Zimmer_PersonaKnee_MRI_Cert.pdf',
-    type: 'MRI Conditions',
-    manufacturer: 'Zimmer Biomet',
-    device: 'Persona Knee System',
-    uploaded: '18 Jan 2026',
-  },
-  {
-    id: '6',
-    name: 'Stryker_Accolade2_DeviceContract.pdf',
-    type: 'Device Contract',
-    manufacturer: 'Stryker Orthopaedics',
-    device: 'Accolade II Hip Stem',
-    uploaded: '22 Feb 2026',
-  },
-]
+// Cast to any — the `documents` module will be in _generated/api after `npx convex deploy`
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const api = apiBase as any
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function typeColour(type: string) {
-  if (type === 'MRI Conditions')
+  const t = type.toLowerCase()
+  if (t.includes('mri') || t.includes('technical manual'))
     return {
       bg: 'color-mix(in srgb,#3b82f6 10%,transparent)',
       border: 'color-mix(in srgb,#3b82f6 25%,transparent)',
       text: '#3b82f6',
     }
-  if (type === 'Instructions for Use')
+  if (t.includes('ifu') || t.includes('instructions for use'))
     return {
       bg: 'color-mix(in srgb,var(--ok) 10%,transparent)',
       border: 'color-mix(in srgb,var(--ok) 25%,transparent)',
       text: 'var(--ok)',
     }
-  if (type === 'Device Contract')
+  if (t.includes('submission contract'))
     return {
       bg: 'color-mix(in srgb,var(--accent) 10%,transparent)',
       border: 'color-mix(in srgb,var(--accent) 25%,transparent)',
       text: 'var(--accent)',
+    }
+  if (t.includes('peer') || t.includes('publication'))
+    return {
+      bg: 'color-mix(in srgb,#8b5cf6 10%,transparent)',
+      border: 'color-mix(in srgb,#8b5cf6 25%,transparent)',
+      text: '#8b5cf6',
     }
   return {
     bg: 'color-mix(in srgb,var(--muted) 10%,transparent)',
@@ -79,8 +43,19 @@ function typeColour(type: string) {
   }
 }
 
+function formatDate(dateStr?: string) {
+  if (!dateStr) return '—'
+  // Accepts YYYY-MM-DD
+  const d = new Date(dateStr + 'T00:00:00')
+  if (isNaN(d.getTime())) return dateStr
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function DocumentsClient() {
   const router = useRouter()
+  const docs = useQuery(api.documents.listDocuments, { limit: 200 })
 
   return (
     <div className="m-content">
@@ -88,9 +63,9 @@ export default function DocumentsClient() {
         <div>
           <h2>Documents</h2>
           <div className="sub">
-            Signed submission contracts auto-generated when manufacturers submit devices. Each PDF
-            contains the full device record, manufacturer details, and the uploader&apos;s
-            electronic signature.
+            Source documents (IFUs, MRI technical manuals, spec sheets) and platform-generated
+            submission contracts. Submission contracts include the full device record and
+            manufacturer&apos;s electronic signature.
           </div>
         </div>
       </div>
@@ -113,18 +88,43 @@ export default function DocumentsClient() {
               <th>Document</th>
               <th>Type</th>
               <th>Manufacturer</th>
-              <th>Device</th>
-              <th>Uploaded</th>
+              <th>Devices</th>
+              <th>Date</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {docs.map(doc => {
-              const colours = typeColour(doc.type)
+            {/* Loading skeleton */}
+            {docs === undefined && (
+              Array.from({ length: 6 }).map((_, i) => (
+                <tr key={i}>
+                  <td colSpan={6}>
+                    <div style={{ height: 18, borderRadius: 6, background: 'var(--border)', opacity: 0.5 }} />
+                  </td>
+                </tr>
+              ))
+            )}
+
+            {/* Empty state */}
+            {docs !== undefined && docs.length === 0 && (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0', fontSize: 14 }}>
+                  No documents yet. Run the seed to populate the document library.
+                </td>
+              </tr>
+            )}
+
+            {/* Real rows */}
+            {docs && docs.map(doc => {
+              const colours = typeColour(doc.docType)
+              const deviceLabel = doc.deviceNames?.slice(0, 2).join(', ') +
+                (doc.deviceNames?.length > 2 ? ` +${doc.deviceNames.length - 2}` : '')
+              const dateLabel = formatDate(doc.documentDate || doc.dateRetrieved)
+
               return (
                 <tr
-                  key={doc.id}
-                  onClick={() => router.push(`/master/documents/${doc.id}`)}
+                  key={doc._id}
+                  onClick={() => router.push(`/master/documents/${doc._id}`)}
                   style={{ cursor: 'pointer' }}
                 >
                   <td>
@@ -134,7 +134,7 @@ export default function DocumentsClient() {
                           width: 28,
                           height: 28,
                           borderRadius: 7,
-                          background: 'color-mix(in srgb,var(--err) 10%,transparent)',
+                          background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
                           display: 'grid',
                           placeItems: 'center',
                           flexShrink: 0,
@@ -145,7 +145,7 @@ export default function DocumentsClient() {
                           height="13"
                           viewBox="0 0 24 24"
                           fill="none"
-                          stroke="var(--err)"
+                          stroke="var(--accent)"
                           strokeWidth="1.7"
                         >
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -160,7 +160,7 @@ export default function DocumentsClient() {
                           color: 'var(--text)',
                         }}
                       >
-                        {doc.name}
+                        {doc.title}
                       </span>
                     </div>
                   </td>
@@ -178,15 +178,15 @@ export default function DocumentsClient() {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {doc.type}
+                      {doc.docType}
                     </span>
                   </td>
                   <td style={{ color: 'var(--muted)' }}>{doc.manufacturer}</td>
-                  <td>{doc.device}</td>
-                  <td style={{ color: 'var(--muted)' }}>{doc.uploaded}</td>
+                  <td style={{ color: 'var(--muted)', fontSize: 12 }}>{deviceLabel || '—'}</td>
+                  <td style={{ color: 'var(--muted)' }}>{dateLabel}</td>
                   <td onClick={e => e.stopPropagation()}>
                     <a
-                      href={`/master/documents/${doc.id}`}
+                      href={`/master/documents/${doc._id}`}
                       className="m-act"
                       style={{ textDecoration: 'none', display: 'inline-block' }}
                     >

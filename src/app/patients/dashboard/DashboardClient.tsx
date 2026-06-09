@@ -896,20 +896,12 @@ export default function DashboardClient() {
                     <span style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.92)', letterSpacing:'.3px', whiteSpace:'nowrap' }}>
                       {implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
                     </span>
-                    {/* MR Safe = square container (matches ISO standard square logo)
-                        MR Conditional + MR Unsafe = circle container (matches circular logos) */}
-                    <div style={{
-                      width:46, height:46,
-                      borderRadius: implantSafety === 'safe' ? 6 : '50%',
-                      background:'rgba(255,255,255,0.92)',
-                      display:'grid', placeItems:'center', flexShrink:0, padding:4,
-                    }}>
-                      <img
-                        src={implantSafety === 'safe' ? '/mr-safe.svg' : implantSafety === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
-                        alt={implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
-                        style={{ width:'100%', height:'100%', display:'block' }}
-                      />
-                    </div>
+                    {/* Icons have white outline border built in — no wrapper needed */}
+                    <img
+                      src={implantSafety === 'safe' ? '/mr-safe.svg' : implantSafety === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
+                      alt={implantSafety === 'safe' ? 'MR Safe' : implantSafety === 'conditional' ? 'MR Conditional' : 'MR Unsafe'}
+                      style={{ width:42, height:42, display:'block', flexShrink:0 }}
+                    />
                   </div>
                 ) : !isPending ? (
                   <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'rgba(34,197,94,0.20)', border:'1px solid rgba(34,197,94,0.4)', borderRadius:999, padding:'5px 12px', fontFamily:'var(--ff)', fontSize:11, fontWeight:700, color:'#bbf7d0', letterSpacing:'.3px', flexShrink:0 }}>

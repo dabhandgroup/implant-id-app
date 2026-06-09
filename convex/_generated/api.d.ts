@@ -10,11 +10,13 @@
 
 import type * as clinics from "../clinics.js";
 import type * as devices from "../devices.js";
+import type * as documents from "../documents.js";
 import type * as email from "../email.js";
 import type * as emailTemplate from "../emailTemplate.js";
 import type * as http from "../http.js";
 import type * as manufacturers from "../manufacturers.js";
 import type * as patients from "../patients.js";
+import type * as scrapeJobs from "../scrapeJobs.js";
 import type * as search from "../search.js";
 import type * as seed from "../seed.js";
 import type * as users from "../users.js";
@@ -28,11 +30,13 @@ import type {
 declare const fullApi: ApiFromModules<{
   clinics: typeof clinics;
   devices: typeof devices;
+  documents: typeof documents;
   email: typeof email;
   emailTemplate: typeof emailTemplate;
   http: typeof http;
   manufacturers: typeof manufacturers;
   patients: typeof patients;
+  scrapeJobs: typeof scrapeJobs;
   search: typeof search;
   seed: typeof seed;
   users: typeof users;

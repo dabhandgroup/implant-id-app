@@ -294,6 +294,34 @@ export default defineSchema({
     .index('by_email', ['contactEmail'])
     .index('by_clerk', ['clerkUserId']),
 
+  // Source documents & submission contracts
+  // Source docs = IFUs, manuals, spec sheets from manufacturer sites (seeded from devices.ts)
+  // Submission contracts = auto-generated when a manufacturer submits a device via the portal
+  documents: defineTable({
+    title: v.string(),
+    docType: v.string(),              // 'Manufacturer IFU' | 'Manufacturer MRI Technical Manual' | 'Manufacturer spec sheet' | 'Manufacturer product page' | 'Peer-reviewed publication' | 'Submission Contract'
+    manufacturer: v.string(),
+    deviceNames: v.array(v.string()), // device names linked to this document
+    documentVersion: v.optional(v.string()),
+    documentDate: v.optional(v.string()),     // YYYY-MM-DD
+    dateRetrieved: v.optional(v.string()),    // YYYY-MM-DD
+    sourceUrl: v.optional(v.string()),        // real external URL
+    fileStorageId: v.optional(v.id('_storage')), // if PDF has been uploaded
+    status: v.union(v.literal('live'), v.literal('superseded')),
+    // Submission contract fields (set when manufacturer submits a device)
+    submittedByManufacturerId: v.optional(v.id('manufacturers')),
+    signerName: v.optional(v.string()),
+    signerTitle: v.optional(v.string()),
+    signerCompany: v.optional(v.string()),
+    signedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    verifiedBy: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index('by_manufacturer', ['manufacturer'])
+    .index('by_status', ['status'])
+    .index('by_type', ['docType']),
+
   // Scrape jobs — persisted so results survive navigation and show as history
   scrapeJobs: defineTable({
     manufacturer:  v.string(),

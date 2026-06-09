@@ -115,7 +115,7 @@ export default function DocumentsClient() {
             )}
 
             {/* Real rows */}
-            {docs && docs.map(doc => {
+            {docs && docs.map((doc: Record<string, any>) => {
               const colours = typeColour(doc.docType)
               const deviceLabel = doc.deviceNames?.slice(0, 2).join(', ') +
                 (doc.deviceNames?.length > 2 ? ` +${doc.deviceNames.length - 2}` : '')

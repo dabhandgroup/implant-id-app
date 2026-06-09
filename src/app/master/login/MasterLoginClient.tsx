@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useSignIn, useSignUp, useAuth, useClerk } from '@clerk/nextjs'
+import { useSignIn, useSignUp, useAuth } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 // ── OTP inputs — module level so React never remounts on state change ──────────
@@ -66,7 +66,6 @@ export default function MasterLoginClient() {
   const router                         = useRouter()
   const { signIn }                     = useSignIn()
   const { signUp }                     = useSignUp()
-  const { setActive }                  = useClerk()
   const { isSignedIn, isLoaded }       = useAuth()
 
   // ── All state before any conditional logic ───────────────────────────────────
@@ -87,35 +86,45 @@ export default function MasterLoginClient() {
 
   // ── Clerk invitation ticket handler ──────────────────────────────────────────
   // When someone clicks an invitation link, Clerk redirects here with
-  // ?__clerk_ticket=... — we must call signUp.create({ strategy:'ticket' })
-  // to complete account creation. Without this, the account never gets created
-  // and the user gets "Couldn't find your account" if they try OTP sign-in.
+  // ?__clerk_ticket=... — we call signUp.ticket() to complete account creation.
+  // Clerk v7 Signal API: signUp.ticket() returns { error } (not a full resource).
+  // Status is read from signUp.status; signUp.finalize() activates the session.
   useEffect(() => {
-    if (!isLoaded || !signUp || !setActive || isSignedIn) return
+    if (!isLoaded || !signUp || isSignedIn) return
     const ticket = new URLSearchParams(window.location.search).get('__clerk_ticket')
     if (!ticket) return
 
     setTicketProcessing(true)
     setError('')
 
-    signUp.create({ strategy: 'ticket', ticket })
-      .then(result => {
-        if (result.status === 'complete' && result.createdSessionId) {
-          // Account created + session active — hard navigate to dashboard
-          setActive({ session: result.createdSessionId })
+    ;(async () => {
+      try {
+        const { error: ticketErr } = await signUp.ticket({ ticket })
+        if (ticketErr) {
+          setTicketProcessing(false)
+          setError(ticketErr.message || 'Activation failed — please try again.')
+          return
+        }
+        if (signUp.status === 'complete') {
+          // finalize() activates the session internally — no setActive() needed in v7
+          const { error: finalErr } = await signUp.finalize()
+          if (finalErr) {
+            setTicketProcessing(false)
+            setError(finalErr.message || 'Could not activate session.')
+            return
+          }
           window.location.assign('/master/dashboard')
         } else {
-          // Unexpected state — let the user try manual sign-in
           setTicketProcessing(false)
           setError('Activation incomplete — please sign in manually below.')
         }
-      })
-      .catch(e => {
+      } catch (e) {
         setTicketProcessing(false)
         setError(clerkErr(e))
-      })
+      }
+    })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, !!signUp, !!setActive, isSignedIn])
+  }, [isLoaded, !!signUp, isSignedIn])
 
   // ── Guards ───────────────────────────────────────────────────────────────────
   if (!isLoaded) return null

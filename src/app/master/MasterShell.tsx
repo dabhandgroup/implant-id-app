@@ -421,9 +421,9 @@ export default function MasterShell({ children }: MasterShellProps) {
                 onClick={() => router.push('/master/search')}
                 aria-label="Search"
                 title="Search (⌘K)"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, padding: 0, flexShrink: 0 }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 42, height: 42, padding: 0, flexShrink: 0 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
               </button>

@@ -74,7 +74,7 @@ export default function MasterDevicesClient() {
                       <td>{d.model}</td>
                       <td style={{ color: 'var(--muted)', fontSize: 13 }}>{d.deviceType}</td>
                       <td>
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:12, fontWeight:600, color:mri.color, padding:'3px 8px', borderRadius:4, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, letterSpacing:'.3px' }}>
+                        <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px', borderRadius:4, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, letterSpacing:'.2px' }}>
                           {d.mriStatus && d.mriStatus !== 'unknown' && (
                             <img src={d.mriStatus === 'safe' ? '/mr-safe.svg' : d.mriStatus === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'} alt="" aria-hidden="true" style={{ width:16, height:16, display:'block', flexShrink:0 }} />
                           )}

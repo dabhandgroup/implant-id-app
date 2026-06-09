@@ -111,14 +111,12 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
       {/* MRI status hero card */}
       <div style={{ background: MRI_BG[status], borderRadius: 16, padding: '28px 32px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 20 }}>
-        {/* MR Safe = square container, MR Conditional/Unsafe = circle container */}
-        <div style={{ width: 64, height: 64, borderRadius: status === 'safe' ? 8 : '50%', background: 'rgba(255,255,255,0.92)', display: 'grid', placeItems: 'center', flexShrink: 0, padding: 6 }}>
-          <img
-            src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : status === 'unsafe' ? '/mr-unsafe.svg' : '/mr-conditional.svg'}
-            alt={MRI_LABEL[status]}
-            style={{ width: '100%', height: '100%', display: 'block' }}
-          />
-        </div>
+        {/* Icons have white outline border built in — no wrapper needed */}
+        <img
+          src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : status === 'unsafe' ? '/mr-unsafe.svg' : '/mr-conditional.svg'}
+          alt={MRI_LABEL[status]}
+          style={{ width: 64, height: 64, display: 'block', flexShrink: 0 }}
+        />
         <div>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.4px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', marginBottom: 6 }}>MRI Safety Status</div>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 26, fontWeight: 700, color: '#fff' }}>{MRI_LABEL[status]}</div>

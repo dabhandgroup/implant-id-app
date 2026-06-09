@@ -34,10 +34,7 @@ const ICON_LG         = pub('icon-87.png')
 // White logo — shows clearly on coloured card backgrounds
 const LOGO_SM = pub('wallet-logo.png')
 const LOGO_MD = pub('wallet-logo@2x.png')
-// MRI icon thumbnails with white backgrounds for visibility on coloured pass cards:
-//   Safe    → white rounded rect  (green icon invisible on green card otherwise)
-//   Conditional → plain icon      (yellow triangle already readable on orange)
-//   Unsafe  → white circle        (dark icon invisible on red card otherwise)
+// MRI icon thumbnails — outline SVG variants (white border built in, no background needed)
 const MRI_SAFE_ICON         = pub('mr-safe-thumb.png')
 const MRI_SAFE_ICON_2X      = pub('mr-safe-thumb@2x.png')
 const MRI_CONDITIONAL_ICON  = pub('mr-conditional-thumb.png')

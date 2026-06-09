@@ -97,7 +97,9 @@ export default function DeviceDetailClient({ id }: { id: string }) {
     setDeleting(true); setDeleteError('')
     try {
       await deleteDevice({ id: device._id })
-      router.push('/master/devices')
+      // Short delay so Clerk's auth middleware has time to settle before
+      // the next page load — immediate navigation redirects to /login.
+      setTimeout(() => router.push('/master/devices'), 350)
     } catch (e) {
       setDeleteError((e as { message?: string })?.message ?? 'Failed to delete device')
       setDeleting(false)
@@ -163,7 +165,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
       {/* MRI status hero card */}
       <div style={{ background: MRI_BG[status], borderRadius: 16, padding: '28px 32px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div style={{ width: 64, height: 64, borderRadius: status === 'safe' ? 8 : '50%', background: 'rgba(255,255,255,0.92)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+        <div style={{ width: 64, height: 64, borderRadius: 8, background: 'rgba(255,255,255,0.92)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <img
             src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : status === 'unsafe' ? '/mr-unsafe.svg' : '/mr-conditional.svg'}
             alt={MRI_LABEL[status]}

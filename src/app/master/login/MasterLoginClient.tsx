@@ -64,8 +64,8 @@ type Phase = 'email' | 'email-otp' | 'mfa-totp'
 
 export default function MasterLoginClient() {
   const router                         = useRouter()
-  const { signIn }                     = useSignIn()
-  const { signUp, setActive }          = useSignUp()
+  const { signIn, setActive }          = useSignIn()
+  const { signUp }                     = useSignUp()
   const { isSignedIn, isLoaded }       = useAuth()
 
   // ── All state before any conditional logic ───────────────────────────────────

@@ -97,9 +97,9 @@ export default function DeviceDetailClient({ id }: { id: string }) {
     setDeleting(true); setDeleteError('')
     try {
       await deleteDevice({ id: device._id })
-      // Short delay so Clerk's auth middleware has time to settle before
-      // the next page load — immediate navigation redirects to /login.
-      setTimeout(() => router.push('/master/devices'), 350)
+      // Full page reload so Clerk re-authenticates cleanly — client-side
+      // router.push() can race with the auth middleware and redirect to /login.
+      window.location.assign('/master/devices')
     } catch (e) {
       setDeleteError((e as { message?: string })?.message ?? 'Failed to delete device')
       setDeleting(false)
@@ -300,9 +300,9 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
       {/* Delete confirmation modal */}
       {deleteConfirm && (
-        <div className="logout-back open" onClick={() => !deleting && setDeleteConfirm(false)}>
-          <div className="logout-modal" onClick={e => e.stopPropagation()}>
-            <div className="logout-body">
+        <div className="confirm-back open" onClick={() => !deleting && setDeleteConfirm(false)}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="confirm-body">
               <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
@@ -315,7 +315,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
               </p>
               {deleteError && <p style={{ color: 'var(--err)', fontSize: 13, marginTop: 8 }}>{deleteError}</p>}
             </div>
-            <div className="logout-actions">
+            <div className="confirm-actions">
               <button className="btn" onClick={() => setDeleteConfirm(false)} disabled={deleting}>Cancel</button>
               <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
                 {deleting ? 'Deleting…' : 'Yes, delete device'}
@@ -327,9 +327,9 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
       {/* Edit MRI status modal */}
       {editingStatus && (
-        <div className="logout-back open" onClick={() => setEditingStatus(false)}>
-          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
-            <div className="logout-body">
+        <div className="confirm-back open" onClick={() => setEditingStatus(false)}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="confirm-body">
               <h3>Update MRI status</h3>
               <p style={{ marginBottom: 20 }}>
                 <strong>{device.manufacturer} {device.model}</strong>
@@ -352,7 +352,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
               </div>
               {saveError && <div style={{ color: 'var(--err)', fontSize: 13, marginBottom: 8 }}>{saveError}</div>}
             </div>
-            <div className="logout-actions">
+            <div className="confirm-actions">
               <button className="btn" onClick={() => setEditingStatus(false)} disabled={saving}>Cancel</button>
               <button className="btn btn-s" onClick={handleSaveStatus} disabled={saving || newStatus === status}>
                 {saving ? 'Saving…' : 'Update status'}

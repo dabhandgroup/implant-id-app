@@ -175,7 +175,7 @@ export default function LoginClient() {
           return
         }
         const { error: se } = await signIn.emailCode.sendCode()
-        if (se) { setError(se.message ?? 'Could not send code'); return }
+        if (se) { setError(cleanMsg(se.message) || 'Could not send code'); return }
         setOtp(['', '', '', '', '', ''])
         setClPhase('email-otp')
       } catch {
@@ -191,6 +191,43 @@ export default function LoginClient() {
   function err(msg: string) { setError(msg); setLoading(false) }
   function otpVal() { return otp.join('') }
 
+  // Known Clerk error codes → plain-English messages.
+  // Empty string = suppress silently (e.g. user dismissed biometric sheet).
+  const CLERK_ERR: Record<string, string> = {
+    passkey_retrieval_cancelled: '',
+    passkey_retrieval_failed:    '',
+    passkey_not_supported:       '',
+    form_identifier_not_found:   'No account found for that email or phone number.',
+    form_password_incorrect:     'Incorrect password — try again.',
+    form_code_incorrect:         'That code is incorrect — check it and try again.',
+    form_code_expired:           'That code has expired — request a new one.',
+    too_many_requests:           'Too many attempts. Please wait a moment and try again.',
+    session_exists:              "You're already signed in.",
+  }
+
+  // Strip "Clerk: " prefix and (code="…") markers from any raw Clerk message.
+  function cleanMsg(raw: string | undefined): string {
+    if (!raw) return ''
+    return raw
+      .replace(/^Clerk:\s*/i, '')
+      .replace(/\s*\(code="[^"]*"\)/g, '')
+      .trim()
+  }
+
+  // Translate a caught Clerk exception into a short plain-English string.
+  // Returns '' for errors that should be suppressed silently.
+  function clerkErr(e: unknown): string {
+    if (!e) return 'Something went wrong'
+    const code = (e as any)?.errors?.[0]?.code ?? ''
+    if (code && code in CLERK_ERR) return CLERK_ERR[code]
+    const msg = cleanMsg(
+      (e as any)?.errors?.[0]?.message ??
+      (e as any)?.message ??
+      String(e)
+    )
+    return msg || 'Something went wrong'
+  }
+
   // Called after every successful primary factor. If the account has TOTP enabled,
   // Clerk sets status 'needs_second_factor' instead of 'complete' — we intercept
   // that and show the TOTP screen. Otherwise we finalize and navigate as normal.
@@ -205,7 +242,7 @@ export default function LoginClient() {
       return
     }
     const { error: fe } = await signIn!.finalize()
-    if (fe) return err(fe.message ?? 'Could not complete sign-in')
+    if (fe) return err(cleanMsg(fe.message) || 'Could not complete sign-in')
     // Stamp the role onto Clerk publicMetadata (no-op for existing users)
     const role = tab === 'patient' ? 'patient' : 'clinic_staff'
     await setUserRoleIfNew(role).catch(() => { /* non-fatal */ })
@@ -218,19 +255,16 @@ export default function LoginClient() {
     setLoading(true); setError('')
     try {
       const { error: ve } = await signIn!.mfa.verifyTOTP({ code: c })
-      if (ve) return err(ve.message ?? 'Incorrect code — try again')
+      if (ve) return err(cleanMsg(ve.message) || 'Incorrect code — try again')
       const { error: fe } = await signIn!.finalize()
-      if (fe) return err(fe.message ?? 'Could not complete sign-in')
+      if (fe) return err(cleanMsg(fe.message) || 'Could not complete sign-in')
       const role = tab === 'patient' ? 'patient' : 'clinic_staff'
       await setUserRoleIfNew(role).catch(() => { /* non-fatal */ })
       router.push(mfaDest)
-    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
-  }
-
-  function clerkErr(e: unknown) {
-    if (!e) return 'Something went wrong'
-    const msg = (e as any)?.errors?.[0]?.message ?? (e as any)?.message ?? (e as any)?.toString()
-    return msg || 'Something went wrong'
+    } catch (e) {
+      const msg = clerkErr(e)
+      if (msg) err(msg)
+    } finally { setLoading(false) }
   }
 
   // ── Patient: phone OTP ─────────────────────────────────────────────────────
@@ -241,11 +275,11 @@ export default function LoginClient() {
     setLoading(true); setError('')
     try {
       const { error: ce } = await signIn!.create({ identifier: `${country.dial}${number.replace(/\s/g, '')}` })
-      if (ce) return err(ce.message ?? 'Could not start sign-in')
+      if (ce) return err(cleanMsg(ce.message) || 'Could not start sign-in')
       const { error: se } = await signIn!.phoneCode.sendCode()
-      if (se) return err(se.message ?? 'Could not send code')
+      if (se) return err(cleanMsg(se.message) || 'Could not send code')
       setOtp(['','','','','','']); setPatPhase('phone-otp')
-    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+    } catch (e) { const m = clerkErr(e); if (m) err(m) } finally { setLoading(false) }
   }
 
   async function verifyPhoneOtp(code?: string) {
@@ -254,9 +288,9 @@ export default function LoginClient() {
     setLoading(true); setError('')
     try {
       const { error: ve } = await signIn!.phoneCode.verifyCode({ code: c })
-      if (ve) return err(ve.message ?? 'Invalid code')
+      if (ve) return err(cleanMsg(ve.message) || 'Invalid code — check and try again')
       await finalizeAndGo('/patients/dashboard')
-    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+    } catch (e) { const m = clerkErr(e); if (m) err(m) } finally { setLoading(false) }
   }
 
   // ── Patient: email + password ──────────────────────────────────────────────
@@ -267,9 +301,9 @@ export default function LoginClient() {
     setLoading(true); setError('')
     try {
       const { error: ce } = await signIn!.password({ identifier: ptEmail, password: ptPassword })
-      if (ce) return err(ce.message ?? 'Invalid credentials')
+      if (ce) return err(cleanMsg(ce.message) || 'Incorrect email or password')
       await finalizeAndGo('/patients/dashboard')
-    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+    } catch (e) { const m = clerkErr(e); if (m) err(m) } finally { setLoading(false) }
   }
 
   // ── Patient: email OTP ────────────────────────────────────────────────────
@@ -279,11 +313,11 @@ export default function LoginClient() {
     setLoading(true); setError('')
     try {
       const { error: ce } = await signIn!.create({ identifier: ptEmail.trim() })
-      if (ce) return err(ce.message ?? 'Could not start sign-in')
+      if (ce) return err(cleanMsg(ce.message) || 'No account found for that email.')
       const { error: se } = await signIn!.emailCode.sendCode()
-      if (se) return err(se.message ?? 'Could not send code')
+      if (se) return err(cleanMsg(se.message) || 'Could not send code')
       setOtp(['', '', '', '', '', '']); setPatPhase('email-otp')
-    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+    } catch (e) { const m = clerkErr(e); if (m) err(m) } finally { setLoading(false) }
   }
 
   async function verifyPatientEmailOtp(code?: string) {
@@ -292,9 +326,9 @@ export default function LoginClient() {
     setLoading(true); setError('')
     try {
       const { error: ve } = await signIn!.emailCode.verifyCode({ code: c })
-      if (ve) return err(ve.message ?? 'Invalid code')
+      if (ve) return err(cleanMsg(ve.message) || 'Invalid code — check and try again')
       await finalizeAndGo('/patients/dashboard')
-    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+    } catch (e) { const m = clerkErr(e); if (m) err(m) } finally { setLoading(false) }
   }
 
   // ── Clinic: email OTP ─────────────────────────────────────────────────────
@@ -312,9 +346,9 @@ export default function LoginClient() {
         return err('No account found for this email. If you were recently approved, please wait a few minutes then try again, or contact support@implantid.io.')
       }
       const { error: se } = await signIn!.emailCode.sendCode()
-      if (se) return err(se.message ?? 'Could not send code')
+      if (se) return err(cleanMsg(se.message) || 'Could not send code')
       setOtp(['','','','','','']); setClPhase('email-otp')
-    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+    } catch (e) { const m = clerkErr(e); if (m) err(m) } finally { setLoading(false) }
   }
 
   async function verifyClinicOtp(code?: string) {
@@ -323,10 +357,10 @@ export default function LoginClient() {
     setLoading(true); setError('')
     try {
       const { error: ve } = await signIn!.emailCode.verifyCode({ code: c })
-      if (ve) return err(ve.message ?? 'Invalid code — check the code and try again')
+      if (ve) return err(cleanMsg(ve.message) || 'Invalid code — check and try again')
       // requireRole on /clinics/dashboard bounces surgeons to /surgeons/dashboard automatically
       await finalizeAndGo('/clinics/dashboard')
-    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+    } catch (e) { const m = clerkErr(e); if (m) err(m) } finally { setLoading(false) }
   }
 
   // ── Clinic: email + password ───────────────────────────────────────────────
@@ -337,9 +371,9 @@ export default function LoginClient() {
     setLoading(true); setError('')
     try {
       const { error: pe } = await signIn!.password({ identifier: clEmail, password: clPassword })
-      if (pe) return err(pe.message ?? 'Invalid credentials')
+      if (pe) return err(cleanMsg(pe.message) || 'Incorrect email or password')
       await finalizeAndGo('/clinics/dashboard')
-    } catch (e) { err(clerkErr(e)) } finally { setLoading(false) }
+    } catch (e) { const m = clerkErr(e); if (m) err(m) } finally { setLoading(false) }
   }
 
   // ── Patient: passkey (Face ID / Touch ID / device PIN) ────────────────────
@@ -349,13 +383,18 @@ export default function LoginClient() {
     try {
       // flow:'discoverable' = no email needed — OS presents all passkeys for this domain
       const { error: pe } = await signIn!.passkey({ flow: 'discoverable' })
-      if (pe) return err(pe.message ?? 'Passkey authentication failed')
+      if (pe) {
+        const code = (pe as any)?.code ?? ''
+        if (code in CLERK_ERR && !CLERK_ERR[code]) { setPasskeyLoading(false); return }
+        setPasskeyLoading(false)
+        setError(cleanMsg(pe.message) || 'Could not sign in — try again.')
+        return
+      }
       await finalizeAndGo('/patients/dashboard')
     } catch (e: unknown) {
       const msg = clerkErr(e)
-      // User dismissed the biometric sheet — reset quietly, no error shown
-      if (/cancel|abort|not allowed/i.test(msg)) { setPasskeyLoading(false); return }
-      setPasskeyLoading(false); setError(msg)
+      setPasskeyLoading(false)
+      if (msg) setError(msg)   // empty = silent (user dismissed sheet)
     }
   }
 
@@ -365,12 +404,18 @@ export default function LoginClient() {
     setPasskeyLoading(true); setError('')
     try {
       const { error: pe } = await signIn!.passkey({ flow: 'discoverable' })
-      if (pe) return err(pe.message ?? 'Passkey authentication failed')
+      if (pe) {
+        const code = (pe as any)?.code ?? ''
+        if (code in CLERK_ERR && !CLERK_ERR[code]) { setPasskeyLoading(false); return }
+        setPasskeyLoading(false)
+        setError(cleanMsg(pe.message) || 'Could not sign in — try again.')
+        return
+      }
       await finalizeAndGo('/clinics/dashboard')
     } catch (e: unknown) {
       const msg = clerkErr(e)
-      if (/cancel|abort|not allowed/i.test(msg)) { setPasskeyLoading(false); return }
-      setPasskeyLoading(false); setError(msg)
+      setPasskeyLoading(false)
+      if (msg) setError(msg)   // empty = silent (user dismissed sheet)
     }
   }
 
@@ -385,8 +430,8 @@ export default function LoginClient() {
         redirectUrl:         `${base}/sso-callback`,
         redirectCallbackUrl: `${base}/clinics/dashboard`,
       })
-      if (se) err(se.message ?? 'SSO failed')
-    } catch (e) { err(clerkErr(e)); setLoading(false) }
+      if (se) err(cleanMsg(se.message) || 'Could not start sign-in')
+    } catch (e) { const m = clerkErr(e); if (m) err(m); else setLoading(false) }
   }
 
   // ── render ─────────────────────────────────────────────────────────────────

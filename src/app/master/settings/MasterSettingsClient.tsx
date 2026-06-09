@@ -251,6 +251,7 @@ export default function MasterSettingsClient() {
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
+    <>
     <div className="m-content">
       <div className="m-h" style={{ marginBottom: 28 }}>
         <div>
@@ -632,5 +633,6 @@ export default function MasterSettingsClient() {
         </div>
       </div>
     )}
+    </>
   )
 }

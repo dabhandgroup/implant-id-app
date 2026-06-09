@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useRouter }            from 'next/navigation'
-import { api as apiBase }       from '../../../../../convex/_generated/api'
-import { Id }                   from '../../../../../convex/_generated/dataModel'
+import { api as apiBase }       from '../../../../../../convex/_generated/api'
+import { Id }                   from '../../../../../../convex/_generated/dataModel'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 

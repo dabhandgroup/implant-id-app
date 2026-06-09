@@ -890,6 +890,7 @@ export default function RegisterClient() {
   const phoneDisplay = phoneNum ? `${phoneDial} ${phoneNum}` : '—'
 
   return (
+    <>
     <main className="auth">
 
       {/* ── Left panel ────────────────────────────────────────────────────── */}
@@ -1331,5 +1332,6 @@ export default function RegisterClient() {
         </div>
       </div>
     )}
+    </>
   )
 }

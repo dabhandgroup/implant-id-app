@@ -402,14 +402,14 @@ export default function MasterSettingsClient() {
                   <label>Email address</label>
                   <input className="input" type="email" value={email} readOnly
                     style={{ background: 'var(--bg)', cursor: 'default', color: 'var(--muted)' }} />
-                  <span className="hint">Email is managed via Clerk. To change it, update your Clerk account.</span>
+                  <span className="hint">To change your email, please contact support.</span>
                 </div>
 
                 <div className="field" style={{ marginBottom: 16 }}>
                   <label>Account role</label>
                   <input className="input" value="Master Admin" readOnly
                     style={{ background: 'var(--bg)', cursor: 'default', color: 'var(--muted)' }} />
-                  <span className="hint">Role is managed in the Clerk dashboard and cannot be changed here.</span>
+                  <span className="hint">Account role cannot be changed here.</span>
                 </div>
 
                 <div style={{ padding: '14px 18px', background: 'color-mix(in srgb,var(--ok) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 20%,transparent)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -547,6 +547,10 @@ export default function AccountClient() {
                   <div className="f-group">
                     <label className="f-label">Email</label>
                     <input type="email" className="f-input" value={email} disabled readOnly />
+                    <span style={{ fontSize: 12, color: 'var(--muted2)', lineHeight: 1.5 }}>
+                      To change your email, please contact{' '}
+                      <a href="mailto:support@implantid.io" style={{ color: 'var(--accent)' }}>support@implantid.io</a>.
+                    </span>
                   </div>
                 )}
                 {phone && (

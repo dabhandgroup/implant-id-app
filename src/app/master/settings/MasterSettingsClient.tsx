@@ -133,6 +133,15 @@ export default function MasterSettingsClient() {
   const [secretCopied,      setSecretCopied]       = useState(false)
   const [activeSection,     setActiveSection]      = useState<'security' | 'profile'>('security')
 
+  // Sign-out confirmation
+  const [signOutConfirm, setSignOutConfirm] = useState(false)
+  const [signingOut,     setSigningOut]     = useState(false)
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    await signOut({ redirectUrl: '/master/login' })
+  }
+
   // Escape key
   useEffect(() => {
     function handle(e: KeyboardEvent) { if (e.key === 'Escape') setTotpSetup(null) }
@@ -248,7 +257,7 @@ export default function MasterSettingsClient() {
           <h2>Settings</h2>
           <div className="sub">Manage your master account, security, and authentication.</div>
         </div>
-        <button className="btn btn-danger btn-s" onClick={() => signOut({ redirectUrl: '/master/login' })}
+        <button className="btn btn-danger btn-s" onClick={() => setSignOutConfirm(true)}
           style={{ background: 'color-mix(in srgb,var(--err) 12%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', color: 'var(--err)', borderRadius: 999 }}>
           Sign out
         </button>
@@ -598,5 +607,30 @@ export default function MasterSettingsClient() {
         </div>
       </div>
     </div>
+
+    {/* ── Sign-out confirmation modal ── */}
+    {signOutConfirm && (
+      <div className="logout-back open" onClick={() => !signingOut && setSignOutConfirm(false)}>
+        <div className="logout-modal" onClick={e => e.stopPropagation()}>
+          <div className="logout-body">
+            <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+            </div>
+            <h3>Sign out?</h3>
+            <p>You&apos;ll be returned to the master admin login screen.</p>
+          </div>
+          <div className="logout-actions">
+            <button className="btn" onClick={() => setSignOutConfirm(false)} disabled={signingOut}>Cancel</button>
+            <button className="btn btn-danger" onClick={handleSignOut} disabled={signingOut}>
+              {signingOut ? 'Signing out…' : 'Sign out'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   )
 }

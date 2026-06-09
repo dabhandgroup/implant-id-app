@@ -100,10 +100,12 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
   const { user }    = useUser()
   const pathname    = usePathname()
 
-  const [collapsed,   setCollapsed]   = useState(false)
-  const [mobOpen,     setMobOpen]     = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
+  const [collapsed,      setCollapsed]      = useState(false)
+  const [mobOpen,        setMobOpen]        = useState(false)
+  const [profileOpen,    setProfileOpen]    = useState(false)
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
+  const [signOutConfirm, setSignOutConfirm] = useState(false)
+  const [signingOut,     setSigningOut]     = useState(false)
 
   // Close profile menus when clicking outside
   useEffect(() => {
@@ -128,7 +130,14 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
   }
 
   async function handleSignOut() {
+    setSigningOut(true)
     await signOut({ redirectUrl: '/login' })
+  }
+
+  function requestSignOut() {
+    setProfileOpen(false)
+    setMobProfileOpen(false)
+    setSignOutConfirm(true)
   }
 
   const initials = (user?.fullName ?? user?.firstName ?? 'S')
@@ -205,7 +214,7 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
               <IconUser />Account settings
             </a>
             <hr />
-            <button className="danger" onClick={handleSignOut}>
+            <button className="danger" onClick={requestSignOut}>
               <IconOut />Sign out
             </button>
           </div>
@@ -235,7 +244,7 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
                   <span>Surgeon</span>
                 </div>
                 <hr />
-                <button className="danger" onClick={handleSignOut}>Sign out</button>
+                <button className="danger" onClick={requestSignOut}>Sign out</button>
               </div>
             </div>
           </div>
@@ -288,6 +297,31 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
           </button>
         </div>
       </nav>
+
+      {/* Sign-out confirmation modal */}
+      {signOutConfirm && (
+        <div className="logout-back open" onClick={() => !signingOut && setSignOutConfirm(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
+            <div className="logout-body">
+              <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </div>
+              <h3>Sign out?</h3>
+              <p>You&apos;ll be returned to the login page.</p>
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setSignOutConfirm(false)} disabled={signingOut}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleSignOut} disabled={signingOut}>
+                {signingOut ? 'Signing out…' : 'Yes, sign out'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

@@ -643,8 +643,9 @@ export default function RegisterClient() {
   )
 
   // ── UI ────────────────────────────────────────────────────────────────────
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState('')
+  const [loading,       setLoading]       = useState(false)
+  const [error,         setError]         = useState('')
+  const [submitConfirm, setSubmitConfirm] = useState(false)
 
   // If already signed in, jump past auth steps
   useEffect(() => {
@@ -775,8 +776,7 @@ export default function RegisterClient() {
 
   // ── Step 5: submit → create patient → redirect ────────────────────────────
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
+  async function doSubmit() {
     setError('')
     setLoading(true)
     try {
@@ -1266,7 +1266,7 @@ export default function RegisterClient() {
               </div>
             </div>
 
-            <form onSubmit={submit} style={{ marginTop: 16 }}>
+            <form onSubmit={e => { e.preventDefault(); setSubmitConfirm(true) }} noValidate style={{ marginTop: 16 }}>
               <div className="field">
                 <label>Additional notes <span style={{ color: 'var(--muted2)', fontWeight: 400 }}>(optional)</span></label>
                 <textarea className="input" rows={3}
@@ -1303,5 +1303,33 @@ export default function RegisterClient() {
         </div>
       </section>
     </main>
+
+    {/* ── Submit confirmation modal ─────────────────────────────────────── */}
+    {submitConfirm && (
+      <div className="logout-back open" onClick={() => !loading && setSubmitConfirm(false)}>
+        <div className="logout-modal" onClick={e => e.stopPropagation()}>
+          <div className="logout-body">
+            <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--accent) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 16px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="m9 12 2 2 4-4"/>
+              </svg>
+            </div>
+            <h3>Ready to create your record?</h3>
+            <p>
+              Your record for <strong>{firstName} {lastName}</strong>
+              {implants[0]?.device && <> with a <strong>{implants[0].device.device_name}</strong></>} will be submitted
+              for verification. You can review and update details from your dashboard at any time.
+            </p>
+          </div>
+          <div className="logout-actions">
+            <button className="btn" onClick={() => setSubmitConfirm(false)} disabled={loading}>← Back</button>
+            <button className="btn btn-s" onClick={() => { setSubmitConfirm(false); doSubmit() }} disabled={loading}>
+              {loading ? 'Creating…' : 'Yes, submit →'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   )
 }

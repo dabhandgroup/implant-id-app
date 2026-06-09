@@ -185,10 +185,9 @@ export default function SearchClient() {
               <Row key={d._id} item={d} colour="#7c3aed" icon={<DeviceIcon />}
                 title={`${d.manufacturer} ${d.model}`} sub={d.deviceType}
                 badgeNode={
-                  <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mriColour, padding: mriIcon ? '2px 8px 2px 3px' : '2px 8px', borderRadius:5, background:`color-mix(in srgb,${mriColour} 12%,transparent)`, whiteSpace:'nowrap' }}>
-                    {mriIcon && <img src={mriIcon} alt="" aria-hidden="true" style={{ width:18, height:18, display:'block', flexShrink:0 }} />}
-                    {MRI_LABEL[d.mriStatus] ?? d.mriStatus}
-                  </span>
+                  mriIcon
+                    ? <img src={mriIcon} alt={MRI_LABEL[d.mriStatus] ?? d.mriStatus} style={{ width:32, height:32, display:'block', flexShrink:0, marginLeft:'auto' }} />
+                    : <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mriColour, padding:'2px 8px', borderRadius:5, background:`color-mix(in srgb,${mriColour} 12%,transparent)`, whiteSpace:'nowrap' }}>{MRI_LABEL[d.mriStatus] ?? d.mriStatus}</span>
                 }
                 href={`/master/devices/${d.deviceCode ?? d._id}`}
               />

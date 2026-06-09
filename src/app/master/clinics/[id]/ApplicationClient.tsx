@@ -132,24 +132,22 @@ export default function ApplicationClient({ id }: { id: string }) {
       {/* ── Profile header ── */}
       <div style={{
         background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16,
-        padding: '28px 32px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 22,
+        padding: '24px 28px', marginBottom: 20,
       }}>
-        {/* Initials avatar */}
-        <div style={{
-          width: 64, height: 64, borderRadius: 16, flexShrink: 0,
-          background: 'color-mix(in srgb,var(--accent) 14%,transparent)',
-          border: '1.5px solid color-mix(in srgb,var(--accent) 28%,transparent)',
-          display: 'grid', placeItems: 'center',
-        }}>
-          <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 22, color: 'var(--accent)' }}>
-            {initials}
-          </span>
-        </div>
-
-        {/* Name + status */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ marginBottom: 6 }}>{app.facilityName}</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        {/* Avatar + name row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 14 }}>
+          <div style={{
+            width: 56, height: 56, borderRadius: 14, flexShrink: 0,
+            background: 'color-mix(in srgb,var(--accent) 14%,transparent)',
+            border: '1.5px solid color-mix(in srgb,var(--accent) 28%,transparent)',
+            display: 'grid', placeItems: 'center',
+          }}>
+            <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 20, color: 'var(--accent)' }}>
+              {initials}
+            </span>
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ marginBottom: 8 }}>{app.facilityName}</h2>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
               fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600,
@@ -163,23 +161,27 @@ export default function ApplicationClient({ id }: { id: string }) {
               )}
               {statusLabel}
             </span>
-            <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>
-              Submitted {formatDate(app.submittedAt)}
-            </span>
-            {app.reviewedAt && (
-              <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>
-                Reviewed {formatDate(app.reviewedAt)}
-              </span>
-            )}
-            <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>
-              {app.facilityCountry}
-            </span>
           </div>
         </div>
 
-        {/* Approve / Reject — pending shows both; rejected shows Approve to re-approve */}
+        {/* Dates + location */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginBottom: 18 }}>
+          <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>
+            Submitted {formatDate(app.submittedAt)}
+          </span>
+          {app.reviewedAt && (
+            <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>
+              Reviewed {formatDate(app.reviewedAt)}
+            </span>
+          )}
+          <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>
+            {app.facilityCountry}
+          </span>
+        </div>
+
+        {/* Approve / Reject */}
         {(app.status === 'pending' || app.status === 'rejected') && (
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-s" onClick={() => openConfirm('approve')}>Approve</button>
             {app.status === 'pending' && (
               <button className="btn btn-danger" onClick={() => openConfirm('reject')}>Reject</button>

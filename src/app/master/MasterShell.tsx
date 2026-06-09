@@ -90,6 +90,11 @@ export default function MasterShell({ children }: MasterShellProps) {
     return () => document.removeEventListener('click', handleOutside)
   }, [])
 
+  // Close mobile sidebar whenever the route changes
+  useEffect(() => {
+    setMobOpen(false)
+  }, [pathname])
+
   function isActive(href: string) {
     if (href === '/master/dashboard') return pathname === '/master/dashboard'
     return pathname.startsWith(href)

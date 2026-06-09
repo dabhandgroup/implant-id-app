@@ -313,7 +313,7 @@ export default function ScrapeClient() {
               ))}
             </div>
 
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:12, marginBottom:12 }}>
               <div className="field">
                 <label>Manufacturer</label>
                 <input className="input" type="text" placeholder="e.g. Medtronic" value={manufacturer} onChange={e => setManufacturer(e.target.value)} />
@@ -442,7 +442,7 @@ export default function ScrapeClient() {
                   Extracted fields
                   <span style={{ fontSize:10, fontWeight:400, color:'var(--muted)', textTransform:'none', letterSpacing:0 }}>Edit before saving</span>
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px, 1fr))', gap:10 }}>
                   {[
                     { label:'Manufacturer',    value:editManufacturer,  set:setEditManufacturer,  conf:fieldConf.manufacturer },
                     { label:'Model',           value:editModel,         set:setEditModel,         conf:fieldConf.device_name },
@@ -466,10 +466,10 @@ export default function ScrapeClient() {
                     <label style={{ fontFamily:'var(--ff)', fontSize:11, color:'var(--muted2)' }}>MRI Status</label>
                     {fieldConf.mri_classification && <span style={{ fontSize:10, fontWeight:600, color: CONFIDENCE_COLOUR[fieldConf.mri_classification] ?? 'var(--muted)' }}>{fieldConf.mri_classification}</span>}
                   </div>
-                  <div style={{ display:'flex', gap:8 }}>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
                     {(['safe','conditional','unsafe','unknown'] as const).map(s => (
                       <button key={s} type="button"
-                        style={{ flex:1, padding:'8px 6px', borderRadius:6, cursor:'pointer', fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, transition:'all .15s',
+                        style={{ flex:'1 1 calc(50% - 4px)', minWidth:0, padding:'8px 6px', borderRadius:6, cursor:'pointer', fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, transition:'all .15s',
                           background: editMriStatus === s ? (s === 'safe' ? 'var(--ok)' : s === 'conditional' ? '#d97706' : s === 'unsafe' ? 'var(--err)' : 'var(--muted)') : 'var(--bg)',
                           color:      editMriStatus === s ? '#fff' : 'var(--muted)',
                           border:     editMriStatus === s ? '2px solid transparent' : '1px solid var(--border)',

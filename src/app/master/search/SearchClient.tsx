@@ -13,6 +13,9 @@ const MRI_COLOUR: Record<string, string> = {
 const MRI_LABEL: Record<string, string> = {
   safe: 'MR Safe', conditional: 'MR Conditional', unsafe: 'MR Unsafe', unknown: 'Unknown',
 }
+const MRI_ICON: Record<string, string> = {
+  safe: '/mr-safe.svg', conditional: '/mr-conditional.svg', unsafe: '/mr-unsafe.svg',
+}
 
 const PatientIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
@@ -60,7 +63,7 @@ export default function SearchClient() {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function Row({ item, colour, icon, title, sub, badge, badgeColour, href }: { item: any; colour: string; icon: React.ReactNode; title: string; sub: string; badge?: string; badgeColour?: string; href: string }) {
+  function Row({ item, colour, icon, title, sub, badge, badgeColour, badgeNode, href }: { item: any; colour: string; icon: React.ReactNode; title: string; sub: string; badge?: string; badgeColour?: string; badgeNode?: React.ReactNode; href: string }) {
     return (
       <tr onClick={() => router.push(href)} style={{ cursor: 'pointer' }}>
         <td>
@@ -72,8 +75,8 @@ export default function SearchClient() {
             </div>
           </div>
         </td>
-        <td style={{ width: 130, textAlign: 'right' }}>
-          {badge && <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: badgeColour ?? 'var(--muted)', background: `color-mix(in srgb,${badgeColour ?? 'var(--muted)'} 10%,transparent)`, borderRadius: 5, padding: '2px 8px' }}>{badge}</span>}
+        <td style={{ width: 150, textAlign: 'right' }}>
+          {badgeNode ?? (badge && <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: badgeColour ?? 'var(--muted)', background: `color-mix(in srgb,${badgeColour ?? 'var(--muted)'} 10%,transparent)`, borderRadius: 5, padding: '2px 8px', whiteSpace: 'nowrap' }}>{badge}</span>)}
         </td>
         <td style={{ width: 32, textAlign: 'right', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 13 }}>→</td>
       </tr>
@@ -175,17 +178,26 @@ export default function SearchClient() {
           <SectionHeader title="Devices" icon={<DeviceIcon />} colour="#7c3aed" count={results.devices.length} />
           <div className="m-tbl-wrap"><table className="m-tbl"><tbody>
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {results.devices.map((d: any) => (
+            {results.devices.map((d: any) => {
+              const mriColour = MRI_COLOUR[d.mriStatus] ?? 'var(--muted)'
+              const mriIcon   = MRI_ICON[d.mriStatus]
+              return (
               <Row key={d._id} item={d} colour="#7c3aed" icon={<DeviceIcon />}
                 title={`${d.manufacturer} ${d.model}`} sub={d.deviceType}
-                badge={MRI_LABEL[d.mriStatus] ?? d.mriStatus}
-                badgeColour={MRI_COLOUR[d.mriStatus] ?? 'var(--muted)'}
-                href={`/master/devices`}
+                badgeNode={
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mriColour, padding: mriIcon ? '2px 8px 2px 3px' : '2px 8px', borderRadius:5, background:`color-mix(in srgb,${mriColour} 12%,transparent)`, whiteSpace:'nowrap' }}>
+                    {mriIcon && <img src={mriIcon} alt="" aria-hidden="true" style={{ width:18, height:18, display:'block', flexShrink:0 }} />}
+                    {MRI_LABEL[d.mriStatus] ?? d.mriStatus}
+                  </span>
+                }
+                href={`/master/devices/${d._id}`}
               />
-            ))}
+              )
+            })}
           </tbody></table></div>
         </div>
       )}
     </div>
   )
 }
+

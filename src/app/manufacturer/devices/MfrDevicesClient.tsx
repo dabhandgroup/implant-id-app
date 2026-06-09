@@ -10,6 +10,9 @@ const api = apiBase as any
 const MRI_COLOUR: Record<string, string> = {
   safe: 'var(--ok)', conditional: '#d97706', unsafe: 'var(--err)', unknown: 'var(--muted)',
 }
+const MRI_ICON: Record<string, string> = {
+  safe: '/mr-safe.svg', conditional: '/mr-conditional.svg', unsafe: '/mr-unsafe.svg',
+}
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   live:           { bg: 'color-mix(in srgb,var(--ok) 10%,transparent)',   color: 'var(--ok)',  label: 'Live' },
   pending_review: { bg: 'color-mix(in srgb,var(--warn) 10%,transparent)', color: '#d97706',    label: 'Pending review' },
@@ -107,7 +110,8 @@ export default function MfrDevicesClient() {
                     </td>
                     <td style={{ padding: '14px 16px', color: 'var(--muted)' }}>{d.deviceType || '—'}</td>
                     <td style={{ padding: '14px 16px' }}>
-                      <span style={{ fontWeight: 600, color: MRI_COLOUR[d.mriStatus ?? 'unknown'], fontSize: 12.5 }}>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:MRI_COLOUR[d.mriStatus??'unknown'], padding: MRI_ICON[d.mriStatus] ? '3px 8px 3px 4px' : '3px 8px', borderRadius:6, background:`color-mix(in srgb,${MRI_COLOUR[d.mriStatus??'unknown']} 12%,transparent)`, whiteSpace:'nowrap' }}>
+                        {MRI_ICON[d.mriStatus] && <img src={MRI_ICON[d.mriStatus]} alt="" aria-hidden="true" style={{ width:18, height:18, display:'block', flexShrink:0 }} />}
                         {d.mriStatus === 'safe' ? 'MR Safe' : d.mriStatus === 'conditional' ? 'MR Conditional' : d.mriStatus === 'unsafe' ? 'MR Unsafe' : 'Unknown'}
                       </span>
                     </td>

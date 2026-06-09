@@ -237,7 +237,12 @@ export default function MfrDashboardClient() {
                             <div className="dev-models">{d.model}</div>
                           </td>
                           <td>{d.deviceType || '—'}</td>
-                          <td style={{ fontFamily: 'var(--ff)', fontWeight: 600, fontSize: 12.5, color: MRI_COLOUR[d.mriStatus ?? 'unknown'] }}>{mriLabel(d.mriStatus ?? 'unknown')}</td>
+                          <td>
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:MRI_COLOUR[d.mriStatus??'unknown'], padding:(d.mriStatus==='safe'||d.mriStatus==='conditional'||d.mriStatus==='unsafe')?'3px 8px 3px 4px':'3px 8px', borderRadius:6, background:`color-mix(in srgb,${MRI_COLOUR[d.mriStatus??'unknown']} 12%,transparent)`, whiteSpace:'nowrap' }}>
+                              {(d.mriStatus==='safe'||d.mriStatus==='conditional'||d.mriStatus==='unsafe') && <img src={`/mr-${d.mriStatus}.svg`} alt="" aria-hidden="true" style={{ width:18, height:18, display:'block', flexShrink:0 }} />}
+                              {mriLabel(d.mriStatus ?? 'unknown')}
+                            </span>
+                          </td>
                           <td>{d.fieldStrengths || '—'}</td>
                           <td><span className={`dev-status ${d.status === 'live' ? 'ok' : d.status === 'pending_review' ? 'warn' : 'draft'}`}>{d.status === 'live' ? 'Live' : d.status === 'pending_review' ? 'Pending' : 'Draft'}</span></td>
                           <td>{formatDate(d.publishedAt)}</td>

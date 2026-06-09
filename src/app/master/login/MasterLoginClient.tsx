@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useSignIn, useSignUp, useAuth } from '@clerk/nextjs'
+import { useSignIn, useSignUp, useAuth, useClerk } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 // ── OTP inputs — module level so React never remounts on state change ──────────
@@ -64,8 +64,9 @@ type Phase = 'email' | 'email-otp' | 'mfa-totp'
 
 export default function MasterLoginClient() {
   const router                         = useRouter()
-  const { signIn, setActive }          = useSignIn()
+  const { signIn }                     = useSignIn()
   const { signUp }                     = useSignUp()
+  const { setActive }                  = useClerk()
   const { isSignedIn, isLoaded }       = useAuth()
 
   // ── All state before any conditional logic ───────────────────────────────────

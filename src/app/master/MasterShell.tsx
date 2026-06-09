@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useClerk }                    from '@clerk/nextjs'
 import { usePathname, useRouter }      from 'next/navigation'
 import { useQuery }                    from 'convex/react'
@@ -31,8 +31,6 @@ export default function MasterShell({ children }: MasterShellProps) {
   const { signOut } = useClerk()
   const pathname  = usePathname()
   const router    = useRouter()
-  const searchRef = useRef<HTMLInputElement>(null)
-
   const [collapsed,      setCollapsed]      = useState(false)
   const [mobOpen,        setMobOpen]        = useState(false)
   const [notifOpen,      setNotifOpen]      = useState(false)
@@ -40,7 +38,6 @@ export default function MasterShell({ children }: MasterShellProps) {
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
-  const [searchQuery,    setSearchQuery]    = useState('')
 
   // ── Real-time admin notification data ───────────────────────────────────────
   const pendingClinics  = useQuery(api.clinics.listApplications,      { status: 'pending' })
@@ -71,21 +68,17 @@ export default function MasterShell({ children }: MasterShellProps) {
 
   const unreadCount = adminNotifs.length
 
-  // ⌘K / Ctrl+K focuses the global search bar
+  // ⌘K / Ctrl+K → navigate to search page
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        if (pathname !== '/master/search') {
-          router.push('/master/search')
-        } else {
-          searchRef.current?.focus()
-        }
+        router.push('/master/search')
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [pathname, router])
+  }, [router])
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -421,38 +414,19 @@ export default function MasterShell({ children }: MasterShellProps) {
               <span className="m-badge">Master</span>
             </h1>
 
-            {/* Global search bar — hidden on mobile (search is in bottom nav) */}
-            <form
-              className="search-form-master"
-              style={{ flex: 1, maxWidth: 420, margin: '0 20px', position: 'relative' }}
-              onSubmit={e => { e.preventDefault(); if (searchQuery.trim()) router.push(`/master/search?q=${encodeURIComponent(searchQuery)}`) }}
-            >
-              <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: 'var(--muted2)', pointerEvents: 'none' }}
-                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input
-                ref={searchRef}
-                type="text"
-                placeholder="Search patients, devices, clinics…"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onFocus={() => { if (!pathname.startsWith('/master/search')) router.push('/master/search') }}
-                style={{
-                  width: '100%', background: 'var(--bg2)', border: '1px solid var(--border)',
-                  borderRadius: 10, padding: '8px 40px 8px 36px',
-                  fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--text)', outline: 'none',
-                  transition: 'border-color .15s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
-              />
-              <kbd style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontFamily: 'var(--ff)', fontSize: 10, color: 'var(--muted2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px', pointerEvents: 'none' }}>
-                ⌘K
-              </kbd>
-            </form>
-
-            <div className="app-top-r app-top-btn-add">
+            <div className="app-top-r app-top-btn-add" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Search icon — navigates to full search page */}
+              <button
+                className="btn"
+                onClick={() => router.push('/master/search')}
+                aria-label="Search"
+                title="Search (⌘K)"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, padding: 0, flexShrink: 0 }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              </button>
               <button className="btn btn-s" onClick={() => window.location.href = '/master/devices/add'}>
                 + Add device
               </button>

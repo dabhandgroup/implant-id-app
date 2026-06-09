@@ -87,7 +87,7 @@ export default function MfrSettingsClient() {
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--muted2)', marginTop: 20 }}>
-        To update any of the above details, contact <a href="mailto:support@implantid.io" style={{ color: 'var(--accent)' }}>support@implantid.io</a>.
+        To update any of the above details, please <a href="https://implantid.io/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>contact support</a>.
       </p>
     </div>
   )

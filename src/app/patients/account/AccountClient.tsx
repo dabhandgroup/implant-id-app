@@ -529,8 +529,8 @@ export default function AccountClient() {
               <div className="sub">
                 Your name and date of birth identify your implant record and cannot be changed
                 without re-verification. Contact{' '}
-                <a href="mailto:support@implantid.io" style={{ color: 'var(--accent)' }}>
-                  support@implantid.io
+                <a href="https://implantid.io/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>
+                  support
                 </a>{' '}
                 to request changes.
               </div>
@@ -548,8 +548,8 @@ export default function AccountClient() {
                     <label className="f-label">Email</label>
                     <input type="email" className="f-input" value={email} disabled readOnly />
                     <span style={{ fontSize: 12, color: 'var(--muted2)', lineHeight: 1.5 }}>
-                      To change your email, please contact{' '}
-                      <a href="mailto:support@implantid.io" style={{ color: 'var(--accent)' }}>support@implantid.io</a>.
+                      To change your email, please{' '}
+                      <a href="https://implantid.io/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>contact support</a>.
                     </span>
                   </div>
                 )}
@@ -558,8 +558,8 @@ export default function AccountClient() {
                     <label className="f-label">Phone</label>
                     <input type="tel" className="f-input" value={phone} disabled readOnly />
                     <span style={{ fontSize: 12, color: 'var(--muted2)', lineHeight: 1.5 }}>
-                      Your phone number is linked to your Implant ID. To change it, contact{' '}
-                      <a href="mailto:support@implantid.io" style={{ color: 'var(--accent)' }}>support@implantid.io</a>.
+                      Your phone number is linked to your Implant ID. To change it, please{' '}
+                      <a href="https://implantid.io/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>contact support</a>.
                     </span>
                   </div>
                 )}

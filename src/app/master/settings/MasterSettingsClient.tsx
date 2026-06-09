@@ -402,7 +402,7 @@ export default function MasterSettingsClient() {
                   <label>Email address</label>
                   <input className="input" type="email" value={email} readOnly
                     style={{ background: 'var(--bg)', cursor: 'default', color: 'var(--muted)' }} />
-                  <span className="hint">To change your email, please contact support.</span>
+                  <span className="hint">To change your email, please <a href="https://implantid.io/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-deep)' }}>contact support</a>.</span>
                 </div>
 
                 <div className="field" style={{ marginBottom: 16 }}>

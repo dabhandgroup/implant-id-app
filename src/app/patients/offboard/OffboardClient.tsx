@@ -63,7 +63,7 @@ export default function OffboardClient() {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
               <h3>Are you sure?</h3>
-              <p>Deactivating will sign you out and disable your account. This cannot be undone from the app — contact <a href="mailto:support@implantid.io" style={{ color: 'var(--accent)' }}>support@implantid.io</a> to fully delete your data.</p>
+              <p>Deactivating will sign you out and disable your account. This cannot be undone from the app — <a href="https://implantid.io/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>contact support</a> to fully delete your data.</p>
             </div>
             <div className="logout-actions">
               <button className="btn" onClick={() => setConfirmOpen(false)}>Cancel</button>

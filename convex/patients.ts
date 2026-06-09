@@ -597,6 +597,7 @@ export const getPatientById = query({
     const links = await ctx.db
       .query('patientDevices')
       .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .filter((q) => q.neq(q.field('status'), 'explanted'))
       .take(50)
 
     const devices = (

@@ -139,7 +139,9 @@ export default function EditDeviceClient({ id }: { id: string }) {
         approvedRegions:  approvedRegions.length > 0 ? approvedRegions : undefined,
         sourceUrls:       cleanSources.length > 0  ? cleanSources : undefined,
       })
-      router.push(`/master/devices/${(device as any).deviceCode ?? id}`)
+      // Short delay so Clerk's auth middleware settles before next page load —
+      // immediate navigation after a mutation redirects to /login.
+      setTimeout(() => router.push(`/master/devices/${(device as any).deviceCode ?? id}`), 350)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to save — please try again.')
       setSaving(false)

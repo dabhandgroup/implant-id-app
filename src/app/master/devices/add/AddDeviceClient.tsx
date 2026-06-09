@@ -134,10 +134,11 @@ export default function AddDeviceClient() {
         approvedRegions:   approvedRegions.length > 0 ? approvedRegions : undefined,
         sourceUrls:        cleanSources.length > 0 ? cleanSources : undefined,
       })
-      // Redirect to the new device using its readable code (e.g. DID-MDTAZU-J7K2)
+      // Short delay so Clerk's auth middleware settles before next page load —
+      // immediate navigation after a mutation redirects to /login.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const slug = (result as any)?.deviceCode ?? (result as any)?.id ?? ''
-      router.push(slug ? `/master/devices/${slug}` : '/master/devices')
+      setTimeout(() => router.push(slug ? `/master/devices/${slug}` : '/master/devices'), 350)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to add device — try again.')
       setLoading(false)

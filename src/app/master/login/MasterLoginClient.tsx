@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useSignIn, useAuth } from '@clerk/nextjs'
+import { useSignIn, useSignUp, useAuth } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 // ── OTP inputs — module level so React never remounts on state change ──────────
@@ -54,37 +54,109 @@ function OtpInputs({ otp, setOtp, onComplete }: OtpProps) {
   )
 }
 
+function clerkErr(e: unknown) {
+  return (e as { errors?: { message?: string }[] })?.errors?.[0]?.message ?? 'Something went wrong'
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type Phase = 'email' | 'email-otp' | 'mfa-totp'
 
 export default function MasterLoginClient() {
-  const router                   = useRouter()
-  const { signIn }               = useSignIn()
-  const { isSignedIn, isLoaded } = useAuth()
+  const router                         = useRouter()
+  const { signIn }                     = useSignIn()
+  const { signUp, setActive }          = useSignUp()
+  const { isSignedIn, isLoaded }       = useAuth()
 
-  // Redirect already-authenticated users straight to the dashboard (hard nav so layout re-evaluates)
+  // ── All state before any conditional logic ───────────────────────────────────
+  const [email,            setEmail]            = useState('')
+  const [otp,              setOtp]              = useState(['', '', '', '', '', ''])
+  const [mfaDest,          setMfaDest]          = useState('')
+  const [phase,            setPhase]            = useState<Phase>('email')
+  const [loading,          setLoading]          = useState(false)
+  const [error,            setError]            = useState('')
+  const [ticketProcessing, setTicketProcessing] = useState(false)
+
+  // Redirect already-authenticated users straight to the dashboard
   useEffect(() => {
     if (isLoaded && isSignedIn) {
       window.location.assign('/master/dashboard')
     }
   }, [isLoaded, isSignedIn])
 
-  const [email,   setEmail]   = useState('')
-  const [otp,     setOtp]     = useState(['', '', '', '', '', ''])
-  const [mfaDest, setMfaDest] = useState('')
-  const [phase,   setPhase]   = useState<Phase>('email')
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState('')
+  // ── Clerk invitation ticket handler ──────────────────────────────────────────
+  // When someone clicks an invitation link, Clerk redirects here with
+  // ?__clerk_ticket=... — we must call signUp.create({ strategy:'ticket' })
+  // to complete account creation. Without this, the account never gets created
+  // and the user gets "Couldn't find your account" if they try OTP sign-in.
+  useEffect(() => {
+    if (!isLoaded || !signUp || !setActive || isSignedIn) return
+    const ticket = new URLSearchParams(window.location.search).get('__clerk_ticket')
+    if (!ticket) return
 
-  // Guard: show nothing while Clerk loads or while the redirect is in-flight
-  if (!isLoaded || isSignedIn) return null
+    setTicketProcessing(true)
+    setError('')
+
+    signUp.create({ strategy: 'ticket', ticket })
+      .then(result => {
+        if (result.status === 'complete' && result.createdSessionId) {
+          // Account created + session active — hard navigate to dashboard
+          setActive({ session: result.createdSessionId })
+          window.location.assign('/master/dashboard')
+        } else {
+          // Unexpected state — let the user try manual sign-in
+          setTicketProcessing(false)
+          setError('Activation incomplete — please sign in manually below.')
+        }
+      })
+      .catch(e => {
+        setTicketProcessing(false)
+        setError(clerkErr(e))
+      })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, !!signUp, !!setActive, isSignedIn])
+
+  // ── Guards ───────────────────────────────────────────────────────────────────
+  if (!isLoaded) return null
+  if (isSignedIn) return null  // redirect in-flight via useEffect
+
+  // Show a clean "activating" screen while the ticket is being processed
+  if (ticketProcessing) {
+    return (
+      <div className="mstr-wrap">
+        <div className="mstr-box" style={{ textAlign: 'center', padding: '48px 32px' }}>
+          <a href="/" className="mstr-logo" style={{ justifyContent: 'center', marginBottom: 32 }}>
+            <img src="/icon.svg" alt="Implant ID" />
+            <span style={{ display:'flex', alignItems:'baseline', gap:3 }}>
+              <b>Implant</b><span>ID</span>
+            </span>
+          </a>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%',
+            background: 'rgba(41,168,204,.15)',
+            display: 'grid', placeItems: 'center', margin: '0 auto 20px',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#29a8cc" strokeWidth="1.8">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
+          </div>
+          <div style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:17, color:'#fff', marginBottom:8 }}>
+            Activating your admin account…
+          </div>
+          <div style={{ fontSize:13, color:'rgba(234,244,247,.5)' }}>
+            Setting up your access. You'll be redirected automatically.
+          </div>
+          {error && <div className="mstr-err" style={{ marginTop: 24 }}>{error}</div>}
+        </div>
+      </div>
+    )
+  }
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
 
   function err(msg: string) { setError(msg); setLoading(false) }
   function otpVal()          { return otp.join('') }
-  function clerkErr(e: unknown) {
-    return (e as { errors?: { message?: string }[] })?.errors?.[0]?.message ?? 'Something went wrong'
-  }
 
   async function finalizeAndGo() {
     if (signIn!.status === 'needs_second_factor') {

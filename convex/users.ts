@@ -48,6 +48,25 @@ export const upsertUser = mutation({
       return existing._id
     }
 
+    // No match by clerkId — check if there's a pre-created admin placeholder row
+    // (clerkId = '') waiting to be linked. This happens when an admin accepts a
+    // Clerk invitation for the first time: their real clerkId didn't exist yet when
+    // inviteAdmin created the placeholder.
+    const placeholder = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', args.email))
+      .unique()
+
+    if (placeholder && placeholder.clerkId === '') {
+      // Link the real Clerk ID and update profile. Role stays as-is (already 'admin').
+      await ctx.db.patch(placeholder._id, {
+        clerkId: clerkId,
+        email:   args.email,
+        name:    args.name,
+      })
+      return placeholder._id
+    }
+
     // New user — store the supplied role, defaulting to 'patient'
     return ctx.db.insert('users', {
       clerkId,
@@ -105,8 +124,9 @@ export const listAdmins = query({
 })
 
 /**
- * Invite a new master admin by email — creates their Clerk account via the
- * Clerk Admin API and stamps the admin role. Admin-only.
+ * Invite a new master admin by email — creates their Clerk invitation via the
+ * Clerk Invitations API (bypasses phone-number requirement) and sends invite email.
+ * Admin-only.
  */
 export const inviteAdmin = mutation({
   args: {
@@ -131,7 +151,7 @@ export const inviteAdmin = mutation({
       return existing._id
     }
 
-    // Create placeholder — Clerk account created by the internalAction below
+    // Create placeholder — Clerk invitation created by the internalAction below
     const id = await ctx.db.insert('users', {
       clerkId: '',
       email:   args.email,
@@ -161,7 +181,11 @@ export const getMe = query({
   },
 })
 
-/** Create a Clerk account for a new admin (passwordless, email OTP sign-in) and send invite email. */
+/**
+ * Create a Clerk invitation for a new admin and send the activation email.
+ * Uses Clerk Invitations API (POST /v1/invitations) which bypasses instance
+ * sign-up requirements (e.g. phone number) that would block direct user creation.
+ */
 export const createAdminClerkAccount = internalAction({
   args: { email: v.string(), name: v.string() },
   handler: async (ctx, args) => {
@@ -174,41 +198,43 @@ export const createAdminClerkAccount = internalAction({
     if (search.ok) {
       const found = await search.json() as { id: string }[]
       if (found.length > 0) {
-        // Already exists — just update the role
+        // Already exists — update role and send sign-in instructions (no invitation needed)
         await fetch(`https://api.clerk.com/v1/users/${found[0].id}/metadata`, {
           method: 'PATCH',
           headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ public_metadata: { role: 'admin' } }),
         })
+        // Link the clerkId back to the Convex placeholder in case it's not set
+        await ctx.runMutation(internal.users.linkAdminClerkId, { email: args.email, clerkId: found[0].id })
         console.log('[admin invite] Updated existing Clerk user to admin:', args.email)
-        // Send invite email even for existing users being promoted
+        // Send sign-in instructions email (no invitation URL needed — account already exists)
         await ctx.runAction(internal.email.sendAdminInviteEmail, { email: args.email, name: args.name })
         return
       }
     }
 
-    // Create new passwordless account
-    const nameParts = args.name.trim().split(/\s+/)
-    const res = await fetch('https://api.clerk.com/v1/users', {
+    // No existing Clerk account — create via Invitations API (bypasses phone requirement)
+    const res = await fetch('https://api.clerk.com/v1/invitations', {
       method: 'POST',
       headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email_addresses:           [args.email],
-        first_name:                nameParts[0],
-        last_name:                 nameParts.slice(1).join(' ') || undefined,
-        skip_password_requirement: true,
-        public_metadata:           { role: 'admin' },
+        email_address:   args.email,
+        public_metadata: { role: 'admin' },
+        redirect_url:    'https://portal.implantid.io/master/login',
+        notify:          false,  // we send our own branded email
       }),
     })
     if (res.ok) {
-      const u = await res.json() as { id: string }
-      console.log('[admin invite] Created Clerk admin account', u.id, 'for', args.email)
-      // Link the new Clerk ID back to the Convex placeholder row
-      await ctx.runMutation(internal.users.linkAdminClerkId, { email: args.email, clerkId: u.id })
-      // Send welcome / login instructions email
-      await ctx.runAction(internal.email.sendAdminInviteEmail, { email: args.email, name: args.name })
+      const inv = await res.json() as { id: string; url: string }
+      console.log('[admin invite] Created Clerk invitation', inv.id, 'for', args.email)
+      // Send invite email with the one-time activation link
+      await ctx.runAction(internal.email.sendAdminInviteEmail, {
+        email:     args.email,
+        name:      args.name,
+        inviteUrl: inv.url,
+      })
     } else {
-      console.error('[admin invite] Clerk creation failed:', res.status, await res.text())
+      console.error('[admin invite] Clerk invitation failed:', res.status, await res.text())
     }
   },
 })
@@ -224,7 +250,7 @@ export const linkAdminClerkId = internalMutation({
   },
 })
 
-/** Update a master admin's display name. Admin-only. Cannot edit yourself. */
+/** Update a master admin's display name. Admin-only. */
 export const updateAdmin = mutation({
   args: { userId: v.id('users'), name: v.string() },
   handler: async (ctx, args) => {
@@ -249,7 +275,7 @@ export const removeAdmin = mutation({
     if (me._id === args.userId) throw new Error('Cannot remove yourself')
     const target = await ctx.db.get(args.userId)
     if (!target || target.role !== 'admin') throw new Error('Not an admin user')
-    // Optionally downgrade in Clerk if they have an account
+    // Optionally downgrade in Clerk if they have a real account
     if (target.clerkId) {
       const secretKey = process.env.CLERK_SECRET_KEY
       if (secretKey) {
@@ -274,7 +300,7 @@ export const resendAdminInvite = mutation({
     if (!me || me.role !== 'admin') throw new Error('Admin only')
     const target = await ctx.db.get(args.userId)
     if (!target || target.role !== 'admin') throw new Error('Not an admin user')
-    // Re-run the Clerk account creation + email (idempotent — updates existing if already created)
+    // Re-run the Clerk invitation creation + email (idempotent — updates existing if already created)
     await ctx.scheduler.runAfter(0, internal.users.createAdminClerkAccount, {
       email: target.email,
       name:  target.name,

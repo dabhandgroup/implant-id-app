@@ -662,12 +662,18 @@ export const sendManufacturerRejectionEmail = internalAction({
 
 export const sendAdminInviteEmail = internalAction({
   args: {
-    name:  v.string(),
-    email: v.string(),
+    name:      v.string(),
+    email:     v.string(),
+    // When provided, the email includes an "Activate your account" button instead
+    // of the regular sign-in button. Used for brand-new admins who haven't created
+    // their Clerk account yet (via Clerk Invitations API).
+    inviteUrl: v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
     const r         = resend()
     const firstName = args.name.split(' ')[0]
+    const isNewUser = !!args.inviteUrl
+
     await r.emails.send({
       from:    FROM,
       to:      args.email,
@@ -675,7 +681,17 @@ export const sendAdminInviteEmail = internalAction({
       html: buildEmail({
         title:   'Master Admin Access',
         heading: `Welcome to the team, ${firstName}`,
-        body: `
+        body: isNewUser ? `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            You've been granted <strong style="color:#0e2a33;">master admin access</strong>
+            to the Implant ID platform. You can now manage clinic applications, manufacturer
+            onboarding, device records, and platform settings.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Click the button below to activate your account. This is a one-time link —
+            once activated, you'll sign in using a one-time code sent to this email address.
+          </p>
+        ` : `
           <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
             You've been granted <strong style="color:#0e2a33;">master admin access</strong>
             to the Implant ID platform. You can now manage clinic applications, manufacturer
@@ -690,14 +706,14 @@ export const sendAdminInviteEmail = internalAction({
         highlightBox: {
           content: `
             <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.4px;
-                       text-transform:uppercase;color:#29869F;">Sign in with</p>
+                       text-transform:uppercase;color:#29869F;">${isNewUser ? 'Activate with' : 'Sign in with'}</p>
             <p style="margin:0;font-size:20px;font-weight:600;color:#1a6a80;
                        letter-spacing:0.2px;">${args.email}</p>
           `,
         },
         cta: {
-          label: 'Sign in to master admin →',
-          url:   'https://portal.implantid.io/master/login',
+          label: isNewUser ? 'Activate your admin account →' : 'Sign in to master admin →',
+          url:   isNewUser ? args.inviteUrl! : 'https://portal.implantid.io/master/login',
         },
         footerNote: `If you weren't expecting this invitation, please contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,

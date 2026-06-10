@@ -45,6 +45,27 @@ export default function MasterSettingsClient() {
   const { signOut }         = useClerk()
   const router              = useRouter()
 
+  // ── Notification settings ─────────────────────────────────────────────────
+  const notifSettings   = useQuery(api.adminSettings.getMyAdminNotificationSettings)
+  const upsertNotif     = useMutation(api.adminSettings.upsertAdminNotificationSettings)
+  const [notifSaving,   setNotifSaving]  = useState<string | null>(null)
+
+  async function handleNotifToggle(field: 'newClinicApplication' | 'newManufacturerApplication' | 'newDevicePendingReview') {
+    if (!notifSettings) return
+    setNotifSaving(field)
+    const patch = {
+      newClinicApplication:       notifSettings.newClinicApplication,
+      newManufacturerApplication: notifSettings.newManufacturerApplication,
+      newDevicePendingReview:     notifSettings.newDevicePendingReview,
+      [field]: !(notifSettings as Record<string, boolean>)[field],
+    }
+    try {
+      await upsertNotif(patch)
+    } finally {
+      setNotifSaving(null)
+    }
+  }
+
   // ── Admin user management ─────────────────────────────────────────────────
   const admins           = useQuery(api.users.listAdmins)
   const inviteAdmin      = useMutation(api.users.inviteAdmin)
@@ -131,7 +152,7 @@ export default function MasterSettingsClient() {
   const [totpDisableLoading,setTotpDisableLoading] = useState(false)
   const [totpDisableErr,    setTotpDisableErr]     = useState('')
   const [secretCopied,      setSecretCopied]       = useState(false)
-  const [activeSection,     setActiveSection]      = useState<'security' | 'profile'>('security')
+  const [activeSection,     setActiveSection]      = useState<'security' | 'profile' | 'notifications' | 'admins'>('security')
 
   // Sign-out confirmation
   const [signOutConfirm, setSignOutConfirm] = useState(false)
@@ -268,8 +289,8 @@ export default function MasterSettingsClient() {
         className="m-settings-grid">
         {/* Settings nav */}
         <nav style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          {(['security', 'profile', 'admins'] as const).map(s => (
-            <button key={s} onClick={() => setActiveSection(s as 'security' | 'profile')}
+          {(['security', 'profile', 'notifications', 'admins'] as const).map(s => (
+            <button key={s} onClick={() => setActiveSection(s)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px',
                 background: activeSection === s ? 'color-mix(in srgb,var(--accent) 8%,transparent)' : 'transparent',
@@ -282,9 +303,11 @@ export default function MasterSettingsClient() {
                 ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 : s === 'admins'
                   ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  : s === 'notifications'
+                    ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               }
-              {s === 'security' ? 'Security' : s === 'admins' ? 'Admin Users' : 'Profile'}
+              {s === 'security' ? 'Security' : s === 'admins' ? 'Admin Users' : s === 'notifications' ? 'Notifications' : 'Profile'}
             </button>
           ))}
         </nav>
@@ -478,8 +501,66 @@ export default function MasterSettingsClient() {
             </div>
           )}
 
+          {/* ── Notifications panel ── */}
+          {activeSection === 'notifications' && (
+            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Email notifications</div>
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Choose which platform events send you an email. All notifications are on by default.</div>
+              </div>
+
+              {notifSettings === undefined ? (
+                <div style={{ padding: '24px 22px', color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
+              ) : notifSettings === null ? (
+                <div style={{ padding: '24px 22px', color: 'var(--muted)', fontSize: 13 }}>Could not load notification settings.</div>
+              ) : (
+                <div>
+                  {([
+                    { field: 'newClinicApplication'       as const, label: 'New clinic application',       desc: 'When a clinic submits an application to join the platform.' },
+                    { field: 'newManufacturerApplication' as const, label: 'New manufacturer application', desc: 'When a manufacturer applies to submit devices.' },
+                    { field: 'newDevicePendingReview'     as const, label: 'Device pending review',        desc: 'When a manufacturer submits a device for approval.' },
+                  ]).map(({ field, label, desc }, i, arr) => {
+                    const enabled = (notifSettings as Record<string, boolean>)[field] ?? true
+                    const saving  = notifSaving === field
+                    return (
+                      <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 22px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{label}</div>
+                          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{desc}</div>
+                        </div>
+                        <button
+                          onClick={() => handleNotifToggle(field)}
+                          disabled={saving}
+                          aria-label={`${enabled ? 'Disable' : 'Enable'} ${label} notifications`}
+                          style={{
+                            flexShrink: 0, width: 44, height: 24, borderRadius: 12, border: 'none',
+                            background: enabled ? 'var(--accent)' : 'var(--border)',
+                            position: 'relative', cursor: saving ? 'default' : 'pointer',
+                            transition: 'background .2s', opacity: saving ? .6 : 1,
+                          }}
+                        >
+                          <span style={{
+                            position: 'absolute', top: 3, left: enabled ? 23 : 3,
+                            width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                            transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+                          }} />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              <div style={{ padding: '14px 22px', background: 'color-mix(in srgb,var(--accent) 5%,transparent)', borderTop: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>
+                  These settings apply only to your account. Other admins manage their own notification preferences.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Admin Users panel ── */}
-          {(activeSection as string) === 'admins' && (
+          {activeSection === 'admins' && (
             <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Admin Users</div>

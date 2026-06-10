@@ -330,6 +330,15 @@ export default defineSchema({
     .index('by_status', ['status'])
     .index('by_type', ['docType']),
 
+  // Per-admin email notification preferences (all default to true if no row)
+  adminNotificationSettings: defineTable({
+    clerkUserId:                v.string(),
+    newClinicApplication:       v.boolean(),
+    newManufacturerApplication: v.boolean(),
+    newDevicePendingReview:     v.boolean(),
+  })
+    .index('by_clerk', ['clerkUserId']),
+
   // Scrape jobs — persisted so results survive navigation and show as history
   scrapeJobs: defineTable({
     manufacturer:  v.string(),

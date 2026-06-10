@@ -1,11 +1,10 @@
 'use node'
-import { internalAction } from './_generated/server'
-import { v }              from 'convex/values'
-import { Resend }         from 'resend'
-import { buildEmail }     from './emailTemplate'
-import QRCode             from 'qrcode'
-
-const ADMIN_EMAIL = 'harry@dabhandmarketing.com'
+import { internalAction }  from './_generated/server'
+import { internal }        from './_generated/api'
+import { v }               from 'convex/values'
+import { Resend }          from 'resend'
+import { buildEmail }      from './emailTemplate'
+import QRCode              from 'qrcode'
 const FROM        = 'Implant ID <noreply@implantid.io>'
 const SUPPORT     = 'support@implantid.io'
 const BOOK_URL    = 'https://calendly.com/implantid'   // ← update to your booking page URL
@@ -29,14 +28,19 @@ export const sendClinicApplicationEmail = internalAction({
     facilityCountry: v.string(),
     services:        v.array(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    const adminEmails = await ctx.runQuery(
+      internal.adminSettings.getAdminEmailsForNotificationType,
+      { type: 'newClinicApplication' },
+    )
+    if (adminEmails.length === 0) return
     const r = resend()
     const location = args.facilityCity
       ? `${args.facilityCity}, ${args.facilityCountry}`
       : args.facilityCountry
     await r.emails.send({
       from:    FROM,
-      to:      ADMIN_EMAIL,
+      to:      adminEmails,
       subject: `New clinic application — ${args.facilityName}`,
       html: buildEmail({
         title:   'Clinic Application',
@@ -476,11 +480,16 @@ export const sendManufacturerApplicationEmail = internalAction({
     contactEmail: v.string(),
     country: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    const adminEmails = await ctx.runQuery(
+      internal.adminSettings.getAdminEmailsForNotificationType,
+      { type: 'newManufacturerApplication' },
+    )
+    if (adminEmails.length === 0) return
     const r = resend()
     await r.emails.send({
       from: FROM,
-      to: ADMIN_EMAIL,
+      to:   adminEmails,
       subject: `New manufacturer application — ${args.companyName}`,
       html: buildEmail({
         title: 'Manufacturer Application',

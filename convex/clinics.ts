@@ -320,75 +320,75 @@ export const activateClinicAccount = internalAction({
     facilityName: v.string(),
   },
   handler: async (ctx, args) => {
-    const secretKey = process.env.CLERK_SECRET_KEY
-    if (!secretKey) {
-      console.error('[clinics] CLERK_SECRET_KEY not set — cannot activate clinic account')
-    } else {
-      let resolvedId = args.clerkUserId ?? null
+    let inviteUrl: string | undefined
 
-      if (!resolvedId) {
-        // 1. Try to find by email
-        const searchRes = await fetch(
-          `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
-          { headers: { Authorization: `Bearer ${secretKey}` } },
-        )
-        if (searchRes.ok) {
-          const found = (await searchRes.json()) as { id: string }[]
-          if (found.length > 0) resolvedId = found[0].id
+    try {
+      const secretKey = process.env.CLERK_SECRET_KEY
+      if (!secretKey) {
+        console.error('[clinics] CLERK_SECRET_KEY not set — skipping Clerk activation')
+      } else {
+        let resolvedId = args.clerkUserId ?? null
+
+        // 1. Find existing account by email if clerkUserId not known
+        if (!resolvedId) {
+          const searchRes = await fetch(
+            `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
+            { headers: { Authorization: `Bearer ${secretKey}` } },
+          )
+          if (searchRes.ok) {
+            const found = (await searchRes.json()) as { id: string }[]
+            if (found.length > 0) resolvedId = found[0].id
+          }
         }
-      }
 
-      if (!resolvedId) {
-        // 2. Create a new Clerk user (passwordless — signs in via email OTP)
-        const createRes = await fetch('https://api.clerk.com/v1/users', {
-          method: 'POST',
-          headers: {
-            Authorization:  `Bearer ${secretKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email_addresses:          [args.contactEmail],
-            public_metadata:          { role: 'clinic_staff' },
-            skip_password_requirement: true,
-          }),
-        })
-        if (createRes.ok) {
-          const newUser = (await createRes.json()) as { id: string }
-          resolvedId = newUser.id
-          console.log('[clinics] Created Clerk account for', args.contactEmail)
-        } else {
-          const body = await createRes.text()
-          console.error('[clinics] Clerk user creation failed:', createRes.status, body)
-        }
-      }
-
-      if (resolvedId) {
-        // 3. Stamp the role on the resolved account
-        const patchRes = await fetch(
-          `https://api.clerk.com/v1/users/${resolvedId}/metadata`,
-          {
-            method: 'PATCH',
-            headers: {
-              Authorization:  `Bearer ${secretKey}`,
-              'Content-Type': 'application/json',
+        if (resolvedId) {
+          // 2a. Existing account — update the role in Clerk metadata
+          const patchRes = await fetch(
+            `https://api.clerk.com/v1/users/${resolvedId}/metadata`,
+            {
+              method: 'PATCH',
+              headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
             },
-            body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
-          },
-        )
-        if (patchRes.ok) {
-          console.log('[clinics] Role set to clinic_staff for', resolvedId)
+          )
+          if (patchRes.ok) {
+            console.log('[clinics] Role set to clinic_staff for', resolvedId)
+          } else {
+            console.error('[clinics] Clerk metadata PATCH failed:', patchRes.status, await patchRes.text())
+          }
+          // Existing accounts sign in via email OTP — no one-time link needed
         } else {
-          const body = await patchRes.text()
-          console.error('[clinics] Clerk metadata PATCH failed:', patchRes.status, body)
+          // 2b. No account found — create via Invitations API (gives a one-time activation URL)
+          const invRes = await fetch('https://api.clerk.com/v1/invitations', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email_address:   args.contactEmail,
+              public_metadata: { role: 'clinic_staff' },
+              redirect_url:    'https://portal.implantid.io/clinics/dashboard',
+              notify:          false,
+            }),
+          })
+          if (invRes.ok) {
+            const inv = (await invRes.json()) as { id: string; url: string }
+            inviteUrl = inv.url
+            console.log('[clinics] Created Clerk invitation', inv.id, 'for', args.contactEmail)
+          } else {
+            console.error('[clinics] Clerk invitation failed:', invRes.status, await invRes.text())
+          }
         }
       }
+    } catch (err) {
+      // Never let Clerk errors block the approval email from going out
+      console.error('[clinics] activateClinicAccount: Clerk setup error:', err)
     }
 
-    // Always send the branded approval email via Resend (even if Clerk step failed)
+    // Always send the branded approval email, with or without a magic link
     await ctx.runAction(internal.email.sendClinicApprovalEmail, {
       contactName:  args.contactName,
       contactEmail: args.contactEmail,
       facilityName: args.facilityName,
+      inviteUrl,
     })
   },
 })

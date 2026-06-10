@@ -43,8 +43,36 @@ export default function ApplicationClient({ id }: { id: string }) {
   const [submitting,    setSubmitting]    = useState(false)
   const [submitError,   setSubmitError]   = useState('')
 
-  const app              = useQuery(api.clinics.getApplicationById, { id: id as Id<'clinicApplications'> })
-  const reviewApplication = useMutation(api.clinics.reviewApplication)
+  const app                      = useQuery(api.clinics.getApplicationById, { id: id as Id<'clinicApplications'> })
+  const reviewApplication        = useMutation(api.clinics.reviewApplication)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateClinicContactEmail = useMutation(api.clinics.updateClinicContactEmail as any)
+
+  // ── Edit email state ─────────────────────────────────────────────────────────
+  const [editingEmail, setEditingEmail] = useState(false)
+  const [newEmail,     setNewEmail]     = useState('')
+  const [emailSaving,  setEmailSaving]  = useState(false)
+  const [emailError,   setEmailError]   = useState('')
+  const [emailDone,    setEmailDone]    = useState<'saved' | 'resent' | null>(null)
+
+  async function handleEmailSave() {
+    if (!app) return
+    setEmailSaving(true); setEmailError('')
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await (updateClinicContactEmail as any)({
+        applicationId: app._id,
+        newEmail:      newEmail.trim(),
+      }) as { wasApproved: boolean }
+      setEditingEmail(false)
+      setEmailDone(result.wasApproved ? 'resent' : 'saved')
+      setTimeout(() => setEmailDone(null), 5000)
+    } catch (e) {
+      setEmailError((e as { message?: string })?.message ?? 'Failed to update email')
+    } finally {
+      setEmailSaving(false)
+    }
+  }
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
   function openConfirm(type: ActionType) {
@@ -199,8 +227,63 @@ export default function ApplicationClient({ id }: { id: string }) {
             Contact
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <InfoField label="Name"  value={app.contactName} />
-            <InfoField label="Email" value={app.contactEmail} accent />
+            <InfoField label="Name" value={app.contactName} />
+
+            {/* Editable email row */}
+            <div>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted2)', marginBottom: 2 }}>Email</div>
+              {editingEmail ? (
+                <div>
+                  <input
+                    className="input"
+                    type="email"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleEmailSave(); if (e.key === 'Escape') setEditingEmail(false) }}
+                    placeholder={app.contactEmail}
+                    autoFocus
+                    style={{ marginBottom: 6 }}
+                  />
+                  {emailError && (
+                    <div style={{ fontSize: 12.5, color: 'var(--err)', marginBottom: 6 }}>{emailError}</div>
+                  )}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button className="btn btn-s" style={{ fontSize: 12, padding: '5px 12px' }}
+                      onClick={handleEmailSave} disabled={emailSaving || !newEmail.trim()}>
+                      {emailSaving ? 'Saving…' : 'Save'}
+                    </button>
+                    <button className="btn" style={{ fontSize: 12, padding: '5px 10px' }}
+                      onClick={() => { setEditingEmail(false); setEmailError('') }} disabled={emailSaving}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--accent)' }}>
+                    {app.contactEmail}
+                  </span>
+                  <button
+                    onClick={() => { setNewEmail(''); setEmailError(''); setEditingEmail(true) }}
+                    aria-label="Edit contact email"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 5, color: 'var(--muted2)', fontSize: 11, fontFamily: 'var(--ff)', transition: 'color .15s' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent-deep)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted2)')}>
+                    Edit
+                  </button>
+                </div>
+              )}
+              {emailDone === 'resent' && (
+                <div style={{ fontSize: 12.5, color: 'var(--ok)', marginTop: 4 }}>
+                  ✓ Email updated — approval email resent to new address
+                </div>
+              )}
+              {emailDone === 'saved' && (
+                <div style={{ fontSize: 12.5, color: 'var(--ok)', marginTop: 4 }}>
+                  ✓ Email updated
+                </div>
+              )}
+            </div>
             {(app.contactPhone || app.facilityPhone) && (
               <InfoField label="Phone" value={app.contactPhone ?? app.facilityPhone ?? ''} />
             )}

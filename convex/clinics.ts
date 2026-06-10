@@ -379,17 +379,8 @@ export const activateClinicAccount = internalAction({
         }
       }
     } catch (err) {
-      // Never let Clerk errors block the approval email from going out
       console.error('[clinics] activateClinicAccount: Clerk setup error:', err)
     }
-
-    // Always send the branded approval email, with or without a magic link
-    await ctx.runAction(internal.email.sendClinicApprovalEmail, {
-      contactName:  args.contactName,
-      contactEmail: args.contactEmail,
-      facilityName: args.facilityName,
-      inviteUrl,
-    })
   },
 })
 
@@ -626,6 +617,65 @@ export const addExistingStaffToClinic = mutation({
 })
 
 /** Approve or reject a clinic application. */
+/** Master admin corrects the contact email on an application.
+ *  Validates no clash, updates both clinicApplications + clinics rows,
+ *  and if the clinic is already approved retriggers activation + approval email.
+ */
+export const updateClinicContactEmail = mutation({
+  args: {
+    applicationId: v.id('clinicApplications'),
+    newEmail:      v.string(),
+  },
+  handler: async (ctx, args) => {
+    const app = await ctx.db.get(args.applicationId)
+    if (!app) throw new Error('Application not found')
+
+    const normalized = args.newEmail.trim().toLowerCase()
+    if (!normalized) throw new Error('Email address is required')
+
+    // Clash check — users table
+    const userClash = await ctx.db
+      .query('users')
+      .withIndex('by_email', q => q.eq('email', normalized))
+      .unique()
+    if (userClash) throw new Error('That email is already registered to another account on the platform')
+
+    // Clash check — other clinic applications
+    const appClash = await ctx.db
+      .query('clinicApplications')
+      .withIndex('by_email', q => q.eq('contactEmail', normalized))
+      .filter(q => q.neq(q.field('_id'), args.applicationId))
+      .first()
+    if (appClash) throw new Error('That email is already used in another clinic application')
+
+    const oldEmail = app.contactEmail
+    await ctx.db.patch(args.applicationId, { contactEmail: normalized })
+
+    if (app.status === 'approved') {
+      // Also patch the live clinic record
+      const clinic = await ctx.db
+        .query('clinics')
+        .filter(q => q.eq(q.field('email'), oldEmail))
+        .first()
+      if (clinic) await ctx.db.patch(clinic._id, { email: normalized })
+
+      // Retrigger Clerk activation + approval email to new address
+      await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
+        contactEmail: normalized,
+        contactName:  app.contactName,
+        facilityName: app.facilityName,
+      })
+      await ctx.scheduler.runAfter(0, internal.email.sendClinicApprovalEmail, {
+        contactName:  app.contactName,
+        contactEmail: normalized,
+        facilityName: app.facilityName,
+      })
+    }
+
+    return { wasApproved: app.status === 'approved' }
+  },
+})
+
 export const reviewApplication = mutation({
   args: {
     applicationId: v.id('clinicApplications'),
@@ -681,11 +731,19 @@ export const reviewApplication = mutation({
         }
       }
 
-      // Activate the Clerk account + send approval email
+      // Activate the Clerk account (role promotion — runs independently of email)
       await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
         clerkUserId:  app.clerkUserId ?? undefined,
         contactEmail: app.contactEmail,
         contactName:  app.contactName,
+        facilityName: app.facilityName,
+      })
+
+      // Send approval email directly — same pattern as rejection, does not depend
+      // on activateClinicAccount succeeding
+      await ctx.scheduler.runAfter(0, internal.email.sendClinicApprovalEmail, {
+        contactName:  app.contactName,
+        contactEmail: app.contactEmail,
         facilityName: app.facilityName,
       })
 

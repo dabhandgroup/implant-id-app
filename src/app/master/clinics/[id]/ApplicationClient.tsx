@@ -236,11 +236,11 @@ export default function ApplicationClient({ id }: { id: string }) {
                 <div>
                   <input
                     className="input"
-                    type="email"
+                    type="text"
+                    autoComplete="off"
                     value={newEmail}
                     onChange={e => setNewEmail(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') handleEmailSave(); if (e.key === 'Escape') setEditingEmail(false) }}
-                    placeholder={app.contactEmail}
                     autoFocus
                     style={{ marginBottom: 6 }}
                   />
@@ -264,7 +264,7 @@ export default function ApplicationClient({ id }: { id: string }) {
                     {app.contactEmail}
                   </span>
                   <button
-                    onClick={() => { setNewEmail(''); setEmailError(''); setEditingEmail(true) }}
+                    onClick={() => { setNewEmail(app.contactEmail); setEmailError(''); setEditingEmail(true) }}
                     aria-label="Edit contact email"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 5, color: 'var(--muted2)', fontSize: 11, fontFamily: 'var(--ff)', transition: 'color .15s' }}
                     onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent-deep)')}

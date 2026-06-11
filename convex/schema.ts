@@ -122,6 +122,24 @@ export default defineSchema({
     .index('by_user',         ['userId'])
     .index('by_implant_code', ['implantIdCode']),
 
+  // Patient activity timeline
+  patientEvents: defineTable({
+    patientId:   v.id('patients'),
+    type:        v.union(
+      v.literal('registered'),
+      v.literal('verified'),
+      v.literal('shared'),
+      v.literal('scanned'),
+      v.literal('wallet_added'),
+      v.literal('device_linked'),
+    ),
+    title:       v.string(),
+    description: v.optional(v.string()),
+    createdAt:   v.number(),
+  })
+    .index('by_patient',          ['patientId'])
+    .index('by_patient_and_time', ['patientId', 'createdAt']),
+
   // Patient's implant records (one patient can have multiple devices)
   patientDevices: defineTable({
     patientId: v.id('patients'),

@@ -158,6 +158,15 @@ export const createPatient = mutation({
       verificationStatus: 'pending',
     })
 
+    // Record registration event on the patient timeline
+    await ctx.db.insert('patientEvents', {
+      patientId:   patientId,
+      type:        'registered',
+      title:       'Record created',
+      description: 'Your Implant ID record was created. Pending verification by your clinical team.',
+      createdAt:   Date.now(),
+    })
+
     // Send welcome email using Clerk identity email
     const email = identity.email
     if (email) {
@@ -497,6 +506,15 @@ export const verifyPatient = mutation({
 
     await ctx.db.patch(args.patientId, { verificationStatus: 'active' })
 
+    // Record verification event on the patient timeline
+    await ctx.db.insert('patientEvents', {
+      patientId:   args.patientId,
+      type:        'verified',
+      title:       'Record verified',
+      description: 'Your implant record has been verified by a clinical team member.',
+      createdAt:   Date.now(),
+    })
+
     if (args.deviceId) {
       await ctx.db.insert('patientDevices', {
         patientId:    args.patientId,
@@ -806,6 +824,16 @@ export const shareRecordWithClinic = mutation({
       }
     }
 
+    // Record share event on the patient timeline
+    const sharedWithName = args.clinicName ?? clinic?.name ?? args.clinicEmail
+    await ctx.db.insert('patientEvents', {
+      patientId:   patient._id,
+      type:        'shared',
+      title:       'Record shared',
+      description: `You shared your implant record with ${sharedWithName}.`,
+      createdAt:   Date.now(),
+    })
+
     await ctx.scheduler.runAfter(0, internal.email.sendPatientShareEmail, {
       patientName:   `${patient.firstName} ${patient.lastName}`,
       patientEmail:  user.email || undefined,
@@ -1061,7 +1089,7 @@ export const recordPatientLookup = mutation({
       createdAt: Date.now(),
     })
 
-    // Notify patient
+    // Notify patient + record timeline event
     const patient = await ctx.db.get(args.patientId)
     if (patient) {
       await ctx.db.insert('notifications', {
@@ -1073,7 +1101,38 @@ export const recordPatientLookup = mutation({
         relatedId: args.patientId,
         createdAt: Date.now(),
       })
+      await ctx.db.insert('patientEvents', {
+        patientId:   args.patientId,
+        type:        'scanned',
+        title:       'Record scanned',
+        description: `Your record was accessed by ${displayName}.`,
+        createdAt:   Date.now(),
+      })
     }
+  },
+})
+
+/** Patient's activity timeline — most recent events first. */
+export const getMyEvents = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) return []
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) return []
+    return ctx.db
+      .query('patientEvents')
+      .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .order('desc')
+      .take(50)
   },
 })
 

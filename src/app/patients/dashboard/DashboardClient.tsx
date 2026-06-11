@@ -60,6 +60,7 @@ export default function DashboardClient() {
   const linkedDevices       = useQuery(api.patients.getMyLinkedDevices)
   const notifications       = useQuery(api.patients.getMyNotifications)
   const allClinics          = useQuery(api.clinics.listClinics)
+  const patientEvents       = useQuery((api as any).patients.getMyEvents)
   const markWelcomeSeen        = useMutation(api.patients.markWelcomeSeen)
   const markRead               = useMutation(api.patients.markAllNotificationsRead)
   const shareRecordWithClinic  = useMutation(api.patients.shareRecordWithClinic)
@@ -1360,16 +1361,55 @@ export default function DashboardClient() {
               </div>
             </div>
 
-            {/* History placeholder */}
+            {/* History timeline */}
             <div className="sec">
               <h2>Your history</h2>
-              <div className="card" style={{ padding: '24px', textAlign: 'center', color: 'var(--muted2)', fontFamily: 'var(--ff)', fontSize: 14 }}>
-                <svg style={{ display: 'block', width: 28, height: 28, margin: '0 auto 10px', opacity: .4 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                Events will appear here as your record builds up.
-              </div>
+              {!patientEvents || patientEvents.length === 0 ? (
+                <div className="card" style={{ padding: '24px', textAlign: 'center', color: 'var(--muted2)', fontFamily: 'var(--ff)', fontSize: 14 }}>
+                  <svg style={{ display: 'block', width: 28, height: 28, margin: '0 auto 10px', opacity: .4 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                  Events will appear here as your record builds up.
+                </div>
+              ) : (
+                <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {(patientEvents as any[]).map((ev: any, i: number) => {
+                    const isLast = i === (patientEvents as any[]).length - 1
+                    const iconMap: Record<string, React.ReactNode> = {
+                      registered: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>,
+                      verified:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>,
+                      shared:     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>,
+                      scanned:    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/><path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v-3M16 11h5"/><path d="M11 3v5"/><path d="M11 11h-5M3 11v5"/></svg>,
+                      wallet_added: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
+                      device_linked: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.8 19.8 0 0 1 11.37 19a19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+                    }
+                    const colourMap: Record<string, string> = {
+                      registered:   'var(--accent)',
+                      verified:     'var(--ok)',
+                      shared:       '#7c3aed',
+                      scanned:      '#0ea5e9',
+                      wallet_added: '#f59e0b',
+                      device_linked:'var(--ok)',
+                    }
+                    const colour = colourMap[ev.type] ?? 'var(--muted)'
+                    const date = new Date(ev.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                    return (
+                      <div key={ev._id} style={{ display: 'flex', gap: 14, padding: '14px 18px', borderBottom: isLast ? 'none' : '1px solid var(--border)', alignItems: 'flex-start' }}>
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: `color-mix(in srgb,${colour} 12%,transparent)`, border: `1.5px solid color-mix(in srgb,${colour} 25%,transparent)`, display: 'grid', placeItems: 'center', flexShrink: 0, color: colour, marginTop: 1 }}>
+                          {iconMap[ev.type] ?? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/></svg>}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>{ev.title}</div>
+                          {ev.description && <div style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>{ev.description}</div>}
+                        </div>
+                        <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted2)', flexShrink: 0, marginTop: 2 }}>{date}</div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
           </div>{/* /pt-wrap */}

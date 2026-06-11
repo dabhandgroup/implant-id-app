@@ -59,7 +59,9 @@ export default defineSchema({
     .index('by_classification', ['classification'])
     .index('by_status', ['status'])
     .index('by_submitted_manufacturer', ['submittedByManufacturerId'])
-    .index('by_device_code', ['deviceCode']),
+    .index('by_device_code', ['deviceCode'])
+    .searchIndex('search_manufacturer', { searchField: 'manufacturer' })
+    .searchIndex('search_model',        { searchField: 'model' }),
 
   // Patient profiles
   patients: defineTable({
@@ -120,7 +122,9 @@ export default defineSchema({
     ),
   })
     .index('by_user',         ['userId'])
-    .index('by_implant_code', ['implantIdCode']),
+    .index('by_implant_code', ['implantIdCode'])
+    .searchIndex('search_first_name', { searchField: 'firstName' })
+    .searchIndex('search_last_name',  { searchField: 'lastName' }),
 
   // Patient activity timeline
   patientEvents: defineTable({
@@ -170,7 +174,8 @@ export default defineSchema({
     status: v.union(v.literal('active'), v.literal('pending'), v.literal('suspended')),
     showToPatients: v.optional(v.boolean()),  // appears on patient Find a Clinic page
   })
-    .index('by_status', ['status']),
+    .index('by_status', ['status'])
+    .searchIndex('search_name', { searchField: 'name' }),
 
   // Clinic staff members
   staff: defineTable({

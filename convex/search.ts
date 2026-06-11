@@ -3,8 +3,8 @@ import { v }     from 'convex/values'
 
 /**
  * Platform-wide search for the master admin.
- * Searches patients (name + implant ID), approved clinics, and devices in parallel.
- * Returns up to 6 results per category so the UI stays fast.
+ * Uses Convex search indexes for fast, indexed lookups instead of full table scans.
+ * Returns up to 6 results per category.
  */
 export const masterSearch = query({
   args: { query: v.string() },
@@ -12,42 +12,54 @@ export const masterSearch = query({
     const raw = args.query.trim()
     if (raw.length < 2) return { patients: [], clinics: [], devices: [] }
 
-    const q = raw.toLowerCase()
-
     // ── Patients ────────────────────────────────────────────────────────────
-    const allPatients = await ctx.db.query('patients').order('desc').take(200)
-    const patients = allPatients
-      .filter(p =>
-        `${p.firstName} ${p.lastName}`.toLowerCase().includes(q) ||
-        p.implantIdCode.toLowerCase().includes(q) ||
-        p.selfReportedDevice?.toLowerCase().includes(q),
-      )
+    // Search by first name and last name in parallel; also check for exact
+    // implant code match via the by_implant_code index.
+    const [byFirst, byLast, byCode] = await Promise.all([
+      ctx.db
+        .query('patients')
+        .withSearchIndex('search_first_name', (q) => q.search('firstName', raw))
+        .take(8),
+      ctx.db
+        .query('patients')
+        .withSearchIndex('search_last_name', (q) => q.search('lastName', raw))
+        .take(8),
+      // Exact implant code lookup (e.g. IID-SMIJO2311XK)
+      ctx.db
+        .query('patients')
+        .withIndex('by_implant_code', (q) => q.eq('implantIdCode', raw.toUpperCase()))
+        .take(1),
+    ])
+
+    // Deduplicate by _id, keep insertion order (first wins)
+    const seen = new Set<string>()
+    const patients = [...byFirst, ...byLast, ...byCode]
+      .filter(p => { if (seen.has(p._id)) return false; seen.add(p._id); return true })
       .slice(0, 6)
       .map(p => ({
-        _id:               p._id,
-        name:              `${p.firstName} ${p.lastName}`,
-        implantIdCode:     p.implantIdCode,
+        _id:                p._id,
+        name:               `${p.firstName} ${p.lastName}`,
+        implantIdCode:      p.implantIdCode,
         verificationStatus: p.verificationStatus,
-        device:            p.selfReportedDevice ?? null,
+        device:             p.selfReportedDevice ?? null,
       }))
 
     // ── Clinics ─────────────────────────────────────────────────────────────
-    const allClinics = await ctx.db.query('clinics').take(200)
-    const clinics = allClinics
-      .filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q),
-      )
-      .slice(0, 6)
-      .map(c => ({
-        _id:    c._id,
-        name:   c.name,
-        email:  c.email ?? null,
-        status: c.status,
-      }))
+    const clinicResults = await ctx.db
+      .query('clinics')
+      .withSearchIndex('search_name', (q) => q.search('name', raw))
+      .take(6)
 
-    // Pending applications that match (in case the clinic isn't approved yet)
-    const allApps = await ctx.db.query('clinicApplications').take(200)
+    const clinics = clinicResults.map(c => ({
+      _id:    c._id,
+      name:   c.name,
+      email:  c.email ?? null,
+      status: c.status,
+    }))
+
+    // Pending applications (no search index — small table, take 50 is fine)
+    const allApps = await ctx.db.query('clinicApplications').take(50)
+    const q = raw.toLowerCase()
     const pendingClinics = allApps
       .filter(a =>
         a.status === 'pending' &&
@@ -55,21 +67,28 @@ export const masterSearch = query({
       )
       .slice(0, 3)
       .map(a => ({
-        _id:    a._id,
-        name:   a.facilityName,
-        email:  a.contactEmail,
-        status: 'pending' as const,
+        _id:           a._id,
+        name:          a.facilityName,
+        email:         a.contactEmail,
+        status:        'pending' as const,
         isApplication: true,
       }))
 
     // ── Devices ─────────────────────────────────────────────────────────────
-    const allDevices = await ctx.db.query('devices').take(500)
-    const devices = allDevices
-      .filter(d =>
-        d.manufacturer.toLowerCase().includes(q) ||
-        d.model.toLowerCase().includes(q) ||
-        d.deviceType.toLowerCase().includes(q),
-      )
+    const [byMfr, byModel] = await Promise.all([
+      ctx.db
+        .query('devices')
+        .withSearchIndex('search_manufacturer', (q) => q.search('manufacturer', raw))
+        .take(8),
+      ctx.db
+        .query('devices')
+        .withSearchIndex('search_model', (q) => q.search('model', raw))
+        .take(8),
+    ])
+
+    const seenDevices = new Set<string>()
+    const devices = [...byMfr, ...byModel]
+      .filter(d => { if (seenDevices.has(d._id)) return false; seenDevices.add(d._id); return true })
       .slice(0, 6)
       .map(d => ({
         _id:          d._id,
@@ -77,6 +96,8 @@ export const masterSearch = query({
         model:        d.model,
         deviceType:   d.deviceType,
         mriStatus:    d.mriStatus,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        deviceCode:   (d as any).deviceCode ?? null,
       }))
 
     return {

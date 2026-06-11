@@ -61,6 +61,7 @@ export default function DashboardClient() {
   const notifications       = useQuery(api.patients.getMyNotifications)
   const allClinics          = useQuery(api.clinics.listClinics)
   const patientEvents       = useQuery((api as any).patients.getMyEvents)
+  const myDocuments         = useQuery((api as any).patientDocuments.getMyDocuments)
   const markWelcomeSeen        = useMutation(api.patients.markWelcomeSeen)
   const markRead               = useMutation(api.patients.markAllNotificationsRead)
   const shareRecordWithClinic  = useMutation(api.patients.shareRecordWithClinic)
@@ -1339,26 +1340,94 @@ export default function DashboardClient() {
               </div>
             )}
 
-            {/* Documents placeholder */}
+            {/* Documents section */}
             <div id="documents-section" className="sec">
               <h2>Your documents</h2>
-              <p className="sub">Documents will appear here once your clinical team adds your implant details.</p>
-              <div style={{
-                background: 'var(--bg2)',
-                border: '1px dashed var(--border2)',
-                borderRadius: 14,
-                padding: '32px 24px',
-                textAlign: 'center',
-                color: 'var(--muted2)',
-                fontFamily: 'var(--ff)',
-                fontSize: 14,
-              }}>
-                <svg style={{ display: 'block', width: 32, height: 32, margin: '0 auto 12px', opacity: .4 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <path d="M14 2v6h6"/>
-                </svg>
-                No documents yet
-              </div>
+              <p className="sub" style={{ marginTop: -6, marginBottom: 16 }}>
+                Clinical documents attached to your record by your care team.
+              </p>
+
+              {myDocuments === undefined && (
+                <div style={{ color: 'var(--muted)', fontSize: 14 }}>Loading…</div>
+              )}
+
+              {myDocuments !== undefined && (myDocuments as any[]).length === 0 && (
+                <div style={{
+                  background: 'var(--bg2)', border: '1px dashed var(--border2)',
+                  borderRadius: 14, padding: '32px 24px',
+                  textAlign: 'center', color: 'var(--muted2)',
+                  fontFamily: 'var(--ff)', fontSize: 14,
+                }}>
+                  <svg style={{ display: 'block', width: 32, height: 32, margin: '0 auto 12px', opacity: .4 }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <path d="M14 2v6h6"/>
+                  </svg>
+                  No documents yet — they&apos;ll appear here when your clinical team uploads them.
+                </div>
+              )}
+
+              {myDocuments !== undefined && (myDocuments as any[]).length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {(myDocuments as any[]).map((doc: any) => {
+                    const docTypeLabels: Record<string, string> = {
+                      scan_report: 'Scan Report', pre_assessment: 'Pre-assessment',
+                      discharge_summary: 'Discharge Summary', ifu: 'IFU', other: 'Other',
+                    }
+                    const docLabel = docTypeLabels[doc.docType] ?? doc.docType
+                    const uploadDate = new Date(doc.uploadedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                    return (
+                      <div key={doc._id} style={{
+                        background: 'var(--bg2)', border: '1px solid var(--border)',
+                        borderRadius: 12, padding: '14px 18px',
+                        display: 'flex', alignItems: 'center', gap: 14,
+                      }}>
+                        <div style={{
+                          width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                          background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                          border: '1px solid color-mix(in srgb,var(--accent) 22%,transparent)',
+                          display: 'grid', placeItems: 'center',
+                        }}>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                          </svg>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: 'var(--ff)', fontWeight: 500, fontSize: 14, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {doc.fileName}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                            {docLabel}{doc.notes ? ` · ${doc.notes}` : ''} · {uploadDate}
+                          </div>
+                        </div>
+                        {doc.url && (
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={doc.fileName}
+                            aria-label={`Download ${doc.fileName}`}
+                            style={{
+                              flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5,
+                              fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 500,
+                              color: 'var(--accent-deep)',
+                              background: 'color-mix(in srgb,var(--accent) 7%,transparent)',
+                              border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)',
+                              borderRadius: 7, padding: '5px 12px', textDecoration: 'none',
+                            }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Download
+                          </a>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* History timeline */}

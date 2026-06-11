@@ -144,6 +144,20 @@ export default defineSchema({
     .index('by_patient',          ['patientId'])
     .index('by_patient_and_time', ['patientId', 'createdAt']),
 
+  // Clinical documents attached to a patient record by clinic/surgeon staff
+  patientDocuments: defineTable({
+    patientId:    v.id('patients'),
+    clinicId:     v.optional(v.id('clinics')),
+    uploadedBy:   v.id('users'),              // staff member who uploaded
+    fileName:     v.string(),                 // display name
+    fileStorageId: v.id('_storage'),          // Convex storage reference
+    docType:      v.string(),                 // e.g. 'scan_report' | 'pre_assessment' | 'discharge_summary' | 'ifu' | 'other'
+    notes:        v.optional(v.string()),
+    uploadedAt:   v.number(),
+  })
+    .index('by_patient', ['patientId'])
+    .index('by_clinic',  ['clinicId']),
+
   // Patient's implant records (one patient can have multiple devices)
   patientDevices: defineTable({
     patientId: v.id('patients'),

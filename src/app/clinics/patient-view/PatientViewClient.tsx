@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useSearchParams }       from 'next/navigation'
 import { api as apiBase }        from '../../../../convex/_generated/api'
@@ -40,11 +40,26 @@ export default function PatientViewClient() {
     api.devices.getDeviceById,
     expanded ? { id: expanded } : 'skip',
   )
-  const recordLookup = useMutation(api.patients.recordPatientLookup)
+  const recordLookup     = useMutation(api.patients.recordPatientLookup)
+  const generateUploadUrl = useMutation(api.patientDocuments.generateUploadUrl)
+  const addPatientDocument = useMutation(api.patientDocuments.addPatientDocument)
 
   // Record the lookup once we have the patient _id — best effort, don't block UI
   // lookupByImplantId doesn't return _id, so we use getPatientByCode for audit
   const patientById = useQuery(api.patients.getPatientByCode, code ? { code } : 'skip')
+  const patientDocs = useQuery(
+    api.patientDocuments.getPatientDocuments,
+    patientById?._id ? { patientId: patientById._id } : 'skip',
+  )
+  // Upload state
+  const [uploadOpen,    setUploadOpen]    = useState(false)
+  const [uploading,     setUploading]     = useState(false)
+  const [uploadErr,     setUploadErr]     = useState('')
+  const [uploadDocType, setUploadDocType] = useState('scan_report')
+  const [uploadNotes,   setUploadNotes]   = useState('')
+  const [uploadFile,    setUploadFile]    = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   // Fire audit once (effect-like pattern via derived state)
   const [auditFired, setAuditFired] = useState(false)
   if (patientById?._id && !auditFired) {
@@ -116,6 +131,40 @@ export default function PatientViewClient() {
         </div>
       </div>
     )
+  }
+
+  // ── Upload handler ────────────────────────────────────────────────────────
+
+  async function doUpload(e: React.FormEvent) {
+    e.preventDefault()
+    if (!uploadFile || !patientById?._id) return
+    setUploading(true); setUploadErr('')
+    try {
+      const uploadUrl = await generateUploadUrl({})
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': uploadFile.type || 'application/octet-stream' },
+        body: uploadFile,
+      })
+      if (!res.ok) throw new Error('Upload failed')
+      const { storageId } = await res.json()
+      await addPatientDocument({
+        patientId:    patientById._id,
+        fileStorageId: storageId,
+        fileName:     uploadFile.name,
+        docType:      uploadDocType,
+        notes:        uploadNotes.trim() || undefined,
+      })
+      setUploadOpen(false)
+      setUploadFile(null)
+      setUploadNotes('')
+      setUploadDocType('scan_report')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    } catch {
+      setUploadErr('Upload failed — please try again.')
+    } finally {
+      setUploading(false)
+    }
   }
 
   // ── Derived ───────────────────────────────────────────────────────────────
@@ -379,6 +428,203 @@ export default function PatientViewClient() {
 
         </div>
       </div>
+
+      {/* ── Clinical documents ────────────────────────────────────────────── */}
+      <div style={{ maxWidth: 880, marginTop: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>
+            Clinical documents
+          </div>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setUploadOpen(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            aria-label="Upload document"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Upload document
+          </button>
+        </div>
+
+        {patientDocs === undefined && (
+          <div style={{ color: 'var(--muted)', fontSize: 14, fontFamily: 'var(--ff)' }}>Loading…</div>
+        )}
+
+        {patientDocs !== undefined && (patientDocs as any[]).length === 0 && (
+          <div style={{
+            background: 'var(--bg2)', border: '1px dashed var(--border2)',
+            borderRadius: 12, padding: '24px', textAlign: 'center',
+            color: 'var(--muted2)', fontFamily: 'var(--ff)', fontSize: 14,
+          }}>
+            No documents uploaded yet.
+          </div>
+        )}
+
+        {patientDocs !== undefined && (patientDocs as any[]).length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(patientDocs as any[]).map((doc: any) => {
+              const docTypeLabels: Record<string, string> = {
+                scan_report: 'Scan Report', pre_assessment: 'Pre-assessment',
+                discharge_summary: 'Discharge Summary', ifu: 'IFU', other: 'Other',
+              }
+              const docLabel = docTypeLabels[doc.docType] ?? doc.docType
+              const uploadDate = new Date(doc.uploadedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+              return (
+                <div key={doc._id} style={{
+                  background: 'var(--bg2)', border: '1px solid var(--border)',
+                  borderRadius: 12, padding: '14px 18px',
+                  display: 'flex', alignItems: 'center', gap: 14,
+                }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+                    background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                    border: '1px solid color-mix(in srgb,var(--accent) 22%,transparent)',
+                    display: 'grid', placeItems: 'center',
+                  }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--ff)', fontWeight: 500, fontSize: 14, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {doc.fileName}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                      {docLabel}{doc.notes ? ` · ${doc.notes}` : ''} · {uploadDate}
+                    </div>
+                  </div>
+                  {doc.url && (
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={doc.fileName}
+                      aria-label={`Download ${doc.fileName}`}
+                      style={{
+                        flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5,
+                        fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 500,
+                        color: 'var(--accent-deep)',
+                        background: 'color-mix(in srgb,var(--accent) 7%,transparent)',
+                        border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)',
+                        borderRadius: 7, padding: '5px 12px', textDecoration: 'none',
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                      </svg>
+                      Download
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Upload document modal ─────────────────────────────────────────── */}
+      {uploadOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(8,19,23,.6)', backdropFilter: 'blur(4px)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget && !uploading) { setUploadOpen(false); setUploadErr(''); setUploadFile(null) } }}
+        >
+          <div style={{ width: '100%', maxWidth: 440, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 40px 80px -20px rgba(0,0,0,.4)' }}>
+            <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ fontFamily: 'var(--ff)', fontSize: 17, fontWeight: 700, margin: 0, letterSpacing: '-.015em' }}>Upload document</h3>
+                <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', margin: '3px 0 0' }}>
+                  For {patient.firstName} {patient.lastName} — visible to the patient
+                </p>
+              </div>
+              <button
+                onClick={() => { setUploadOpen(false); setUploadErr(''); setUploadFile(null) }}
+                aria-label="Close"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 18, padding: 4, lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={doUpload} style={{ padding: '20px 24px 24px' }}>
+              <div className="field" style={{ marginBottom: 14 }}>
+                <label htmlFor="doc-file" style={{ fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
+                  File <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
+                </label>
+                <input
+                  id="doc-file"
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.tif,.tiff,.doc,.docx"
+                  className="input"
+                  style={{ padding: '9px 14px' }}
+                  onChange={e => setUploadFile(e.target.files?.[0] ?? null)}
+                  required
+                />
+              </div>
+              <div className="field" style={{ marginBottom: 14 }}>
+                <label htmlFor="doc-type" style={{ fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
+                  Document type <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
+                </label>
+                <select
+                  id="doc-type"
+                  className="input"
+                  value={uploadDocType}
+                  onChange={e => setUploadDocType(e.target.value)}
+                  style={{ appearance: 'auto' }}
+                >
+                  <option value="scan_report">Scan Report</option>
+                  <option value="pre_assessment">Pre-assessment</option>
+                  <option value="discharge_summary">Discharge Summary</option>
+                  <option value="ifu">IFU (Instructions for Use)</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="field" style={{ marginBottom: 20 }}>
+                <label htmlFor="doc-notes" style={{ fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
+                  Notes (optional)
+                </label>
+                <textarea
+                  id="doc-notes"
+                  className="input"
+                  rows={2}
+                  placeholder="e.g. Post-operative MRI — left hip"
+                  value={uploadNotes}
+                  onChange={e => setUploadNotes(e.target.value)}
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+              {uploadErr && (
+                <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 14 }}>
+                  {uploadErr}
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn btn-lg"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                  onClick={() => { setUploadOpen(false); setUploadErr(''); setUploadFile(null) }}
+                  disabled={uploading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-s btn-lg"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                  disabled={uploading || !uploadFile}
+                >
+                  {uploading ? 'Uploading…' : 'Upload'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Mobile: stack columns */}
       <style>{`

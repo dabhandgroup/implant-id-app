@@ -186,9 +186,10 @@ export default function PatientViewClient() {
                 border: `1px solid color-mix(in srgb,${mriMeta.color} 22%,transparent)`,
                 borderRadius: 10, padding: '10px 16px', marginBottom: 12,
               }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mriMeta.color} strokeWidth="1.7" aria-hidden="true">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
+                {(patient.mriStatus === 'safe' || patient.mriStatus === 'conditional' || patient.mriStatus === 'unsafe')
+                  ? <img src={`/mr-${patient.mriStatus}.svg`} alt="" aria-hidden="true" style={{ width:28, height:28, display:'block', flexShrink:0 }} />
+                  : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mriMeta.color} strokeWidth="1.7" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                }
                 <span style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 700, color: mriMeta.color }}>
                   {mriMeta.label}
                 </span>
@@ -275,13 +276,18 @@ export default function PatientViewClient() {
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                             <span style={{
+                              display:'inline-flex', alignItems:'center', gap:5,
                               fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600,
-                              padding: '2px 7px', borderRadius: 5,
+                              padding: (d.mriStatus==='safe'||d.mriStatus==='conditional'||d.mriStatus==='unsafe') ? '2px 8px 2px 3px' : '2px 7px',
+                              borderRadius: 5,
                               background: statusMeta.bg,
                               color: statusMeta.color,
                               border: `1px solid color-mix(in srgb,${statusMeta.color} 22%,transparent)`,
-                              flexShrink: 0,
+                              flexShrink: 0, whiteSpace: 'nowrap',
                             }}>
+                              {(d.mriStatus==='safe'||d.mriStatus==='conditional'||d.mriStatus==='unsafe') && (
+                                <img src={`/mr-${d.mriStatus}.svg`} alt="" aria-hidden="true" style={{ width:16, height:16, display:'block', flexShrink:0 }} />
+                              )}
                               {statusMeta.label}
                             </span>
                             {d.status === 'active' ? (

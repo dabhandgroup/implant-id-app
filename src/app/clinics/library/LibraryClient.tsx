@@ -451,7 +451,8 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
                       <div className="res-card-img">
                         <DeviceCardSvg type={d.device_type} />
                         <span className="mfr-tag">{d.manufacturer_name}</span>
-                        <span className={`cls-tag${mri.cls === 'err' ? ' err' : mri.cls === 'warn' ? ' warn' : ''}`}>
+                        <span className={`cls-tag${mri.cls === 'err' ? ' err' : mri.cls === 'warn' ? ' warn' : ''}`} style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                          <img src={d.mri_classification === 'MR Unsafe' ? '/mr-unsafe.svg' : d.mri_classification === 'MR Safe' ? '/mr-safe.svg' : '/mr-conditional.svg'} alt="" aria-hidden="true" style={{ width:14, height:14, display:'block', flexShrink:0 }} />
                           {mri.shortLabel}
                         </span>
                       </div>
@@ -461,7 +462,8 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
                         <div className="mn">
                           {d.model_number.split(';').map(m => m.trim()).join(' · ')}
                         </div>
-                        <div className={`st${mri.cls === 'err' ? ' err' : mri.cls === 'warn' ? ' warn' : ''}`}>
+                        <div className={`st${mri.cls === 'err' ? ' err' : mri.cls === 'warn' ? ' warn' : ''}`} style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
+                          <img src={d.mri_classification === 'MR Unsafe' ? '/mr-unsafe.svg' : d.mri_classification === 'MR Safe' ? '/mr-safe.svg' : '/mr-conditional.svg'} alt="" aria-hidden="true" style={{ width:16, height:16, display:'block', flexShrink:0 }} />
                           {d.mri_classification === 'MR Unsafe'
                             ? 'MR Unsafe — do not scan'
                             : `MR Conditional · ${mri.shortLabel}`}
@@ -502,7 +504,8 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
                         <div className="v">{d.device_type}</div>
                       </div>
                       <div>
-                        <span className={`cls-tag${mri.cls === 'err' ? ' err' : mri.cls === 'warn' ? ' warn' : ''}`}>
+                        <span className={`cls-tag${mri.cls === 'err' ? ' err' : mri.cls === 'warn' ? ' warn' : ''}`} style={{ display:'inline-flex', alignItems:'center', gap:4 }}>
+                          <img src={d.mri_classification === 'MR Unsafe' ? '/mr-unsafe.svg' : d.mri_classification === 'MR Safe' ? '/mr-safe.svg' : '/mr-conditional.svg'} alt="" aria-hidden="true" style={{ width:14, height:14, display:'block', flexShrink:0 }} />
                           {mri.shortLabel}
                         </span>
                       </div>

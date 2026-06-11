@@ -4,9 +4,31 @@ import { useState }    from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useRouter }   from 'next/navigation'
 import { api as apiBase } from '../../../../../convex/_generated/api'
-import { Id }             from '../../../../../convex/_generated/dataModel'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
+
+// Click-to-copy badge for the device code
+function CopyBadge({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1800) }}
+      title="Copy Implant ID device code"
+      aria-label={`Copy device code ${text}`}
+      style={{ display:'inline-flex', alignItems:'center', gap:8, fontFamily:'SF Mono,Monaco,monospace', fontSize:15, fontWeight:700, letterSpacing:'.08em', color:'var(--accent-deep)', background:'color-mix(in srgb,var(--accent) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--accent) 22%,transparent)', borderRadius:10, padding:'8px 14px', cursor:'pointer', transition:'all .15s' }}
+    >
+      {text}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+        {copied
+          ? <><path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/></>
+          : <><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></>}
+      </svg>
+      <span style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:500, color: copied ? 'var(--ok)' : 'var(--muted)', marginLeft:2 }}>
+        {copied ? 'Copied!' : 'Copy'}
+      </span>
+    </button>
+  )
+}
 
 type MriStatus = 'safe' | 'conditional' | 'unsafe' | 'unknown'
 
@@ -33,14 +55,19 @@ export default function DeviceDetailClient({ id }: { id: string }) {
   const router = useRouter()
 
   // ── All hooks unconditionally at top ──────────────────────────────────────
-  const device            = useQuery(api.devices.getDeviceWithUsage, { id: id as Id<'devices'> })
+  // id may be a DID- code or a Convex _id — the slug query handles both
+  const device            = useQuery(api.devices.getDeviceWithUsageBySlug, { slug: id })
   const updateMriStatus   = useMutation(api.devices.updateDeviceMriStatus)
+  const deleteDevice      = useMutation(api.devices.deleteDevice)
 
   const [editingStatus,   setEditingStatus]   = useState(false)
   const [newStatus,       setNewStatus]       = useState<MriStatus>('conditional')
   const [saving,          setSaving]          = useState(false)
   const [saveError,       setSaveError]       = useState('')
   const [justSaved,       setJustSaved]       = useState(false)
+  const [deleteConfirm,   setDeleteConfirm]   = useState(false)
+  const [deleting,        setDeleting]        = useState(false)
+  const [deleteError,     setDeleteError]     = useState('')
 
   // ── Guards ────────────────────────────────────────────────────────────────
   if (device === undefined) {
@@ -61,12 +88,26 @@ export default function DeviceDetailClient({ id }: { id: string }) {
     )
   }
 
-  const status = device.mriStatus as MriStatus
+  const status   = device.mriStatus as MriStatus
+  const devCode  = (device as any).deviceCode as string | undefined
+  // Use deviceCode as the slug for internal links, fall back to the raw param
+  const slug     = devCode ?? id
+
+  async function handleDelete() {
+    setDeleting(true); setDeleteError('')
+    try {
+      await deleteDevice({ id: device._id })
+      router.push('/master/devices')
+    } catch (e) {
+      setDeleteError((e as { message?: string })?.message ?? 'Failed to delete device')
+      setDeleting(false)
+    }
+  }
 
   async function handleSaveStatus() {
     setSaving(true); setSaveError('')
     try {
-      await updateMriStatus({ id: id as Id<'devices'>, mriStatus: newStatus })
+      await updateMriStatus({ id: device._id, mriStatus: newStatus })
       setEditingStatus(false)
       setJustSaved(true)
       setTimeout(() => setJustSaved(false), 3000)
@@ -88,7 +129,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
       {/* Header */}
       <div className="m-h" style={{ marginBottom: 24 }}>
         <div>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             {device.manufacturer} {device.model}
             {justSaved && (
               <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: 'var(--ok)', background: 'color-mix(in srgb,var(--ok) 10%,transparent)', padding: '3px 10px', borderRadius: 6 }}>
@@ -96,23 +137,33 @@ export default function DeviceDetailClient({ id }: { id: string }) {
               </span>
             )}
           </h2>
-          <div className="sub">{device.deviceType} · {device.classification}</div>
+          <div className="sub" style={{ margin: 0, marginTop: 4 }}>{device.deviceType} · {device.classification}</div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {/* Patient count badge */}
-          <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: device.patientCount > 0 ? 'var(--accent)' : 'var(--muted)', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px' }}>
-            {device.patientCount} patient{device.patientCount !== 1 ? 's' : ''} linked
-          </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Patient count — only show when > 0 */}
+          {device.patientCount > 0 && (
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 8, padding: '6px 12px' }}>
+              {device.patientCount} patient{device.patientCount !== 1 ? 's' : ''} linked
+            </div>
+          )}
+          <a href={`/master/devices/${slug}/edit`} className="btn">Edit device</a>
           <button className="btn btn-s" onClick={() => { setNewStatus(status); setEditingStatus(true) }}>
             Edit MRI status
+          </button>
+          <button
+            className="btn btn-danger"
+            onClick={() => setDeleteConfirm(true)}
+            disabled={device.patientCount > 0}
+            title={device.patientCount > 0 ? 'Cannot delete while patients are linked' : 'Delete this device'}
+          >
+            Delete
           </button>
         </div>
       </div>
 
       {/* MRI status hero card */}
       <div style={{ background: MRI_BG[status], borderRadius: 16, padding: '28px 32px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 20 }}>
-        {/* MR Safe = square container, MR Conditional/Unsafe = circle container */}
-        <div style={{ width: 64, height: 64, borderRadius: status === 'safe' ? 8 : '50%', background: 'rgba(255,255,255,0.92)', display: 'grid', placeItems: 'center', flexShrink: 0, padding: 6 }}>
+        <div style={{ width: 64, height: 64, borderRadius: status === 'safe' ? 8 : '50%', background: 'rgba(255,255,255,0.92)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <img
             src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : status === 'unsafe' ? '/mr-unsafe.svg' : '/mr-conditional.svg'}
             alt={MRI_LABEL[status]}
@@ -153,7 +204,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Sources — PDF links + web sources consulted during scrape */}
+      {/* Sources — legacy scraped data (pdfLinks / sourceUrl / sourcesRaw) */}
       {((device as any).pdfLinks?.length > 0 || (device as any).sourceUrl || (device as any).sourcesRaw) && (() => {
         const pdfLinks: string[]  = (device as any).pdfLinks ?? []
         const sourceUrl: string   = (device as any).sourceUrl ?? ''
@@ -164,7 +215,6 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Sources</div>
 
-            {/* PDF / primary source */}
             {(pdfLinks.length > 0 || sourceUrl) && (
               <div style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--accent-deep)', marginBottom: 8 }}>📄 Source documents (IFU / MRI Manual)</div>
@@ -180,7 +230,6 @@ export default function DeviceDetailClient({ id }: { id: string }) {
               </div>
             )}
 
-            {/* Web sources consulted */}
             {webSources.length > 0 && (
               <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--muted2)', marginBottom: 8 }}>Web sources consulted</div>
@@ -203,12 +252,76 @@ export default function DeviceDetailClient({ id }: { id: string }) {
         )
       })()}
 
+      {/* Manually curated source URLs */}
+      {(device as any).sourceUrls?.length > 0 && (
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 22px', marginBottom: 24 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Source Documents &amp; References</div>
+          {((device as any).sourceUrls as { url: string; label?: string }[]).map((s, i) => (
+            <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8, textDecoration: 'none' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0 }} aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <span style={{ flex: 1, fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--accent)', wordBreak: 'break-all' }}>
+                {s.label ? <><strong style={{ color: 'var(--text)', marginRight: 6 }}>{s.label}</strong>{s.url}</> : s.url}
+              </span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.7" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* ── Implant ID Device Code ─────────────────────────────────────────── */}
+      {devCode && (
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', marginBottom: 24 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>
+            Implant ID Device Code
+          </div>
+          <p style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', margin: '0 0 14px', lineHeight: 1.55 }}>
+            This is the internal reference code assigned by Implant ID. It is <strong>not</strong> a manufacturer part number or serial number — it is used to identify this device record within the Implant ID platform and as the permanent URL for this page.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <CopyBadge text={devCode} />
+            <span style={{ fontFamily: 'var(--fb)', fontSize: 12.5, color: 'var(--muted2)' }}>
+              Permalink: <code style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 12, color: 'var(--muted)' }}>/master/devices/{devCode}</code>
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Patient linkage warning */}
       {device.patientCount > 0 && (
         <div style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', lineHeight: 1.6 }}>
           ℹ <strong>{device.patientCount} patient{device.patientCount !== 1 ? 's' : ''}</strong> currently have this device linked to their record.
           Changing the MRI status will immediately affect their wallet passes and dashboard card colour.
           This device cannot be deleted while patients are linked.
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <div className="logout-back open" onClick={() => !deleting && setDeleteConfirm(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()}>
+            <div className="logout-body">
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </div>
+              <h3>Delete device?</h3>
+              <p style={{ color: 'var(--muted)', fontSize: 14 }}>
+                <strong style={{ color: 'var(--text)' }}>{device.manufacturer} {device.model}</strong><br/>
+                This action is permanent and cannot be undone.
+              </p>
+              {deleteError && <p style={{ color: 'var(--err)', fontSize: 13, marginTop: 8 }}>{deleteError}</p>}
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setDeleteConfirm(false)} disabled={deleting}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Yes, delete device'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

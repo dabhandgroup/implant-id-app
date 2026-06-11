@@ -46,12 +46,20 @@ export default defineSchema({
     sourceUrl:  v.optional(v.string()),      // Primary source URL or PDF link
     pdfLinks:   v.optional(v.array(v.string())), // All PDF links found during scrape
     sourcesRaw: v.optional(v.string()),      // JSON-stringified _sources_consulted array
+    // Human-readable device code (auto-generated on creation) e.g. DID-MDTAZU-J7K2
+    deviceCode: v.optional(v.string()),
+    // Manually curated source URLs (IFUs, manufacturer pages, clinical references)
+    sourceUrls: v.optional(v.array(v.object({
+      url:   v.string(),
+      label: v.optional(v.string()),  // e.g. "IFU PDF", "Manufacturer page"
+    }))),
   })
     .index('by_manufacturer', ['manufacturer'])
     .index('by_mri_status', ['mriStatus'])
     .index('by_classification', ['classification'])
     .index('by_status', ['status'])
-    .index('by_submitted_manufacturer', ['submittedByManufacturerId']),
+    .index('by_submitted_manufacturer', ['submittedByManufacturerId'])
+    .index('by_device_code', ['deviceCode']),
 
   // Patient profiles
   patients: defineTable({

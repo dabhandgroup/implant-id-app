@@ -1077,3 +1077,37 @@ export const recordPatientLookup = mutation({
   },
 })
 
+/** Patient-editable emergency info fields. Does not touch clinic-verified implant data. */
+export const updateEmergencyInfo = mutation({
+  args: {
+    medications:     v.optional(v.string()),
+    otherAllergies:  v.optional(v.string()),
+    homeAddress:     v.optional(v.string()),
+    additionalNotes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) throw new Error('Patient record not found')
+
+    const patch: Record<string, string | undefined> = {}
+    if (args.medications    !== undefined) patch.medications    = args.medications    || undefined
+    if (args.otherAllergies !== undefined) patch.otherAllergies = args.otherAllergies || undefined
+    if (args.homeAddress    !== undefined) patch.homeAddress    = args.homeAddress    || undefined
+    if (args.additionalNotes !== undefined) patch.additionalNotes = args.additionalNotes || undefined
+
+    await ctx.db.patch(patient._id, patch)
+  },
+})
+

@@ -95,6 +95,11 @@ export default defineSchema({
     // Extra clinical notes (allergies, etc.)
     additionalNotes: v.optional(v.string()),
 
+    // Patient-editable emergency info
+    medications:    v.optional(v.string()),  // current medications (free-text)
+    otherAllergies: v.optional(v.string()),  // non-implant allergies
+    homeAddress:    v.optional(v.string()),  // home address
+
     // Physical measurements (needed for SAR calculations by clinicians)
     heightCm:            v.optional(v.number()),   // cm, e.g. 175
     weightKg:            v.optional(v.number()),   // kg, e.g. 72

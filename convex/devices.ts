@@ -45,11 +45,11 @@ export const listAllDevices = query({
 
 /** List devices for a specific manufacturer (by manufacturer name string). */
 export const listMyDevices = query({
-  args: { manufacturerName: v.string() },
+  args: { manufacturerId: v.id('manufacturers') },
   handler: async (ctx, args) => {
     return ctx.db
       .query('devices')
-      .withIndex('by_manufacturer', (q) => q.eq('manufacturer', args.manufacturerName))
+      .withIndex('by_submitted_manufacturer', (q) => q.eq('submittedByManufacturerId', args.manufacturerId))
       .order('desc')
       .take(200)
   },

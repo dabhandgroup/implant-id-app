@@ -39,12 +39,21 @@ export default function EmergencyClient() {
   const implantSafety    = useQuery(api.patients.getMyImplantSafety)
   const notifications    = useQuery(api.patients.getMyNotifications)
   const markRead         = useMutation(api.patients.markAllNotificationsRead)
+  const updateEmergency  = useMutation(api.patients.updateEmergencyInfo)
 
   const [sbCollapsed,  setSbCollapsed]  = useState(false)
   const [profileOpen,  setProfileOpen]  = useState(false)
   const [logoutOpen,   setLogoutOpen]   = useState(false)
   const [notifOpen,    setNotifOpen]    = useState(false)
   const [linkCopied,   setLinkCopied]   = useState(false)
+  const [editingInfo,  setEditingInfo]  = useState(false)
+  const [editMeds,     setEditMeds]     = useState('')
+  const [editAllergies,setEditAllergies]= useState('')
+  const [editAddress,  setEditAddress]  = useState('')
+  const [editNotes,    setEditNotes]    = useState('')
+  const [infoSaving,   setInfoSaving]   = useState(false)
+  const [infoError,    setInfoError]    = useState('')
+  const [infoSaved,    setInfoSaved]    = useState(false)
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'P'
@@ -65,6 +74,36 @@ export default function EmergencyClient() {
     navigator.clipboard?.writeText(scanUrl)
     setLinkCopied(true)
     setTimeout(() => setLinkCopied(false), 2000)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = patient as any
+  function openEdit() {
+    setEditMeds(p?.medications ?? '')
+    setEditAllergies(p?.otherAllergies ?? '')
+    setEditAddress(p?.homeAddress ?? '')
+    setEditNotes(p?.additionalNotes ?? '')
+    setInfoError('')
+    setEditingInfo(true)
+  }
+
+  async function saveInfo() {
+    setInfoSaving(true); setInfoError('')
+    try {
+      await updateEmergency({
+        medications:     editMeds.trim()      || undefined,
+        otherAllergies:  editAllergies.trim() || undefined,
+        homeAddress:     editAddress.trim()   || undefined,
+        additionalNotes: editNotes.trim()     || undefined,
+      })
+      setEditingInfo(false)
+      setInfoSaved(true)
+      setTimeout(() => setInfoSaved(false), 3000)
+    } catch (e) {
+      setInfoError((e as { message?: string })?.message ?? 'Failed to save — try again.')
+    } finally {
+      setInfoSaving(false)
+    }
   }
 
   return (
@@ -183,7 +222,7 @@ export default function EmergencyClient() {
             </div>
 
             {/* Action buttons — hidden on print */}
-            <div className="em-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
+            <div className="em-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24, alignItems: 'center' }}>
               <button
                 className="btn btn-s"
                 onClick={copyLink}
@@ -203,6 +242,20 @@ export default function EmergencyClient() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                 Print / Save as PDF
               </button>
+              <button
+                className="btn"
+                onClick={openEdit}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}
+                aria-label="Edit your emergency info"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit your info
+              </button>
+              {infoSaved && (
+                <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600, color: 'var(--ok)' }}>
+                  ✓ Saved
+                </span>
+              )}
             </div>
 
             {/* MRI status hero */}
@@ -274,6 +327,31 @@ export default function EmergencyClient() {
               </div>
             )}
 
+            {/* Patient-editable fields — medications, allergies, home address */}
+            {(p.medications || p.otherAllergies || p.homeAddress) && (
+              <div className="em-card em-print-only" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Medical Information</div>
+                {p.medications && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 4 }}>Current medications</div>
+                    <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{p.medications}</div>
+                  </div>
+                )}
+                {p.otherAllergies && (
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 4 }}>Allergies</div>
+                    <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{p.otherAllergies}</div>
+                  </div>
+                )}
+                {p.homeAddress && (
+                  <div>
+                    <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 4 }}>Home address</div>
+                    <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{p.homeAddress}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Emergency contact */}
             {patient.emergencyContactName && (
               <div className="em-card" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
@@ -306,6 +384,80 @@ export default function EmergencyClient() {
           </div>
         </div>
       </div>
+
+      {/* Edit emergency info modal */}
+      {editingInfo && (
+        <div className="logout-back open" onClick={() => !infoSaving && setEditingInfo(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, width: '100%' }}>
+            <div className="logout-body">
+              <h3 style={{ marginBottom: 4 }}>Update your emergency info</h3>
+              <p style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.6 }}>
+                This information is shown to first responders and clinical staff. You cannot edit your implant details — contact your clinic for changes.
+              </p>
+
+              <div className="field" style={{ marginBottom: 16 }}>
+                <label>Current medications</label>
+                <textarea
+                  className="input"
+                  rows={3}
+                  value={editMeds}
+                  onChange={e => setEditMeds(e.target.value)}
+                  placeholder="List your current medications, one per line (e.g. Warfarin 5mg daily)"
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              <div className="field" style={{ marginBottom: 16 }}>
+                <label>Allergies</label>
+                <textarea
+                  className="input"
+                  rows={2}
+                  value={editAllergies}
+                  onChange={e => setEditAllergies(e.target.value)}
+                  placeholder="Non-implant allergies (e.g. penicillin, latex, iodine)"
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              <div className="field" style={{ marginBottom: 16 }}>
+                <label>Home address</label>
+                <textarea
+                  className="input"
+                  rows={2}
+                  value={editAddress}
+                  onChange={e => setEditAddress(e.target.value)}
+                  placeholder="Your current home address"
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              <div className="field" style={{ marginBottom: 20 }}>
+                <label>Additional notes</label>
+                <textarea
+                  className="input"
+                  rows={2}
+                  value={editNotes}
+                  onChange={e => setEditNotes(e.target.value)}
+                  placeholder="Any other information relevant to your care (e.g. blood type, known conditions)"
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              {infoError && (
+                <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, padding: '10px 14px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', marginBottom: 16 }}>
+                  {infoError}
+                </div>
+              )}
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setEditingInfo(false)} disabled={infoSaving}>Cancel</button>
+              <button className="btn btn-s" onClick={saveInfo} disabled={infoSaving}>
+                {infoSaving ? 'Saving…' : 'Save changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification drawer */}
       <div className={`notif-back${notifOpen ? ' open' : ''}`} onClick={() => setNotifOpen(false)} />

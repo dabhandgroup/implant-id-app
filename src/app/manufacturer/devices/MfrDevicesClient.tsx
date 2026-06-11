@@ -31,7 +31,7 @@ export default function MfrDevicesClient() {
   const mfr      = useQuery(api.manufacturers.getMyManufacturer)
   const devices  = useQuery(
     api.devices.listMyDevices,
-    mfr?.companyName ? { manufacturerName: mfr.companyName } : 'skip',
+    mfr?._id ? { manufacturerId: mfr._id } : 'skip',
   )
   const [filter, setFilter] = useState<Filter>('all')
   const [search, setSearch] = useState('')

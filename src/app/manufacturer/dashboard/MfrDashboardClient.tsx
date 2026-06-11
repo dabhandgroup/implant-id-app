@@ -25,7 +25,7 @@ export default function MfrDashboardClient() {
   const mfr       = useQuery(api.manufacturers.getMyManufacturer)
   const allDevices = useQuery(
     api.devices.listMyDevices,
-    mfr?.companyName ? { manufacturerName: mfr.companyName } : 'skip',
+    mfr?._id ? { manufacturerId: mfr._id } : 'skip',
   )
 
   const [tab,           setTab]           = useState<Tab>('dashboard')

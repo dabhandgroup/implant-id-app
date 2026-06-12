@@ -34,7 +34,9 @@ export default function AddMfrDeviceClient() {
   const [deviceType,      setDeviceType]      = useState('')
   const [classification,  setClassification]  = useState<Classification>('active')
   const [mriStatus,       setMriStatus]       = useState<MriStatus>('conditional')
-  const [fieldStrengths,  setFieldStrengths]  = useState('')
+  const [fieldStrengthPills,  setFieldStrengthPills]  = useState<string[]>([])
+  const [fieldStrengthInput,  setFieldStrengthInput]  = useState('')
+  const fieldStrengthInputRef = useRef<HTMLInputElement>(null)
   const [sarLimit,        setSarLimit]        = useState('')
   const [b1RmsLimit,      setB1RmsLimit]      = useState('')
   const [slewRateLimit,   setSlewRateLimit]   = useState('')
@@ -100,7 +102,7 @@ export default function AddMfrDeviceClient() {
         deviceType:        deviceType.trim(),
         classification,
         mriStatus,
-        fieldStrengths:    fieldStrengths.trim()     || undefined,
+        fieldStrengths:    fieldStrengthPills.length > 0 ? fieldStrengthPills.join(', ') : undefined,
         sarLimit:          sarLimit.trim()            || undefined,
         b1RmsLimit:        b1RmsLimit.trim()          || undefined,
         slewRateLimit:     slewRateLimit.trim()       || undefined,
@@ -186,27 +188,73 @@ export default function AddMfrDeviceClient() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="field">
                   <label>Field strengths</label>
-                  <input className="input" type="text" value={fieldStrengths} onChange={e => setFieldStrengths(e.target.value)} placeholder="e.g. 1.5T, 3T" />
+                  <div
+                    className="input"
+                    style={{ display: 'flex', flexWrap: 'wrap', gap: 6, minHeight: 42, height: 'auto', padding: '5px 10px', alignItems: 'center', cursor: 'text' }}
+                    onClick={() => fieldStrengthInputRef.current?.focus()}
+                  >
+                    {fieldStrengthPills.map((pill, i) => (
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb,var(--accent) 12%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 25%,transparent)', borderRadius: 20, padding: '2px 8px 2px 10px', fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600, color: 'var(--accent-deep)', whiteSpace: 'nowrap' }}>
+                        {pill}
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); setFieldStrengthPills(p => p.filter((_, j) => j !== i)) }}
+                          style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-deep)', padding: 0, lineHeight: 1 }}
+                          aria-label={`Remove ${pill}`}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      ref={fieldStrengthInputRef}
+                      type="text"
+                      placeholder={fieldStrengthPills.length === 0 ? 'e.g. 1.5T — press Enter or comma' : 'Add another…'}
+                      value={fieldStrengthInput}
+                      onChange={e => {
+                        const val = e.target.value
+                        if (val.includes(',')) {
+                          const parts = val.split(',').map(p => p.trim()).filter(Boolean)
+                          if (parts.length > 0) setFieldStrengthPills(prev => [...prev, ...parts])
+                          setFieldStrengthInput('')
+                        } else {
+                          setFieldStrengthInput(val)
+                        }
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && fieldStrengthInput.trim()) {
+                          e.preventDefault()
+                          setFieldStrengthPills(prev => [...prev, fieldStrengthInput.trim()])
+                          setFieldStrengthInput('')
+                        }
+                        if (e.key === 'Backspace' && !fieldStrengthInput && fieldStrengthPills.length > 0) {
+                          setFieldStrengthPills(prev => prev.slice(0, -1))
+                        }
+                      }}
+                      style={{ flex: 1, minWidth: 100, background: 'transparent', border: 'none', outline: 'none', fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--text)', padding: '2px 0' }}
+                    />
+                  </div>
+                  <p style={{ fontFamily: 'var(--fb)', fontSize: 11.5, color: 'var(--muted2)', margin: '4px 0 0' }}>Press Enter or comma to add as a tag</p>
                 </div>
                 <div className="field">
                   <label>SAR limit (whole-body)</label>
-                  <input className="input" type="text" value={sarLimit} onChange={e => setSarLimit(e.target.value)} placeholder="e.g. 2 W/kg" />
+                  <input className="input" type="text" inputMode="decimal" value={sarLimit} onChange={e => setSarLimit(e.target.value)} placeholder="e.g. 2 W/kg" />
                 </div>
                 <div className="field">
                   <label>B1+rms limit</label>
-                  <input className="input" type="text" value={b1RmsLimit} onChange={e => setB1RmsLimit(e.target.value)} placeholder="e.g. 3.2 µT" />
+                  <input className="input" type="text" inputMode="decimal" value={b1RmsLimit} onChange={e => setB1RmsLimit(e.target.value)} placeholder="e.g. 3.2 µT" />
                 </div>
                 <div className="field">
                   <label>Slew rate limit</label>
-                  <input className="input" type="text" value={slewRateLimit} onChange={e => setSlewRateLimit(e.target.value)} placeholder="e.g. 200 T/m/s" />
+                  <input className="input" type="text" inputMode="decimal" value={slewRateLimit} onChange={e => setSlewRateLimit(e.target.value)} placeholder="e.g. 200 T/m/s" />
                 </div>
                 <div className="field">
                   <label>Gradient limit</label>
-                  <input className="input" type="text" value={gradientLimit} onChange={e => setGradientLimit(e.target.value)} placeholder="e.g. 80 mT/m" />
+                  <input className="input" type="text" inputMode="decimal" value={gradientLimit} onChange={e => setGradientLimit(e.target.value)} placeholder="e.g. 80 mT/m" />
                 </div>
                 <div className="field">
                   <label>Max scan time</label>
-                  <input className="input" type="text" value={maxScanTime} onChange={e => setMaxScanTime(e.target.value)} placeholder="e.g. 30 min per session" />
+                  <input className="input" type="text" inputMode="decimal" value={maxScanTime} onChange={e => setMaxScanTime(e.target.value)} placeholder="e.g. 30 min per session" />
                 </div>
                 <div className="field" style={{ gridColumn: '1 / -1' }}>
                   <label>Contraindications / special conditions</label>

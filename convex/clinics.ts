@@ -83,6 +83,25 @@ export const submitClinicApplication = mutation({
       services:        args.services,
     })
 
+    // Confirmation email to the clinic — receipt of everything they submitted
+    await ctx.scheduler.runAfter(0, internal.email.sendClinicApplicationConfirmationEmail, {
+      contactName:     args.contactName,
+      contactEmail:    args.contactEmail,
+      facilityName:    args.facilityName,
+      facilityType:    args.facilityType,
+      facilityAddress: args.facilityAddress,
+      facilityCity:    args.facilityCity,
+      facilityCountry: args.facilityCountry,
+      facilityWebsite: args.facilityWebsite,
+      facilityPhone:   args.facilityPhone,
+      contactPhone:    args.contactPhone,
+      jobTitle:        args.jobTitle,
+      regulatoryBody:  args.regulatoryBody,
+      registrationNum: args.registrationNum,
+      services:        args.services,
+      additionalInfo:  args.additionalInfo,
+    })
+
     // Pre-create a Clerk account immediately so it exists when the approval email
     // link is clicked. We only need to do this if the submitter isn't already
     // signed in (i.e. clerkUserId is unknown). If they're signed in, their Clerk
@@ -771,6 +790,34 @@ export const reviewApplication = mutation({
     })
 
     return null
+  },
+})
+
+/**
+ * Re-trigger clinic account activation + resend the approval email.
+ * Used by admin when the original activation failed (e.g. Clerk key was missing).
+ */
+export const retriggerClinicActivation = mutation({
+  args: { applicationId: v.id('clinicApplications') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+
+    const app = await ctx.db.get(args.applicationId)
+    if (!app) throw new Error('Application not found')
+    if (app.status !== 'approved') throw new Error('Application must be approved first')
+
+    await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
+      clerkUserId:  app.clerkUserId ?? undefined,
+      contactEmail: app.contactEmail,
+      contactName:  app.contactName,
+      facilityName: app.facilityName,
+    })
   },
 })
 

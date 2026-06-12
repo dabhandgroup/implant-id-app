@@ -456,6 +456,8 @@ export const submitDeviceForReview = mutation({
       name: v.string(),
       email: v.string(),
     }))),
+    sourceUrls: v.optional(v.array(v.object({ url: v.string(), label: v.optional(v.string()) }))),
+    sourceDocs: v.optional(v.array(v.object({ storageId: v.id('_storage'), label: v.optional(v.string()) }))),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()

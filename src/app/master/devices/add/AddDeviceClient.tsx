@@ -1,5 +1,5 @@
 'use client'
-import { useState }    from 'react'
+import { useState, useRef } from 'react'
 import { useMutation } from 'convex/react'
 import { useRouter }   from 'next/navigation'
 import { api as apiBase } from '../../../../../convex/_generated/api'
@@ -62,8 +62,9 @@ function Divider() {
 
 export default function AddDeviceClient() {
   // ── All hooks unconditionally at top ─────────────────────────────────────
-  const router    = useRouter()
-  const addDevice = useMutation(api.devices.addDevice)
+  const router                  = useRouter()
+  const addDevice               = useMutation(api.devices.addDevice)
+  const generateDocUploadUrl    = useMutation(api.devices.generateDeviceDocUploadUrl)
 
   // Identity
   const [manufacturer,   setManufacturer]   = useState('')
@@ -90,6 +91,10 @@ export default function AddDeviceClient() {
 
   // Sources (URLs / IFU links)
   const [sourceUrls, setSourceUrls] = useState<{ url: string; label: string }[]>([{ url: '', label: '' }])
+
+  // Uploaded source PDFs
+  const [sourceDocs, setSourceDocs] = useState<{ file: File; label: string }[]>([])
+  const docInputRef = useRef<HTMLInputElement>(null)
 
   // Form state
   const [loading, setLoading] = useState(false)
@@ -118,6 +123,21 @@ export default function AddDeviceClient() {
     try {
       const cleanSources = sourceUrls.filter(s => s.url.trim())
         .map(s => ({ url: s.url.trim(), label: s.label.trim() || undefined }))
+
+      // Upload any selected PDFs to Convex storage
+      const uploadedDocs: { storageId: string; label?: string }[] = []
+      for (const doc of sourceDocs) {
+        const uploadUrl = await generateDocUploadUrl()
+        const res = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': doc.file.type || 'application/pdf' },
+          body: doc.file,
+        })
+        if (!res.ok) throw new Error(`Failed to upload ${doc.file.name}`)
+        const { storageId } = await res.json() as { storageId: string }
+        uploadedDocs.push({ storageId, label: doc.label.trim() || undefined })
+      }
+
       const result = await addDevice({
         manufacturer:      manufacturer.trim(),
         model:             model.trim(),
@@ -133,6 +153,7 @@ export default function AddDeviceClient() {
         contraindications: contraindications.trim() || undefined,
         approvedRegions:   approvedRegions.length > 0 ? approvedRegions : undefined,
         sourceUrls:        cleanSources.length > 0 ? cleanSources : undefined,
+        sourceDocs:        uploadedDocs.length > 0 ? uploadedDocs : undefined,
       })
       // Short delay so Clerk's auth middleware settles before next page load —
       // immediate navigation after a mutation redirects to /login.
@@ -324,8 +345,10 @@ export default function AddDeviceClient() {
           {/* ── Section 6: Sources ── */}
           <SectionHeader
             title="Source documents &amp; references"
-            sub="Add URLs to IFU PDFs, manufacturer safety pages, or clinical references. These are displayed on the device record and may be shown to clinic users."
+            sub="Paste URLs to IFU PDFs or manufacturer pages, or upload PDF documents directly. Both are displayed on the device record."
           />
+
+          {/* URL rows */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {sourceUrls.map((s, i) => (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 200px 36px', gap: 8, alignItems: 'flex-start' }}>
@@ -340,16 +363,60 @@ export default function AddDeviceClient() {
                     value={s.label} onChange={e => updateSourceRow(i, 'label', e.target.value)} />
                 </div>
                 <button type="button" onClick={() => removeSourceRow(i)}
-                  style={{ alignSelf: i === 0 ? 'flex-end' : 'center', marginBottom: i === 0 ? 0 : 0, height:42, width:36, display:'grid', placeItems:'center', background:'none', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', color:'var(--err)', flexShrink:0 }}
+                  style={{ alignSelf: i === 0 ? 'flex-end' : 'center', height:42, width:36, display:'grid', placeItems:'center', background:'none', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', color:'var(--err)', flexShrink:0 }}
                   aria-label="Remove source">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             ))}
             <button type="button" onClick={addSourceRow}
               style={{ alignSelf: 'flex-start', display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add another source
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add URL
+            </button>
+          </div>
+
+          {/* Uploaded PDF documents */}
+          <div style={{ marginTop: 16 }}>
+            <label style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:8 }}>Upload PDF documents</label>
+            {sourceDocs.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                {sourceDocs.map((doc, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 200px 36px', gap: 8, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '0 12px', height: 42 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                      <span style={{ fontFamily:'var(--fb)', fontSize:13, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{doc.file.name}</span>
+                    </div>
+                    <input className="input" type="text" placeholder="Label (optional)"
+                      value={doc.label}
+                      onChange={e => setSourceDocs(p => p.map((d, j) => j === i ? { ...d, label: e.target.value } : d))} />
+                    <button type="button"
+                      style={{ height:42, width:36, display:'grid', placeItems:'center', background:'none', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', color:'var(--err)', flexShrink:0 }}
+                      aria-label="Remove document"
+                      onClick={() => setSourceDocs(p => p.filter((_, j) => j !== i))}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              ref={docInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              multiple
+              style={{ display: 'none' }}
+              onChange={e => {
+                const files = Array.from(e.target.files ?? [])
+                setSourceDocs(p => [...p, ...files.map(f => ({ file: f, label: '' }))])
+                if (docInputRef.current) docInputRef.current.value = ''
+              }}
+            />
+            <button type="button"
+              onClick={() => docInputRef.current?.click()}
+              style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+              Upload PDF
             </button>
           </div>
 

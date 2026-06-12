@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useUser, useClerk }   from '@clerk/nextjs'
 import { useRouter }           from 'next/navigation'
-import { useQuery, useMutation } from 'convex/react'
+import { useQuery, useMutation, useAction } from 'convex/react'
 import { api as apiBase }      from '../../../../convex/_generated/api'
 import QRCode                  from 'qrcode'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -133,6 +133,14 @@ export default function MasterSettingsClient() {
   const [secretCopied,      setSecretCopied]       = useState(false)
   const [activeSection,     setActiveSection]      = useState<'security' | 'profile'>('security')
 
+  // Email change
+  const updateMyEmail        = useAction(api.users.updateMyEmail)
+  const [emailChangeOpen,    setEmailChangeOpen]    = useState(false)
+  const [newEmailInput,      setNewEmailInput]      = useState('')
+  const [emailChangeLoading, setEmailChangeLoading] = useState(false)
+  const [emailChangeErr,     setEmailChangeErr]     = useState('')
+  const [emailChangeDone,    setEmailChangeDone]    = useState(false)
+
   // Sign-out confirmation
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
@@ -140,6 +148,24 @@ export default function MasterSettingsClient() {
   async function handleSignOut() {
     setSigningOut(true)
     await signOut({ redirectUrl: '/master/login' })
+  }
+
+  async function handleEmailChange(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newEmailInput.trim()) return
+    setEmailChangeLoading(true); setEmailChangeErr(''); setEmailChangeDone(false)
+    try {
+      await updateMyEmail({ newEmail: newEmailInput.trim() })
+      setEmailChangeDone(true)
+      setEmailChangeOpen(false)
+      setNewEmailInput('')
+      // Reload to pick up updated Clerk session
+      setTimeout(() => window.location.reload(), 800)
+    } catch (err: unknown) {
+      setEmailChangeErr((err as { message?: string })?.message ?? 'Failed to update email — try again')
+    } finally {
+      setEmailChangeLoading(false)
+    }
   }
 
   // Escape key
@@ -457,9 +483,51 @@ export default function MasterSettingsClient() {
 
                 <div className="field" style={{ marginBottom: 16 }}>
                   <label>Email address</label>
-                  <input className="input" type="email" value={email} readOnly
-                    style={{ background: 'var(--bg)', cursor: 'default', color: 'var(--muted)' }} />
-                  <span className="hint">To change your email, please <a href="https://implantid.io/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-deep)' }}>contact support</a>.</span>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input className="input" type="email" value={email} readOnly
+                      style={{ background: 'var(--bg)', cursor: 'default', color: 'var(--muted)', flex: 1 }} />
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{ flexShrink: 0, fontSize: 13 }}
+                      onClick={() => { setEmailChangeOpen(v => !v); setEmailChangeErr(''); setNewEmailInput('') }}
+                    >
+                      {emailChangeOpen ? 'Cancel' : 'Change'}
+                    </button>
+                  </div>
+                  {emailChangeDone && (
+                    <span style={{ fontSize: 12.5, color: 'var(--ok)', marginTop: 4, display: 'block' }}>
+                      ✓ Email updated — reloading…
+                    </span>
+                  )}
+                  {emailChangeOpen && (
+                    <form onSubmit={handleEmailChange} style={{ marginTop: 10 }}>
+                      <div className="field" style={{ marginBottom: 10 }}>
+                        <label style={{ fontSize: 12, color: 'var(--muted2)' }}>New email address</label>
+                        <input
+                          className="input"
+                          type="email"
+                          placeholder="new@example.com"
+                          value={newEmailInput}
+                          onChange={e => { setNewEmailInput(e.target.value); setEmailChangeErr('') }}
+                          autoFocus
+                          autoComplete="off"
+                          required
+                        />
+                        <span className="hint">Must not be used by any existing account.</span>
+                      </div>
+                      {emailChangeErr && (
+                        <div style={{ fontSize: 13, color: 'var(--err)', marginBottom: 10 }}>{emailChangeErr}</div>
+                      )}
+                      <button
+                        type="submit"
+                        className="btn btn-s"
+                        disabled={emailChangeLoading || !newEmailInput.trim()}
+                      >
+                        {emailChangeLoading ? 'Updating…' : 'Update email →'}
+                      </button>
+                    </form>
+                  )}
                 </div>
 
                 <div className="field" style={{ marginBottom: 16 }}>

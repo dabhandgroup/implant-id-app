@@ -1,4 +1,4 @@
-import { mutation, query, internalAction, internalMutation } from './_generated/server'
+import { mutation, query, action, internalAction, internalMutation, internalQuery } from './_generated/server'
 import { v }                               from 'convex/values'
 import { internal }                        from './_generated/api'
 
@@ -213,6 +213,22 @@ export const createAdminClerkAccount = internalAction({
       }
     }
 
+    // Revoke any existing pending invitations for this email so we can create a fresh one
+    const pendingRes = await fetch(
+      `https://api.clerk.com/v1/invitations?email_address=${encodeURIComponent(args.email)}&status=pending&limit=10`,
+      { headers: { Authorization: `Bearer ${secretKey}` } }
+    )
+    if (pendingRes.ok) {
+      const pendingList = await pendingRes.json() as { id: string }[]
+      const list = Array.isArray(pendingList) ? pendingList : (pendingList as unknown as { data: { id: string }[] })?.data ?? []
+      for (const inv of list) {
+        await fetch(`https://api.clerk.com/v1/invitations/${inv.id}/revoke`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${secretKey}` },
+        }).catch(() => {/* non-fatal */})
+      }
+    }
+
     // No existing Clerk account — create via Invitations API (bypasses phone requirement)
     const res = await fetch('https://api.clerk.com/v1/invitations', {
       method: 'POST',
@@ -300,10 +316,117 @@ export const resendAdminInvite = mutation({
     if (!me || me.role !== 'admin') throw new Error('Admin only')
     const target = await ctx.db.get(args.userId)
     if (!target || target.role !== 'admin') throw new Error('Not an admin user')
-    // Re-run the Clerk invitation creation + email (idempotent — updates existing if already created)
+    // Re-run the Clerk invitation creation + email.
+    // The createAdminClerkAccount action now revokes any pending invite first,
+    // so this is safe to call multiple times.
     await ctx.scheduler.runAfter(0, internal.users.createAdminClerkAccount, {
       email: target.email,
       name:  target.name,
     })
+  },
+})
+
+// ── Internal helpers used by updateMyEmail ──────────────────────────────────
+
+export const getMeInternal = internalQuery({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', args.clerkId)).unique()
+  },
+})
+
+export const getUserByEmail = internalQuery({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db.query('users').withIndex('by_email', q => q.eq('email', args.email)).unique()
+  },
+})
+
+export const setAdminEmail = internalMutation({
+  args: { userId: v.id('users'), email: v.string() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.userId, { email: args.email })
+  },
+})
+
+/**
+ * Update the calling admin's email address.
+ * Validates uniqueness in both Convex and Clerk, then updates both.
+ * Uses a public action so the Clerk API calls happen server-side with full error propagation.
+ */
+export const updateMyEmail = action({
+  args: { newEmail: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const secretKey = process.env.CLERK_SECRET_KEY
+    if (!secretKey) throw new Error('Server configuration error — CLERK_SECRET_KEY not set')
+
+    const newEmail = args.newEmail.trim().toLowerCase()
+    if (!newEmail.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) throw new Error('Invalid email address')
+
+    // Check caller is an admin
+    const me = await ctx.runQuery(internal.users.getMeInternal, { clerkId: identity.subject })
+    if (!me || me.role !== 'admin') throw new Error('Admin access required')
+
+    // Reject if the new email is the same as the current one
+    if (me.email === newEmail) throw new Error('That is already your current email address')
+
+    // Check Convex uniqueness across all roles
+    const convexConflict = await ctx.runQuery(internal.users.getUserByEmail, { email: newEmail })
+    if (convexConflict) throw new Error('This email is already associated with an account')
+
+    // Check Clerk uniqueness
+    const clerkSearch = await fetch(
+      `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(newEmail)}&limit=1`,
+      { headers: { Authorization: `Bearer ${secretKey}` } }
+    )
+    if (clerkSearch.ok) {
+      const found = await clerkSearch.json() as { id: string }[]
+      if (found.length > 0) throw new Error('This email is already registered with another account')
+    }
+
+    // Get current user from Clerk to find the old email address ID
+    const clerkUserRes = await fetch(`https://api.clerk.com/v1/users/${me.clerkId}`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+    })
+    if (!clerkUserRes.ok) throw new Error('Failed to fetch Clerk user data')
+    const clerkUser = await clerkUserRes.json() as {
+      primary_email_address_id: string
+      email_addresses: { id: string; email_address: string }[]
+    }
+    const oldEmailId = clerkUser.primary_email_address_id
+
+    // Add new email address to the Clerk user (pre-verified)
+    const createRes = await fetch(`https://api.clerk.com/v1/users/${me.clerkId}/email_addresses`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_address: newEmail, verified: true }),
+    })
+    if (!createRes.ok) {
+      const errText = await createRes.text()
+      throw new Error(`Failed to add new email address: ${errText}`)
+    }
+    const newEmailAddr = await createRes.json() as { id: string }
+
+    // Make the new address primary
+    const patchRes = await fetch(`https://api.clerk.com/v1/users/${me.clerkId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ primary_email_address_id: newEmailAddr.id }),
+    })
+    if (!patchRes.ok) throw new Error('Failed to set new email as primary')
+
+    // Remove the old email address (non-fatal)
+    if (oldEmailId) {
+      await fetch(`https://api.clerk.com/v1/users/${me.clerkId}/email_addresses/${oldEmailId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${secretKey}` },
+      }).catch(() => {/* non-fatal */})
+    }
+
+    // Update Convex record
+    await ctx.runMutation(internal.users.setAdminEmail, { userId: me._id, email: newEmail })
   },
 })

@@ -13,6 +13,16 @@ function makeDeviceCode(manufacturer: string, model: string, id: string): string
   return `DID-${mfr3}${mod3}-${tail}`
 }
 
+/** Generate a one-time upload URL for a device source document (master/manufacturer). */
+export const generateDeviceDocUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    return ctx.storage.generateUploadUrl()
+  },
+})
+
 /** List all LIVE devices in the catalogue (patient/clinic facing). */
 export const listDevices = query({
   args: { limit: v.optional(v.number()) },
@@ -102,6 +112,7 @@ export const addDevice = mutation({
     pdfLinks:           v.optional(v.array(v.string())),
     sourcesRaw:         v.optional(v.string()),
     sourceUrls:         v.optional(v.array(v.object({ url: v.string(), label: v.optional(v.string()) }))),
+    sourceDocs:         v.optional(v.array(v.object({ storageId: v.id('_storage'), label: v.optional(v.string()) }))),
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert('devices', {
@@ -125,6 +136,7 @@ export const addDevice = mutation({
       pdfLinks:         args.pdfLinks,
       sourcesRaw:       args.sourcesRaw,
       sourceUrls:       args.sourceUrls,
+      sourceDocs:       args.sourceDocs,
       status:           'live',
       publishedAt:      Date.now(),
       verified:         false,

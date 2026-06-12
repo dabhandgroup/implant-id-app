@@ -47,11 +47,16 @@ export default function ApplicationsClient() {
   const [reviewing,        setReviewing]        = useState(false)
   const [reviewError,      setReviewError]      = useState('')
 
+  const [retriggerLoading, setRetriggerLoading] = useState(false)
+  const [retriggerMsg,     setRetriggerMsg]     = useState('')
+
   const applications    = useQuery(api.clinics.listApplications, {
     status: activeTab === 'all' ? undefined : activeTab,
   }) as Application[] | undefined
 
-  const reviewApplication = useMutation(api.clinics.reviewApplication)
+  const reviewApplication       = useMutation(api.clinics.reviewApplication)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const retriggerClinicActivation = useMutation((api as any).clinics.retriggerClinicActivation)
 
   async function handleReview(
     id: Id<'clinicApplications'>,
@@ -249,6 +254,38 @@ export default function ApplicationsClient() {
                 <DetailRow label="Review Notes"     value={selectedApp.reviewNotes} fullWidth />
               )}
             </div>
+
+            {/* Resend activation for approved applications */}
+            {selectedApp.status === 'approved' && (
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                {retriggerMsg && (
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--ok)', marginBottom: 10 }}>
+                    {retriggerMsg}
+                  </div>
+                )}
+                <button
+                  className="btn"
+                  disabled={retriggerLoading}
+                  onClick={async () => {
+                    setRetriggerLoading(true)
+                    setRetriggerMsg('')
+                    try {
+                      await retriggerClinicActivation({ applicationId: selectedApp._id })
+                      setRetriggerMsg('Activation re-triggered — approval email resent.')
+                    } catch (e) {
+                      setRetriggerMsg((e as { message?: string })?.message ?? 'Something went wrong')
+                    } finally {
+                      setRetriggerLoading(false)
+                    }
+                  }}
+                >
+                  {retriggerLoading ? 'Sending…' : 'Resend approval email →'}
+                </button>
+                <p style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
+                  Use this if the clinic cannot log in after approval. Re-creates their Clerk account if missing and resends the sign-in link.
+                </p>
+              </div>
+            )}
 
             {/* Actions for pending applications */}
             {selectedApp.status === 'pending' && (

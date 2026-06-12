@@ -264,7 +264,7 @@ export default function MasterLoginClient() {
                   </svg>
                   <input className="mstr-input" type="email" placeholder="you@implantid.io"
                     value={email} onChange={e => setEmail(e.target.value)}
-                    autoComplete="email" autoFocus />
+                    autoComplete="off" autoFocus />
                 </div>
               </div>
 

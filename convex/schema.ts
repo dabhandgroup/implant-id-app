@@ -53,6 +53,11 @@ export default defineSchema({
       url:   v.string(),
       label: v.optional(v.string()),  // e.g. "IFU PDF", "Manufacturer page"
     }))),
+    // Uploaded source documents (IFU PDFs stored in Convex file storage)
+    sourceDocs: v.optional(v.array(v.object({
+      storageId: v.id('_storage'),
+      label:     v.optional(v.string()),
+    }))),
   })
     .index('by_manufacturer', ['manufacturer'])
     .index('by_mri_status', ['mriStatus'])

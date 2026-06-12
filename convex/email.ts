@@ -64,6 +64,75 @@ export const sendClinicApplicationEmail = internalAction({
   },
 })
 
+// ── Clinic application confirmation (sent to clinic on submission) ────────────
+
+export const sendClinicApplicationConfirmationEmail = internalAction({
+  args: {
+    contactName:     v.string(),
+    contactEmail:    v.string(),
+    facilityName:    v.string(),
+    facilityType:    v.string(),
+    facilityAddress: v.string(),
+    facilityCity:    v.optional(v.string()),
+    facilityCountry: v.string(),
+    facilityWebsite: v.optional(v.string()),
+    facilityPhone:   v.optional(v.string()),
+    contactPhone:    v.optional(v.string()),
+    jobTitle:        v.optional(v.string()),
+    regulatoryBody:  v.optional(v.string()),
+    registrationNum: v.optional(v.string()),
+    services:        v.array(v.string()),
+    additionalInfo:  v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const r         = resend()
+    const firstName = args.contactName.split(' ')[0]
+    const location  = args.facilityCity
+      ? `${args.facilityCity}, ${args.facilityCountry}`
+      : args.facilityCountry
+
+    const rows: { label: string; value: string }[] = [
+      { label: 'Facility name',    value: args.facilityName },
+      { label: 'Facility type',    value: args.facilityType },
+      { label: 'Address',          value: args.facilityAddress },
+      { label: 'Location',         value: location },
+      ...(args.facilityWebsite ? [{ label: 'Website',         value: args.facilityWebsite }] : []),
+      ...(args.facilityPhone   ? [{ label: 'Facility phone',  value: args.facilityPhone }]   : []),
+      { label: 'Contact name',     value: args.contactName },
+      { label: 'Contact email',    value: args.contactEmail },
+      ...(args.contactPhone    ? [{ label: 'Contact phone',   value: args.contactPhone }]    : []),
+      ...(args.jobTitle        ? [{ label: 'Job title',       value: args.jobTitle }]        : []),
+      ...(args.regulatoryBody  ? [{ label: 'Regulatory body', value: args.regulatoryBody }]  : []),
+      ...(args.registrationNum ? [{ label: 'Reg. number',     value: args.registrationNum }] : []),
+      { label: 'Services',         value: args.services.join(', ') || '—' },
+      ...(args.additionalInfo  ? [{ label: 'Additional info', value: args.additionalInfo }]  : []),
+    ]
+
+    await r.emails.send({
+      from:    FROM,
+      to:      args.contactEmail,
+      subject: `Application received — ${args.facilityName}`,
+      html: buildEmail({
+        title:   'Application Received',
+        heading: `Thanks for applying, ${firstName}`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            We've received the application for
+            <strong style="color:#0e2a33;">${args.facilityName}</strong>
+            to join the Implant ID network. Our team will review it and be in touch shortly.
+          </p>
+          <p style="margin:0 0 24px;color:#64748b;font-size:15px;line-height:1.65;">
+            For reference, here is a copy of everything you submitted:
+          </p>
+        `,
+        tableRows: rows,
+        footerNote: `Questions? Contact <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})
+
 // ── Clinic approval email ─────────────────────────────────────────────────────
 
 export const sendClinicApprovalEmail = internalAction({

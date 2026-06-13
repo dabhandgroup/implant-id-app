@@ -6,7 +6,7 @@ import { useRef, useState } from 'react'
 import Link from 'next/link'
 
 export default function ActivateClient() {
-  const { signUp, isLoaded, setActive } = useSignUp()
+  const { signUp, setActive } = useSignUp()
   const searchParams = useSearchParams()
 
   const email  = searchParams.get('email') ?? ''
@@ -17,7 +17,7 @@ export default function ActivateClient() {
   const attempted = useRef(false)
 
   async function activate() {
-    if (!isLoaded || !signUp || !ticket || attempted.current) return
+    if (!signUp || !ticket || attempted.current) return
     attempted.current = true
     setPhase('loading')
     try {
@@ -109,7 +109,7 @@ export default function ActivateClient() {
       <button
         className="btn btn-s btn-lg btn-block"
         onClick={activate}
-        disabled={phase === 'loading' || !isLoaded}
+        disabled={phase === 'loading' || !signUp}
         aria-label="Activate clinic account"
       >
         {phase === 'loading' ? 'Activating…' : 'Activate Account →'}

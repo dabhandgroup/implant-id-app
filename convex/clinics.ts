@@ -339,66 +339,68 @@ export const activateClinicAccount = internalAction({
     facilityName: v.string(),
   },
   handler: async (ctx, args) => {
-    let inviteUrl: string | undefined
+    const secretKey = process.env.CLERK_SECRET_KEY
+    // Throw (not log) so Convex retries the action once the key is configured.
+    if (!secretKey) throw new Error('[clinics] CLERK_SECRET_KEY not set — will retry')
 
-    try {
-      const secretKey = process.env.CLERK_SECRET_KEY
-      if (!secretKey) {
-        console.error('[clinics] CLERK_SECRET_KEY not set — skipping Clerk activation')
-      } else {
-        let resolvedId = args.clerkUserId ?? null
+    let resolvedId = args.clerkUserId ?? null
 
-        // 1. Find existing account by email if clerkUserId not known
-        if (!resolvedId) {
-          const searchRes = await fetch(
-            `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
-            { headers: { Authorization: `Bearer ${secretKey}` } },
-          )
-          if (searchRes.ok) {
-            const found = (await searchRes.json()) as { id: string }[]
-            if (found.length > 0) resolvedId = found[0].id
-          }
-        }
+    // 1. Find existing Clerk account by email
+    if (!resolvedId) {
+      const searchRes = await fetch(
+        `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
+        { headers: { Authorization: `Bearer ${secretKey}` } },
+      )
+      if (searchRes.ok) {
+        const found = (await searchRes.json()) as { id: string }[]
+        if (found.length > 0) resolvedId = found[0].id
+      }
+    }
 
-        if (resolvedId) {
-          // 2a. Existing account — update the role in Clerk metadata
-          const patchRes = await fetch(
-            `https://api.clerk.com/v1/users/${resolvedId}/metadata`,
-            {
-              method: 'PATCH',
-              headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
-            },
-          )
-          if (patchRes.ok) {
-            console.log('[clinics] Role set to clinic_staff for', resolvedId)
-          } else {
-            console.error('[clinics] Clerk metadata PATCH failed:', patchRes.status, await patchRes.text())
-          }
-          // Existing accounts sign in via email OTP — no one-time link needed
-        } else {
-          // 2b. No account found — create via Invitations API (gives a one-time activation URL)
-          const invRes = await fetch('https://api.clerk.com/v1/invitations', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email_address:   args.contactEmail,
-              public_metadata: { role: 'clinic_staff' },
-              redirect_url:    'https://portal.implantid.io/clinics/dashboard',
-              notify:          false,
-            }),
-          })
-          if (invRes.ok) {
-            const inv = (await invRes.json()) as { id: string; url: string }
-            inviteUrl = inv.url
-            console.log('[clinics] Created Clerk invitation', inv.id, 'for', args.contactEmail)
-          } else {
-            console.error('[clinics] Clerk invitation failed:', invRes.status, await invRes.text())
-          }
+    if (!resolvedId) {
+      // 2. No account — create via Invitations API (gives a one-time activation URL).
+      // Revoke any existing pending invitations first so we always get a fresh link.
+      const pendingRes = await fetch(
+        `https://api.clerk.com/v1/invitations?email_address=${encodeURIComponent(args.contactEmail)}&status=pending&limit=10`,
+        { headers: { Authorization: `Bearer ${secretKey}` } },
+      )
+      if (pendingRes.ok) {
+        const list = await pendingRes.json() as { id: string }[]
+        const arr = Array.isArray(list) ? list : (list as unknown as { data: { id: string }[] })?.data ?? []
+        for (const inv of arr) {
+          await fetch(`https://api.clerk.com/v1/invitations/${inv.id}/revoke`, {
+            method: 'POST', headers: { Authorization: `Bearer ${secretKey}` },
+          }).catch(() => {})
         }
       }
-    } catch (err) {
-      console.error('[clinics] activateClinicAccount: Clerk setup error:', err)
+
+      const invRes = await fetch('https://api.clerk.com/v1/invitations', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email_address:   args.contactEmail,
+          public_metadata: { role: 'clinic_staff' },
+          redirect_url:    'https://portal.implantid.io/clinics/dashboard',
+          notify:          false,
+        }),
+      })
+      if (!invRes.ok) {
+        // Throw so Convex retries — do NOT send the approval email until account is confirmed.
+        throw new Error(`[clinics] Clerk invitation failed (${invRes.status}): ${await invRes.text()}`)
+      }
+      console.log('[clinics] Created Clerk invitation for', args.contactEmail)
+    } else {
+      // 3. Existing account — stamp the clinic_staff role
+      const patchRes = await fetch(`https://api.clerk.com/v1/users/${resolvedId}/metadata`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
+      })
+      if (patchRes.ok) {
+        console.log('[clinics] Role set to clinic_staff for', resolvedId)
+      } else {
+        console.error('[clinics] Clerk metadata PATCH failed:', patchRes.status, await patchRes.text())
+      }
     }
   },
 })
@@ -718,20 +720,34 @@ export const reviewApplication = mutation({
     })
 
     if (args.decision === 'approved') {
-      const clinicId = await ctx.db.insert('clinics', {
-        name:           app.facilityName,
-        address:        app.facilityAddress,
-        city:           app.facilityCity ?? undefined,
-        country:        app.facilityCountry,
-        phone:          app.facilityPhone ?? app.contactPhone ?? undefined,
-        email:          app.contactEmail,
-        website:        app.facilityWebsite ?? undefined,
-        capabilities:   app.services,
-        status:         'active',
-        showToPatients: true,    // default: visible to patients
-      })
+      // Reactivate an existing (possibly suspended) clinic rather than creating a
+      // duplicate — this handles the rejected → re-approved path correctly.
+      const existingClinic = await ctx.db
+        .query('clinics')
+        .filter((q) => q.eq(q.field('email'), app.contactEmail))
+        .first()
 
-      // If we know the submitting Clerk user, make them an admin staff member
+      let clinicId
+      if (existingClinic) {
+        await ctx.db.patch(existingClinic._id, { status: 'active' })
+        clinicId = existingClinic._id
+      } else {
+        clinicId = await ctx.db.insert('clinics', {
+          name:           app.facilityName,
+          address:        app.facilityAddress,
+          city:           app.facilityCity ?? undefined,
+          country:        app.facilityCountry,
+          phone:          app.facilityPhone ?? app.contactPhone ?? undefined,
+          email:          app.contactEmail,
+          website:        app.facilityWebsite ?? undefined,
+          capabilities:   app.services,
+          status:         'active',
+          showToPatients: true,
+        })
+      }
+
+      // If we know the submitting Clerk user, link them as admin staff
+      // (guard against duplicate staff rows on re-approval)
       if (app.clerkUserId) {
         const user = await ctx.db
           .query('users')
@@ -739,18 +755,25 @@ export const reviewApplication = mutation({
           .first()
 
         if (user) {
-          await ctx.db.insert('staff', {
-            userId:      user._id,
-            clinicId,
-            jobType:     'admin',
-            accessLevel: 'admin',
-            allPatients: true,
-            status:      'active',
-          })
+          const existingStaff = await ctx.db
+            .query('staff')
+            .withIndex('by_clinic', (q) => q.eq('clinicId', clinicId))
+            .filter((q) => q.eq(q.field('userId'), user._id))
+            .first()
+          if (!existingStaff) {
+            await ctx.db.insert('staff', {
+              userId:      user._id,
+              clinicId,
+              jobType:     'admin',
+              accessLevel: 'admin',
+              allPatients: true,
+              status:      'active',
+            })
+          }
         }
       }
 
-      // Activate the Clerk account (role promotion — runs independently of email)
+      // Activate the Clerk account (throws on failure → Convex retries)
       await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
         clerkUserId:  app.clerkUserId ?? undefined,
         contactEmail: app.contactEmail,
@@ -758,8 +781,7 @@ export const reviewApplication = mutation({
         facilityName: app.facilityName,
       })
 
-      // Send approval email directly — same pattern as rejection, does not depend
-      // on activateClinicAccount succeeding
+      // Send approval email independently of Clerk activation
       await ctx.scheduler.runAfter(0, internal.email.sendClinicApprovalEmail, {
         contactName:  app.contactName,
         contactEmail: app.contactEmail,

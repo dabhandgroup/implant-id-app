@@ -43,10 +43,28 @@ export default function ApplicationClient({ id }: { id: string }) {
   const [submitting,    setSubmitting]    = useState(false)
   const [submitError,   setSubmitError]   = useState('')
 
-  const app                      = useQuery(api.clinics.getApplicationById, { id: id as Id<'clinicApplications'> })
-  const reviewApplication        = useMutation(api.clinics.reviewApplication)
+  const app                         = useQuery(api.clinics.getApplicationById, { id: id as Id<'clinicApplications'> })
+  const reviewApplication           = useMutation(api.clinics.reviewApplication)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateClinicContactEmail = useMutation(api.clinics.updateClinicContactEmail as any)
+  const updateClinicContactEmail    = useMutation(api.clinics.updateClinicContactEmail as any)
+  const retriggerClinicActivation   = useMutation(api.clinics.retriggerClinicActivation)
+
+  const [resending,    setResending]    = useState(false)
+  const [resendDone,   setResendDone]   = useState(false)
+  const [resendError,  setResendError]  = useState('')
+
+  async function handleResend() {
+    if (!app) return
+    setResending(true); setResendError(''); setResendDone(false)
+    try {
+      await retriggerClinicActivation({ applicationId: app._id })
+      setResendDone(true)
+    } catch (e) {
+      setResendError((e as { message?: string })?.message ?? 'Failed to resend')
+    } finally {
+      setResending(false)
+    }
+  }
 
   // ── Edit email state ─────────────────────────────────────────────────────────
   const [editingEmail, setEditingEmail] = useState(false)
@@ -213,6 +231,28 @@ export default function ApplicationClient({ id }: { id: string }) {
             <button className="btn btn-s" onClick={() => openConfirm('approve')}>Approve</button>
             {app.status === 'pending' && (
               <button className="btn btn-danger" onClick={() => openConfirm('reject')}>Reject</button>
+            )}
+          </div>
+        )}
+
+        {/* Resend approval email (approved clinics only) */}
+        {app.status === 'approved' && (
+          <div>
+            <button
+              className="btn"
+              onClick={handleResend}
+              disabled={resending}
+              style={{ fontSize: 13 }}
+            >
+              {resending ? 'Resending…' : 'Resend approval email →'}
+            </button>
+            {resendDone && (
+              <div style={{ fontSize: 12.5, color: 'var(--ok)', marginTop: 6 }}>
+                ✓ Activation triggered — they'll receive a fresh login link shortly
+              </div>
+            )}
+            {resendError && (
+              <div style={{ fontSize: 12.5, color: 'var(--err)', marginTop: 6 }}>{resendError}</div>
             )}
           </div>
         )}

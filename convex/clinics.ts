@@ -111,17 +111,6 @@ export const submitClinicApplication = mutation({
       additionalInfo:  args.additionalInfo,
     })
 
-    // Pre-create a Clerk account immediately so it exists when the approval email
-    // link is clicked. We only need to do this if the submitter isn't already
-    // signed in (i.e. clerkUserId is unknown). If they're signed in, their Clerk
-    // account already exists and activateClinicAccount will find it by ID.
-    if (!clerkUserId) {
-      await ctx.scheduler.runAfter(0, internal.clinics.createPendingClinicAccount, {
-        contactEmail: args.contactEmail,
-        contactName:  args.contactName,
-      })
-    }
-
     return { id, alreadySubmitted: false }
   },
 })
@@ -367,50 +356,42 @@ export const activateClinicAccount = internalAction({
     }
 
     if (!resolvedId) {
-      // 2. No account — create via Invitations API (gives a one-time activation URL).
-      // Revoke any existing pending invitations first so we always get a fresh link.
-      const pendingRes = await fetch(
-        `https://api.clerk.com/v1/invitations?email_address=${encodeURIComponent(args.contactEmail)}&status=pending&limit=10`,
-        { headers: { Authorization: `Bearer ${secretKey}` } },
-      )
-      if (pendingRes.ok) {
-        const list = await pendingRes.json() as { id: string }[]
-        const arr = Array.isArray(list) ? list : (list as unknown as { data: { id: string }[] })?.data ?? []
-        for (const inv of arr) {
-          await fetch(`https://api.clerk.com/v1/invitations/${inv.id}/revoke`, {
-            method: 'POST', headers: { Authorization: `Bearer ${secretKey}` },
-          }).catch(() => {})
-        }
-      }
-
-      const invRes = await fetch('https://api.clerk.com/v1/invitations', {
-        method: 'POST',
+      // 2. No account — create a real Clerk user directly.
+      // This is essential: invitations don't create users until clicked, so the
+      // clinic can't sign in via OTP until a real user record exists.
+      const nameParts  = args.contactName.trim().split(/\s+/)
+      const firstName  = nameParts[0]
+      const lastName   = nameParts.slice(1).join(' ') || undefined
+      const createRes  = await fetch('https://api.clerk.com/v1/users', {
+        method:  'POST',
         headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email_address:   args.contactEmail,
+          email_address:   [args.contactEmail],
           public_metadata: { role: 'clinic_staff' },
-          redirect_url:    'https://portal.implantid.io/clinics/dashboard',
-          notify:          false,
+          first_name:      firstName,
+          last_name:       lastName,
         }),
       })
-      if (!invRes.ok) {
-        // Throw so Convex retries — do NOT send the approval email until account is confirmed.
-        throw new Error(`[clinics] Clerk invitation failed (${invRes.status}): ${await invRes.text()}`)
+      if (!createRes.ok) {
+        throw new Error(`[clinics] Clerk user creation failed (${createRes.status}): ${await createRes.text()}`)
       }
-      console.log('[clinics] Created Clerk invitation for', args.contactEmail)
+      const created = await createRes.json() as { id: string }
+      console.log('[clinics] Created Clerk user', created.id, 'for', args.contactEmail)
     } else {
       // 3. Existing account — stamp the clinic_staff role
-      const patchRes = await fetch(`https://api.clerk.com/v1/users/${resolvedId}/metadata`, {
-        method: 'PATCH',
+      await fetch(`https://api.clerk.com/v1/users/${resolvedId}/metadata`, {
+        method:  'PATCH',
         headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
-      })
-      if (patchRes.ok) {
-        console.log('[clinics] Role set to clinic_staff for', resolvedId)
-      } else {
-        console.error('[clinics] Clerk metadata PATCH failed:', patchRes.status, await patchRes.text())
-      }
+      }).catch(() => {})
     }
+
+    // Send the approval email — now that the Clerk user exists, the sign-in link works.
+    await ctx.runAction(internal.email.sendClinicApprovalEmail, {
+      contactName:  args.contactName,
+      contactEmail: args.contactEmail,
+      facilityName: args.facilityName,
+    })
   },
 })
 
@@ -689,15 +670,10 @@ export const updateClinicContactEmail = mutation({
         .first()
       if (clinic) await ctx.db.patch(clinic._id, { email: normalized })
 
-      // Retrigger Clerk activation + approval email to new address
+      // Retrigger Clerk activation + approval email (handled inside activateClinicAccount)
       await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
         contactEmail: normalized,
         contactName:  app.contactName,
-        facilityName: app.facilityName,
-      })
-      await ctx.scheduler.runAfter(0, internal.email.sendClinicApprovalEmail, {
-        contactName:  app.contactName,
-        contactEmail: normalized,
         facilityName: app.facilityName,
       })
     }
@@ -793,18 +769,11 @@ export const reviewApplication = mutation({
         }
       }
 
-      // Activate the Clerk account (throws on failure → Convex retries)
+      // Activate the Clerk account + send approval email (both handled inside activateClinicAccount)
       await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
         clerkUserId:  app.clerkUserId ?? undefined,
         contactEmail: app.contactEmail,
         contactName:  app.contactName,
-        facilityName: app.facilityName,
-      })
-
-      // Send approval email independently of Clerk activation
-      await ctx.scheduler.runAfter(0, internal.email.sendClinicApprovalEmail, {
-        contactName:  app.contactName,
-        contactEmail: app.contactEmail,
         facilityName: app.facilityName,
       })
 
@@ -858,11 +827,6 @@ export const retriggerClinicActivation = mutation({
       clerkUserId:  app.clerkUserId ?? undefined,
       contactEmail: app.contactEmail,
       contactName:  app.contactName,
-      facilityName: app.facilityName,
-    })
-    await ctx.scheduler.runAfter(0, internal.email.sendClinicApprovalEmail, {
-      contactName:  app.contactName,
-      contactEmail: app.contactEmail,
       facilityName: app.facilityName,
     })
   },
@@ -936,11 +900,6 @@ export const adminAddClinic = mutation({
     await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
       contactEmail: args.contactEmail,
       contactName:  args.contactName,
-      facilityName: args.clinicName,
-    })
-    await ctx.scheduler.runAfter(0, internal.email.sendClinicApprovalEmail, {
-      contactName:  args.contactName,
-      contactEmail: args.contactEmail,
       facilityName: args.clinicName,
     })
 

@@ -355,28 +355,43 @@ export const activateClinicAccount = internalAction({
       }
     }
 
+    let inviteUrl: string | undefined
+
     if (!resolvedId) {
-      // 2. No account — create a real Clerk user directly.
-      // This is essential: invitations don't create users until clicked, so the
-      // clinic can't sign in via OTP until a real user record exists.
-      const nameParts  = args.contactName.trim().split(/\s+/)
-      const firstName  = nameParts[0]
-      const lastName   = nameParts.slice(1).join(' ') || undefined
-      const createRes  = await fetch('https://api.clerk.com/v1/users', {
+      // 2. No existing account — use Clerk Invitations API.
+      // Revoke any stale pending invitations first so we always get a fresh link.
+      const pendingRes = await fetch(
+        `https://api.clerk.com/v1/invitations?email_address=${encodeURIComponent(args.contactEmail)}&status=pending&limit=10`,
+        { headers: { Authorization: `Bearer ${secretKey}` } },
+      )
+      if (pendingRes.ok) {
+        const data = await pendingRes.json()
+        const arr: { id: string }[] = Array.isArray(data) ? data : (data?.data ?? [])
+        for (const inv of arr) {
+          await fetch(`https://api.clerk.com/v1/invitations/${inv.id}/revoke`, {
+            method: 'POST', headers: { Authorization: `Bearer ${secretKey}` },
+          }).catch(() => {})
+        }
+      }
+
+      // Create a new invitation. notify: false so we send our own branded email;
+      // Clerk returns a `url` field with the one-time activation link.
+      const invRes = await fetch('https://api.clerk.com/v1/invitations', {
         method:  'POST',
         headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email_address:   [args.contactEmail],
+          email_address:   args.contactEmail,
           public_metadata: { role: 'clinic_staff' },
-          first_name:      firstName,
-          last_name:       lastName,
+          redirect_url:    'https://portal.implantid.io/clinics/dashboard',
+          notify:          false,
         }),
       })
-      if (!createRes.ok) {
-        throw new Error(`[clinics] Clerk user creation failed (${createRes.status}): ${await createRes.text()}`)
+      if (!invRes.ok) {
+        throw new Error(`[clinics] Clerk invitation failed (${invRes.status}): ${await invRes.text()}`)
       }
-      const created = await createRes.json() as { id: string }
-      console.log('[clinics] Created Clerk user', created.id, 'for', args.contactEmail)
+      const inv = await invRes.json() as { id: string; url?: string }
+      inviteUrl = inv.url
+      console.log('[clinics] Created Clerk invitation for', args.contactEmail, '— url present:', !!inviteUrl)
     } else {
       // 3. Existing account — stamp the clinic_staff role
       await fetch(`https://api.clerk.com/v1/users/${resolvedId}/metadata`, {
@@ -386,11 +401,12 @@ export const activateClinicAccount = internalAction({
       }).catch(() => {})
     }
 
-    // Send the approval email — now that the Clerk user exists, the sign-in link works.
+    // Send our branded approval email with the activation link (if we have one).
     await ctx.runAction(internal.email.sendClinicApprovalEmail, {
       contactName:  args.contactName,
       contactEmail: args.contactEmail,
       facilityName: args.facilityName,
+      inviteUrl,
     })
   },
 })

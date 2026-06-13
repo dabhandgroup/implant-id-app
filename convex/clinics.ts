@@ -1139,3 +1139,76 @@ export const listClinicPatients = query({
     return results.sort((a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0))
   },
 })
+
+/** Recent patient lookups for the clinic dashboard (reads auditLog). */
+export const getRecentLookups = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) return []
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) return []
+
+    const entries = await ctx.db
+      .query('auditLog')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .order('desc')
+      .take(20)
+
+    const results = await Promise.all(
+      entries.map(async (e) => {
+        let patientName = '—'
+        let implantIdCode = ''
+        let deviceName: string | undefined
+        if (e.target) {
+          try {
+            const p = await ctx.db.get(e.target as any) as any
+            if (p) {
+              patientName  = [p.firstName, p.lastName].filter(Boolean).join(' ') || '—'
+              implantIdCode = p.implantIdCode ?? ''
+              deviceName   = p.selfReportedDevice
+            }
+          } catch { /* invalid id */ }
+        }
+        return { _id: e._id, patientName, implantIdCode, deviceName, action: e.action, createdAt: e.createdAt }
+      })
+    )
+    return results
+  },
+})
+
+/** Today's lookup count for the clinic (from auditLog). */
+export const getTodayLookupCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return 0
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) return 0
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) return 0
+
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const entries = await ctx.db
+      .query('auditLog')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .filter((q) => q.gte(q.field('createdAt'), todayStart.getTime()))
+      .collect()
+    return entries.length
+  },
+})

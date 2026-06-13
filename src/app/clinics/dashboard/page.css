@@ -1,3 +1,24 @@
+/* ── Hero lookup card ────────────────────────────────────────────────────── */
+.hero-lookup{background:linear-gradient(160deg,var(--accent-deep),var(--accent) 55%,var(--accent2));border-radius:22px;padding:32px 40px;margin-bottom:22px;color:#fff}
+.hero-lookup h2{font-family:var(--ff);font-size:24px;font-weight:700;letter-spacing:-.025em;color:#fff;margin:0 0 4px}
+.hero-lookup p{font-size:14px;color:rgba(255,255,255,.75);margin:0 0 22px;line-height:1.5}
+.hero-lookup-copy{margin-bottom:18px}
+.app-big-search{background:#fff;border-radius:18px;padding:16px}
+.app-big-search form{display:flex;gap:8px}
+.app-big-search-input{flex:1;background:#f4f5f7;border:1.5px solid transparent;border-radius:12px;padding:11px 16px;font-family:var(--fb);font-size:14px;color:#1a2a30;outline:none;transition:border-color .15s,box-shadow .15s;min-width:0}
+.app-big-search-input::placeholder{color:#9aacb5}
+.app-big-search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.go-btn{background:var(--accent-deep);border:0;border-radius:12px;width:46px;height:46px;display:grid;place-items:center;color:#fff;cursor:pointer;flex-shrink:0;transition:opacity .15s}
+.go-btn:hover{opacity:.85}
+.app-big-search-or{display:flex;align-items:center;gap:10px;margin:12px 0;color:#9aacb5;font-size:12px;font-family:var(--ff)}
+.app-big-search-or::before,.app-big-search-or::after{content:'';flex:1;height:1px;background:#e8ecee}
+.scan-btn{display:inline-flex;align-items:center;gap:8px;width:100%;border:1.5px dashed color-mix(in srgb,var(--accent) 40%,transparent);border-radius:12px;padding:11px 16px;font-family:var(--ff);font-size:13.5px;font-weight:500;color:var(--accent);text-decoration:none;transition:border-color .15s,background .15s;justify-content:center}
+.scan-btn:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 5%,transparent)}
+.cat-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+.cat-tile{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;text-decoration:none;font-family:var(--ff);font-size:12px;font-weight:500;text-align:center;transition:background .15s,transform .15s}
+.cat-tile:hover{background:rgba(255,255,255,.22);transform:translateY(-2px)}
+.cat-tile span{font-size:11.5px;line-height:1.2}
+
 /* ── Stats row — lightweight white cards ─────────────────────────────────── */
 .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .stat-card-lite{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;display:flex;align-items:center;gap:14px}
@@ -114,6 +135,9 @@
 }
 @media(max-width:900px){
   .app-content{padding:20px 16px 36px!important}
+  .hero-lookup{padding:22px 22px 26px;border-radius:16px}
+  .hero-lookup h2{font-size:20px}
+  .cat-tiles{grid-template-columns:repeat(2,1fr)}
   .stat-row{grid-template-columns:repeat(2,1fr)}
   .dash-grid{grid-template-columns:1fr}
   .qa-sidebar{flex-direction:column}
@@ -125,6 +149,8 @@
   .activity-strip a{margin-left:0!important}
 }
 @media(max-width:600px){
+  .hero-lookup{padding:18px 16px 22px;border-radius:14px}
+  .cat-tiles{grid-template-columns:repeat(2,1fr)}
   .stat-row{grid-template-columns:1fr 1fr}
   .scl-v{font-size:18px}
 }

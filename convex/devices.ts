@@ -344,3 +344,15 @@ export const getDeviceWithUsageBySlug = query({
     return { ...device, patientCount: links.length }
   },
 })
+
+/** Total count of published (non-draft) devices in the library. */
+export const getDeviceCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const devices = await ctx.db
+      .query('devices')
+      .filter((q) => q.neq(q.field('status'), 'draft'))
+      .collect()
+    return devices.length
+  },
+})

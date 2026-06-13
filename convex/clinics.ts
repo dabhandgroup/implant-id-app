@@ -390,22 +390,8 @@ export const activateClinicAccount = internalAction({
         throw new Error(`[clinics] Clerk invitation failed (${invRes.status}): ${await invRes.text()}`)
       }
       const inv = await invRes.json() as { id: string; url?: string }
-
-      // Clerk's inv.url points to the app's /sign-up page (which redirects to
-      // /patients/register, dropping the __clerk_ticket). Extract the ticket and
-      // repoint the link to /clinics/activate which handles it correctly.
-      if (inv.url) {
-        try {
-          const parsed = new URL(inv.url)
-          const ticket = parsed.searchParams.get('__clerk_ticket')
-          inviteUrl = ticket
-            ? `https://portal.implantid.io/clinics/activate?__clerk_ticket=${ticket}`
-            : inv.url
-        } catch {
-          inviteUrl = inv.url
-        }
-      }
-      console.log('[clinics] Created Clerk invitation for', args.contactEmail, '— activationUrl:', inviteUrl?.slice(0, 60))
+      inviteUrl = inv.url
+      console.log('[clinics] Created Clerk invitation for', args.contactEmail, '— url present:', !!inviteUrl)
     } else {
       // 3. Existing account — stamp the clinic_staff role
       await fetch(`https://api.clerk.com/v1/users/${resolvedId}/metadata`, {

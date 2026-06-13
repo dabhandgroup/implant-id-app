@@ -341,69 +341,70 @@ export const activateClinicAccount = internalAction({
   handler: async (ctx, args) => {
     const secretKey = process.env.CLERK_SECRET_KEY
     if (!secretKey) {
-      console.error('[clinics] CLERK_SECRET_KEY not set — cannot activate clinic account')
-    } else {
-      let resolvedId = args.clerkUserId ?? null
+      // Throw so Convex retries this action once the key is set.
+      throw new Error('[clinics] CLERK_SECRET_KEY not set — cannot activate clinic account. Retrying.')
+    }
 
-      if (!resolvedId) {
-        // 1. Try to find by email
-        const searchRes = await fetch(
-          `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
-          { headers: { Authorization: `Bearer ${secretKey}` } },
-        )
-        if (searchRes.ok) {
-          const found = (await searchRes.json()) as { id: string }[]
-          if (found.length > 0) resolvedId = found[0].id
-        }
-      }
+    let resolvedId = args.clerkUserId ?? null
 
-      if (!resolvedId) {
-        // 2. Create a new Clerk user (passwordless — signs in via email OTP)
-        const createRes = await fetch('https://api.clerk.com/v1/users', {
-          method: 'POST',
-          headers: {
-            Authorization:  `Bearer ${secretKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email_addresses:          [args.contactEmail],
-            public_metadata:          { role: 'clinic_staff' },
-            skip_password_requirement: true,
-          }),
-        })
-        if (createRes.ok) {
-          const newUser = (await createRes.json()) as { id: string }
-          resolvedId = newUser.id
-          console.log('[clinics] Created Clerk account for', args.contactEmail)
-        } else {
-          const body = await createRes.text()
-          console.error('[clinics] Clerk user creation failed:', createRes.status, body)
-        }
-      }
-
-      if (resolvedId) {
-        // 3. Stamp the role on the resolved account
-        const patchRes = await fetch(
-          `https://api.clerk.com/v1/users/${resolvedId}/metadata`,
-          {
-            method: 'PATCH',
-            headers: {
-              Authorization:  `Bearer ${secretKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
-          },
-        )
-        if (patchRes.ok) {
-          console.log('[clinics] Role set to clinic_staff for', resolvedId)
-        } else {
-          const body = await patchRes.text()
-          console.error('[clinics] Clerk metadata PATCH failed:', patchRes.status, body)
-        }
+    if (!resolvedId) {
+      // 1. Try to find an existing Clerk user by email
+      const searchRes = await fetch(
+        `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
+        { headers: { Authorization: `Bearer ${secretKey}` } },
+      )
+      if (searchRes.ok) {
+        const found = (await searchRes.json()) as { id: string }[]
+        if (found.length > 0) resolvedId = found[0].id
       }
     }
 
-    // Always send the branded approval email via Resend (even if Clerk step failed)
+    if (!resolvedId) {
+      // 2. Create a new Clerk user (passwordless — signs in via email OTP)
+      const createRes = await fetch('https://api.clerk.com/v1/users', {
+        method: 'POST',
+        headers: {
+          Authorization:  `Bearer ${secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email_addresses:           [args.contactEmail],
+          public_metadata:           { role: 'clinic_staff' },
+          skip_password_requirement: true,
+        }),
+      })
+      if (createRes.ok) {
+        const newUser = (await createRes.json()) as { id: string }
+        resolvedId = newUser.id
+        console.log('[clinics] Created Clerk account for', args.contactEmail)
+      } else {
+        const body = await createRes.text()
+        // Throw so Convex retries — do NOT send approval email until account exists.
+        throw new Error(`[clinics] Clerk user creation failed (${createRes.status}): ${body}`)
+      }
+    }
+
+    // 3. Stamp clinic_staff role on the resolved account
+    const patchRes = await fetch(
+      `https://api.clerk.com/v1/users/${resolvedId}/metadata`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization:  `Bearer ${secretKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ public_metadata: { role: 'clinic_staff' } }),
+      },
+    )
+    if (patchRes.ok) {
+      console.log('[clinics] Role set to clinic_staff for', resolvedId)
+    } else {
+      const body = await patchRes.text()
+      // Non-fatal — account exists, role stamp is best-effort
+      console.error('[clinics] Clerk metadata PATCH failed:', patchRes.status, body)
+    }
+
+    // Send the branded approval email only after confirming the Clerk account exists
     await ctx.runAction(internal.email.sendClinicApprovalEmail, {
       contactName:  args.contactName,
       contactEmail: args.contactEmail,
@@ -668,20 +669,34 @@ export const reviewApplication = mutation({
     })
 
     if (args.decision === 'approved') {
-      const clinicId = await ctx.db.insert('clinics', {
-        name:           app.facilityName,
-        address:        app.facilityAddress,
-        city:           app.facilityCity ?? undefined,
-        country:        app.facilityCountry,
-        phone:          app.facilityPhone ?? app.contactPhone ?? undefined,
-        email:          app.contactEmail,
-        website:        app.facilityWebsite ?? undefined,
-        capabilities:   app.services,
-        status:         'active',
-        showToPatients: true,    // default: visible to patients
-      })
+      // Reactivate an existing (suspended) clinic if one exists for this email,
+      // rather than creating a duplicate — handles the rejected → re-approved path.
+      const existingClinic = await ctx.db
+        .query('clinics')
+        .filter((q) => q.eq(q.field('email'), app.contactEmail))
+        .first()
+
+      let clinicId
+      if (existingClinic) {
+        await ctx.db.patch(existingClinic._id, { status: 'active' })
+        clinicId = existingClinic._id
+      } else {
+        clinicId = await ctx.db.insert('clinics', {
+          name:           app.facilityName,
+          address:        app.facilityAddress,
+          city:           app.facilityCity ?? undefined,
+          country:        app.facilityCountry,
+          phone:          app.facilityPhone ?? app.contactPhone ?? undefined,
+          email:          app.contactEmail,
+          website:        app.facilityWebsite ?? undefined,
+          capabilities:   app.services,
+          status:         'active',
+          showToPatients: true,
+        })
+      }
 
       // If we know the submitting Clerk user, make them an admin staff member
+      // (only if no staff row already links them to this clinic)
       if (app.clerkUserId) {
         const user = await ctx.db
           .query('users')
@@ -689,14 +704,21 @@ export const reviewApplication = mutation({
           .first()
 
         if (user) {
-          await ctx.db.insert('staff', {
-            userId:      user._id,
-            clinicId,
-            jobType:     'admin',
-            accessLevel: 'admin',
-            allPatients: true,
-            status:      'active',
-          })
+          const existingStaff = await ctx.db
+            .query('staff')
+            .withIndex('by_clinic', (q) => q.eq('clinicId', clinicId))
+            .filter((q) => q.eq(q.field('userId'), user._id))
+            .first()
+          if (!existingStaff) {
+            await ctx.db.insert('staff', {
+              userId:      user._id,
+              clinicId,
+              jobType:     'admin',
+              accessLevel: 'admin',
+              allPatients: true,
+              status:      'active',
+            })
+          }
         }
       }
 

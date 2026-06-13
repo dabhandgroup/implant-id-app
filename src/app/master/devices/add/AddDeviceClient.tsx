@@ -106,7 +106,7 @@ export default function AddDeviceClient() {
 
   // Filtered manufacturer suggestions
   const filteredMfrs = manufacturer.trim().length > 0 && approvedMfrs
-    ? approvedMfrs.filter(m =>
+    ? approvedMfrs.filter((m: { companyName: string }) =>
         m.companyName.toLowerCase().includes(manufacturer.toLowerCase())
       ).slice(0, 8)
     : []
@@ -216,7 +216,7 @@ export default function AddDeviceClient() {
                   background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8,
                   boxShadow: '0 6px 20px rgba(0,0,0,.14)', maxHeight: 220, overflowY: 'auto', marginTop: 3,
                 }}>
-                  {filteredMfrs.map(m => (
+                  {(filteredMfrs as { _id: string; companyName: string }[]).map(m => (
                     <button
                       key={m._id}
                       type="button"

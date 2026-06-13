@@ -14,6 +14,7 @@ const isPublicRoute = createRouteMatcher([
   '/sso-callback(.*)',             // OAuth return leg — must be public
   '/api/webhooks/(.*)',            // Clerk webhook delivery — no browser session
   '/clinics/onboarding(.*)',       // clinic application form — no auth required to apply
+  '/clinics/activate(.*)',         // one-time activation link from approval email
 ])
 
 // Hard-fail at startup if Clerk isn't configured — never silently open all routes

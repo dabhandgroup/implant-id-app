@@ -64,6 +64,15 @@ export const submitClinicApplication = mutation({
       return { id: existing._id, alreadySubmitted: true }
     }
 
+    // Cross-type uniqueness: email cannot belong to a manufacturer account
+    const existingMfr = await ctx.db
+      .query('manufacturers')
+      .withIndex('by_email', (q) => q.eq('contactEmail', args.contactEmail))
+      .first()
+    if (existingMfr && existingMfr.status !== 'rejected') {
+      throw new Error('This email address is already registered as a manufacturer account. Each email can only be used for one account type. Please use a different email address.')
+    }
+
     const id = await ctx.db.insert('clinicApplications', {
       ...args,
       clerkUserId,
@@ -711,6 +720,17 @@ export const reviewApplication = mutation({
     // (would create a duplicate clinic record). All other transitions are fine.
     if (app.status === 'approved' && args.decision === 'approved') {
       throw new Error('This clinic is already approved')
+    }
+
+    // Cross-type uniqueness check at approval time
+    if (args.decision === 'approved') {
+      const conflictingMfr = await ctx.db
+        .query('manufacturers')
+        .withIndex('by_email', (q) => q.eq('contactEmail', app.contactEmail))
+        .first()
+      if (conflictingMfr && conflictingMfr.status !== 'rejected') {
+        throw new Error(`Cannot approve: ${app.contactEmail} is already registered as a manufacturer account. Each email can only belong to one account type.`)
+      }
     }
 
     await ctx.db.patch(args.applicationId, {

@@ -61,6 +61,15 @@ export const submitManufacturerApplication = mutation({
       return { id: existing._id, alreadySubmitted: true }
     }
 
+    // Cross-type uniqueness: email cannot belong to a clinic account
+    const existingClinic = await ctx.db
+      .query('clinicApplications')
+      .withIndex('by_email', (q) => q.eq('contactEmail', args.contactEmail))
+      .first()
+    if (existingClinic && existingClinic.status !== 'rejected') {
+      throw new Error('This email address is already registered as a clinic account. Each email can only be used for one account type. Please use a different email address.')
+    }
+
     const id = await ctx.db.insert('manufacturers', {
       companyName:             args.companyName,
       contactName:             args.contactName,
@@ -350,6 +359,17 @@ export const reviewApplication = mutation({
       throw new Error('This manufacturer is already approved')
     }
 
+    // Cross-type uniqueness check at approval time
+    if (args.decision === 'approved') {
+      const conflictingClinic = await ctx.db
+        .query('clinicApplications')
+        .withIndex('by_email', (q) => q.eq('contactEmail', app.contactEmail))
+        .first()
+      if (conflictingClinic && conflictingClinic.status !== 'rejected') {
+        throw new Error(`Cannot approve: ${app.contactEmail} is already registered as a clinic account. Each email can only belong to one account type.`)
+      }
+    }
+
     await ctx.db.patch(args.applicationId, {
       status: args.decision,
       reviewedAt: Date.now(),
@@ -402,14 +422,23 @@ export const inviteManufacturer = mutation({
       .first()
     if (!user || user.role !== 'admin') throw new Error('Admin role required')
 
-    // Check for existing
+    // Check for existing manufacturer
     const existing = await ctx.db
       .query('manufacturers')
       .withIndex('by_email', (q) => q.eq('contactEmail', args.contactEmail))
       .first()
 
     if (existing) {
-      throw new Error('Manufacturer already exists with this email')
+      throw new Error('A manufacturer account already exists with this email address.')
+    }
+
+    // Cross-type uniqueness: email cannot belong to a clinic account
+    const existingClinic = await ctx.db
+      .query('clinicApplications')
+      .withIndex('by_email', (q) => q.eq('contactEmail', args.contactEmail))
+      .first()
+    if (existingClinic && existingClinic.status !== 'rejected') {
+      throw new Error('This email address is already registered as a clinic account. Each email can only be used for one account type.')
     }
 
     // Create and immediately approve the manufacturer

@@ -162,12 +162,13 @@ export const sendClinicApprovalEmail = internalAction({
           <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
             Great news — your application for
             <strong style="color:#0e2a33;">${args.facilityName}</strong>
-            has been reviewed and approved. Your clinic account is now active on
+            has been reviewed and approved. Your clinic account is ready on
             the Implant ID platform.
           </p>
           <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
-            Click the button below to activate your account. This is a one-time link —
-            once activated, you'll sign in using a one-time code sent to this email address.
+            Click the button below to activate your account and sign in instantly.
+            This is a one-time activation link — if it has expired, contact your
+            administrator to resend it.
           </p>
         ` : `
           <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">

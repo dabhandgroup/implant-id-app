@@ -392,16 +392,15 @@ export const activateClinicAccount = internalAction({
       const inv = await invRes.json() as { id: string; url?: string }
 
       // Clerk's inv.url goes to /sign-up?__clerk_ticket=TOKEN.
-      // Extract the ticket and route to /activate instead — a standalone public
-      // page outside any auth-gated layouts that processes the ticket via
-      // signUp.create({ strategy: 'ticket', ticket }) and redirects to /clinics/dashboard.
+      // Extract the ticket and route to /clinics/activate — the branded activation
+      // page that pre-fills the email and creates the account on a single button click.
       if (inv.url) {
         try {
           const parsed  = new URL(inv.url)
           const tkValue = parsed.searchParams.get('__clerk_ticket')
           inviteUrl = tkValue
-            ? `https://portal.implantid.io/activate?email=${encodeURIComponent(args.contactEmail)}&ticket=${tkValue}`
-            : inv.url  // fallback: Clerk's SignUp component on /sign-up handles this
+            ? `https://portal.implantid.io/clinics/activate?email=${encodeURIComponent(args.contactEmail)}&ticket=${tkValue}`
+            : inv.url
         } catch {
           inviteUrl = inv.url
         }

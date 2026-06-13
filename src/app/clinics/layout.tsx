@@ -17,13 +17,14 @@ export default async function ClinicsLayout({
   children: React.ReactNode
 }) {
   const pathname = (await headers()).get('x-pathname') ?? ''
-  if (!pathname.startsWith('/clinics/onboarding')) {
+  const isPublic = pathname.startsWith('/clinics/onboarding') || pathname.startsWith('/clinics/activate')
+  if (!isPublic) {
     await requireRole('clinic_staff', 'surgeon', 'admin')
   }
   return (
     <>
       {children}
-      {!pathname.startsWith('/clinics/onboarding') && <ClinicNotificationsOverlay />}
+      {!isPublic && <ClinicNotificationsOverlay />}
     </>
   )
 }

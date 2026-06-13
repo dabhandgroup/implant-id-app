@@ -22,9 +22,10 @@ export default function ActivateClient() {
     attempted.current = true
     setPhase('loading')
     try {
-      const result = await signUp.create({ strategy: 'ticket', ticket })
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+      const { error } = await signUp.create({ strategy: 'ticket', ticket })
+      if (error) throw error
+      if (signUp.status === 'complete') {
+        await setActive({ session: signUp.createdSessionId })
         window.location.href = '/clinics/dashboard'
       } else {
         attempted.current = false

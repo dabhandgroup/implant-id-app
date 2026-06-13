@@ -32,19 +32,19 @@ export default function ClinicActivateClient() {
     attempted.current = true
     setPhase('loading')
     try {
-      const result = await signUp.create({ strategy: 'ticket', ticket })
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId })
+      const { error } = await signUp.create({ strategy: 'ticket', ticket })
+      if (error) throw error
+      if (signUp.status === 'complete') {
+        await setActive({ session: signUp.createdSessionId })
         window.location.href = '/clinics/dashboard'
       } else {
         attempted.current = false
         setPhase('error')
-        // Show the status so we can diagnose (e.g. 'missing_requirements')
-        const missing = (result as unknown as { missingFields?: string[] })?.missingFields?.join(', ')
+        const missing = (signUp as unknown as { missingFields?: string[] })?.missingFields?.join(', ')
         setErrorMsg(
-          `Activation returned status "${result.status}"` +
+          `Activation returned status "${signUp.status}"` +
           (missing ? ` — missing: ${missing}` : '') +
-          '. Please contact support@implantid.io or ask your admin to resend the activation email.'
+          '. Ask your admin to resend the activation email or contact support@implantid.io.'
         )
       }
     } catch (err: unknown) {

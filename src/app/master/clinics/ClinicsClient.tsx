@@ -5,7 +5,6 @@ import { useQuery, useMutation, useAction } from 'convex/react'
 import { useRouter } from 'next/navigation'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
-import { CustomSelect } from '../../../components/ui/CustomSelect'
 
 type Tab = 'pending' | 'all' | 'rejected'
 
@@ -23,32 +22,10 @@ type Application = {
   reviewNotes?:    string
 }
 
-const FACILITY_TYPES = [
-  'Hospital — NHS / public',
-  'Hospital — private',
-  'Private clinic',
-  'Radiology centre',
-  'Cardiac centre',
-  'Orthopaedic centre',
-  'Neurology centre',
-  'Other',
-]
-
-const COUNTRIES = [
-  'United Kingdom', 'United States', 'Ireland', 'Australia', 'Canada',
-  'Germany', 'France', 'Netherlands', 'Spain', 'Italy', 'Sweden', 'Norway',
-  'Denmark', 'Switzerland', 'Belgium', 'Portugal', 'Poland', 'Austria',
-  'New Zealand', 'South Africa', 'UAE', 'Singapore', 'Other',
-]
-
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric',
   })
-}
-
-function isValidEmail(e: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
 }
 
 export default function ClinicsClient() {
@@ -62,26 +39,10 @@ export default function ClinicsClient() {
 
   const reviewApplication = useMutation(api.clinics.reviewApplication)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adminAddClinic     = useMutation((api.clinics as any).adminAddClinic)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const deleteRejected     = useAction((api.clinics as any).deleteRejectedApplications)
 
   // Quick-approve
   const [reviewing, setReviewing] = useState(false)
-
-  // Add Clinic modal
-  const [addOpen,        setAddOpen]        = useState(false)
-  const [addName,        setAddName]        = useState('')
-  const [addType,        setAddType]        = useState('')
-  const [addAddress,     setAddAddress]     = useState('')
-  const [addCity,        setAddCity]        = useState('')
-  const [addCountry,     setAddCountry]     = useState('')
-  const [addPhone,       setAddPhone]       = useState('')
-  const [addContactName, setAddContactName] = useState('')
-  const [addEmail,       setAddEmail]       = useState('')
-  const [addLoading,     setAddLoading]     = useState(false)
-  const [addError,       setAddError]       = useState('')
-  const [addDone,        setAddDone]        = useState(false)
 
   // Delete / bulk select (rejected tab)
   const [selected,       setSelected]       = useState<Set<Id<'clinicApplications'>>>(new Set())
@@ -100,41 +61,6 @@ export default function ClinicsClient() {
       console.error(err)
     } finally {
       setReviewing(false)
-    }
-  }
-
-  // ── Add clinic ────────────────────────────────────────────────────────────────
-  function openAdd() {
-    setAddName(''); setAddType(''); setAddAddress(''); setAddCity('')
-    setAddCountry(''); setAddPhone(''); setAddContactName(''); setAddEmail('')
-    setAddError(''); setAddDone(false); setAddOpen(true)
-  }
-
-  async function handleAdd() {
-    if (!addName.trim())        return setAddError('Enter the clinic name')
-    if (!addType)               return setAddError('Select a facility type')
-    if (!addAddress.trim())     return setAddError('Enter the address')
-    if (!addCountry)            return setAddError('Select a country')
-    if (!addContactName.trim()) return setAddError('Enter the contact name')
-    if (!isValidEmail(addEmail)) return setAddError('Enter a valid email address')
-
-    setAddLoading(true); setAddError('')
-    try {
-      await adminAddClinic({
-        clinicName:      addName.trim(),
-        contactName:     addContactName.trim(),
-        contactEmail:    addEmail.trim().toLowerCase(),
-        facilityType:    addType,
-        facilityAddress: addAddress.trim(),
-        facilityCountry: addCountry,
-        facilityCity:    addCity.trim() || undefined,
-        facilityPhone:   addPhone.trim() || undefined,
-      })
-      setAddDone(true)
-    } catch (e) {
-      setAddError((e as { message?: string })?.message ?? 'Something went wrong — please try again')
-    } finally {
-      setAddLoading(false)
     }
   }
 
@@ -182,7 +108,7 @@ export default function ClinicsClient() {
           <h2>Clinics</h2>
           <div className="sub">All registered and active clinic accounts on the platform.</div>
         </div>
-        <button className="btn btn-s" onClick={openAdd}>+ Add Clinic</button>
+        <button className="btn btn-s" onClick={() => router.push('/master/clinics/add')}>+ Add Clinic</button>
       </div>
 
       {/* ── Tabs ── */}
@@ -417,99 +343,6 @@ export default function ClinicsClient() {
             ))}
           </div>
         </>)
-      )}
-
-      {/* ── Add Clinic modal ── */}
-      {addOpen && (
-        <div className="confirm-back open" onClick={() => { if (!addLoading) setAddOpen(false) }}>
-          <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, width: '100%' }}>
-            {addDone ? (
-              <div className="confirm-body" style={{ textAlign: 'center' }}>
-                <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--ok) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
-                </div>
-                <h3>Clinic added</h3>
-                <p style={{ color:'var(--muted)', fontSize:14 }}>
-                  An activation email has been sent to <strong>{addEmail}</strong>. They&apos;ll receive a link to set up their account.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="confirm-body">
-                  <h3 style={{ marginBottom: 20 }}>Add Clinic</h3>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    <div className="field">
-                      <label>Clinic / Facility name <span style={{ color:'var(--err)' }}>*</span></label>
-                      <input className="input" value={addName} onChange={e => setAddName(e.target.value)} placeholder="St Vincent's Hospital MRI Department" />
-                    </div>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                      <CustomSelect
-                        label="Facility type"
-                        required
-                        value={addType}
-                        onChange={setAddType}
-                        options={FACILITY_TYPES}
-                        placeholder="Select…"
-                      />
-                      <CustomSelect
-                        label="Country"
-                        required
-                        value={addCountry}
-                        onChange={setAddCountry}
-                        options={COUNTRIES}
-                        placeholder="Select…"
-                      />
-                    </div>
-                    <div className="field">
-                      <label>Address <span style={{ color:'var(--err)' }}>*</span></label>
-                      <input className="input" value={addAddress} onChange={e => setAddAddress(e.target.value)} placeholder="123 Hospital Road, London W1A 1AA" />
-                    </div>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                      <div className="field">
-                        <label>City</label>
-                        <input className="input" value={addCity} onChange={e => setAddCity(e.target.value)} placeholder="London" />
-                      </div>
-                      <div className="field">
-                        <label>Phone</label>
-                        <input className="input" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="+44 20 7123 4567" />
-                      </div>
-                    </div>
-                    <div style={{ borderTop:'1px solid var(--border)', paddingTop:14, marginTop:2 }}>
-                      <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--muted2)', marginBottom:12 }}>Primary Contact</div>
-                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                        <div className="field">
-                          <label>Name <span style={{ color:'var(--err)' }}>*</span></label>
-                          <input className="input" value={addContactName} onChange={e => setAddContactName(e.target.value)} placeholder="Dr Jane Smith" />
-                        </div>
-                        <div className="field">
-                          <label>Email <span style={{ color:'var(--err)' }}>*</span></label>
-                          <input className="input" type="email" value={addEmail} onChange={e => setAddEmail(e.target.value)} placeholder="jane@hospital.nhs.uk" />
-                        </div>
-                      </div>
-                    </div>
-                    {addError && (
-                      <div style={{ background:'color-mix(in srgb,var(--err) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 25%,transparent)', borderRadius:8, padding:'10px 14px', fontFamily:'var(--ff)', fontSize:13, color:'var(--err)' }}>
-                        {addError}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="confirm-actions">
-                  <button className="btn" onClick={() => setAddOpen(false)} disabled={addLoading}>Cancel</button>
-                  <button className="btn btn-s" onClick={handleAdd} disabled={addLoading}>
-                    {addLoading ? 'Adding…' : 'Add Clinic →'}
-                  </button>
-                </div>
-              </>
-            )}
-            {addDone && (
-              <div className="confirm-actions">
-                <button className="btn btn-s" onClick={() => setAddOpen(false)}>Done</button>
-              </div>
-            )}
-          </div>
-        </div>
       )}
 
       {/* ── Delete confirmation modal ── */}

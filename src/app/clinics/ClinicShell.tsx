@@ -209,8 +209,8 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
     try { await markRead({}) } catch { /* silent */ }
   }
 
-  if (myApplication === undefined || myClinic === undefined) return <LoadingScreen />
-  if (myApplication === null)                                  return <LoadingScreen />
+  if (myApplication === undefined) return <LoadingScreen />
+  if (myApplication === null)      return <LoadingScreen />
   if (myApplication.status === 'pending')  return <PendingScreen  app={myApplication} onSignOut={() => signOut({ redirectUrl: '/' })} />
   if (myApplication.status === 'rejected') return <RejectedScreen app={myApplication} onSignOut={() => signOut({ redirectUrl: '/' })} />
 

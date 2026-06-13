@@ -394,18 +394,26 @@ export const activateClinicAccount = internalAction({
       // Clerk's inv.url goes to /sign-up?__clerk_ticket=TOKEN.
       // Extract the ticket and route to /clinics/activate — the branded activation
       // page that pre-fills the email and creates the account on a single button click.
-      if (inv.url) {
-        try {
-          const parsed  = new URL(inv.url)
-          const tkValue = parsed.searchParams.get('__clerk_ticket')
-          inviteUrl = tkValue
-            ? `https://portal.implantid.io/clinics/activate?email=${encodeURIComponent(args.contactEmail)}&ticket=${tkValue}`
-            : inv.url
-        } catch {
-          inviteUrl = inv.url
-        }
+      if (!inv.url) {
+        // Clerk didn't return a URL — log the full response so we can diagnose
+        console.error('[clinics] Clerk invitation response had no URL. Full response:', JSON.stringify(inv))
+        throw new Error('[clinics] Clerk invitation created but returned no URL — check Clerk dashboard sign-up settings')
       }
-      console.log('[clinics] Invitation created for', args.contactEmail, '— activate URL built:', !!inviteUrl)
+      try {
+        const parsed  = new URL(inv.url)
+        const tkValue = parsed.searchParams.get('__clerk_ticket')
+        if (!tkValue) {
+          console.error('[clinics] No __clerk_ticket in invitation URL:', inv.url)
+          throw new Error('[clinics] Clerk invitation URL missing __clerk_ticket parameter')
+        }
+        inviteUrl = `https://portal.implantid.io/clinics/activate?email=${encodeURIComponent(args.contactEmail)}&ticket=${tkValue}`
+      } catch (parseErr) {
+        // Re-throw errors we explicitly threw above; only swallow URL parse errors
+        if ((parseErr as Error)?.message?.startsWith('[clinics]')) throw parseErr
+        console.error('[clinics] Failed to parse invitation URL:', inv.url, parseErr)
+        inviteUrl = inv.url  // fallback: send Clerk's raw URL
+      }
+      console.log('[clinics] Invitation created for', args.contactEmail, '— activate URL:', inviteUrl)
     } else {
       // 3. Existing account — stamp the clinic_staff role
       await fetch(`https://api.clerk.com/v1/users/${resolvedId}/metadata`, {

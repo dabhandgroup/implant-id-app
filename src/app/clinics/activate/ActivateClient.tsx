@@ -38,13 +38,23 @@ export default function ClinicActivateClient() {
       } else {
         attempted.current = false
         setPhase('error')
-        setErrorMsg('Activation could not be completed. Please contact support@implantid.io.')
+        // Show the status so we can diagnose (e.g. 'missing_requirements')
+        const missing = (result as unknown as { missingFields?: string[] })?.missingFields?.join(', ')
+        setErrorMsg(
+          `Activation returned status "${result.status}"` +
+          (missing ? ` — missing: ${missing}` : '') +
+          '. Please contact support@implantid.io or ask your admin to resend the activation email.'
+        )
       }
     } catch (err: unknown) {
       attempted.current = false
       setPhase('error')
-      const clerkMsg = (err as { errors?: { message: string }[] })?.errors?.[0]?.message
-      setErrorMsg(clerkMsg ?? (err instanceof Error ? err.message : 'Something went wrong.'))
+      const clerkErr = err as { errors?: { message: string; code?: string; longMessage?: string }[] }
+      const first    = clerkErr?.errors?.[0]
+      const msg      = first
+        ? `${first.message}${first.longMessage ? ` — ${first.longMessage}` : ''}${first.code ? ` (${first.code})` : ''}`
+        : (err instanceof Error ? err.message : 'Something went wrong.')
+      setErrorMsg(msg)
     }
   }
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation } from 'convex/react'
+import { useQuery, useMutation, useAction } from 'convex/react'
 import { useRouter } from 'next/navigation'
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
@@ -47,7 +47,8 @@ export default function ApplicationClient({ id }: { id: string }) {
   const reviewApplication           = useMutation(api.clinics.reviewApplication)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateClinicContactEmail    = useMutation(api.clinics.updateClinicContactEmail as any)
-  const retriggerClinicActivation   = useMutation(api.clinics.retriggerClinicActivation)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const retriggerClinicActivation   = useAction((api.clinics as any).retriggerClinicActivation)
 
   const [resending,    setResending]    = useState(false)
   const [resendDone,   setResendDone]   = useState(false)

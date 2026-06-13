@@ -1,4 +1,4 @@
-import { mutation, query, internalAction, internalMutation, action } from './_generated/server'
+import { mutation, query, internalAction, internalMutation, internalQuery, action } from './_generated/server'
 import { v }                               from 'convex/values'
 import { internal }                        from './_generated/api'
 
@@ -808,22 +808,44 @@ export const reviewApplication = mutation({
  * Re-trigger clinic account activation + resend the approval email.
  * Used by admin when the original activation failed (e.g. Clerk key was missing).
  */
-export const retriggerClinicActivation = mutation({
+/** Internal: fetch the application data needed by retriggerClinicActivation. */
+export const getApplicationForActivation = internalQuery({
+  args: { applicationId: v.id('clinicApplications'), adminClerkId: v.string() },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', args.adminClerkId))
+      .first()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin access required')
+    const app = await ctx.db.get(args.applicationId)
+    if (!app) throw new Error('Application not found')
+    if (app.status !== 'approved') throw new Error('Application must be approved first')
+    return {
+      clerkUserId:  app.clerkUserId ?? null,
+      contactEmail: app.contactEmail,
+      contactName:  app.contactName,
+      facilityName: app.facilityName,
+    }
+  },
+})
+
+/**
+ * Re-trigger clinic account activation synchronously so errors surface in the UI.
+ * Runs as a public action so Clerk API failures are visible to the admin
+ * rather than silently retrying in the background.
+ */
+export const retriggerClinicActivation = action({
   args: { applicationId: v.id('clinicApplications') },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Not authenticated')
-    const user = await ctx.db
-      .query('users')
-      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
-      .unique()
-    if (!user || user.role !== 'admin') throw new Error('Admin access required')
 
-    const app = await ctx.db.get(args.applicationId)
-    if (!app) throw new Error('Application not found')
-    if (app.status !== 'approved') throw new Error('Application must be approved first')
+    const app = await ctx.runQuery(internal.clinics.getApplicationForActivation, {
+      applicationId: args.applicationId,
+      adminClerkId:  identity.subject,
+    })
 
-    await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
+    await ctx.runAction(internal.clinics.activateClinicAccount, {
       clerkUserId:  app.clerkUserId ?? undefined,
       contactEmail: app.contactEmail,
       contactName:  app.contactName,

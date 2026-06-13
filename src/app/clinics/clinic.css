@@ -1,0 +1,6 @@
+/* Clinic portal — page-level styles */
+
+body{background:var(--bg);color:var(--text)}
+
+/* Clinic badge (teal pill next to page title) */
+.clinic-badge{background:color-mix(in srgb,var(--accent2) 14%,transparent);color:var(--accent2)}

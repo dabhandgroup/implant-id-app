@@ -1212,3 +1212,29 @@ export const getTodayLookupCount = query({
     return entries.length
   },
 })
+
+export const getPatientAuditEntries = query({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) return []
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) return []
+    const entries = await ctx.db
+      .query('auditLog')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', (staffRow as any).clinicId))
+      .order('desc')
+      .take(200)
+    return entries
+      .filter(e => e.target === (args.patientId as string))
+      .slice(0, 10)
+  },
+})

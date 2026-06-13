@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import PatientViewClient from './PatientViewClient'
 import type { Metadata } from 'next'
+import './page.css'
 
 export const dynamic = 'force-dynamic'
 

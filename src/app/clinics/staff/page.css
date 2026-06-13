@@ -1,5 +1,6 @@
 @import '../dashboard/page.css';
 @import '../all-patients/page.css';
+@import '../settings/page.css';
 
 .staff-list { display: flex; flex-direction: column; }
 .staff-row {

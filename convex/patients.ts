@@ -1078,3 +1078,78 @@ export const recordPatientLookup = mutation({
   },
 })
 
+export const getFullPatientByCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, args) => {
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_implant_code', (q) => q.eq('implantIdCode', args.code.trim().toUpperCase()))
+      .unique()
+    if (!patient) return null
+
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .take(20)
+
+    const devices = (
+      await Promise.all(
+        links.map(async (l) => {
+          const d = await ctx.db.get(l.deviceId)
+          if (!d) return null
+          return {
+            deviceId:          l.deviceId as string,
+            manufacturer:      d.manufacturer,
+            model:             d.model,
+            deviceType:        d.deviceType,
+            mriStatus:         d.mriStatus,
+            serialNumber:      l.serialNumber,
+            implantDate:       l.implantDate,
+            implantingSurgeon: l.implantingSurgeon,
+            hospital:          l.hospital,
+            status:            l.status,
+            fieldStrengths:    d.fieldStrengths,
+            sarLimit:          d.sarLimit,
+            b1RmsLimit:        d.b1RmsLimit,
+            slewRateLimit:     d.slewRateLimit,
+            gradientLimit:     d.gradientLimit,
+            maxScanTime:       d.maxScanTime,
+            contraindications: d.contraindications,
+          }
+        }),
+      )
+    ).filter(Boolean)
+
+    let mriStatus: 'safe' | 'conditional' | 'unsafe' | 'unknown' = 'unknown'
+    const statuses = devices.map((d) => d!.mriStatus)
+    if (statuses.includes('unsafe'))           mriStatus = 'unsafe'
+    else if (statuses.includes('conditional')) mriStatus = 'conditional'
+    else if (statuses.includes('safe'))        mriStatus = 'safe'
+
+    return {
+      _id:                       patient._id,
+      implantIdCode:             patient.implantIdCode,
+      firstName:                 patient.firstName,
+      lastName:                  patient.lastName,
+      dob:                       patient.dob,
+      heightCm:                  patient.heightCm,
+      weightKg:                  patient.weightKg,
+      contrastAllergy:           patient.contrastAllergy,
+      contrastAllergyNote:       patient.contrastAllergyNote,
+      verificationStatus:        patient.verificationStatus ?? 'pending',
+      selfReportedDevice:        patient.selfReportedDevice,
+      selfReportedManufacturer:  patient.selfReportedManufacturer,
+      selfReportedModelNumber:   patient.selfReportedModelNumber,
+      selfReportedSurgeon:       patient.selfReportedSurgeon,
+      selfReportedHospital:      patient.selfReportedHospital,
+      emergencyContactName:      patient.emergencyContactName,
+      emergencyContactPhone:     patient.emergencyContactPhone,
+      emergencyContactRelation:  patient.emergencyContactRelation,
+      additionalNotes:           patient.additionalNotes,
+      mriStatus,
+      devices,
+      createdAt:                 patient._creationTime,
+    }
+  },
+})
+

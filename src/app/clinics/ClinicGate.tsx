@@ -391,8 +391,8 @@ export default function ClinicGate({ children }: { children: React.ReactNode }) 
     }
   }, [myApplication, pathname, router])
 
-  // Onboarding path: always allow through
-  if (pathname.startsWith('/clinics/onboarding')) {
+  // Public clinic paths: allow through without account checks
+  if (pathname.startsWith('/clinics/onboarding') || pathname.startsWith('/clinics/activate')) {
     return <>{children}</>
   }
 

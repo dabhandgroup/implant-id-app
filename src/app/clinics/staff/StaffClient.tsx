@@ -86,66 +86,98 @@ export default function StaffClient() {
   if (screen === 'add') {
     return (
       <div className="m-content">
-        <div className="m-h">
-          <div>
+
+        {/* Back nav */}
+        <button
+          type="button"
+          onClick={backToList}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 22, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', padding: 0 }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Back to staff
+        </button>
+
+        <div style={{ marginBottom: 28 }}>
+          <h2 style={{ fontSize: 'clamp(18px,2vw,22px)', fontWeight: 600, letterSpacing: '-.02em' }}>Add team member</h2>
+          <p style={{ color: 'var(--muted)', fontSize: 13.5, marginTop: 5, lineHeight: 1.5 }}>
+            Find someone already on the platform, or invite a new member by email.
+          </p>
+        </div>
+
+        {/* Pill tab toggle */}
+        <div style={{
+          display: 'inline-flex', background: 'var(--bg)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: 4, gap: 4, marginBottom: 28,
+        }} role="tablist">
+          {([
+            { key: 'search', label: 'Search existing', icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            )},
+            { key: 'new', label: 'Invite by email', icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            )},
+          ] as const).map(t => (
             <button
+              key={t.key}
+              role="tab"
+              aria-selected={addTab === t.key}
               type="button"
-              className="btn"
-              onClick={backToList}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 10, textDecoration: 'none' }}
+              onClick={() => { setAddTab(t.key as AddTab); setError('') }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7,
+                padding: '8px 18px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500,
+                transition: 'all .15s',
+                background: addTab === t.key ? 'var(--accent)' : 'transparent',
+                color: addTab === t.key ? '#fff' : 'var(--muted)',
+              }}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-              Back to staff
+              {t.icon}
+              {t.label}
             </button>
-            <h2>Add team member</h2>
-            <div className="sub">Find an existing user or invite someone new.</div>
-          </div>
+          ))}
         </div>
 
-        {/* Tab bar */}
-        <div className="stab-bar" style={{ marginBottom: 28 }}>
-          <button className={`stab-btn${addTab === 'search' ? ' active' : ''}`} onClick={() => { setAddTab('search'); setError('') }}>
-            Search existing surgeons
-          </button>
-          <button className={`stab-btn${addTab === 'new' ? ' active' : ''}`} onClick={() => { setAddTab('new'); setError('') }}>
-            Invite new member
-          </button>
-        </div>
-
-        <div style={{ maxWidth: 540 }}>
+        <div style={{ maxWidth: 560 }}>
 
           {/* ── Search tab ── */}
           {addTab === 'search' && (
-            <div>
-              <p style={{ color: 'var(--muted)', fontSize: 13.5, marginBottom: 18, lineHeight: 1.5 }}>
-                Find a surgeon already on the platform and add them to your clinic instantly.
-              </p>
-              <div className="field" style={{ marginBottom: 14 }}>
-                <label>Search by name or email</label>
-                <input
-                  className="input"
-                  type="text"
-                  placeholder="e.g. Dr Sarah Jones or sarah@hospital.com"
-                  value={searchQuery}
-                  onChange={e => { setSearchQuery(e.target.value); setSelectedUserId(null) }}
-                  autoFocus
-                />
+            <div className="table" style={{ borderRadius: 16 }}>
+              <div style={{ padding: '22px 24px 18px' }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, marginBottom: 4 }}>
+                  Find a surgeon on the platform
+                </div>
+                <div style={{ color: 'var(--muted)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 20 }}>
+                  Search by name or email — they&apos;ll be added to your clinic instantly with no invitation needed.
+                </div>
+                <div className="field" style={{ marginBottom: 0 }}>
+                  <label>Search by name or email</label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="e.g. Dr Sarah Jones or sarah@hospital.com"
+                    value={searchQuery}
+                    onChange={e => { setSearchQuery(e.target.value); setSelectedUserId(null) }}
+                    autoFocus
+                  />
+                </div>
               </div>
 
+              {/* Search results */}
               {searchResults && searchResults.length > 0 && (
-                <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+                <div style={{ borderTop: '1px solid var(--border)' }}>
                   {searchResults.map(r => (
                     <button
                       key={r.userId}
                       type="button"
                       onClick={() => { setSelectedUserId(r.userId); setSelectedName(r.name) }}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                        padding: '12px 16px', border: 'none', borderBottom: '1px solid var(--border)',
-                        cursor: 'pointer', textAlign: 'left',
+                        display: 'flex', alignItems: 'center', gap: 14, width: '100%',
+                        padding: '13px 24px', border: 'none', borderBottom: '1px solid var(--border)',
+                        cursor: 'pointer', textAlign: 'left', transition: 'background .1s',
                         background: selectedUserId === r.userId
                           ? 'color-mix(in srgb,var(--accent) 8%,transparent)'
-                          : 'var(--bg)',
+                          : 'var(--bg2)',
                       }}
                     >
                       <div className="staff-av" style={{
@@ -154,13 +186,17 @@ export default function StaffClient() {
                       }}>
                         {r.name.slice(0, 2).toUpperCase()}
                       </div>
-                      <div>
+                      <div style={{ flex: 1 }}>
                         <div className="staff-name">{r.name}</div>
                         <div className="staff-meta">{r.email}</div>
                       </div>
-                      {selectedUserId === r.userId && (
-                        <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" aria-hidden="true">
+                      {selectedUserId === r.userId ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" aria-hidden="true">
                           <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.8" aria-hidden="true">
+                          <path d="M9 18l6-6-6-6"/>
                         </svg>
                       )}
                     </button>
@@ -169,14 +205,15 @@ export default function StaffClient() {
               )}
 
               {searchResults && searchResults.length === 0 && searchQuery.trim() && (
-                <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-                  No surgeons found matching that query.
-                </p>
+                <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)', color: 'var(--muted)', fontSize: 13.5 }}>
+                  No surgeons found for &ldquo;{searchQuery}&rdquo;.
+                </div>
               )}
 
-              {error && <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginBottom: 14 }}>{error}</div>}
-
-              <div style={{ display: 'flex', gap: 10 }}>
+              {/* Actions */}
+              <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'center' }}>
+                {error && <div style={{ flex: 1, color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13 }}>{error}</div>}
+                {!error && <div style={{ flex: 1 }} />}
                 <button className="btn" onClick={backToList} disabled={submitting}>Cancel</button>
                 <button
                   className="btn btn-s"
@@ -192,54 +229,76 @@ export default function StaffClient() {
           {/* ── New invite tab ── */}
           {addTab === 'new' && (
             <form onSubmit={handleInviteNew}>
-              <p style={{ color: 'var(--muted)', fontSize: 13.5, marginBottom: 18, lineHeight: 1.5 }}>
-                They&apos;ll receive an email with a sign-in link. Their account is created automatically.
-              </p>
+              <div className="table" style={{ borderRadius: 16 }}>
+                <div style={{ padding: '22px 24px 6px' }}>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 500, marginBottom: 4 }}>
+                    Invite by email
+                  </div>
+                  <div style={{ color: 'var(--muted)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 22 }}>
+                    They&apos;ll receive a sign-in link by email. Their account is created automatically — no password needed.
+                  </div>
 
-              <div className="field" style={{ marginBottom: 14 }}>
-                <label>Full name <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
-                <input
-                  className="input" type="text" placeholder="e.g. Dr Sarah Jones"
-                  value={inviteName} onChange={e => setInviteName(e.target.value)} autoFocus
-                />
-              </div>
-              <div className="field" style={{ marginBottom: 14 }}>
-                <label>Email address <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
-                <input
-                  className="input" type="email" placeholder="e.g. sarah@clinic.com"
-                  value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
-                />
-              </div>
-              <div className="field" style={{ marginBottom: 20 }}>
-                <label>Role</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {(['radiographer', 'surgeon', 'admin'] as const).map(r => (
-                    <button
-                      key={r} type="button"
-                      className={inviteRole === r ? 'btn btn-s' : 'btn'}
-                      style={{ flex: 1, fontSize: 13 }}
-                      onClick={() => setInviteRole(r)}
-                      aria-pressed={inviteRole === r}
-                    >
-                      {JOB_LABELS[r]}
-                    </button>
-                  ))}
+                  <div className="field" style={{ marginBottom: 14 }}>
+                    <label>Full name <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+                    <input
+                      className="input" type="text" placeholder="e.g. Dr Sarah Jones"
+                      value={inviteName} onChange={e => setInviteName(e.target.value)} autoFocus
+                    />
+                  </div>
+                  <div className="field" style={{ marginBottom: 14 }}>
+                    <label>Email address <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+                    <input
+                      className="input" type="email" placeholder="e.g. sarah@clinic.com"
+                      value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="field" style={{ marginBottom: 10 }}>
+                    <label>Role</label>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {(['radiographer', 'surgeon', 'admin'] as const).map(r => (
+                        <button
+                          key={r} type="button"
+                          className={inviteRole === r ? 'btn btn-s' : 'btn'}
+                          style={{ flex: 1, fontSize: 13, justifyContent: 'center' }}
+                          onClick={() => setInviteRole(r)}
+                          aria-pressed={inviteRole === r}
+                        >
+                          {JOB_LABELS[r]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ minHeight: 44, paddingBottom: 6 }}>
+                    {inviteRole === 'surgeon' && (
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'color-mix(in srgb,#f59e0b 8%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 22%,transparent)', borderRadius: 10, padding: '10px 14px' }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.8" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                        <p style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: '#b45309', lineHeight: 1.5, margin: 0 }}>
+                          Surgeons get their own Surgeon Portal with a dedicated dashboard.
+                        </p>
+                      </div>
+                    )}
+                    {inviteRole === 'admin' && (
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 18%,transparent)', borderRadius: 10, padding: '10px 14px' }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent-deep)" strokeWidth="1.8" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <p style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--accent-deep)', lineHeight: 1.5, margin: 0 }}>
+                          Admins have full access to billing, settings, and team management.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {inviteRole === 'surgeon' && (
-                <p style={{ fontFamily: 'var(--ff)', fontSize: 12, color: '#b45309', marginBottom: 14, background: 'color-mix(in srgb,#f59e0b 8%,transparent)', borderRadius: 8, padding: '8px 12px' }}>
-                  Surgeons get their own Surgeon Portal with a dedicated dashboard.
-                </p>
-              )}
-
-              {error && <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginBottom: 14 }}>{error}</div>}
-
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn" type="button" onClick={backToList} disabled={submitting}>Cancel</button>
-                <button className="btn btn-s" type="submit" disabled={submitting}>
-                  {submitting ? 'Sending…' : 'Send invite'}
-                </button>
+                {/* Actions */}
+                <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'center' }}>
+                  {error && <div style={{ flex: 1, color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13 }}>{error}</div>}
+                  {!error && <div style={{ flex: 1 }} />}
+                  <button className="btn" type="button" onClick={backToList} disabled={submitting}>Cancel</button>
+                  <button className="btn btn-s" type="submit" disabled={submitting}>
+                    {submitting ? 'Sending…' : 'Send invite'}
+                  </button>
+                </div>
               </div>
             </form>
           )}

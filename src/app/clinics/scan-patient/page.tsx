@@ -1,3 +1,4 @@
+import './page.css'
 import { Suspense }        from 'react'
 import ScanPatientClient   from './ScanPatientClient'
 import type { Metadata }   from 'next'

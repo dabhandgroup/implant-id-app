@@ -39,7 +39,7 @@ export default function ClinicDashboardClient() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     const q = query.trim()
-    if (q) router.push(`/clinics/all-patients?q=${encodeURIComponent(q)}`)
+    if (q) router.push(`/clinics/library?q=${encodeURIComponent(q)}`)
   }
 
   return (

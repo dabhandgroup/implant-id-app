@@ -1,72 +1,106 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
-import { useQuery, useMutation }        from 'convex/react'
-import { useSearchParams }              from 'next/navigation'
-import { api as apiBase }              from '../../../../convex/_generated/api'
+
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useQuery, useMutation }                     from 'convex/react'
+import { useSearchParams }                           from 'next/navigation'
+import { api as apiBase }                           from '../../../../convex/_generated/api'
 const api = apiBase as any
 
-// ── MRI badge colours ──────────────────────────────────────────────────────────
+type Tab = 'scan' | 'model' | 'manual'
 
-const MRI_META: Record<string, { label: string; color: string; bg: string }> = {
-  safe:        { label: 'MR Safe',        color: 'var(--ok)',   bg: 'color-mix(in srgb,var(--ok) 10%,transparent)' },
-  conditional: { label: 'MR Conditional', color: '#b45309',     bg: 'color-mix(in srgb,#f59e0b 12%,transparent)'  },
-  unsafe:      { label: 'MR Unsafe',      color: 'var(--err)',  bg: 'color-mix(in srgb,var(--err) 10%,transparent)' },
-  unknown:     { label: 'Unknown',        color: 'var(--muted)', bg: 'color-mix(in srgb,var(--muted) 10%,transparent)' },
+const MRI_META: Record<string, { label: string; cls: string }> = {
+  safe:        { label: 'MR Safe',        cls: 'mri-safe'        },
+  conditional: { label: 'MR Conditional', cls: 'mri-conditional' },
+  unsafe:      { label: 'MR Unsafe',      cls: 'mri-unsafe'      },
 }
-
-// ── Parameter row helper ───────────────────────────────────────────────────────
 
 function ParamRow({ label, value }: { label: string; value: string | undefined | null }) {
   if (!value) return null
   return (
-    <div style={{ display: 'contents' }}>
-      <div style={{ color: 'var(--muted)', fontSize: 12.5, fontFamily: 'var(--ff)', padding: '4px 0' }}>{label}</div>
-      <div style={{ color: 'var(--text)',  fontSize: 12.5, fontFamily: 'var(--ff)', padding: '4px 0', fontWeight: 500 }}>{value}</div>
-    </div>
+    <>
+      <div className="rf-label">{label}</div>
+      <div className="rf-val">{value}</div>
+    </>
   )
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
-
 export default function ScanPatientClient() {
-  const searchParams  = useSearchParams()
-  const [inputCode,   setInputCode]   = useState(searchParams?.get('code') ?? '')
-  const [searchCode,  setSearchCode]  = useState(searchParams?.get('code') ?? '')
+  const searchParams = useSearchParams()
+
+  // ── All hooks at top ──────────────────────────────────────────────────────
+  const [tab,              setTab]              = useState<Tab>('scan')
+  const [inputCode,        setInputCode]        = useState(searchParams?.get('code') ?? '')
+  const [searchCode,       setSearchCode]       = useState(searchParams?.get('code') ?? '')
+  const [modelQuery,       setModelQuery]       = useState('')
   const [expandedDeviceId, setExpandedDeviceId] = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [cameraActive,     setCameraActive]     = useState(false)
+  const [cameraError,      setCameraError]      = useState('')
+  const [toast,            setToast]            = useState('')
+  const [toastVisible,     setToastVisible]     = useState(false)
 
-  // ── Queries & mutations ───────────────────────────────────────────────────────
+  const videoRef  = useRef<HTMLVideoElement>(null)
+  const streamRef = useRef<MediaStream | null>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
 
-  const result        = useQuery(api.patients.getPatientByCode, searchCode ? { code: searchCode } : 'skip')
-  const deviceLinks   = useQuery(
-    api.patients.getPatientDeviceLinks,
-    result?._id ? { patientId: result._id } : 'skip'
-  )
-  const deviceDetail  = useQuery(
-    api.devices.getDeviceById,
-    expandedDeviceId ? { id: expandedDeviceId } : 'skip'
-  )
-  const recordLookup  = useMutation(api.patients.recordPatientLookup)
-
-  // ── Record lookup audit when result first appears ─────────────────────────────
+  const result       = useQuery(api.patients.getPatientByCode,   searchCode ? { code: searchCode } : 'skip')
+  const deviceLinks  = useQuery(api.patients.getPatientDeviceLinks, result?._id ? { patientId: result._id } : 'skip')
+  const deviceDetail = useQuery(api.devices.getDeviceById,       expandedDeviceId ? { id: expandedDeviceId } : 'skip')
+  const recordLookup = useMutation(api.patients.recordPatientLookup)
 
   useEffect(() => {
-    if (result && result._id && searchCode) {
+    if (result?._id && searchCode) {
       recordLookup({ patientId: result._id, clinicName: undefined }).catch(() => {})
     }
   }, [result?._id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Handlers ──────────────────────────────────────────────────────────────────
+  // Stop camera when switching away from scan tab
+  useEffect(() => {
+    if (tab !== 'scan') stopCamera()
+  }, [tab])
 
-  function handleSearch() {
+  // Cleanup camera on unmount
+  useEffect(() => () => stopCamera(), [])
+
+  const startCamera = useCallback(async () => {
+    setCameraError('')
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      })
+      streamRef.current = stream
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        await videoRef.current.play()
+      }
+      setCameraActive(true)
+    } catch {
+      setCameraError('Camera permission denied. Use "Manual entry" or "By model #" instead.')
+    }
+  }, [])
+
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
+    setCameraActive(false)
+    if (videoRef.current) videoRef.current.srcObject = null
+  }
+
+  function showToast(msg: string) {
+    setToast(msg)
+    setToastVisible(true)
+    setTimeout(() => setToastVisible(false), 2500)
+  }
+
+  function handleManualSearch() {
     const cleaned = inputCode.trim().toUpperCase()
     if (!cleaned) return
     setSearchCode(cleaned)
     setExpandedDeviceId(null)
+    setTab('manual')
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') handleSearch()
+    if (e.key === 'Enter') handleManualSearch()
   }
 
   function handleClear() {
@@ -76,373 +110,436 @@ export default function ScanPatientClient() {
     inputRef.current?.focus()
   }
 
-  // ── Derived state ─────────────────────────────────────────────────────────────
+  // If page loaded with ?code=, jump straight to manual tab and search
+  useEffect(() => {
+    if (searchParams?.get('code')) setTab('manual')
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isLoading   = searchCode && result === undefined
-  const notFound    = searchCode && result === null
-  const found       = result !== null && result !== undefined
-  const mriMeta     = found ? (MRI_META[result.verificationStatus === 'active' ? 'conditional' : 'unknown'] ?? MRI_META.unknown) : null
+  const isLoading = !!(searchCode && result === undefined)
+  const notFound  = !!(searchCode && result === null)
+  const found     = result !== null && result !== undefined
+  const mriKey    = found ? (result.mriStatus ?? (result.verificationStatus === 'active' ? 'conditional' : 'unknown')) : null
+  const mriMeta   = mriKey && MRI_META[mriKey] ? MRI_META[mriKey] : null
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
+    {
+      key: 'scan',
+      label: 'Scan card',
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M8 15h2" />
+        </svg>
+      ),
+    },
+    {
+      key: 'model',
+      label: 'By model #',
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+        </svg>
+      ),
+    },
+    {
+      key: 'manual',
+      label: 'Manual entry',
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+          <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+        </svg>
+      ),
+    },
+  ]
 
   return (
-    <div className="m-content">
-      {/* ── Header ── */}
-      <div className="m-h" style={{ marginBottom: 24 }}>
-        <div>
-          <h2>Look up patient</h2>
-          <div className="sub">Enter an Implant ID code to retrieve MRI safety information.</div>
-        </div>
-      </div>
+    <div className="m-content scan-page">
 
-      {/* ── Tier badge ── */}
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: 'color-mix(in srgb,var(--accent) 8%,transparent)',
-        border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)',
-        borderRadius: 8, padding: '6px 14px',
-        fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 500,
-        color: 'var(--accent)', marginBottom: 24,
-      }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        </svg>
-        Tier 1 lookup — MRI safety only, no consent required
-      </div>
+      {/* ── Eyebrow + heading ── */}
+      <div className="ey" style={{ marginBottom: 10 }}>Look up an implant</div>
+      <h2 style={{ fontSize: 'clamp(20px,2vw,26px)', letterSpacing: '-.025em', maxWidth: 580, lineHeight: 1.2 }}>
+        Scan the card, type the model number,<br />or point the camera at the unit.
+      </h2>
+      <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 8, marginBottom: 28, lineHeight: 1.5 }}>
+        Three ways to find an implant in the library. All pull the same full MRI safety profile and manufacturer manual.
+      </p>
 
-      {/* ── Search ── */}
-      <div style={{
-        background: 'var(--bg2)',
-        border: '1px solid var(--border)',
-        borderRadius: 14,
-        padding: '24px',
-        marginBottom: 24,
-        maxWidth: 560,
-      }}>
-        <label
-          htmlFor="patient-code"
-          style={{ display: 'block', fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 500, color: 'var(--muted)', marginBottom: 8, letterSpacing: '.2px' }}
-        >
-          Patient Implant ID or scan code
-        </label>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <input
-              ref={inputRef}
-              id="patient-code"
-              type="text"
-              className="input"
-              placeholder="e.g. IID-SMIJO2311XK"
-              value={inputCode}
-              onChange={(e) => setInputCode(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'SF Mono,Monaco,monospace', letterSpacing: '.04em' }}
-              aria-label="Patient Implant ID code"
-            />
-            {inputCode && (
-              <button
-                type="button"
-                onClick={handleClear}
-                aria-label="Clear"
-                style={{
-                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--muted2)', padding: 0, lineHeight: 1,
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            )}
-          </div>
+      {/* ── Tab bar ── */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 24, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: 4, width: 'fit-content' }}>
+        {TABS.map(t => (
           <button
-            type="button"
-            className="btn btn-s"
-            onClick={handleSearch}
-            disabled={!inputCode.trim()}
-            aria-label="Look up patient"
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            aria-selected={tab === t.key}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              background: tab === t.key ? 'var(--text)' : 'transparent',
+              color: tab === t.key ? 'var(--bg)' : 'var(--muted)',
+              border: 'none', borderRadius: 8, padding: '8px 16px',
+              fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500,
+              cursor: 'pointer', transition: 'all .15s', whiteSpace: 'nowrap',
+            }}
           >
-            Look up
+            {t.icon}{t.label}
           </button>
-        </div>
-        <p style={{ margin: '8px 0 0', fontSize: 12.5, color: 'var(--muted2)', fontFamily: 'var(--ff)' }}>
-          Enter the code from the patient&rsquo;s card, e-mail, or Apple Wallet pass.
-        </p>
+        ))}
       </div>
 
-      {/* ── Loading ── */}
-      {isLoading && (
-        <div style={{ color: 'var(--muted)', fontSize: 14, fontFamily: 'var(--ff)', padding: '8px 0' }}>
-          Looking up record…
-        </div>
-      )}
+      <div className="scan-layout">
 
-      {/* ── Not found ── */}
-      {notFound && (
-        <div style={{
-          background: 'color-mix(in srgb,var(--err) 6%,transparent)',
-          border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)',
-          borderRadius: 12,
-          padding: '20px 24px',
-          maxWidth: 560,
-          display: 'flex', alignItems: 'flex-start', gap: 14,
-        }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
-            <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
-          </svg>
-          <div>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--err)', marginBottom: 4 }}>
-              No record found
-            </div>
-            <div style={{ fontSize: 13.5, color: 'var(--muted)' }}>
-              No patient was found with code <strong style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{searchCode}</strong>.
-              Check the code and try again.
-            </div>
-          </div>
-        </div>
-      )}
+        {/* ── Left panel: camera / model search / manual ── */}
+        <div className="scan-panel">
 
-      {/* ── Result card ── */}
-      {found && mriMeta && (
-        <div style={{
-          background: 'var(--bg2)',
-          border: '1px solid var(--border)',
-          borderRadius: 16,
-          padding: '28px',
-          maxWidth: 560,
-        }}>
-          {/* Found badge */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'color-mix(in srgb,var(--ok) 10%,transparent)',
-            border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)',
-            borderRadius: 8, padding: '5px 12px',
-            fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600,
-            color: 'var(--ok)', marginBottom: 20,
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-              <path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/>
-            </svg>
-            Patient record found
-          </div>
-
-          {/* MRI status */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            background: mriMeta.bg,
-            border: `1px solid color-mix(in srgb,${mriMeta.color} 22%,transparent)`,
-            borderRadius: 10, padding: '10px 16px',
-            marginBottom: 24,
-          }}>
-            {(result.mriStatus === 'safe' || result.mriStatus === 'conditional' || result.mriStatus === 'unsafe')
-              ? <img src={`/mr-${result.mriStatus}.svg`} alt="" aria-hidden="true" style={{ width:28, height:28, display:'block', flexShrink:0 }} />
-              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={mriMeta.color} strokeWidth="1.7" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            }
-            <span style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 700, color: mriMeta.color }}>
-              {mriMeta.label}
-            </span>
-          </div>
-
-          {/* Patient fields */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '10px 24px', marginBottom: 24 }}>
-            <div style={{ color: 'var(--muted)', fontSize: 12.5, fontFamily: 'var(--ff)' }}>Implant ID</div>
-            <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
-              {result.implantIdCode}
-            </div>
-
-            <div style={{ color: 'var(--muted)', fontSize: 12.5, fontFamily: 'var(--ff)' }}>Name</div>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, color: 'var(--text)' }}>
-              {result.firstName} {result.lastName}
-            </div>
-
-            {result.selfReportedDevice && (
-              <>
-                <div style={{ color: 'var(--muted)', fontSize: 12.5, fontFamily: 'var(--ff)' }}>Device</div>
-                <div style={{ fontSize: 13.5, color: 'var(--text)' }}>{result.selfReportedDevice}</div>
-              </>
-            )}
-
-            {result.selfReportedManufacturer && (
-              <>
-                <div style={{ color: 'var(--muted)', fontSize: 12.5, fontFamily: 'var(--ff)' }}>Manufacturer</div>
-                <div style={{ fontSize: 13.5, color: 'var(--text)' }}>{result.selfReportedManufacturer}</div>
-              </>
-            )}
-
-            {result.selfReportedModelNumber && (
-              <>
-                <div style={{ color: 'var(--muted)', fontSize: 12.5, fontFamily: 'var(--ff)' }}>Model</div>
-                <div style={{ fontSize: 13.5, color: 'var(--text)' }}>{result.selfReportedModelNumber}</div>
-              </>
-            )}
-
-            <div style={{ color: 'var(--muted)', fontSize: 12.5, fontFamily: 'var(--ff)' }}>Record status</div>
-            <div>
-              <span style={{
-                fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600,
-                padding: '2px 8px', borderRadius: 5,
-                background: result.verificationStatus === 'active'
-                  ? 'color-mix(in srgb,var(--ok) 10%,transparent)'
-                  : 'color-mix(in srgb,#f59e0b 10%,transparent)',
-                color: result.verificationStatus === 'active' ? 'var(--ok)' : '#92400e',
-                border: result.verificationStatus === 'active'
-                  ? '1px solid color-mix(in srgb,var(--ok) 25%,transparent)'
-                  : '1px solid color-mix(in srgb,#f59e0b 25%,transparent)',
-              }}>
-                {result.verificationStatus === 'active' ? 'Verified' : 'Pending verification'}
-              </span>
-            </div>
-          </div>
-
-          {/* Verified device records with expandable parameters */}
-          {deviceLinks && deviceLinks.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: 'var(--muted)', letterSpacing: '.3px', textTransform: 'uppercase', marginBottom: 10 }}>
-                Verified devices
+          {/* SCAN TAB */}
+          {tab === 'scan' && (
+            <>
+              <div className="scan-panel-title">Scan patient card</div>
+              <div className="scan-panel-sub">
+                Point the camera at the QR code or barcode on the patient&apos;s implant card or wallet pass.
               </div>
-              {deviceLinks.map((d: any) => {
-                const isExpanded = expandedDeviceId === d.deviceId
-                return (
-                  <div
-                    key={d._id}
-                    style={{
-                      border: '1px solid var(--border)',
-                      borderRadius: 10,
-                      overflow: 'hidden',
-                      marginBottom: 8,
-                    }}
-                  >
-                    {/* Device header row */}
-                    <div style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      background: 'var(--bg)',
-                    }}>
-                      <div>
-                        <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, color: 'var(--text)' }}>
-                          {d.deviceName ?? d.deviceType ?? 'Device'}
-                        </div>
-                        {d.serialNumber && (
-                          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                            S/N: {d.serialNumber}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setExpandedDeviceId(isExpanded ? null : d.deviceId)}
-                        aria-expanded={isExpanded}
-                        style={{
-                          background: 'transparent',
-                          border: '1px solid var(--border)',
-                          borderRadius: 6,
-                          cursor: 'pointer',
-                          color: 'var(--muted)',
-                          fontFamily: 'var(--ff)',
-                          fontSize: 11.5,
-                          fontWeight: 500,
-                          padding: '4px 10px',
-                          transition: 'all .12s',
-                        }}
-                      >
-                        {isExpanded ? 'Hide parameters' : 'View parameters'}
-                      </button>
-                    </div>
 
-                    {/* Expandable parameters panel */}
-                    {isExpanded && (
-                      <div style={{
-                        borderTop: '1px solid var(--border)',
-                        padding: '16px',
-                        background: 'var(--bg2)',
-                      }}>
-                        {deviceDetail === undefined ? (
-                          <div style={{ color: 'var(--muted)', fontSize: 13, fontFamily: 'var(--ff)' }}>
-                            Loading parameters…
-                          </div>
-                        ) : deviceDetail === null ? (
-                          <div style={{ color: 'var(--muted)', fontSize: 13, fontFamily: 'var(--ff)' }}>
-                            Parameters not available.
-                          </div>
-                        ) : (
-                          <>
-                            {deviceDetail.mriStatus === 'conditional' && (
-                              <div style={{
-                                display: 'flex', alignItems: 'flex-start', gap: 10,
-                                background: 'color-mix(in srgb,#f59e0b 8%,transparent)',
-                                border: '1px solid color-mix(in srgb,#f59e0b 22%,transparent)',
-                                borderRadius: 8, padding: '10px 14px', marginBottom: 14,
-                              }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
-                                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/>
-                                </svg>
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: '#92400e', fontWeight: 500 }}>
-                                  MR Conditional — all scan conditions below MUST be met before scanning.
-                                </span>
-                              </div>
-                            )}
-
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px', marginBottom: 14 }}>
-                              <ParamRow label="Field strengths"   value={deviceDetail.fieldStrengths} />
-                              <ParamRow label="SAR limit"         value={deviceDetail.sarLimit} />
-                              <ParamRow label="B1+rms limit"      value={deviceDetail.b1RmsLimit} />
-                              <ParamRow label="Slew rate limit"   value={deviceDetail.slewRateLimit} />
-                              <ParamRow label="Gradient limit"    value={deviceDetail.gradientLimit} />
-                              <ParamRow label="Max scan time"     value={deviceDetail.maxScanTime} />
-                            </div>
-
-                            {deviceDetail.contraindications && (
-                              <div style={{ marginBottom: 12 }}>
-                                <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: 'var(--muted)', marginBottom: 4 }}>
-                                  Contraindications
-                                </div>
-                                <div style={{ fontSize: 12.5, color: 'var(--text)', lineHeight: 1.5 }}>
-                                  {deviceDetail.contraindications}
-                                </div>
-                              </div>
-                            )}
-
-                            <div style={{
-                              display: 'flex', alignItems: 'center', gap: 8,
-                              background: 'color-mix(in srgb,var(--muted) 6%,transparent)',
-                              borderRadius: 8, padding: '8px 12px',
-                            }}>
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.7" aria-hidden="true">
-                                <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
-                              </svg>
-                              <span style={{ fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--muted)' }}>
-                                Always consult the device IFU — these parameters are for reference only.
-                              </span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
+              {/* Viewfinder */}
+              <div className={`viewfinder${cameraActive ? ' scanning' : ''}`}>
+                {cameraActive ? (
+                  <>
+                    <video ref={videoRef} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline aria-label="Camera feed" />
+                    <div className="vf-scan-line" aria-hidden="true" />
+                  </>
+                ) : (
+                  <div className="vf-idle">
+                    <svg className="vf-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+                      <rect x="3" y="5" width="18" height="14" rx="2" />
+                      <path d="M3 10h18M8 15h2" />
+                    </svg>
+                    <p>Tap &ldquo;Start camera&rdquo; to scan the card</p>
                   </div>
-                )
-              })}
+                )}
+              </div>
+
+              {cameraError && (
+                <div style={{ marginBottom: 14, padding: '10px 14px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)' }}>
+                  {cameraError}
+                </div>
+              )}
+
+              {!cameraActive ? (
+                <button className="btn btn-s btn-block scan-start-btn" onClick={startCamera}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3" />
+                  </svg>
+                  Start camera
+                </button>
+              ) : (
+                <button className="btn btn-block scan-start-btn" onClick={stopCamera}>
+                  Stop camera
+                </button>
+              )}
+
+              <div className="scan-or">or enter manually below</div>
+              <div className="manual-lookup">
+                <div className="lookup-input-row">
+                  <input
+                    type="text"
+                    className="input lookup-input"
+                    placeholder="e.g. IID-SMIJO2311XK"
+                    value={inputCode}
+                    onChange={e => setInputCode(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    aria-label="Implant ID code"
+                  />
+                  <button className="btn btn-s lookup-btn" onClick={handleManualSearch} disabled={!inputCode.trim()}>
+                    Look up
+                  </button>
+                </div>
+                <div className="lookup-hint">Enter the code from the patient&rsquo;s card, e-mail, or Apple Wallet pass.</div>
+              </div>
+            </>
+          )}
+
+          {/* MODEL # TAB */}
+          {tab === 'model' && (
+            <>
+              <div className="scan-panel-title">Search by model number</div>
+              <div className="scan-panel-sub">
+                Type the device model number to find MRI safety information directly from the implant library.
+              </div>
+              <div className="manual-lookup">
+                <div className="lookup-input-row">
+                  <input
+                    type="text"
+                    className="input lookup-input"
+                    placeholder="e.g. W1DR01, 5086MRI…"
+                    value={modelQuery}
+                    onChange={e => setModelQuery(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && modelQuery.trim()) window.location.href = `/clinics/library?q=${encodeURIComponent(modelQuery.trim())}` }}
+                    aria-label="Device model number"
+                    autoFocus
+                  />
+                  <button
+                    className="btn btn-s lookup-btn"
+                    disabled={!modelQuery.trim()}
+                    onClick={() => { if (modelQuery.trim()) window.location.href = `/clinics/library?q=${encodeURIComponent(modelQuery.trim())}` }}
+                  >
+                    Search
+                  </button>
+                </div>
+                <div className="lookup-hint">Searches device names, model numbers, and manufacturers in the library.</div>
+              </div>
+              <div style={{ marginTop: 24 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Quick access</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {['Pacemaker', 'ICD', 'Cochlear Implant', 'Neurostimulator', 'Stent'].map(t => (
+                    <a
+                      key={t}
+                      href={`/clinics/library?q=${encodeURIComponent(t)}`}
+                      className="btn"
+                      style={{ fontSize: 12.5, textDecoration: 'none' }}
+                    >
+                      {t}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* MANUAL TAB */}
+          {tab === 'manual' && (
+            <>
+              <div className="scan-panel-title">Look up patient record</div>
+              <div className="scan-panel-sub">
+                Enter the patient&apos;s Implant ID code to retrieve their MRI safety information.
+              </div>
+
+              {/* Tier badge */}
+              <div className="scan-tier-badge" style={{ marginBottom: 20 }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Tier 1 lookup — MRI safety only, no consent required
+              </div>
+
+              <div className="manual-lookup">
+                <div className="lookup-input-row">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    className="input lookup-input"
+                    placeholder="e.g. IID-SMIJO2311XK"
+                    value={inputCode}
+                    onChange={e => setInputCode(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    style={{ fontFamily: 'SF Mono,Monaco,monospace', letterSpacing: '.04em' }}
+                    aria-label="Patient Implant ID code"
+                  />
+                  <button className="btn btn-s lookup-btn" onClick={handleManualSearch} disabled={!inputCode.trim()}>
+                    Look up
+                  </button>
+                </div>
+                {inputCode && (
+                  <button onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 12.5, padding: 0, marginTop: 4 }}>
+                    Clear
+                  </button>
+                )}
+                <div className="lookup-hint" style={{ marginTop: 8 }}>Enter the code from the patient&rsquo;s card, e-mail, or Apple Wallet pass.</div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* ── Right panel: result ── */}
+        <div className="scan-panel">
+          <div className="scan-panel-title">Patient record</div>
+          <div className="scan-panel-sub">
+            MRI safety information will appear here after a successful lookup.
+          </div>
+
+          {/* Loading */}
+          {isLoading && (
+            <div style={{ color: 'var(--muted)', fontSize: 14, fontFamily: 'var(--ff)', padding: '8px 0' }}>
+              Looking up record…
             </div>
           )}
 
-          {/* Tier 1 note */}
-          <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 10,
-            background: 'color-mix(in srgb,var(--muted) 5%,transparent)',
-            borderRadius: 10, padding: '12px 16px',
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
-              <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
-            </svg>
-            <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>
-              Tier 1 lookup — MRI safety information only. To view the full patient record, request access.
-            </span>
-          </div>
+          {/* Not found */}
+          {notFound && (
+            <div style={{
+              display: 'flex', alignItems: 'flex-start', gap: 14,
+              background: 'color-mix(in srgb,var(--err) 6%,transparent)',
+              border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)',
+              borderRadius: 12, padding: '16px 18px',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
+                <circle cx="12" cy="12" r="9" /><path d="M12 8v4M12 16h.01" />
+              </svg>
+              <div>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--err)', marginBottom: 4 }}>
+                  No record found
+                </div>
+                <div style={{ fontSize: 13.5, color: 'var(--muted)' }}>
+                  No patient found for code <strong style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{searchCode}</strong>. Check the code and try again.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!isLoading && !notFound && !found && (
+            <div className="lookup-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">
+                <circle cx="12" cy="7" r="4" />
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              </svg>
+              <span>Scan or enter a patient code to view their MRI safety information.</span>
+            </div>
+          )}
+
+          {/* Result */}
+          {found && (
+            <div className="lookup-result">
+
+              {/* Found badge */}
+              <div className="result-found-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                  <path d="m9 12 2 2 4-4" /><circle cx="12" cy="12" r="9" />
+                </svg>
+                Patient record found
+              </div>
+
+              {/* MRI status */}
+              {mriMeta && (
+                <div className={`result-mri-badge ${mriMeta.cls}`}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    {mriKey !== 'unsafe' && <path d="m9 12 2 2 4-4" />}
+                    {mriKey === 'unsafe' && <path d="M18 6 6 18M6 6l12 12" />}
+                  </svg>
+                  {mriMeta.label}
+                </div>
+              )}
+
+              {/* Fields */}
+              <div className="result-fields">
+                <div className="result-field">
+                  <div className="rf-label">Implant ID</div>
+                  <div className="rf-val" style={{ fontFamily: 'SF Mono,Monaco,monospace', fontWeight: 700, color: 'var(--accent)', fontSize: 13 }}>
+                    {result.implantIdCode}
+                  </div>
+                </div>
+                <div className="result-field">
+                  <div className="rf-label">Name</div>
+                  <div className="rf-val" style={{ fontWeight: 500 }}>{result.firstName} {result.lastName}</div>
+                </div>
+                {result.selfReportedDevice && (
+                  <div className="result-field">
+                    <div className="rf-label">Device</div>
+                    <div className="rf-val">{result.selfReportedDevice}</div>
+                  </div>
+                )}
+                {result.selfReportedManufacturer && (
+                  <div className="result-field">
+                    <div className="rf-label">Manufacturer</div>
+                    <div className="rf-val">{result.selfReportedManufacturer}</div>
+                  </div>
+                )}
+                <div className="result-field">
+                  <div className="rf-label">Status</div>
+                  <div className="rf-val">
+                    <span style={{
+                      fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600,
+                      padding: '2px 8px', borderRadius: 5,
+                      background: result.verificationStatus === 'active'
+                        ? 'color-mix(in srgb,var(--ok) 10%,transparent)'
+                        : 'color-mix(in srgb,#f59e0b 10%,transparent)',
+                      color: result.verificationStatus === 'active' ? 'var(--ok)' : '#92400e',
+                    }}>
+                      {result.verificationStatus === 'active' ? 'Verified' : 'Pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Verified devices */}
+              {deviceLinks && deviceLinks.length > 0 && (
+                <div>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, color: 'var(--muted)', letterSpacing: '.3px', textTransform: 'uppercase', marginBottom: 10 }}>
+                    Verified devices
+                  </div>
+                  {deviceLinks.map((d: any) => {
+                    const isExp = expandedDeviceId === d.deviceId
+                    return (
+                      <div key={d._id} style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg)' }}>
+                          <div>
+                            <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, color: 'var(--text)' }}>{d.deviceName ?? d.deviceType ?? 'Device'}</div>
+                            {d.serialNumber && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>S/N: {d.serialNumber}</div>}
+                          </div>
+                          <button
+                            onClick={() => setExpandedDeviceId(isExp ? null : d.deviceId)}
+                            aria-expanded={isExp}
+                            style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 500, padding: '4px 10px' }}
+                          >
+                            {isExp ? 'Hide' : 'Parameters'}
+                          </button>
+                        </div>
+                        {isExp && (
+                          <div style={{ borderTop: '1px solid var(--border)', padding: 16, background: 'var(--bg2)' }}>
+                            {deviceDetail === undefined ? (
+                              <div style={{ color: 'var(--muted)', fontSize: 13, fontFamily: 'var(--ff)' }}>Loading…</div>
+                            ) : deviceDetail === null ? (
+                              <div style={{ color: 'var(--muted)', fontSize: 13, fontFamily: 'var(--ff)' }}>Parameters not available.</div>
+                            ) : (
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 20px' }}>
+                                <ParamRow label="Field strengths"  value={deviceDetail.fieldStrengths} />
+                                <ParamRow label="SAR limit"        value={deviceDetail.sarLimit} />
+                                <ParamRow label="B1+rms limit"     value={deviceDetail.b1RmsLimit} />
+                                <ParamRow label="Slew rate limit"  value={deviceDetail.slewRateLimit} />
+                                <ParamRow label="Max scan time"    value={deviceDetail.maxScanTime} />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="result-actions">
+                <a href={`/clinics/patient-view?code=${result.implantIdCode}`} className="btn btn-s" style={{ textDecoration: 'none', textAlign: 'center' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  Full record
+                </a>
+                <button className="btn" onClick={() => { showToast('Copied to clipboard'); navigator.clipboard?.writeText(result.implantIdCode) }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  Copy ID
+                </button>
+              </div>
+
+              <div className="tier1-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
+                </svg>
+                Tier 1 lookup — MRI safety only. To view full patient record, tap &ldquo;Full record&rdquo; above.
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {/* Toast */}
+      <div className={`scan-toast${toastVisible ? ' show' : ''}`} role="status" aria-live="polite">
+        {toast}
+      </div>
     </div>
   )
 }

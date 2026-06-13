@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 // ── Serialised device type passed from server ─────────────────────────────
 
@@ -212,7 +213,8 @@ function DeviceRowIcon({ type }: { type: string }) {
 // ── Main component ────────────────────────────────────────────────────────
 
 export default function LibraryClient({ devices, userName, userInitials }: Props) {
-  const [query,      setQuery]      = useState('')
+  const searchParams = useSearchParams()
+  const [query,      setQuery]      = useState(searchParams?.get('q') ?? '')
   const [typeFilter, setTypeFilter] = useState('all')
   const [mfrFilter,  setMfrFilter]  = useState('all')
   const [view,       setView]       = useState<'grid' | 'list'>('grid')

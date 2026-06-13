@@ -248,43 +248,6 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
 
   return (
     <>
-      {/* Mobile header */}
-      <div className="mob-header">
-        <a href="/clinics/dashboard" className="mob-header-logo">
-          <img src="/icon.svg" alt="" />
-          <span className="logo-text"><b>Implant</b><span>ID</span></span>
-        </a>
-        <div className="mob-hdr-profile">
-          <button className="mob-hdr-av" aria-label="Profile menu">{userInitials}</button>
-          <div className="mob-hdr-menu">
-            <div className="mob-hdr-info">
-              <strong>{userName}</strong>
-              <span>Clinic staff</span>
-            </div>
-            <hr />
-            <a href="/clinics/settings">My account</a>
-            <button className="danger">Sign out</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Top bar */}
-      <header className="app-top">
-        <div className="app-top-l">
-          <h1 style={{ fontSize: 'clamp(18px,2vw,24px)', letterSpacing: '-.02em' }}>
-            Implant library
-          </h1>
-        </div>
-        <div className="app-top-r">
-          <button className="ibtn notif-btn" aria-label="Notifications">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-          </button>
-        </div>
-      </header>
-
       {/* Search hero */}
       <div className="lib-hero">
         <h1>

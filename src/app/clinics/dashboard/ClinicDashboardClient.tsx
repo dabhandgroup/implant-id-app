@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { useRouter }         from 'next/navigation'
-import { useUser }           from '@clerk/nextjs'
-import { useQuery }          from 'convex/react'
-import { api as apiBase }    from '../../../../convex/_generated/api'
+import { useState, useRef }  from 'react'
+import { useRouter }          from 'next/navigation'
+import { useUser }            from '@clerk/nextjs'
+import { useQuery }           from 'convex/react'
+import { api as apiBase }     from '../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
@@ -17,23 +17,24 @@ function timeAgo(ts: number): string {
   if (mins  < 60) return `${mins}m ago`
   if (hours < 24) return `${hours}h ago`
   if (days  < 7)  return `${days}d ago`
-  return new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+  return new Date(ts).toLocaleDateString('en-GB', { day:'2-digit', month:'short' })
 }
 
 export default function ClinicDashboardClient() {
   const router = useRouter()
   const { user } = useUser()
 
-  const stats            = useQuery(api.clinics.getClinicStats)
-  const recentLookups    = useQuery(api.clinics.getRecentLookups)
-  const todayCount       = useQuery(api.clinics.getTodayLookupCount)
-  const deviceCount      = useQuery(api.devices.getDeviceCount)
-  const pendingPatients  = useQuery(api.clinics.listClinicPatients)
+  const stats           = useQuery(api.clinics.getClinicStats)
+  const recentLookups   = useQuery(api.clinics.getRecentLookups)
+  const todayCount      = useQuery(api.clinics.getTodayLookupCount)
+  const deviceCount     = useQuery(api.devices.getDeviceCount)
+  const clinicPatients  = useQuery(api.clinics.listClinicPatients)
 
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const firstName = user?.firstName ?? user?.fullName?.split(' ')[0] ?? 'there'
+  const flagged   = (clinicPatients ?? []).filter((p: any) => p.verificationStatus !== 'active').slice(0, 5)
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -41,108 +42,100 @@ export default function ClinicDashboardClient() {
     if (q) router.push(`/clinics/all-patients?q=${encodeURIComponent(q)}`)
   }
 
-  const flagged = (pendingPatients ?? []).filter((p: any) => p.verificationStatus !== 'active').slice(0, 5)
-
   return (
     <div className="m-content">
 
-      {/* ── Hero lookup ─────────────────────────────────────────────────── */}
+      {/* ── Hero lookup ─────────────────────────────────────────────── */}
       <div className="hero-lookup">
-        <div className="hero-lookup-copy">
-          <h2>Good to see you, {firstName}</h2>
-          <p>Search for a patient, scan their card, or browse the implant library.</p>
-        </div>
-        <div className="app-big-search">
-          <form onSubmit={handleSearch} style={{ display:'flex', gap:8, alignItems:'stretch' }}>
-            <input
-              ref={inputRef}
-              className="app-big-search-input"
-              type="search"
-              placeholder="Search by name, Patient ID, or implant type…"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              autoComplete="off"
-            />
-            <button type="submit" className="go-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
-          </form>
-          <div className="app-big-search-or"><span>or</span></div>
-          <a href="/clinics/scan-patient" className="scan-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2"/></svg>
-            Scan patient card
-          </a>
+        <h1>Look up an implant.</h1>
+        <p>Scan the card, search a model number, or find by patient. Full MRI safety profile and manuals in two seconds.</p>
+
+        <div className="app-big-search-wrap" style={{ position:'relative', maxWidth:680 }}>
+          <div className="app-big-search">
+            <form onSubmit={handleSearch} style={{ display:'contents' }}>
+              <div className="app-big-search-input">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input
+                  ref={inputRef}
+                  id="live-q"
+                  placeholder="Search implants, model numbers, or patients"
+                  autoComplete="off"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                />
+              </div>
+              <button type="submit" className="go-btn">
+                Search
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </button>
+            </form>
+            <div className="app-big-search-or"><span>or</span></div>
+            <a href="/clinics/scan-patient" className="scan-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Scan a patient card
+            </a>
+          </div>
+          <div style={{ color:'rgba(255,255,255,.82)', fontFamily:'var(--ff)', fontSize:13, textAlign:'center', marginTop:14, letterSpacing:'.2px' }}>
+            Browse <a href="/clinics/library" style={{ color:'#fff', fontWeight:600, textDecoration:'underline', textUnderlineOffset:3 }}>
+              {deviceCount !== undefined ? `${deviceCount} devices` : 'our device library'}
+            </a> · more added weekly
+          </div>
         </div>
 
-        {/* Category tiles */}
-        <div className="cat-tiles">
-          <a className="cat-tile" href="/clinics/library?category=cardiac">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            <span>Cardiac</span>
+        <div className="cat-tiles" style={{ maxWidth:720, marginTop:26 }}>
+          <a href="/clinics/scan-patient" className="cat-tile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2"/></svg>
+            <b>Scan card</b><span>Apple Wallet or ID</span>
           </a>
-          <a className="cat-tile" href="/clinics/library?category=orthopaedic">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M18 2v20M6 2v20M6 12h12"/></svg>
-            <span>Orthopaedic</span>
+          <a href="/clinics/library?f=pacemaker" className="cat-tile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2v20M2 12h20"/></svg>
+            <b>Pacemakers</b><span>Indexed devices</span>
           </a>
-          <a className="cat-tile" href="/clinics/library?category=neural">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><ellipse cx="12" cy="12" rx="7" ry="7"/><path d="M12 8v8M8 12h8"/></svg>
-            <span>Neural</span>
+          <a href="/clinics/library?f=crtd" className="cat-tile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
+            <b>CRT-Ds</b><span>Indexed devices</span>
           </a>
-          <a className="cat-tile" href="/clinics/library?category=vascular">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 8v8M9 11l3 3 3-3"/></svg>
-            <span>Vascular</span>
+          <a href="/clinics/library?f=icd" className="cat-tile">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <b>ICDs</b><span>Indexed devices</span>
           </a>
         </div>
       </div>
 
-      {/* ── Stat row ────────────────────────────────────────────────────── */}
+      {/* ── Stat row ────────────────────────────────────────────────── */}
       <div className="stat-row" style={{ marginBottom:22 }}>
-        <div className="stat-card-lite">
-          <div className="scl-icon" style={{ background:'color-mix(in srgb,var(--accent) 10%,transparent)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
-          </div>
-          <div>
-            <div className="scl-k">Library size</div>
-            <div className="scl-v">{deviceCount === undefined ? '…' : (deviceCount ?? 0).toLocaleString()}</div>
-          </div>
+        <div className="stat-card">
+          <div className="k">Library size</div>
+          <div className="v">{deviceCount === undefined ? '…' : (deviceCount ?? 0).toLocaleString()}</div>
+          <div className="d">Indexed devices</div>
         </div>
-        <div className="stat-card-lite">
-          <div className="scl-icon" style={{ background:'color-mix(in srgb,var(--accent2) 10%,transparent)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent2)" strokeWidth="1.7"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </div>
-          <div>
-            <div className="scl-k">Lookups today</div>
-            <div className="scl-v">{todayCount === undefined ? '…' : (todayCount ?? 0)}</div>
-          </div>
+        <div className="stat-card">
+          <div className="k">Lookups today</div>
+          <div className="v">{todayCount === undefined ? '…' : todayCount ?? 0}</div>
+          <div className="d">Across your clinic</div>
         </div>
-        <div className="stat-card-lite">
-          <div className="scl-icon" style={{ background:'color-mix(in srgb,#6366f1 10%,transparent)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.7"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-          <div>
-            <div className="scl-k">Avg. time saved</div>
-            <div className="scl-v">4.2<span style={{ fontSize:12, fontWeight:500, color:'var(--muted)', marginLeft:2 }}>min</span></div>
-          </div>
+        <div className="stat-card">
+          <div className="k">Patients linked</div>
+          <div className="v">{stats === undefined ? '…' : stats?.total ?? 0}</div>
+          <div className="d">{stats?.verified ?? 0} verified</div>
         </div>
-        <div className="stat-card-lite">
-          <div className="scl-icon" style={{ background:'color-mix(in srgb,#f59e0b 10%,transparent)' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.7"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div className="stat-card">
+          <div className="k">Flags needing review</div>
+          <div className="v" style={{ color: (stats?.pending ?? 0) > 0 ? 'var(--warn)' : undefined }}>
+            {stats === undefined ? '…' : stats?.pending ?? 0}
           </div>
-          <div>
-            <div className="scl-k">Flagged for review</div>
-            <div className="scl-v">{stats === undefined ? '…' : (stats?.pending ?? 0)}</div>
-          </div>
+          <div className="d">{(stats?.pending ?? 0) > 0 ? 'Action required' : 'All clear'}</div>
         </div>
       </div>
 
-      {/* ── Grid-2: lookups + quick actions ─────────────────────────────── */}
-      <div className="dash-grid">
+      {/* ── Grid-2 ──────────────────────────────────────────────────── */}
+      <div className="grid-2">
 
-        {/* Recent lookups */}
-        <div className="qa-panel">
-          <div className="qa-panel-hd" style={{ justifyContent:'space-between' }}>
-            <span className="qa-panel-title">Recent patient lookups</span>
-            <a href="/clinics/all-patients" style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--accent)', textDecoration:'none', fontWeight:600 }}>View all</a>
+        {/* Recent patient lookups table */}
+        <div className="table">
+          <div className="table-h">
+            <h3>Recent patient lookups</h3>
+            <a href="/clinics/all-patients" style={{ fontFamily:'var(--ff)', fontSize:13, color:'var(--accent)', fontWeight:600 }}>View all</a>
           </div>
 
           {recentLookups === undefined ? (
@@ -153,15 +146,20 @@ export default function ClinicDashboardClient() {
             </div>
           ) : (
             <>
-              <div className="impl-row impl-thead" style={{ padding:'10px 22px', borderBottom:'1px solid var(--border)' }}>
-                <div style={{ gridColumn:'span 1' }}></div>
+              <div className="impl-row impl-thead">
+                <div></div>
                 <div>Patient</div>
                 <div>ID</div>
                 <div>Action</div>
                 <div>Time</div>
               </div>
               {recentLookups.slice(0, 8).map((row: any) => (
-                <a key={row._id} href={`/clinics/all-patients?q=${encodeURIComponent(row.implantIdCode || row.patientName)}`} className="impl-row" style={{ textDecoration:'none', display:'grid' }}>
+                <a
+                  key={row._id}
+                  href={`/clinics/all-patients?q=${encodeURIComponent(row.implantIdCode || row.patientName)}`}
+                  className="impl-row"
+                  style={{ textDecoration:'none' }}
+                >
                   <div className="impl-ic">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                   </div>
@@ -182,78 +180,78 @@ export default function ClinicDashboardClient() {
           )}
         </div>
 
-        {/* Right column */}
-        <div className="qa-sidebar">
-
-          {/* Quick actions */}
-          <div className="qa-panel" style={{ marginBottom:16 }}>
-            <div className="qa-panel-hd">
-              <span className="qa-panel-title">Quick actions</span>
+        {/* Quick actions + flagged */}
+        <div>
+          <div className="quick-actions" style={{ marginBottom:16 }}>
+            <h3 style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:600, letterSpacing:'.8px', textTransform:'uppercase', color:'var(--muted)' }}>Quick actions</h3>
+            <div className="qa-grid">
+              <a href="/clinics/scan-patient" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2"/></svg>
+                Scan card
+              </a>
+              <a href="/clinics/all-patients" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                All patients
+              </a>
+              <a href="/clinics/add-patient" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4M19 8v6M16 11h6"/></svg>
+                Add patient
+              </a>
+              <a href="/clinics/library" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
+                Library
+              </a>
+              <a href="/clinics/staff" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Invite staff
+              </a>
+              <a href="/clinics/audit" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                Audit log
+              </a>
             </div>
-            <a href="/clinics/scan-patient" className="qa-action-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2"/></svg>
-              Scan patient card
-            </a>
-            <a href="/clinics/all-patients" className="qa-action-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              View all patients
-            </a>
-            <a href="/clinics/add-patient" className="qa-action-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4M19 8v6M16 11h6"/></svg>
-              Add new patient
-            </a>
-            <a href="/clinics/library" className="qa-action-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
-              Browse implant library
-            </a>
-            <a href="/clinics/staff" className="qa-action-link">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-              Invite a colleague
-            </a>
           </div>
 
           {/* Flagged for review */}
-          <div className="qa-panel">
-            <div className="qa-panel-hd" style={{ justifyContent:'space-between' }}>
-              <span className="qa-panel-title">Flagged for review</span>
+          <div className="table">
+            <div className="table-h">
+              <h3>Flagged for review</h3>
               {flagged.length > 0 && (
-                <span style={{ background:'color-mix(in srgb,#f59e0b 12%,transparent)', color:'#b45309', fontSize:11, fontWeight:700, padding:'2px 7px', borderRadius:5 }}>
+                <span style={{ background:'color-mix(in srgb,var(--warn) 12%,transparent)', color:'var(--warn)', fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:5 }}>
                   {flagged.length}
                 </span>
               )}
             </div>
 
-            {pendingPatients === undefined ? (
-              <div style={{ padding:'28px 16px', color:'var(--muted)', fontSize:13 }}>Loading…</div>
+            {clinicPatients === undefined ? (
+              <div style={{ padding:'24px 22px', color:'var(--muted)', fontSize:13 }}>Loading…</div>
             ) : flagged.length === 0 ? (
-              <div style={{ padding:'28px 16px', textAlign:'center', color:'var(--muted)', fontSize:13 }}>
-                <div style={{ fontSize:22, marginBottom:6 }}>✓</div>
+              <div style={{ padding:'32px 22px', textAlign:'center', color:'var(--muted)', fontSize:14 }}>
+                <div style={{ fontSize:24, marginBottom:6 }}>✓</div>
                 All patients verified
               </div>
             ) : (
-              <div className="pending-cards">
-                {flagged.map((p: any) => (
-                  <a
-                    key={p._id}
-                    href={`/clinics/all-patients?q=${encodeURIComponent(p.implantIdCode || '')}`}
-                    className="pending-card"
-                    style={{ textDecoration:'none' }}
-                  >
-                    <div className="pc-info">
-                      <div className="pc-nm-link">
-                        {[p.firstName, p.lastName].filter(Boolean).join(' ') || 'Unknown patient'}
-                      </div>
-                      <div className="impl-mfr">{p.implantIdCode || 'No ID'}</div>
-                    </div>
-                    <span style={{ fontSize:11, fontWeight:600, padding:'3px 7px', borderRadius:5, background:'color-mix(in srgb,#f59e0b 10%,transparent)', color:'#b45309', flexShrink:0 }}>
-                      Pending
-                    </span>
-                  </a>
-                ))}
-              </div>
+              flagged.map((p: any) => (
+                <a
+                  key={p._id}
+                  href={`/clinics/all-patients?q=${encodeURIComponent(p.implantIdCode || '')}`}
+                  className="impl-row"
+                  style={{ gridTemplateColumns:'auto 1fr auto', textDecoration:'none' }}
+                >
+                  <div className="impl-ic">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  </div>
+                  <div>
+                    <div className="impl-nm">{[p.firstName, p.lastName].filter(Boolean).join(' ') || 'Unknown'}</div>
+                    <div className="impl-mfr">{p.implantIdCode || 'No ID'}</div>
+                  </div>
+                  <span style={{ fontSize:11, fontWeight:600, padding:'3px 8px', borderRadius:5, background:'color-mix(in srgb,var(--warn) 10%,transparent)', color:'var(--warn)', flexShrink:0 }}>
+                    Pending
+                  </span>
+                </a>
+              ))
             )}
           </div>
-
         </div>
       </div>
 

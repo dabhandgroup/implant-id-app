@@ -154,6 +154,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const markRead      = useMutation(api.patients.markAllNotificationsRead)
 
   const [mobOpen,        setMobOpen]        = useState(false)
+  const [sbCollapsed,    setSbCollapsed]    = useState(false)
   const [notifOpen,      setNotifOpen]      = useState(false)
   const [profileOpen,    setProfileOpen]    = useState(false)
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
@@ -217,7 +218,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
     <>
       <div className="sb-back" id="sb-back" onClick={() => setMobOpen(false)} />
 
-      <div className={`app${mobOpen ? '' : ''}`} id="app">
+      <div className={`app${sbCollapsed ? ' collapsed' : ''}`} id="app">
 
         {/* ── Sidebar ── */}
         <aside className={`sidebar${mobOpen ? ' open' : ''}`}>
@@ -227,7 +228,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
               <img src="/icon.svg" alt="" />
               <span className="logo-text"><b>Implant</b><span>ID</span></span>
             </a>
-            <button className="sb-toggle" aria-label="Collapse sidebar">
+            <button className="sb-toggle" aria-label="Collapse sidebar" onClick={() => setSbCollapsed(c => !c)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
           </div>

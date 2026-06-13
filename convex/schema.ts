@@ -118,6 +118,9 @@ export default defineSchema({
     mriStatusOverride: v.optional(
       v.union(v.literal('safe'), v.literal('conditional'), v.literal('unsafe'), v.literal('unknown'), v.null())
     ),
+
+    // Patient-controlled sharing: true = any clinic can see full record; false = limited view + request access
+    clinicSharingEnabled: v.optional(v.boolean()),
   })
     .index('by_user',         ['userId'])
     .index('by_implant_code', ['implantIdCode']),

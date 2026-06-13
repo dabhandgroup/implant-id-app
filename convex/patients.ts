@@ -411,6 +411,7 @@ export const getPatientByCode = query({
       selfReportedDevice:       patient.selfReportedDevice,
       selfReportedManufacturer: patient.selfReportedManufacturer,
       selfReportedModelNumber:  patient.selfReportedModelNumber,
+      clinicSharingEnabled:     patient.clinicSharingEnabled,
     }
   },
 })
@@ -1075,6 +1076,71 @@ export const recordPatientLookup = mutation({
         createdAt: Date.now(),
       })
     }
+  },
+})
+
+/** Clinic staff requests access to a patient's full record — creates pending accessRequest and notifies patient. */
+export const requestClinicAccess = mutation({
+  args: {
+    patientId: v.id('patients'),
+    reason:    v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!staffRow) throw new Error('No staff record found')
+
+    const patient = await ctx.db.get(args.patientId)
+    if (!patient) throw new Error('Patient not found')
+
+    // Don't create duplicate pending requests from the same clinic
+    const existing = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .filter((q) =>
+        q.and(
+          q.eq(q.field('patientId'), args.patientId),
+          q.eq(q.field('status'), 'pending'),
+        ),
+      )
+      .first()
+    if (existing) return existing._id
+
+    const clinic = await ctx.db.get(staffRow.clinicId)
+    const clinicName = clinic?.name ?? 'A clinic'
+
+    const requestId = await ctx.db.insert('accessRequests', {
+      clinicId:    staffRow.clinicId,
+      staffId:     staffRow._id,
+      patientId:   args.patientId,
+      status:      'pending',
+      requestedAt: Date.now(),
+      reason:      args.reason,
+    })
+
+    // Notify patient
+    await ctx.db.insert('notifications', {
+      userId:    patient.userId,
+      type:      'access_request',
+      title:     'Clinic access request',
+      body:      `${clinicName} has requested access to your full implant record. You can approve or decline this from your account.`,
+      read:      false,
+      relatedId: requestId,
+      createdAt: Date.now(),
+    })
+
+    return requestId
   },
 })
 

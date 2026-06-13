@@ -1,12 +1,13 @@
 'use client'
 
-import { useSignUp } from '@clerk/nextjs'
+import { useSignUp, useClerk } from '@clerk/nextjs'
 import { useSearchParams } from 'next/navigation'
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 
 export default function ActivateClient() {
-  const { signUp, setActive } = useSignUp()
+  const { signUp } = useSignUp()
+  const { setActive } = useClerk()
   const searchParams = useSearchParams()
 
   const email  = searchParams.get('email') ?? ''

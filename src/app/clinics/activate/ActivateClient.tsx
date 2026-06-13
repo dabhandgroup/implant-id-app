@@ -1,6 +1,6 @@
 'use client'
 
-import { useSignUp, useUser } from '@clerk/nextjs'
+import { useSignUp, useUser, useClerk } from '@clerk/nextjs'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -10,7 +10,8 @@ export default function ClinicActivateClient() {
   const email  = searchParams.get('email') ?? ''
   const ticket = searchParams.get('ticket') ?? ''
 
-  const { signUp, setActive } = useSignUp()
+  const { signUp } = useSignUp()
+  const { setActive } = useClerk()
   const { isLoaded, isSignedIn, user } = useUser()
 
   const [phase,    setPhase]    = useState<'idle' | 'loading' | 'error'>('idle')

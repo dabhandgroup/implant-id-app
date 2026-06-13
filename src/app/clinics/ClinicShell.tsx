@@ -210,9 +210,8 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   }
 
   if (myApplication === undefined) return <LoadingScreen />
-  if (myApplication === null)      return <LoadingScreen />
-  if (myApplication.status === 'pending')  return <PendingScreen  app={myApplication} onSignOut={() => signOut({ redirectUrl: '/' })} />
-  if (myApplication.status === 'rejected') return <RejectedScreen app={myApplication} onSignOut={() => signOut({ redirectUrl: '/' })} />
+  if (myApplication?.status === 'pending')  return <PendingScreen  app={myApplication} onSignOut={() => signOut({ redirectUrl: '/' })} />
+  if (myApplication?.status === 'rejected') return <RejectedScreen app={myApplication} onSignOut={() => signOut({ redirectUrl: '/' })} />
 
   return (
     <>

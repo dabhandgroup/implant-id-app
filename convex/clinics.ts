@@ -391,29 +391,33 @@ export const activateClinicAccount = internalAction({
       }
       const inv = await invRes.json() as { id: string; url?: string }
 
-      // Clerk's inv.url goes to /sign-up?__clerk_ticket=TOKEN.
-      // Extract the ticket and route to /clinics/activate — the branded activation
-      // page that pre-fills the email and creates the account on a single button click.
-      if (!inv.url) {
-        // Clerk didn't return a URL — log the full response so we can diagnose
-        console.error('[clinics] Clerk invitation response had no URL. Full response:', JSON.stringify(inv))
-        throw new Error('[clinics] Clerk invitation created but returned no URL — check Clerk dashboard sign-up settings')
-      }
-      try {
-        const parsed  = new URL(inv.url)
-        const tkValue = parsed.searchParams.get('__clerk_ticket')
-        if (!tkValue) {
-          console.error('[clinics] No __clerk_ticket in invitation URL:', inv.url)
-          throw new Error('[clinics] Clerk invitation URL missing __clerk_ticket parameter')
+      // Log the full invitation object so we can see exactly what Clerk returns
+      console.log('[clinics] Clerk invitation response for', args.contactEmail, ':', JSON.stringify(inv))
+
+      if (inv.url) {
+        try {
+          const parsed = new URL(inv.url)
+          // Try __clerk_ticket first, then any param containing "ticket"
+          const tkValue = parsed.searchParams.get('__clerk_ticket')
+            ?? parsed.searchParams.get('ticket')
+            ?? [...parsed.searchParams.entries()].find(([k]) => k.includes('ticket'))?.[1]
+
+          if (tkValue) {
+            inviteUrl = `https://portal.implantid.io/clinics/activate?email=${encodeURIComponent(args.contactEmail)}&ticket=${tkValue}`
+          } else {
+            // Clerk URL exists but has no ticket param — use it directly as fallback
+            // (goes to /sign-up which uses Clerk's native <SignUp> component)
+            console.warn('[clinics] No ticket param in Clerk URL, using raw URL as fallback:', inv.url)
+            inviteUrl = inv.url
+          }
+        } catch {
+          console.error('[clinics] Failed to parse Clerk invitation URL:', inv.url)
+          inviteUrl = inv.url
         }
-        inviteUrl = `https://portal.implantid.io/clinics/activate?email=${encodeURIComponent(args.contactEmail)}&ticket=${tkValue}`
-      } catch (parseErr) {
-        // Re-throw errors we explicitly threw above; only swallow URL parse errors
-        if ((parseErr as Error)?.message?.startsWith('[clinics]')) throw parseErr
-        console.error('[clinics] Failed to parse invitation URL:', inv.url, parseErr)
-        inviteUrl = inv.url  // fallback: send Clerk's raw URL
+      } else {
+        console.error('[clinics] Clerk invitation had no URL field. Full response:', JSON.stringify(inv))
       }
-      console.log('[clinics] Invitation created for', args.contactEmail, '— activate URL:', inviteUrl)
+      console.log('[clinics] Final activate URL for', args.contactEmail, ':', inviteUrl)
     } else {
       // 3. Existing account — stamp the clinic_staff role
       await fetch(`https://api.clerk.com/v1/users/${resolvedId}/metadata`, {

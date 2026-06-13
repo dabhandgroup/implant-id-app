@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery, useMutation } from 'convex/react'
+import { useQuery, useMutation, useAction } from 'convex/react'
 import { useRouter } from 'next/navigation'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
+import { CustomSelect } from '../../../components/ui/CustomSelect'
 
 type Tab = 'pending' | 'all' | 'rejected'
 
@@ -22,25 +23,74 @@ type Application = {
   reviewNotes?:    string
 }
 
+const FACILITY_TYPES = [
+  'Hospital — NHS / public',
+  'Hospital — private',
+  'Private clinic',
+  'Radiology centre',
+  'Cardiac centre',
+  'Orthopaedic centre',
+  'Neurology centre',
+  'Other',
+]
+
+const COUNTRIES = [
+  'United Kingdom', 'United States', 'Ireland', 'Australia', 'Canada',
+  'Germany', 'France', 'Netherlands', 'Spain', 'Italy', 'Sweden', 'Norway',
+  'Denmark', 'Switzerland', 'Belgium', 'Portugal', 'Poland', 'Austria',
+  'New Zealand', 'South Africa', 'UAE', 'Singapore', 'Other',
+]
+
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString('en-GB', {
     day: '2-digit', month: 'short', year: 'numeric',
   })
 }
 
+function isValidEmail(e: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+}
+
 export default function ClinicsClient() {
   // ── All hooks unconditionally at top ─────────────────────────────────────────
-  const router    = useRouter()
-  const [tab,       setTab]       = useState<Tab>('pending')
-  const [reviewing, setReviewing] = useState(false) // quick-approve loading state
+  const router = useRouter()
+  const [tab, setTab] = useState<Tab>('pending')
 
-  const pendingApps   = useQuery(api.clinics.listApplications, { status: 'pending'  }) as Application[] | undefined
-  const approvedApps  = useQuery(api.clinics.listApplications, { status: 'approved' }) as Application[] | undefined
-  const rejectedApps  = useQuery(api.clinics.listApplications, { status: 'rejected' }) as Application[] | undefined
+  const pendingApps  = useQuery(api.clinics.listApplications, { status: 'pending'  }) as Application[] | undefined
+  const approvedApps = useQuery(api.clinics.listApplications, { status: 'approved' }) as Application[] | undefined
+  const rejectedApps = useQuery(api.clinics.listApplications, { status: 'rejected' }) as Application[] | undefined
 
   const reviewApplication = useMutation(api.clinics.reviewApplication)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminAddClinic     = useMutation((api.clinics as any).adminAddClinic)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const deleteRejected     = useAction((api.clinics as any).deleteRejectedApplications)
 
-  // ── Quick-approve from table row (no reject — use detail page for that) ───────
+  // Quick-approve
+  const [reviewing, setReviewing] = useState(false)
+
+  // Add Clinic modal
+  const [addOpen,        setAddOpen]        = useState(false)
+  const [addName,        setAddName]        = useState('')
+  const [addType,        setAddType]        = useState('')
+  const [addAddress,     setAddAddress]     = useState('')
+  const [addCity,        setAddCity]        = useState('')
+  const [addCountry,     setAddCountry]     = useState('')
+  const [addPhone,       setAddPhone]       = useState('')
+  const [addContactName, setAddContactName] = useState('')
+  const [addEmail,       setAddEmail]       = useState('')
+  const [addLoading,     setAddLoading]     = useState(false)
+  const [addError,       setAddError]       = useState('')
+  const [addDone,        setAddDone]        = useState(false)
+
+  // Delete / bulk select (rejected tab)
+  const [selected,       setSelected]       = useState<Set<Id<'clinicApplications'>>>(new Set())
+  const [deleting,       setDeleting]       = useState(false)
+  const [deleteError,    setDeleteError]    = useState('')
+  const [confirmDelete,  setConfirmDelete]  = useState<'single' | 'bulk' | null>(null)
+  const [deleteSingleId, setDeleteSingleId] = useState<Id<'clinicApplications'> | null>(null)
+
+  // ── Quick-approve ─────────────────────────────────────────────────────────────
   async function handleQuickApprove(e: React.MouseEvent, id: Id<'clinicApplications'>) {
     e.stopPropagation()
     setReviewing(true)
@@ -53,8 +103,78 @@ export default function ClinicsClient() {
     }
   }
 
-  const pendingCount = pendingApps?.length ?? 0
+  // ── Add clinic ────────────────────────────────────────────────────────────────
+  function openAdd() {
+    setAddName(''); setAddType(''); setAddAddress(''); setAddCity('')
+    setAddCountry(''); setAddPhone(''); setAddContactName(''); setAddEmail('')
+    setAddError(''); setAddDone(false); setAddOpen(true)
+  }
 
+  async function handleAdd() {
+    if (!addName.trim())        return setAddError('Enter the clinic name')
+    if (!addType)               return setAddError('Select a facility type')
+    if (!addAddress.trim())     return setAddError('Enter the address')
+    if (!addCountry)            return setAddError('Select a country')
+    if (!addContactName.trim()) return setAddError('Enter the contact name')
+    if (!isValidEmail(addEmail)) return setAddError('Enter a valid email address')
+
+    setAddLoading(true); setAddError('')
+    try {
+      await adminAddClinic({
+        clinicName:      addName.trim(),
+        contactName:     addContactName.trim(),
+        contactEmail:    addEmail.trim().toLowerCase(),
+        facilityType:    addType,
+        facilityAddress: addAddress.trim(),
+        facilityCountry: addCountry,
+        facilityCity:    addCity.trim() || undefined,
+        facilityPhone:   addPhone.trim() || undefined,
+      })
+      setAddDone(true)
+    } catch (e) {
+      setAddError((e as { message?: string })?.message ?? 'Something went wrong — please try again')
+    } finally {
+      setAddLoading(false)
+    }
+  }
+
+  // ── Delete ────────────────────────────────────────────────────────────────────
+  async function handleDelete(ids: Id<'clinicApplications'>[]) {
+    setDeleting(true); setDeleteError('')
+    try {
+      await deleteRejected({ applicationIds: ids })
+      setSelected(new Set())
+      setConfirmDelete(null)
+      setDeleteSingleId(null)
+    } catch (e) {
+      setDeleteError((e as { message?: string })?.message ?? 'Delete failed — please try again')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  function toggleSelect(id: Id<'clinicApplications'>) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    if (!rejectedApps) return
+    const allIds = rejectedApps.map(a => a._id)
+    if (selected.size === allIds.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(allIds))
+    }
+  }
+
+  const pendingCount = pendingApps?.length ?? 0
+  const allSelected  = !!rejectedApps && rejectedApps.length > 0 && selected.size === rejectedApps.length
+
+  // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div className="m-content">
       <div className="m-h">
@@ -62,7 +182,7 @@ export default function ClinicsClient() {
           <h2>Clinics</h2>
           <div className="sub">All registered and active clinic accounts on the platform.</div>
         </div>
-        <button className="btn btn-s">+ Add Clinic</button>
+        <button className="btn btn-s" onClick={openAdd}>+ Add Clinic</button>
       </div>
 
       {/* ── Tabs ── */}
@@ -80,6 +200,11 @@ export default function ClinicsClient() {
         </button>
         <button className={`m-tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
           Rejected
+          {(rejectedApps?.length ?? 0) > 0 && (
+            <span style={{ marginLeft: 6, background: 'color-mix(in srgb,var(--err) 80%,transparent)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+              {rejectedApps!.length}
+            </span>
+          )}
         </button>
       </div>
 
@@ -92,7 +217,6 @@ export default function ClinicsClient() {
             No pending applications.
           </div>
         ) : (<>
-          {/* Desktop table */}
           <div className="m-tbl-wrap m-list-table">
             <table className="m-tbl">
               <thead><tr><th>Clinic Name</th><th>Facility Type</th><th>Country</th><th>Contact Email</th><th>Submitted</th><th>Actions</th></tr></thead>
@@ -116,7 +240,6 @@ export default function ClinicsClient() {
               </tbody>
             </table>
           </div>
-          {/* Mobile cards */}
           <div className="m-list-cards">
             {pendingApps.map(app => (
               <div key={app._id} onClick={() => router.push('/master/clinics/' + app._id)}
@@ -146,7 +269,6 @@ export default function ClinicsClient() {
             No active clinics yet. Approve a pending application to get started.
           </div>
         ) : (<>
-          {/* Desktop table */}
           <div className="m-tbl-wrap m-list-table">
             <table className="m-tbl">
               <thead><tr><th>Clinic Name</th><th>Contact Email</th><th>Phone</th><th>Status</th><th>Approved</th></tr></thead>
@@ -163,7 +285,6 @@ export default function ClinicsClient() {
               </tbody>
             </table>
           </div>
-          {/* Mobile cards */}
           <div className="m-list-cards">
             {approvedApps.map(app => (
               <div key={app._id} onClick={() => router.push('/master/clinics/' + app._id)}
@@ -192,40 +313,247 @@ export default function ClinicsClient() {
             No rejected applications.
           </div>
         ) : (<>
+          {/* Bulk action bar */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)' }}>
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)' }}
+              />
+              {allSelected ? 'Deselect all' : `Select all (${rejectedApps.length})`}
+            </label>
+            {selected.size > 0 && (
+              <button
+                className="btn btn-danger"
+                style={{ fontSize: 13 }}
+                onClick={() => { setDeleteError(''); setConfirmDelete('bulk') }}
+              >
+                Delete selected ({selected.size})
+              </button>
+            )}
+          </div>
+
+          {deleteError && (
+            <div style={{ background: 'color-mix(in srgb,var(--err) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)' }}>
+              {deleteError}
+            </div>
+          )}
+
           {/* Desktop table */}
           <div className="m-tbl-wrap m-list-table">
             <table className="m-tbl">
-              <thead><tr><th>Clinic Name</th><th>Country</th><th>Contact Email</th><th>Submitted</th><th>Reviewed</th><th>Notes</th></tr></thead>
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}></th>
+                  <th>Clinic Name</th><th>Country</th><th>Contact Email</th><th>Submitted</th><th>Notes</th><th>Actions</th>
+                </tr>
+              </thead>
               <tbody>
                 {rejectedApps.map(app => (
                   <tr key={app._id} style={{ cursor: 'pointer' }} onClick={() => router.push('/master/clinics/' + app._id)}>
+                    <td onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(app._id)}
+                        onChange={() => toggleSelect(app._id)}
+                        style={{ width: 15, height: 15, cursor: 'pointer', accentColor: 'var(--accent)' }}
+                      />
+                    </td>
                     <td style={{ fontWeight: 500 }}>{app.facilityName}</td>
                     <td>{app.facilityCountry}</td>
                     <td>{app.contactEmail}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>{formatDate(app.submittedAt)}</td>
-                    <td style={{ whiteSpace: 'nowrap' }}>{app.reviewedAt ? formatDate(app.reviewedAt) : '—'}</td>
                     <td style={{ color: 'var(--muted)', fontSize: 13 }}>{app.reviewNotes ?? '—'}</td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <button
+                        className="m-act"
+                        style={{ color: 'var(--err)', borderColor: 'color-mix(in srgb,var(--err) 30%,transparent)' }}
+                        onClick={() => { setDeleteSingleId(app._id); setDeleteError(''); setConfirmDelete('single') }}
+                      >
+                        Delete
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
           {/* Mobile cards */}
           <div className="m-list-cards">
             {rejectedApps.map(app => (
-              <div key={app._id} onClick={() => router.push('/master/clinics/' + app._id)}
-                style={{ background:'var(--bg2)', border:'1px solid color-mix(in srgb,var(--err) 20%,var(--border))', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4 }}>
-                  <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{app.facilityName}</div>
-                  <span style={{ flexShrink:0, marginLeft:8, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--err)', padding:'2px 8px', borderRadius:4, background:'color-mix(in srgb,var(--err) 10%,transparent)' }}>Rejected</span>
+              <div key={app._id}
+                style={{ background:'var(--bg2)', border:`1px solid ${selected.has(app._id) ? 'color-mix(in srgb,var(--accent) 40%,var(--border))' : 'color-mix(in srgb,var(--err) 20%,var(--border))'}`, borderRadius:12, padding:'14px 16px', marginBottom:10 }}>
+                <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:6 }}>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(app._id)}
+                    onChange={() => toggleSelect(app._id)}
+                    style={{ width:16, height:16, cursor:'pointer', marginTop:2, flexShrink:0, accentColor:'var(--accent)' }}
+                  />
+                  <div style={{ flex:1, cursor:'pointer' }} onClick={() => router.push('/master/clinics/' + app._id)}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4 }}>
+                      <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{app.facilityName}</div>
+                      <span style={{ flexShrink:0, marginLeft:8, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--err)', padding:'2px 8px', borderRadius:4, background:'color-mix(in srgb,var(--err) 10%,transparent)' }}>Rejected</span>
+                    </div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:2 }}>{app.facilityCountry} · {formatDate(app.submittedAt)}</div>
+                    <div style={{ fontSize:12.5, color:'var(--muted)' }}>{app.contactEmail}</div>
+                    {app.reviewNotes && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', marginTop:6, padding:'8px 10px', background:'var(--bg)', borderRadius:6 }}>{app.reviewNotes}</div>}
+                  </div>
                 </div>
-                <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:2 }}>{app.facilityCountry} · {formatDate(app.submittedAt)}</div>
-                <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom: app.reviewNotes ? 8 : 0 }}>{app.contactEmail}</div>
-                {app.reviewNotes && <div style={{ fontSize:12, color:'var(--muted)', fontStyle:'italic', marginTop:6, padding:'8px 10px', background:'var(--bg)', borderRadius:6 }}>{app.reviewNotes}</div>}
+                <div style={{ display:'flex', gap:8, marginTop:10, paddingLeft:26 }}>
+                  <button className="btn btn-danger" style={{ fontSize:12, flex:1 }}
+                    onClick={() => { setDeleteSingleId(app._id); setDeleteError(''); setConfirmDelete('single') }}>
+                    Delete
+                  </button>
+                  <button className="btn" style={{ fontSize:12, flex:1 }}
+                    onClick={() => router.push('/master/clinics/' + app._id)}>
+                    View
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </>)
+      )}
+
+      {/* ── Add Clinic modal ── */}
+      {addOpen && (
+        <div className="confirm-back open" onClick={() => { if (!addLoading) setAddOpen(false) }}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, width: '100%' }}>
+            {addDone ? (
+              <div className="confirm-body" style={{ textAlign: 'center' }}>
+                <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--ok) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <h3>Clinic added</h3>
+                <p style={{ color:'var(--muted)', fontSize:14 }}>
+                  An activation email has been sent to <strong>{addEmail}</strong>. They&apos;ll receive a link to set up their account.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="confirm-body">
+                  <h3 style={{ marginBottom: 20 }}>Add Clinic</h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div className="field">
+                      <label>Clinic / Facility name <span style={{ color:'var(--err)' }}>*</span></label>
+                      <input className="input" value={addName} onChange={e => setAddName(e.target.value)} placeholder="St Vincent's Hospital MRI Department" />
+                    </div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                      <CustomSelect
+                        label="Facility type"
+                        required
+                        value={addType}
+                        onChange={setAddType}
+                        options={FACILITY_TYPES}
+                        placeholder="Select…"
+                      />
+                      <CustomSelect
+                        label="Country"
+                        required
+                        value={addCountry}
+                        onChange={setAddCountry}
+                        options={COUNTRIES}
+                        placeholder="Select…"
+                      />
+                    </div>
+                    <div className="field">
+                      <label>Address <span style={{ color:'var(--err)' }}>*</span></label>
+                      <input className="input" value={addAddress} onChange={e => setAddAddress(e.target.value)} placeholder="123 Hospital Road, London W1A 1AA" />
+                    </div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                      <div className="field">
+                        <label>City</label>
+                        <input className="input" value={addCity} onChange={e => setAddCity(e.target.value)} placeholder="London" />
+                      </div>
+                      <div className="field">
+                        <label>Phone</label>
+                        <input className="input" value={addPhone} onChange={e => setAddPhone(e.target.value)} placeholder="+44 20 7123 4567" />
+                      </div>
+                    </div>
+                    <div style={{ borderTop:'1px solid var(--border)', paddingTop:14, marginTop:2 }}>
+                      <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--muted2)', marginBottom:12 }}>Primary Contact</div>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                        <div className="field">
+                          <label>Name <span style={{ color:'var(--err)' }}>*</span></label>
+                          <input className="input" value={addContactName} onChange={e => setAddContactName(e.target.value)} placeholder="Dr Jane Smith" />
+                        </div>
+                        <div className="field">
+                          <label>Email <span style={{ color:'var(--err)' }}>*</span></label>
+                          <input className="input" type="email" value={addEmail} onChange={e => setAddEmail(e.target.value)} placeholder="jane@hospital.nhs.uk" />
+                        </div>
+                      </div>
+                    </div>
+                    {addError && (
+                      <div style={{ background:'color-mix(in srgb,var(--err) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 25%,transparent)', borderRadius:8, padding:'10px 14px', fontFamily:'var(--ff)', fontSize:13, color:'var(--err)' }}>
+                        {addError}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="confirm-actions">
+                  <button className="btn" onClick={() => setAddOpen(false)} disabled={addLoading}>Cancel</button>
+                  <button className="btn btn-s" onClick={handleAdd} disabled={addLoading}>
+                    {addLoading ? 'Adding…' : 'Add Clinic →'}
+                  </button>
+                </div>
+              </>
+            )}
+            {addDone && (
+              <div className="confirm-actions">
+                <button className="btn btn-s" onClick={() => setAddOpen(false)}>Done</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete confirmation modal ── */}
+      {confirmDelete && (
+        <div className="confirm-back open" onClick={() => { if (!deleting) { setConfirmDelete(null); setDeleteSingleId(null) } }}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="confirm-body">
+              <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                </svg>
+              </div>
+              {confirmDelete === 'single' ? (
+                <>
+                  <h3>Delete this application?</h3>
+                  <p style={{ color:'var(--muted)', fontSize:14 }}>
+                    This will permanently delete the clinic application and remove the associated Clerk account if one was created. This cannot be undone.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3>Delete {selected.size} application{selected.size !== 1 ? 's' : ''}?</h3>
+                  <p style={{ color:'var(--muted)', fontSize:14 }}>
+                    This will permanently delete {selected.size} rejected clinic application{selected.size !== 1 ? 's' : ''} and remove the associated Clerk accounts. This cannot be undone.
+                  </p>
+                </>
+              )}
+              {deleteError && (
+                <div style={{ color:'var(--err)', fontFamily:'var(--ff)', fontSize:13, marginTop:8 }}>{deleteError}</div>
+              )}
+            </div>
+            <div className="confirm-actions">
+              <button className="btn" onClick={() => { setConfirmDelete(null); setDeleteSingleId(null) }} disabled={deleting}>Cancel</button>
+              <button className="btn btn-danger" disabled={deleting} onClick={() => {
+                const ids = confirmDelete === 'single' && deleteSingleId
+                  ? [deleteSingleId]
+                  : Array.from(selected)
+                handleDelete(ids)
+              }}>
+                {deleting ? 'Deleting…' : 'Delete permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

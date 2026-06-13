@@ -1,4 +1,4 @@
-import { mutation, query, internalAction } from './_generated/server'
+import { mutation, query, internalAction, internalMutation, action } from './_generated/server'
 import { v }                               from 'convex/values'
 import { internal }                        from './_generated/api'
 
@@ -860,6 +860,168 @@ export const retriggerClinicActivation = mutation({
       contactName:  app.contactName,
       facilityName: app.facilityName,
     })
+    await ctx.scheduler.runAfter(0, internal.email.sendClinicApprovalEmail, {
+      contactName:  app.contactName,
+      contactEmail: app.contactEmail,
+      facilityName: app.facilityName,
+    })
+  },
+})
+
+/** Admin manually adds a clinic, bypassing the onboarding form. */
+export const adminAddClinic = mutation({
+  args: {
+    clinicName:      v.string(),
+    contactName:     v.string(),
+    contactEmail:    v.string(),
+    facilityType:    v.string(),
+    facilityAddress: v.string(),
+    facilityCountry: v.string(),
+    facilityCity:    v.optional(v.string()),
+    facilityPhone:   v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const admin = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin access required')
+
+    // Cross-type uniqueness
+    const existingApp = await ctx.db
+      .query('clinicApplications')
+      .withIndex('by_email', (q) => q.eq('contactEmail', args.contactEmail))
+      .first()
+    if (existingApp && existingApp.status !== 'rejected') {
+      throw new Error('A clinic already exists for this email address.')
+    }
+    const existingMfr = await ctx.db
+      .query('manufacturers')
+      .withIndex('by_email', (q) => q.eq('contactEmail', args.contactEmail))
+      .first()
+    if (existingMfr && existingMfr.status !== 'rejected') {
+      throw new Error('This email is already registered as a manufacturer account.')
+    }
+
+    const now = Date.now()
+    const appId = await ctx.db.insert('clinicApplications', {
+      contactName:     args.contactName,
+      contactEmail:    args.contactEmail,
+      facilityName:    args.clinicName,
+      facilityType:    args.facilityType,
+      facilityAddress: args.facilityAddress,
+      facilityCity:    args.facilityCity,
+      facilityCountry: args.facilityCountry,
+      facilityPhone:   args.facilityPhone,
+      services:        [],
+      status:          'approved',
+      submittedAt:     now,
+      reviewedAt:      now,
+    })
+
+    await ctx.db.insert('clinics', {
+      name:           args.clinicName,
+      address:        args.facilityAddress,
+      city:           args.facilityCity,
+      country:        args.facilityCountry,
+      phone:          args.facilityPhone,
+      email:          args.contactEmail,
+      capabilities:   [],
+      status:         'active',
+      showToPatients: true,
+    })
+
+    await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
+      contactEmail: args.contactEmail,
+      contactName:  args.contactName,
+      facilityName: args.clinicName,
+    })
+    await ctx.scheduler.runAfter(0, internal.email.sendClinicApprovalEmail, {
+      contactName:  args.contactName,
+      contactEmail: args.contactEmail,
+      facilityName: args.clinicName,
+    })
+
+    return { appId }
+  },
+})
+
+/** Internal: delete clinic application records (called by deleteRejectedApplications action). */
+export const deleteApplicationRecords = internalMutation({
+  args: {
+    applicationIds: v.array(v.id('clinicApplications')),
+    adminClerkId:   v.string(),
+  },
+  handler: async (ctx, args) => {
+    const admin = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', args.adminClerkId))
+      .first()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin access required')
+
+    const emails: string[] = []
+    for (const id of args.applicationIds) {
+      const app = await ctx.db.get(id)
+      if (!app) continue
+      if (app.status !== 'rejected') throw new Error(`Application ${id} is not rejected — only rejected applications can be deleted.`)
+      emails.push(app.contactEmail)
+      await ctx.db.delete(id)
+    }
+    return emails
+  },
+})
+
+/** Delete rejected clinic applications and clean up the corresponding Clerk accounts. */
+export const deleteRejectedApplications = action({
+  args: { applicationIds: v.array(v.id('clinicApplications')) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const emails = await ctx.runMutation(internal.clinics.deleteApplicationRecords, {
+      applicationIds: args.applicationIds,
+      adminClerkId:   identity.subject,
+    }) as string[]
+
+    const secretKey = process.env.CLERK_SECRET_KEY
+    if (!secretKey || emails.length === 0) return
+
+    for (const email of emails) {
+      // Revoke any pending Clerk invitations for this email
+      const invRes = await fetch(
+        `https://api.clerk.com/v1/invitations?email_address=${encodeURIComponent(email)}&status=pending&limit=10`,
+        { headers: { Authorization: `Bearer ${secretKey}` } },
+      ).catch(() => null)
+      if (invRes?.ok) {
+        const data = await invRes.json()
+        const arr: { id: string }[] = Array.isArray(data) ? data : (data?.data ?? [])
+        for (const inv of arr) {
+          await fetch(`https://api.clerk.com/v1/invitations/${inv.id}/revoke`, {
+            method: 'POST', headers: { Authorization: `Bearer ${secretKey}` },
+          }).catch(() => {})
+        }
+      }
+
+      // Delete the Clerk user only if they are a clinic_staff user (we created them)
+      // — leave patients, manufacturers, and admins alone.
+      const userRes = await fetch(
+        `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(email)}&limit=1`,
+        { headers: { Authorization: `Bearer ${secretKey}` } },
+      ).catch(() => null)
+      if (userRes?.ok) {
+        const users = await userRes.json() as { id: string; public_metadata?: { role?: string } }[]
+        for (const u of users) {
+          const role = u.public_metadata?.role
+          if (role === 'clinic_staff' || !role) {
+            await fetch(`https://api.clerk.com/v1/users/${u.id}`, {
+              method: 'DELETE', headers: { Authorization: `Bearer ${secretKey}` },
+            }).catch(() => {})
+          }
+        }
+      }
+    }
   },
 })
 

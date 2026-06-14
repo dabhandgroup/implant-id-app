@@ -28,6 +28,7 @@ export default function ScanPatientClient() {
   const [toastVisible,   setToastVisible]   = useState(false)
   const [cameraActive,   setCameraActive]   = useState(false)
   const [cameraError,    setCameraError]    = useState('')
+  const [videoMirrored,  setVideoMirrored]  = useState(false)
   const [accessRequested, setAccessRequested] = useState(false)
   const [requestingAccess, setRequestingAccess] = useState(false)
 
@@ -72,6 +73,7 @@ export default function ScanPatientClient() {
     }
     if (videoRef.current) videoRef.current.srcObject = null
     setCameraActive(false)
+    setVideoMirrored(false)
   }
 
   const scanFrame = useCallback(() => {
@@ -119,6 +121,14 @@ export default function ScanPatientClient() {
         videoRef.current.srcObject = stream
         await videoRef.current.play()
       }
+      // Mirror video for front-facing cameras (desktop webcams) so users see
+      // themselves in a natural reflection. jsQR decodes raw canvas data and
+      // handles mirrored QR codes correctly.
+      const track = stream.getVideoTracks()[0]
+      const facingMode = track?.getSettings?.()?.facingMode
+      const isFront = facingMode === 'user' || facingMode === undefined
+      setVideoMirrored(isFront)
+
       setCameraActive(true)
       rafRef.current = requestAnimationFrame(scanFrame)
     } catch (err: unknown) {
@@ -377,7 +387,7 @@ export default function ScanPatientClient() {
               ref={videoRef}
               playsInline
               muted
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14, display: cameraActive ? 'block' : 'none' }}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14, display: cameraActive ? 'block' : 'none', transform: videoMirrored ? 'scaleX(-1)' : 'none' }}
             />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
 

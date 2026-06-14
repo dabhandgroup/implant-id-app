@@ -974,6 +974,107 @@ export const revokeClinicAccess = mutation({
   },
 })
 
+/** Update the patient's clinic sharing preference (clinicSharingEnabled). */
+export const updateSharingPreference = mutation({
+  args: { clinicSharingEnabled: v.boolean() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) throw new Error('Patient record not found')
+    await ctx.db.patch(patient._id, { clinicSharingEnabled: args.clinicSharingEnabled })
+  },
+})
+
+/** Return pending access requests waiting for the patient's response. */
+export const getMyPendingAccessRequests = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) return []
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) return []
+
+    const requests = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .filter((q) => q.eq(q.field('status'), 'pending'))
+      .collect()
+
+    return Promise.all(
+      requests.map(async (r) => {
+        const clinic = await ctx.db.get(r.clinicId)
+        return {
+          _id:         r._id,
+          clinicId:    r.clinicId,
+          clinicName:  clinic?.name ?? 'Unknown clinic',
+          clinicCity:  clinic?.city,
+          requestedAt: r.requestedAt,
+          reason:      r.reason,
+        }
+      }),
+    )
+  },
+})
+
+/** Patient approves or declines a pending clinic access request. */
+export const respondToAccessRequest = mutation({
+  args: {
+    requestId: v.id('accessRequests'),
+    approve:   v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) throw new Error('Patient record not found')
+
+    const request = await ctx.db.get(args.requestId)
+    if (!request) throw new Error('Access request not found')
+    if (request.patientId !== patient._id) throw new Error('Not authorised')
+
+    const newStatus = args.approve ? 'approved' : 'declined'
+    await ctx.db.patch(args.requestId, { status: newStatus, resolvedAt: Date.now() })
+
+    // Notify the requesting staff member
+    await ctx.db.insert('notifications', {
+      userId:    (await ctx.db.get(request.staffId))?.userId ?? user._id,
+      type:      'access_request',
+      title:     args.approve ? 'Access approved' : 'Access declined',
+      body:      args.approve
+        ? `${patient.firstName} ${patient.lastName} approved your request to access their full implant record.`
+        : `${patient.firstName} ${patient.lastName} declined your access request.`,
+      read:      false,
+      relatedId: args.requestId,
+      createdAt: Date.now(),
+    })
+  },
+})
+
 // ── Patient self-reported multi-device ────────────────────────────────────────
 
 /**

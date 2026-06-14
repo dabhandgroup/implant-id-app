@@ -6,6 +6,8 @@ import { api }                         from '../../../../convex/_generated/api'
 import { useRouter }                   from 'next/navigation'
 import { CustomSelect }                from '@/components/ui/CustomSelect'
 import QRCode                          from 'qrcode'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const apiAny = api as any
 
 const MONTHS_LONG = [
   'January','February','March','April','May','June',
@@ -22,10 +24,13 @@ export default function AccountClient() {
   const { user, isLoaded } = useUser()
   const { signOut }        = useClerk()
   const router             = useRouter()
-  const patient            = useQuery(api.patients.getMyPatient)
-  const updateProfile      = useMutation(api.patients.updatePatientProfile)
-  const notifications      = useQuery(api.patients.getMyNotifications)
-  const markRead           = useMutation(api.patients.markAllNotificationsRead)
+  const patient                 = useQuery(api.patients.getMyPatient)
+  const updateProfile           = useMutation(api.patients.updatePatientProfile)
+  const notifications           = useQuery(api.patients.getMyNotifications)
+  const markRead                = useMutation(api.patients.markAllNotificationsRead)
+  const pendingRequests         = useQuery(apiAny.patients.getMyPendingAccessRequests) as Array<{ _id: string; clinicName: string; clinicCity?: string; requestedAt: number; reason?: string }> | undefined
+  const updateSharingPref       = useMutation(apiAny.patients.updateSharingPreference)
+  const respondToAccessRequest  = useMutation(apiAny.patients.respondToAccessRequest)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [sbCollapsed,    setSbCollapsed]    = useState(false)
@@ -41,10 +46,15 @@ export default function AccountClient() {
   const [notifTips,    setNotifTips]    = useState(true)
   const [notifNetwork, setNotifNetwork] = useState(false)
 
-  // ── Privacy preferences (persist to Convex in Phase 3) ───────────────────
-  const [visibility,      setVisibility]      = useState('global')
-  const [emergencyAccess, setEmergencyAccess] = useState(true)
-  const [shareLocation,   setShareLocation]   = useState(false)
+  // ── Privacy preferences ───────────────────────────────────────────────────
+  const [visibility,            setVisibility]            = useState('global')
+  const [emergencyAccess,       setEmergencyAccess]       = useState(true)
+  const [shareLocation,         setShareLocation]         = useState(false)
+  const [clinicSharing,         setClinicSharing]         = useState(true)
+  const [sharingSaving,         setSharingSaving]         = useState(false)
+  const [sharingSaved,          setSharingSaved]          = useState(false)
+  const [accessResponding,      setAccessResponding]      = useState<Record<string, 'approving' | 'declining'>>({})
+  const [accessResponded,       setAccessResponded]       = useState<Record<string, 'approved' | 'declined'>>({})
 
   // ── Security — passkeys ───────────────────────────────────────────────────
   const [passkeyLoading, setPasskeyLoading] = useState(false)
@@ -106,13 +116,15 @@ export default function AccountClient() {
     if (patient === null) router.replace('/patients/register')
   }, [patient, router])
 
-  // Initialise clinical fields from patient data when it loads
+  // Initialise clinical + sharing fields from patient data when it loads
   useEffect(() => {
     if (!patient) return
     if (patient.heightCm)            setHeightCm(String(patient.heightCm))
     if (patient.weightKg)            setWeightKg(String(patient.weightKg))
     if (patient.contrastAllergy)     setContrastAllergy(patient.contrastAllergy)
     if (patient.contrastAllergyNote) setContrastAllergyNote(patient.contrastAllergyNote)
+    // clinicSharingEnabled: undefined means not set yet — default to true (open sharing)
+    setClinicSharing(patient.clinicSharingEnabled !== false)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient?._id])
 
@@ -281,6 +293,29 @@ export default function AccountClient() {
       setClinicalErr(e?.message ?? 'Failed to save. Please try again.')
     } finally {
       setClinicalSaving(false)
+    }
+  }
+
+  async function saveSharing(enabled: boolean) {
+    setClinicSharing(enabled)
+    setSharingSaving(true)
+    setSharingSaved(false)
+    try {
+      await updateSharingPref({ clinicSharingEnabled: enabled })
+      setSharingSaved(true)
+      setTimeout(() => setSharingSaved(false), 3000)
+    } catch { /* silent */ }
+    finally { setSharingSaving(false) }
+  }
+
+  async function handleAccessResponse(requestId: string, approve: boolean) {
+    setAccessResponding(prev => ({ ...prev, [requestId]: approve ? 'approving' : 'declining' }))
+    try {
+      await respondToAccessRequest({ requestId: requestId as never, approve })
+      setAccessResponded(prev => ({ ...prev, [requestId]: approve ? 'approved' : 'declined' }))
+    } catch { /* silent */ }
+    finally {
+      setAccessResponding(prev => { const n = { ...prev }; delete n[requestId]; return n })
     }
   }
 
@@ -926,12 +961,92 @@ export default function AccountClient() {
                   <span className="slider" />
                 </label>
               </div>
-              <div className="save-bar">
-                <button className="btn btn-s" onClick={() => {/* TODO Phase 3: persist to Convex */}}>
-                  Save preferences
-                </button>
+              <div className="toggle-row">
+                <div className="toggle-label">
+                  <b>Allow clinics to view my full record</b>
+                  <span>When enabled, any registered clinic can see your full implant details when they scan your card. When off, clinics see only your name and DOB and must request access.</span>
+                </div>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={clinicSharing}
+                    onChange={e => saveSharing(e.target.checked)}
+                    disabled={sharingSaving}
+                  />
+                  <span className="slider" />
+                </label>
               </div>
+              {sharingSaved && (
+                <div style={{ fontSize: 12.5, color: 'var(--ok)', fontFamily: 'var(--ff)', marginTop: 8 }}>
+                  Sharing preference saved ✓
+                </div>
+              )}
             </div>
+
+            {/* ── Clinic access requests ─────────────────────────────────── */}
+            {pendingRequests !== undefined && pendingRequests.length > 0 && (
+              <div className="acc-card">
+                <h2>Clinic access requests</h2>
+                <div className="sub">
+                  These clinics have requested access to your full implant record. Approve to grant them access, or decline to keep your record private.
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+                  {pendingRequests.map(req => {
+                    const responded = accessResponded[req._id]
+                    const working   = accessResponding[req._id]
+                    return (
+                      <div key={req._id} style={{
+                        background: responded ? 'color-mix(in srgb,var(--bg2) 60%,transparent)' : 'var(--bg2)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 12, padding: '16px 18px',
+                        display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+                      }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
+                            <path d="M3 21V8l9-5 9 5v13"/><path d="M9 9h6M9 13h6M9 17h6"/>
+                          </svg>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{req.clinicName}</div>
+                          {req.clinicCity && <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 1 }}>{req.clinicCity}</div>}
+                          <div style={{ fontSize: 12, color: 'var(--muted2)', marginTop: 3 }}>
+                            Requested {new Date(req.requestedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                        </div>
+                        {responded ? (
+                          <span style={{
+                            fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 999,
+                            background: responded === 'approved' ? 'color-mix(in srgb,var(--ok) 12%,transparent)' : 'color-mix(in srgb,var(--muted2) 12%,transparent)',
+                            color: responded === 'approved' ? 'var(--ok)' : 'var(--muted)',
+                          }}>
+                            {responded === 'approved' ? 'Approved' : 'Declined'}
+                          </span>
+                        ) : (
+                          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                            <button
+                              className="btn"
+                              style={{ fontSize: 13, padding: '7px 14px', color: 'var(--muted)' }}
+                              onClick={() => handleAccessResponse(req._id, false)}
+                              disabled={!!working}
+                            >
+                              {working === 'declining' ? 'Declining…' : 'Decline'}
+                            </button>
+                            <button
+                              className="btn btn-s"
+                              style={{ fontSize: 13, padding: '7px 14px' }}
+                              onClick={() => handleAccessResponse(req._id, true)}
+                              disabled={!!working}
+                            >
+                              {working === 'approving' ? 'Approving…' : 'Approve'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* ── Danger zone ───────────────────────────────────────────── */}
             <div className="acc-card danger-zone">

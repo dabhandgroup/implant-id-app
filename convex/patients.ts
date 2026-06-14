@@ -689,23 +689,25 @@ export const verifyPatient = mutation({
     }
 
     // Get the patient's user record to find their email
-    const patientUser = await ctx.db.get(patient.userId)
-    if (patientUser?.email) {
-      await ctx.scheduler.runAfter(0, internal.email.sendPatientVerifiedEmail, {
-        firstName:     patient.firstName,
-        email:         patientUser.email,
-        implantIdCode: patient.implantIdCode,
+    if (patient.userId) {
+      const patientUser = await ctx.db.get(patient.userId)
+      if (patientUser?.email) {
+        await ctx.scheduler.runAfter(0, internal.email.sendPatientVerifiedEmail, {
+          firstName:     patient.firstName,
+          email:         patientUser.email,
+          implantIdCode: patient.implantIdCode,
+        })
+      }
+
+      await ctx.db.insert('notifications', {
+        userId:    patient.userId,
+        type:      'verification',
+        title:     'Your implant record is verified',
+        body:      'Your clinical team has verified your record. Your wallet pass is now active.',
+        read:      false,
+        createdAt: Date.now(),
       })
     }
-
-    await ctx.db.insert('notifications', {
-      userId:    patient.userId,
-      type:      'verification',
-      title:     'Your implant record is verified',
-      body:      'Your clinical team has verified your record. Your wallet pass is now active.',
-      read:      false,
-      createdAt: Date.now(),
-    })
   },
 })
 
@@ -789,7 +791,7 @@ export const getPatientById = query({
       )
     ).filter(Boolean)
 
-    const patientUser = await ctx.db.get(patient.userId)
+    const patientUser = patient.userId ? await ctx.db.get(patient.userId) : null
     const email = patientUser?.email || null
 
     return { ...patient, devices, email }
@@ -1345,7 +1347,7 @@ export const recordPatientLookup = mutation({
 
     // Notify patient
     const patient = await ctx.db.get(args.patientId)
-    if (patient) {
+    if (patient?.userId) {
       await ctx.db.insert('notifications', {
         userId:    patient.userId,
         type:      'record_viewed',
@@ -1410,15 +1412,17 @@ export const requestClinicAccess = mutation({
     })
 
     // Notify patient
-    await ctx.db.insert('notifications', {
-      userId:    patient.userId,
-      type:      'access_request',
-      title:     'Clinic access request',
-      body:      `${clinicName} has requested access to your full implant record. You can approve or decline this from your account.`,
-      read:      false,
-      relatedId: requestId,
-      createdAt: Date.now(),
-    })
+    if (patient.userId) {
+      await ctx.db.insert('notifications', {
+        userId:    patient.userId,
+        type:      'access_request',
+        title:     'Clinic access request',
+        body:      `${clinicName} has requested access to your full implant record. You can approve or decline this from your account.`,
+        read:      false,
+        relatedId: requestId,
+        createdAt: Date.now(),
+      })
+    }
 
     return requestId
   },

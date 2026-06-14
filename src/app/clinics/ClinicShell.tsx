@@ -12,7 +12,7 @@ const api = apiBase as any
 // ── Page title ────────────────────────────────────────────────────────────────
 
 function pageTitleFromPathname(pathname: string): string {
-  if (pathname.startsWith('/clinics/library'))        return 'Implant library'
+  if (pathname.startsWith('/clinics/library'))        return 'Devices'
   if (pathname.startsWith('/clinics/scan-patient'))   return 'Scan patient card'
   if (pathname.startsWith('/clinics/manufacturers'))  return 'Manufacturers'
   if (pathname.startsWith('/clinics/all-patients'))   return 'All patients'
@@ -239,9 +239,9 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="5" y="5" width="3" height="3"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="16" y="5" width="3" height="3"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="5" y="16" width="3" height="3"/><rect x="14" y="14" width="2.5" height="2.5" rx=".5"/><rect x="18" y="14" width="3" height="3" rx=".5"/><rect x="14" y="18" width="3" height="3" rx=".5"/><rect x="19" y="19" width="2" height="2" rx=".5"/></svg>
             <span>Scan card</span>
           </a>
-          <a className={`sb-link${isActive('/clinics/library') ? ' active' : ''}`} href="/clinics/library" title="Implant library">
+          <a className={`sb-link${isActive('/clinics/library') ? ' active' : ''}`} href="/clinics/library" title="Devices">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
-            <span>Implant library</span>
+            <span>Devices</span>
           </a>
           <a className={`sb-link${isActive('/clinics/manufacturers') ? ' active' : ''}`} href="/clinics/manufacturers" title="Manufacturers">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 9h6M9 13h6M9 17h6"/></svg>

@@ -4,7 +4,7 @@ import type { Metadata } from 'next'
 import { ALL_DEVICES, MANUFACTURERS } from '@/data/devices'
 import LibraryClient, { type LibDevice } from './LibraryClient'
 
-export const metadata: Metadata = { title: 'Implant library · Implant ID' }
+export const metadata: Metadata = { title: 'Devices · Implant ID' }
 
 export default async function LibraryPage() {
   const devices: LibDevice[] = ALL_DEVICES.map(d => {

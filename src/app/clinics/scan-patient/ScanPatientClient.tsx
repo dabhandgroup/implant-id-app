@@ -22,6 +22,8 @@ export default function ScanPatientClient() {
   const [toastVisible,     setToastVisible]     = useState(false)
   const [cameraActive,     setCameraActive]     = useState(false)
   const [cameraError,      setCameraError]      = useState('')
+  const [captureError,     setCaptureError]     = useState('')
+  const [isCapturing,      setIsCapturing]      = useState(false)
   const [videoMirrored,    setVideoMirrored]    = useState(false)
   const [accessRequested,  setAccessRequested]  = useState(false)
   const [requestingAccess, setRequestingAccess] = useState(false)
@@ -54,8 +56,10 @@ export default function ScanPatientClient() {
     if (videoRef.current) videoRef.current.srcObject = null
     setCameraActive(false)
     setVideoMirrored(false)
+    setCaptureError('')
   }
 
+  // Background RAF scan — auto-detects QR without user pressing anything
   const scanFrame = useCallback(() => {
     const video  = videoRef.current
     const canvas = canvasRef.current
@@ -74,6 +78,34 @@ export default function ScanPatientClient() {
       rafRef.current = requestAnimationFrame(scanFrame)
     }).catch(() => { rafRef.current = requestAnimationFrame(scanFrame) })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Manual capture — freeze current frame and try to read QR
+  async function captureFrame() {
+    const video  = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas) return
+    setIsCapturing(true)
+    setCaptureError('')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) { setIsCapturing(false); return }
+    ctx.drawImage(video, 0, 0)
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+    try {
+      const { default: jsQR } = await import('jsqr')
+      const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' })
+      if (code?.data) {
+        const iid = extractIidCode(code.data)
+        if (iid) { stopCamera(); setSearchCode(iid); setInputCode(iid); showToast('QR code detected'); return }
+      }
+      setCaptureError('No QR code found — ensure the full code is in frame and try again')
+    } catch {
+      setCaptureError('Could not process image — try again')
+    } finally {
+      setIsCapturing(false)
+    }
+  }
 
   async function startCamera() {
     setCameraError('')
@@ -94,7 +126,7 @@ export default function ScanPatientClient() {
       } else if (msg.includes('NotFound') || msg.includes('NotReadable')) {
         setCameraError('No camera found on this device.')
       } else {
-        setCameraError('Could not start camera. Use manual entry below.')
+        setCameraError('Could not start camera. Use manual entry on the right.')
       }
     }
   }
@@ -264,7 +296,6 @@ export default function ScanPatientClient() {
         {/* ── Left column: camera ── */}
         <div>
           <div className="scan-col-hd">
-            {/* QR code icon */}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
               <rect x="2" y="2" width="8" height="8" rx="1.5"/>
               <rect x="2.5" y="2.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
@@ -281,24 +312,39 @@ export default function ScanPatientClient() {
           </div>
 
           <div className={`viewfinder${cameraActive ? ' scanning' : ''}`}>
-            {/* Corner bracket markers */}
+            {/* Corner brackets always on top */}
             <span className="vf-corner vf-corner-tl" />
             <span className="vf-corner vf-corner-tr" />
             <span className="vf-corner vf-corner-bl" />
             <span className="vf-corner vf-corner-br" />
 
+            {/* Video */}
             <video
               ref={videoRef}
               playsInline
               muted
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14, display: cameraActive ? 'block' : 'none', transform: videoMirrored ? 'scaleX(-1)' : 'none' }}
+              style={{
+                position: 'absolute', inset: 0, width: '100%', height: '100%',
+                objectFit: 'cover', borderRadius: 16,
+                display: cameraActive ? 'block' : 'none',
+                transform: videoMirrored ? 'scaleX(-1)' : 'none',
+                zIndex: 1,
+              }}
             />
             <canvas ref={canvasRef} style={{ display: 'none' }} />
-            <div className="vf-scan-line" />
 
+            {/* Camera active: vignette + inner target zone */}
+            {cameraActive && <div className="vf-vignette" />}
+            {cameraActive && (
+              <div className="vf-target">
+                <div className="vf-target-line" />
+              </div>
+            )}
+
+            {/* Idle: scan line + instruction */}
+            {!cameraActive && <div className="vf-scan-line" />}
             {!cameraActive && (
               <div className="vf-idle">
-                {/* QR code icon for idle state */}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="vf-icon" aria-hidden="true">
                   <rect x="2" y="2" width="8" height="8" rx="1.5"/>
                   <rect x="3" y="3" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".5"/>
@@ -327,15 +373,20 @@ export default function ScanPatientClient() {
 
           <div className="scan-ctas">
             {cameraActive ? (
-              <button className="btn btn-lg" onClick={stopCamera}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/>
-                </svg>
-                Stop camera
-              </button>
+              <>
+                <button className="btn btn-s btn-lg" onClick={captureFrame} disabled={isCapturing} aria-label="Capture frame and detect QR code">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M8.5 3H6a2 2 0 0 0-2 2v1M15.5 3H18a2 2 0 0 1 2 2v1M21 15.5V18a2 2 0 0 1-2 2h-1M3 15.5V18a2 2 0 0 0 2 2h1"/>
+                  </svg>
+                  {isCapturing ? 'Scanning…' : 'Capture'}
+                </button>
+                {captureError && <div className="scan-capture-err">{captureError}</div>}
+                <button className="scan-ctas-cancel" onClick={stopCamera}>Cancel</button>
+              </>
             ) : (
               <button className="btn btn-s btn-lg" onClick={startCamera}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
                   <path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
                 </svg>
                 Start camera
@@ -349,7 +400,7 @@ export default function ScanPatientClient() {
           <span className="scan-sep-or">or</span>
         </div>
 
-        {/* ── Right column: patient lookup ── */}
+        {/* ── Right column: patient lookup card ── */}
         <div className="lookup-col">
           <div className="scan-col-hd">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
@@ -359,7 +410,7 @@ export default function ScanPatientClient() {
             Enter code manually
           </div>
           <p className="lookup-desc">
-            Enter the Implant ID code from the patient&rsquo;s physical card, Apple Wallet pass, or confirmation email.
+            Enter the Implant ID from the patient&rsquo;s physical card, Apple Wallet pass, or confirmation email.
           </p>
           <div className="lookup-input-wrap">
             <svg className="lookup-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">

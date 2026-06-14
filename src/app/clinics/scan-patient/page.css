@@ -1,10 +1,10 @@
 body{background:var(--bg)}
 
-/* ── Scan page ─────────────────────────────────────────────────────────────── */
+/* ── Page ─────────────────────────────────────────────────────────────────── */
 .scan-page{padding-bottom:60px}
 
 /* ── Two-column layout ────────────────────────────────────────────────────── */
-.scan-layout{display:grid;grid-template-columns:1fr auto 1fr;gap:0 0;align-items:start}
+.scan-layout{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:start}
 
 /* ── Column headers ───────────────────────────────────────────────────────── */
 .scan-col-hd{display:flex;align-items:center;gap:9px;font-family:var(--ff);font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;letter-spacing:-.01em}
@@ -16,40 +16,99 @@ body{background:var(--bg)}
 .scan-sep-or{padding:10px 0;font-family:var(--ff);font-size:11.5px;font-weight:500;color:var(--muted2);white-space:nowrap}
 
 /* ── Viewfinder ───────────────────────────────────────────────────────────── */
-.viewfinder{width:100%;aspect-ratio:4/3;max-height:240px;border-radius:16px;border:1px solid color-mix(in srgb,var(--accent) 22%,var(--border));background:color-mix(in srgb,var(--accent) 3%,var(--bg));display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;transition:border-color .2s,background .2s}
-.viewfinder.scanning{border-color:var(--accent);background:color-mix(in srgb,var(--text) 86%,transparent)}
-.vf-corner{position:absolute;width:20px;height:20px}
-.vf-corner-tl{top:12px;left:12px;border-top:2.5px solid var(--accent);border-left:2.5px solid var(--accent);border-radius:3px 0 0 0}
-.vf-corner-tr{top:12px;right:12px;border-top:2.5px solid var(--accent);border-right:2.5px solid var(--accent);border-radius:0 3px 0 0}
-.vf-corner-bl{bottom:12px;left:12px;border-bottom:2.5px solid var(--accent);border-left:2.5px solid var(--accent);border-radius:0 0 0 3px}
-.vf-corner-br{bottom:12px;right:12px;border-bottom:2.5px solid var(--accent);border-right:2.5px solid var(--accent);border-radius:0 0 3px 0}
-.vf-idle{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;width:100%;height:100%;padding:24px;text-align:center}
-.vf-idle p{color:var(--muted);font-size:13px;font-family:var(--ff);line-height:1.5;max-width:180px}
-.vf-icon{width:44px;height:44px;color:color-mix(in srgb,var(--accent) 55%,var(--muted2))}
-.vf-scan-line{position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:2px;animation:scandown 1.8s ease-in-out infinite;opacity:.85}
-@keyframes scandown{0%{top:0}50%{top:calc(100% - 3px)}100%{top:0}}
+.viewfinder{
+  width:100%;aspect-ratio:4/3;max-height:270px;
+  border-radius:18px;
+  border:1.5px solid color-mix(in srgb,var(--accent) 22%,var(--border));
+  background:radial-gradient(ellipse 80% 70% at 50% 44%,color-mix(in srgb,var(--accent) 9%,var(--bg)) 0%,var(--bg) 80%);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative;
+  transition:border-color .25s,background .25s
+}
+.viewfinder.scanning{
+  border-color:var(--accent);
+  border-width:1.5px;
+  background:#0d0d0d
+}
+
+/* Corner brackets — always above video */
+.vf-corner{position:absolute;width:22px;height:22px;z-index:6;pointer-events:none;transition:opacity .2s}
+.vf-corner-tl{top:13px;left:13px;border-top:2.5px solid var(--accent);border-left:2.5px solid var(--accent);border-radius:3px 0 0 0}
+.vf-corner-tr{top:13px;right:13px;border-top:2.5px solid var(--accent);border-right:2.5px solid var(--accent);border-radius:0 3px 0 0}
+.vf-corner-bl{bottom:13px;left:13px;border-bottom:2.5px solid var(--accent);border-left:2.5px solid var(--accent);border-radius:0 0 0 3px}
+.vf-corner-br{bottom:13px;right:13px;border-bottom:2.5px solid var(--accent);border-right:2.5px solid var(--accent);border-radius:0 0 3px 0}
+
+/* Idle state */
+.vf-idle{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:100%;height:100%;padding:28px;text-align:center;position:relative;z-index:2}
+.vf-idle p{color:var(--muted);font-size:13px;font-family:var(--ff);line-height:1.55;max-width:170px}
+.vf-icon{width:54px;height:54px;color:color-mix(in srgb,var(--accent) 65%,var(--muted2));filter:drop-shadow(0 0 10px color-mix(in srgb,var(--accent) 20%,transparent))}
+
+/* Idle scan line (full viewfinder width) */
+.vf-scan-line{position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:2px;animation:scandown 2s ease-in-out infinite;opacity:.55;z-index:2;pointer-events:none}
+@keyframes scandown{0%{top:0}50%{top:calc(100% - 2px)}100%{top:0}}
+
+/* ── Camera active overlays ────────────────────────────────────────────────── */
+/* Dark vignette around video edges */
+.vf-vignette{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse 68% 62% at 50% 50%,transparent 30%,rgba(0,0,0,.58) 100%)
+}
+/* Inner scan target rectangle */
+.vf-target{
+  position:absolute;
+  top:10%;left:8%;right:8%;bottom:10%;
+  border:1.5px solid color-mix(in srgb,var(--accent) 65%,white 20%);
+  border-radius:10px;
+  box-shadow:
+    0 0 22px color-mix(in srgb,var(--accent) 22%,transparent),
+    inset 0 0 20px color-mix(in srgb,var(--accent) 5%,transparent);
+  z-index:3;overflow:hidden;pointer-events:none
+}
+/* Scan line inside target — faster, brighter when camera on */
+.vf-target-line{
+  position:absolute;left:0;right:0;top:0;height:2px;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--accent) 90%,white 25%),transparent);
+  border-radius:2px;animation:scandown 1.5s ease-in-out infinite;opacity:.95
+}
 
 /* ── Scan CTAs ────────────────────────────────────────────────────────────── */
-.scan-ctas{margin-top:12px}
-.scan-ctas .btn{width:100%;justify-content:center;gap:7px}
+.scan-ctas{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.scan-ctas .btn{width:100%;justify-content:center;gap:8px}
+.scan-ctas-cancel{background:none;border:none;cursor:pointer;color:var(--muted);font-family:var(--ff);font-size:12.5px;padding:4px 0;text-align:center;width:100%;transition:color .15s}
+.scan-ctas-cancel:hover{color:var(--text)}
+.scan-capture-err{font-family:var(--ff);font-size:12.5px;color:var(--err);text-align:center;padding:4px 0 2px}
 
-/* ── Patient lookup column ────────────────────────────────────────────────── */
-.lookup-col{display:flex;flex-direction:column}
+/* Cam access error */
+.cam-error{display:flex;align-items:flex-start;gap:10px;background:color-mix(in srgb,var(--err) 6%,transparent);border:1px solid color-mix(in srgb,var(--err) 18%,transparent);border-radius:10px;padding:10px 14px;margin-top:10px;font-family:var(--ff);font-size:13px;color:var(--muted)}
+.cam-error svg{flex-shrink:0;margin-top:1px}
+
+/* ── Lookup card (right column) ───────────────────────────────────────────── */
+.lookup-col{
+  display:flex;flex-direction:column;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:20px 20px 16px;
+  box-shadow:0 1px 4px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04)
+}
 .lookup-desc{font-family:var(--ff);font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px}
 
-/* ── Input with icon ──────────────────────────────────────────────────────── */
+/* Input with search icon */
 .lookup-input-wrap{position:relative;margin-bottom:10px}
 .lookup-input-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;flex-shrink:0}
-.lookup-input{width:100%;box-sizing:border-box;font-family:SF\ Mono,Monaco,monospace;letter-spacing:.04em;font-size:14.5px;padding:12px 14px 12px 40px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);transition:all .15s;outline:none}
+.lookup-input{
+  width:100%;box-sizing:border-box;
+  font-family:SF\ Mono,Monaco,monospace;letter-spacing:.04em;
+  font-size:14.5px;padding:12px 14px 12px 40px;
+  border-radius:10px;border:1px solid var(--border);
+  background:var(--bg);color:var(--text);
+  transition:all .15s;outline:none
+}
 .lookup-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
 .lookup-input::placeholder{font-family:var(--ff);letter-spacing:0;color:var(--muted2)}
 .lookup-btn-full{width:100%;justify-content:center;gap:8px}
 .lookup-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
 .lookup-hint{color:var(--muted2);font-size:12px;font-family:var(--ff);line-height:1.5}
-
-/* ── Error state ──────────────────────────────────────────────────────────── */
-.cam-error{display:flex;align-items:flex-start;gap:10px;background:color-mix(in srgb,var(--err) 6%,transparent);border:1px solid color-mix(in srgb,var(--err) 18%,transparent);border-radius:10px;padding:10px 14px;margin-top:10px;font-family:var(--ff);font-size:13px;color:var(--muted)}
-.cam-error svg{flex-shrink:0;margin-top:1px}
 
 /* ── Result card ──────────────────────────────────────────────────────────── */
 .lookup-result{display:flex;flex-direction:column;gap:14px;margin-top:20px}
@@ -76,7 +135,7 @@ body{background:var(--bg)}
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media(max-width:780px){
-  .scan-layout{grid-template-columns:1fr;gap:24px 0}
+  .scan-layout{grid-template-columns:1fr;gap:20px 0}
   .scan-sep{flex-direction:row;width:auto;padding:0;height:28px}
   .scan-sep::before,.scan-sep::after{width:auto;height:1px;flex:1}
   .scan-sep-or{padding:0 12px}

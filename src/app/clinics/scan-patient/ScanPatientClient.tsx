@@ -94,7 +94,7 @@ export default function ScanPatientClient() {
       } else if (msg.includes('NotFound') || msg.includes('NotReadable')) {
         setCameraError('No camera found on this device.')
       } else {
-        setCameraError('Could not start camera. Enter the code below instead.')
+        setCameraError('Could not start camera. Use manual entry below.')
       }
     }
   }
@@ -259,105 +259,124 @@ export default function ScanPatientClient() {
   return (
     <div className="m-content scan-page">
 
-      {/* ── Viewfinder ── */}
-      <div className={`viewfinder${cameraActive ? ' scanning' : ''}`}>
-        <video
-          ref={videoRef}
-          playsInline
-          muted
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14, display: cameraActive ? 'block' : 'none', transform: videoMirrored ? 'scaleX(-1)' : 'none' }}
-        />
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
-        {cameraActive && <div className="vf-scan-line" />}
-        {!cameraActive && (
-          <div className="vf-idle">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" className="vf-icon" aria-hidden="true">
-              <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="5" y="5" width="3" height="3"/>
-              <rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="16" y="5" width="3" height="3"/>
-              <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="5" y="16" width="3" height="3"/>
-              <rect x="14" y="14" width="2.5" height="2.5" rx=".5"/><rect x="18" y="14" width="3" height="3" rx=".5"/>
-              <rect x="14" y="18" width="3" height="3" rx=".5"/><rect x="19" y="19" width="2" height="2" rx=".5"/>
-            </svg>
-            <p>Point the camera at the patient&apos;s Implant ID card or QR code</p>
+      {/* ── Hero ── */}
+      <div className="scan-hero">
+        <div className="ey scan-ey-center">Look up an implant</div>
+        <h1 className="scan-hero-h">
+          Scan the patient&apos;s card or enter their Implant ID code.
+        </h1>
+        <p className="scan-hero-sub">
+          Use the camera to scan the QR code on their Implant ID card, or type the code manually below.
+        </p>
+      </div>
+
+      {/* ── Scan stage ── */}
+      <div className="scan-stage">
+
+        {/* Camera eyebrow */}
+        <div className="scan-cam-ey">{cameraActive ? 'Camera active — scanning' : 'Camera'}</div>
+
+        {/* Viewfinder */}
+        <div className={`viewfinder${cameraActive ? ' scanning' : ''}`}>
+          <video
+            ref={videoRef}
+            playsInline
+            muted
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14, display: cameraActive ? 'block' : 'none', transform: videoMirrored ? 'scaleX(-1)' : 'none' }}
+          />
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+          {cameraActive && <div className="vf-scan-line" />}
+          {!cameraActive && (
+            <div className="vf-idle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" className="vf-icon" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2"/>
+                <path d="M3 10h18M8 15h2"/>
+              </svg>
+              <p>Align the patient card inside the frame</p>
+            </div>
+          )}
+        </div>
+
+        {/* Camera error */}
+        {cameraError && (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 10, padding: '12px 14px', marginTop: 12, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+            {cameraError}
           </div>
         )}
-      </div>
 
-      {/* ── Camera error ── */}
-      {cameraError && (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 10, padding: '12px 14px', marginTop: 12, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-          {cameraError}
+        {/* CTA buttons */}
+        <div className="scan-ctas" style={{ marginTop: cameraError ? 12 : 20 }}>
+          {cameraActive ? (
+            <button className="btn btn-lg" onClick={stopCamera}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+              Stop camera
+            </button>
+          ) : (
+            <button className="btn btn-s btn-lg" onClick={startCamera}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              Start camera
+            </button>
+          )}
         </div>
-      )}
+        <p style={{ color: 'var(--muted2)', fontSize: 12.5, fontFamily: 'var(--ff)', textAlign: 'center', lineHeight: 1.6 }}>
+          Works with Apple Wallet passes, physical ID cards, and QR codes.
+        </p>
 
-      {/* ── Camera controls ── */}
-      <div className="scan-ctas" style={{ marginTop: cameraError ? 12 : 20 }}>
-        {cameraActive ? (
-          <button className="btn btn-lg" onClick={stopCamera}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-            Stop camera
-          </button>
-        ) : (
-          <button className="btn btn-s btn-lg" onClick={startCamera}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-            Start camera
-          </button>
+        {/* Divider */}
+        <div className="scan-or" style={{ marginTop: 28 }}>or enter the Implant ID code</div>
+
+        {/* IID code input */}
+        <div className="manual-lookup">
+          <div className="lookup-input-row">
+            <input
+              ref={inputRef}
+              type="text"
+              className="input lookup-input"
+              placeholder="e.g. IID-SMIJO2311XK"
+              value={inputCode}
+              onChange={e => setInputCode(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              style={{ fontFamily: 'SF Mono,Monaco,monospace', letterSpacing: '.04em' }}
+              aria-label="Patient Implant ID code"
+            />
+            <button className="btn btn-s lookup-btn" onClick={handleSearch} disabled={!inputCode.trim()}>
+              Look up
+            </button>
+          </div>
+          {inputCode && (
+            <button onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 12.5, padding: 0, marginTop: 6 }}>
+              Clear
+            </button>
+          )}
+          <div className="lookup-hint">Accepts the full IID-XXXXXXXX format. Not case-sensitive.</div>
+        </div>
+
+        {/* Results */}
+        {isLoading && (
+          <div style={{ color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14, padding: '10px 0' }}>
+            Looking up record…
+          </div>
         )}
-      </div>
-
-      {/* ── Divider ── */}
-      <div className="scan-or">or enter the Implant ID code</div>
-
-      {/* ── Code input ── */}
-      <div className="manual-lookup">
-        <div className="lookup-input-row">
-          <input
-            ref={inputRef}
-            type="text"
-            className="input lookup-input"
-            placeholder="e.g. IID-SMIJO2311XK"
-            value={inputCode}
-            onChange={e => setInputCode(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            style={{ fontFamily: 'SF Mono,Monaco,monospace', letterSpacing: '.04em' }}
-            aria-label="Patient Implant ID code"
-          />
-          <button className="btn btn-s lookup-btn" onClick={handleSearch} disabled={!inputCode.trim()}>
-            Look up
-          </button>
-        </div>
-        {inputCode && (
-          <button onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 12.5, padding: 0, marginTop: 6 }}>
-            Clear
-          </button>
-        )}
-        <div className="lookup-hint">Accepts the full IID-XXXXXXXX format. Not case-sensitive.</div>
-      </div>
-
-      {/* ── Results ── */}
-      {isLoading && (
-        <div style={{ color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14, padding: '10px 0' }}>
-          Looking up record…
-        </div>
-      )}
-      {notFound && (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 12, padding: '14px 18px', marginTop: 4 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
-            <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
-          </svg>
-          <div>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--err)', marginBottom: 3 }}>No record found</div>
-            <div style={{ fontSize: 13.5, color: 'var(--muted)' }}>
-              No patient found for code <strong style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{searchCode}</strong>.
+        {notFound && (
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 12, padding: '14px 18px', marginTop: 4 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
+              <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
+            </svg>
+            <div>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--err)', marginBottom: 3 }}>No record found</div>
+              <div style={{ fontSize: 13.5, color: 'var(--muted)' }}>
+                No patient found for code <strong style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{searchCode}</strong>.
+              </div>
             </div>
           </div>
-        </div>
-      )}
-      {found && <ResultCard />}
+        )}
+        {found && <ResultCard />}
+
+      </div>
 
       {/* ── Toast ── */}
       <div className={`scan-toast${toastVisible ? ' show' : ''}`} role="status" aria-live="polite">

@@ -285,7 +285,7 @@ export default function ScanPatientClient() {
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14, display: cameraActive ? 'block' : 'none', transform: videoMirrored ? 'scaleX(-1)' : 'none' }}
           />
           <canvas ref={canvasRef} style={{ display: 'none' }} />
-          {cameraActive && <div className="vf-scan-line" />}
+          <div className="vf-scan-line" />
           {!cameraActive && (
             <div className="vf-idle">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" className="vf-icon" aria-hidden="true">

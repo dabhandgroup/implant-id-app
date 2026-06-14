@@ -224,7 +224,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
         <aside className={`sidebar${mobOpen ? ' open' : ''}`}>
 
           <div className="sb-logo">
-            <a href="/clinics/dashboard" className="logo">
+            <a href="/clinics/scan-patient" className="logo">
               <img src="/icon.svg" alt="" />
               <span className="logo-text"><b>Implant</b><span>ID</span></span>
             </a>
@@ -235,17 +235,13 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
 
           {/* ── Lookup ── */}
           <div className="sb-section">Lookup</div>
-          <a className={`sb-link${isActive('/clinics/dashboard') ? ' active' : ''}`} href="/clinics/dashboard" title="Dashboard">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
-            <span>Dashboard</span>
+          <a className={`sb-link${isActive('/clinics/scan-patient') ? ' active' : ''}`} href="/clinics/scan-patient" title="Scan patient card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="5" y="5" width="3" height="3"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="16" y="5" width="3" height="3"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="5" y="16" width="3" height="3"/><rect x="14" y="14" width="2.5" height="2.5" rx=".5"/><rect x="18" y="14" width="3" height="3" rx=".5"/><rect x="14" y="18" width="3" height="3" rx=".5"/><rect x="19" y="19" width="2" height="2" rx=".5"/></svg>
+            <span>Scan card</span>
           </a>
           <a className={`sb-link${isActive('/clinics/library') ? ' active' : ''}`} href="/clinics/library" title="Implant library">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
             <span>Implant library</span>
-          </a>
-          <a className={`sb-link${isActive('/clinics/scan-patient') ? ' active' : ''}`} href="/clinics/scan-patient" title="Scan patient card">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2"/></svg>
-            <span>Scan card</span>
           </a>
           <a className={`sb-link${isActive('/clinics/manufacturers') ? ' active' : ''}`} href="/clinics/manufacturers" title="Manufacturers">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 9h6M9 13h6M9 17h6"/></svg>
@@ -340,7 +336,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
 
           {/* Mobile top header */}
           <div className="mob-header">
-            <a href="/clinics/dashboard" className="mob-header-logo">
+            <a href="/clinics/scan-patient" className="mob-header-logo">
               <img src="/icon.svg" alt="" />
               <span className="logo-text"><b>Implant</b><span>ID</span></span>
             </a>
@@ -389,12 +385,8 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
       {/* Mobile bottom nav */}
       <nav className="mob-nav" aria-label="Mobile navigation">
         <div className="mob-nav-tabs">
-          <a href="/clinics/dashboard" className={`mob-nav-tab${pathname === '/clinics/dashboard' ? ' active' : ''}`} aria-label="Dashboard">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
-            <span className="t">Home</span>
-          </a>
           <a href="/clinics/scan-patient" className={`mob-nav-tab${isActive('/clinics/scan-patient') ? ' active' : ''}`} aria-label="Scan card">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="5" y="5" width="3" height="3"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="16" y="5" width="3" height="3"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="5" y="16" width="3" height="3"/><rect x="14" y="14" width="2.5" height="2.5" rx=".5"/><rect x="18" y="14" width="3" height="3" rx=".5"/><rect x="14" y="18" width="3" height="3" rx=".5"/><rect x="19" y="19" width="2" height="2" rx=".5"/></svg>
             <span className="t">Scan</span>
           </a>
           <a href="/clinics/all-patients" className={`mob-nav-tab${isActive('/clinics/all-patients') ? ' active' : ''}`} aria-label="Patients">

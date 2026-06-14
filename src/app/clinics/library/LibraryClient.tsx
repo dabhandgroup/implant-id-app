@@ -250,7 +250,7 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
     <>
       {/* Mobile header */}
       <div className="mob-header">
-        <a href="/clinics/dashboard" className="mob-header-logo">
+        <a href="/clinics/scan-patient" className="mob-header-logo">
           <img src="/icon.svg" alt="" />
           <span className="logo-text"><b>Implant</b><span>ID</span></span>
         </a>
@@ -526,19 +526,18 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
       {/* Mobile bottom nav */}
       <nav className="mob-nav" aria-label="Mobile navigation">
         <div className="mob-nav-tabs">
-          <a href="/clinics/dashboard" className="mob-nav-tab" aria-label="Dashboard">
+          <a href="/clinics/scan-patient" className="mob-nav-tab" aria-label="Scan card">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <rect x="3" y="3" width="7" height="9" rx="1.5" />
-              <rect x="14" y="3" width="7" height="5" rx="1.5" />
-              <rect x="14" y="12" width="7" height="9" rx="1.5" />
-              <rect x="3" y="16" width="7" height="5" rx="1.5" />
-            </svg>
-            <span className="t">Home</span>
-          </a>
-          <a href="/clinics/patient/add" className="mob-nav-tab" aria-label="Scan card">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <path d="M3 10h18M8 15h2" />
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="5" y="5" width="3" height="3"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="16" y="5" width="3" height="3"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="5" y="16" width="3" height="3"/>
+              <rect x="14" y="14" width="2.5" height="2.5" rx=".5"/>
+              <rect x="18" y="14" width="3" height="3" rx=".5"/>
+              <rect x="14" y="18" width="3" height="3" rx=".5"/>
+              <rect x="19" y="19" width="2" height="2" rx=".5"/>
             </svg>
             <span className="t">Scan</span>
           </a>

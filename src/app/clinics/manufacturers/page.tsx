@@ -40,27 +40,26 @@ export default async function ManufacturersPage() {
           </div>
 
           <span className="sb-section">Lookup</span>
-          <a className="sb-link" href="/clinics/dashboard" title="Dashboard">
+          <a className="sb-link" href="/clinics/scan-patient" title="Scan patient card">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <rect x="3" y="3" width="7" height="9" rx="1.5" />
-              <rect x="14" y="3" width="7" height="5" rx="1.5" />
-              <rect x="14" y="12" width="7" height="9" rx="1.5" />
-              <rect x="3" y="16" width="7" height="5" rx="1.5" />
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="5" y="5" width="3" height="3"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="16" y="5" width="3" height="3"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <rect x="5" y="16" width="3" height="3"/>
+              <rect x="14" y="14" width="2.5" height="2.5" rx=".5"/>
+              <rect x="18" y="14" width="3" height="3" rx=".5"/>
+              <rect x="14" y="18" width="3" height="3" rx=".5"/>
+              <rect x="19" y="19" width="2" height="2" rx=".5"/>
             </svg>
-            <span>Dashboard</span>
+            <span>Scan card</span>
           </a>
           <a className="sb-link" href="/clinics/library" title="Implant library">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
             </svg>
             <span>Implant library</span>
-          </a>
-          <a className="sb-link" href="/clinics/scan-patient" title="Scan patient card">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <path d="M3 10h18M8 15h2" />
-            </svg>
-            <span>Scan card</span>
           </a>
           <a className="sb-link active" href="/clinics/manufacturers" title="Manufacturers" aria-current="page">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">

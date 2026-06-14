@@ -259,103 +259,156 @@ export default function ScanPatientClient() {
   return (
     <div className="m-content scan-page">
 
-      {/* ── Camera section ── */}
-      <div className="scan-stage">
+      <div className="scan-layout">
 
-        <div className="scan-cam-ey">{cameraActive ? 'Camera active — scanning' : 'Camera'}</div>
+        {/* ── Left column: camera ── */}
+        <div>
+          <div className="scan-col-hd">
+            {/* QR code icon */}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <rect x="2" y="2" width="8" height="8" rx="1.5"/>
+              <rect x="2.5" y="2.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
+              <rect x="14" y="2" width="8" height="8" rx="1.5"/>
+              <rect x="14.5" y="2.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
+              <rect x="2" y="14" width="8" height="8" rx="1.5"/>
+              <rect x="2.5" y="14.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
+              <rect x="14" y="14" width="2.5" height="2.5" rx=".3" fill="currentColor" stroke="none"/>
+              <rect x="18" y="14" width="2.5" height="2.5" rx=".3" fill="currentColor" stroke="none"/>
+              <rect x="14" y="18" width="2.5" height="2.5" rx=".3" fill="currentColor" stroke="none"/>
+              <rect x="16.5" y="16.5" width="2" height="2" rx=".3" fill="currentColor" stroke="none"/>
+            </svg>
+            Scan QR code
+          </div>
 
-        <div className={`viewfinder${cameraActive ? ' scanning' : ''}`}>
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14, display: cameraActive ? 'block' : 'none', transform: videoMirrored ? 'scaleX(-1)' : 'none' }}
-          />
-          <canvas ref={canvasRef} style={{ display: 'none' }} />
-          <div className="vf-scan-line" />
-          {!cameraActive && (
-            <div className="vf-idle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" className="vf-icon" aria-hidden="true">
-                <rect x="3" y="5" width="18" height="14" rx="2"/>
-                <path d="M3 10h18M8 15h2"/>
+          <div className={`viewfinder${cameraActive ? ' scanning' : ''}`}>
+            {/* Corner bracket markers */}
+            <span className="vf-corner vf-corner-tl" />
+            <span className="vf-corner vf-corner-tr" />
+            <span className="vf-corner vf-corner-bl" />
+            <span className="vf-corner vf-corner-br" />
+
+            <video
+              ref={videoRef}
+              playsInline
+              muted
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14, display: cameraActive ? 'block' : 'none', transform: videoMirrored ? 'scaleX(-1)' : 'none' }}
+            />
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+            <div className="vf-scan-line" />
+
+            {!cameraActive && (
+              <div className="vf-idle">
+                {/* QR code icon for idle state */}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="vf-icon" aria-hidden="true">
+                  <rect x="2" y="2" width="8" height="8" rx="1.5"/>
+                  <rect x="3" y="3" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".5"/>
+                  <rect x="14" y="2" width="8" height="8" rx="1.5"/>
+                  <rect x="15" y="3" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".5"/>
+                  <rect x="2" y="14" width="8" height="8" rx="1.5"/>
+                  <rect x="3" y="15" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".5"/>
+                  <rect x="14" y="14" width="3" height="3" rx=".5" fill="currentColor" stroke="none" opacity=".4"/>
+                  <rect x="19" y="14" width="3" height="3" rx=".5" fill="currentColor" stroke="none" opacity=".4"/>
+                  <rect x="14" y="19" width="3" height="3" rx=".5" fill="currentColor" stroke="none" opacity=".4"/>
+                  <rect x="17" y="17" width="2.5" height="2.5" rx=".4" fill="currentColor" stroke="none" opacity=".3"/>
+                </svg>
+                <p>Hold the patient&rsquo;s QR card up to the camera</p>
+              </div>
+            )}
+          </div>
+
+          {cameraError && (
+            <div className="cam-error">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
               </svg>
-              <p>Align the patient card inside the frame</p>
+              {cameraError}
             </div>
           )}
-        </div>
 
-        {cameraError && (
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 10, padding: '10px 14px', marginTop: 10, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-            {cameraError}
+          <div className="scan-ctas">
+            {cameraActive ? (
+              <button className="btn btn-lg" onClick={stopCamera}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/>
+                </svg>
+                Stop camera
+              </button>
+            ) : (
+              <button className="btn btn-s btn-lg" onClick={startCamera}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                  <path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+                </svg>
+                Start camera
+              </button>
+            )}
           </div>
-        )}
-
-        <div className="scan-ctas">
-          {cameraActive ? (
-            <button className="btn btn-lg" onClick={stopCamera}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
-              Stop camera
-            </button>
-          ) : (
-            <button className="btn btn-s btn-lg" onClick={startCamera}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-              Start camera
-            </button>
-          )}
         </div>
 
-      </div>
-
-      {/* ── Divider ── */}
-      <div className="scan-or">or search by Implant ID code</div>
-
-      {/* ── Patient lookup ── */}
-      <div className="lookup-card">
-        <div className="lookup-card-hd">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          Patient lookup
+        {/* ── Vertical separator ── */}
+        <div className="scan-sep">
+          <span className="scan-sep-or">or</span>
         </div>
-        <div className="lookup-input-row">
-          <input
-            ref={inputRef}
-            type="text"
-            className="input lookup-input"
-            placeholder="e.g. IID-SMIJO2311XK"
-            value={inputCode}
-            onChange={e => setInputCode(e.target.value)}
-            onKeyDown={handleKeyDown}
-            autoComplete="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            style={{ fontFamily: 'SF Mono,Monaco,monospace', letterSpacing: '.04em' }}
-            aria-label="Patient Implant ID code"
-          />
-          <button className="btn btn-s lookup-btn" onClick={handleSearch} disabled={!inputCode.trim()}>
-            Look up
+
+        {/* ── Right column: patient lookup ── */}
+        <div className="lookup-col">
+          <div className="scan-col-hd">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Enter code manually
+          </div>
+          <p className="lookup-desc">
+            Enter the Implant ID code from the patient&rsquo;s physical card, Apple Wallet pass, or confirmation email.
+          </p>
+          <div className="lookup-input-wrap">
+            <svg className="lookup-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/>
+            </svg>
+            <input
+              ref={inputRef}
+              type="text"
+              className="lookup-input"
+              placeholder="IID-XXXXXXXX"
+              value={inputCode}
+              onChange={e => setInputCode(e.target.value)}
+              onKeyDown={handleKeyDown}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              aria-label="Patient Implant ID code"
+            />
+          </div>
+          <button
+            className="btn btn-s btn-lg lookup-btn-full"
+            onClick={handleSearch}
+            disabled={!inputCode.trim()}
+          >
+            Look up patient
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
           </button>
+          <div className="lookup-foot">
+            <span className="lookup-hint">Not case-sensitive — e.g. IID-SMIJO2311XK</span>
+            {inputCode && (
+              <button onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 12.5, padding: 0 }}>
+                Clear
+              </button>
+            )}
+          </div>
         </div>
-        <div className="lookup-card-foot">
-          <span className="lookup-hint">Enter the full IID-XXXXXXXX code — not case-sensitive</span>
-          {inputCode && (
-            <button onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 12.5, padding: 0 }}>
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
+
+      </div>{/* end scan-layout */}
 
       {/* ── Results ── */}
       {isLoading && (
-        <div style={{ color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14, padding: '8px 0' }}>
+        <div style={{ color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14, padding: '16px 0' }}>
           Looking up record…
         </div>
       )}
       {notFound && (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 12, padding: '14px 18px', marginTop: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 12, padding: '14px 18px', marginTop: 16 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
             <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
           </svg>

@@ -1,6 +1,6 @@
-import { mutation, query } from './_generated/server'
-import { v }              from 'convex/values'
-import { internal }       from './_generated/api'
+import { mutation, query, internalAction } from './_generated/server'
+import { v }                              from 'convex/values'
+import { internal }                       from './_generated/api'
 
 /**
  * Patient ID format: IID-[3 surname][2 firstname][DD][MM][2 random]
@@ -65,7 +65,7 @@ export const clinicAddPatient = mutation({
     firstName: v.string(),
     lastName:  v.string(),
     dob:       v.string(),
-    email:     v.optional(v.string()),
+    email:     v.string(),
     phone:     v.optional(v.string()),
     countryOfBirth: v.optional(v.string()),
 
@@ -101,6 +101,21 @@ export const clinicAddPatient = mutation({
       throw new Error('Only clinic staff can add patients')
     }
 
+    // Find or create a placeholder Convex user for the patient.
+    // clerkId starts empty — upsertUser fills it in the first time they sign in.
+    const existingUser = await ctx.db
+      .query('users')
+      .withIndex('by_email', (q) => q.eq('email', args.email.toLowerCase()))
+      .first()
+    const patientUserId = existingUser
+      ? existingUser._id
+      : await ctx.db.insert('users', {
+          clerkId: '',
+          email:   args.email.toLowerCase(),
+          role:    'patient',
+          name:    `${args.firstName} ${args.lastName}`,
+        })
+
     let code = ''
     for (let attempt = 0; attempt < 20; attempt++) {
       const candidate = generatePatientId(args.firstName, args.lastName, args.dob)
@@ -113,6 +128,7 @@ export const clinicAddPatient = mutation({
     if (!code) throw new Error('Could not generate a unique patient ID — please try again')
 
     const patientId = await ctx.db.insert('patients', {
+      userId:        patientUserId,
       implantIdCode: code,
       firstName:     args.firstName,
       lastName:      args.lastName,
@@ -143,7 +159,82 @@ export const clinicAddPatient = mutation({
       verificationStatus: 'pending' as const,
     })
 
+    // Create Clerk account + send invite email (async — non-blocking)
+    await ctx.scheduler.runAfter(0, internal.patients.createPatientAccount, {
+      email:     args.email,
+      firstName: args.firstName,
+      lastName:  args.lastName,
+      phone:     args.phone,
+    })
+    await ctx.scheduler.runAfter(0, internal.email.sendClinicPatientInviteEmail, {
+      firstName:     args.firstName,
+      email:         args.email,
+      implantIdCode: code,
+    })
+
     return { id: patientId, implantIdCode: code }
+  },
+})
+
+/** Create a Clerk account for a clinic-added patient (passwordless, patient role). */
+export const createPatientAccount = internalAction({
+  args: {
+    email:     v.string(),
+    firstName: v.string(),
+    lastName:  v.string(),
+    phone:     v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const secretKey = process.env.CLERK_SECRET_KEY
+    if (!secretKey) {
+      console.error('[patient] CLERK_SECRET_KEY not set')
+      return
+    }
+
+    // Skip if Clerk account already exists for this email
+    const searchRes = await fetch(
+      `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.email)}&limit=1`,
+      { headers: { Authorization: `Bearer ${secretKey}` } },
+    )
+    if (searchRes.ok) {
+      const found = (await searchRes.json()) as { id: string }[]
+      if (found.length > 0) {
+        // Ensure role is set to patient
+        await fetch(`https://api.clerk.com/v1/users/${found[0].id}/metadata`, {
+          method:  'PATCH',
+          headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ public_metadata: { role: 'patient' } }),
+        })
+        console.log('[patient] Clerk account already exists for', args.email)
+        return
+      }
+    }
+
+    // Build phone entry if provided (strip formatting, keep digits + leading +)
+    const phoneNumbers = args.phone
+      ? [args.phone.replace(/[^\d+]/g, '')]
+      : undefined
+
+    // Create passwordless account — patient signs in via email OTP
+    const createRes = await fetch('https://api.clerk.com/v1/users', {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email_addresses:           [args.email],
+        phone_numbers:             phoneNumbers,
+        first_name:                args.firstName,
+        last_name:                 args.lastName,
+        skip_password_requirement: true,
+        public_metadata:           { role: 'patient' },
+      }),
+    })
+
+    if (createRes.ok) {
+      const u = (await createRes.json()) as { id: string }
+      console.log('[patient] Created Clerk account', u.id, 'for', args.email)
+    } else {
+      console.error('[patient] Clerk creation failed:', createRes.status, await createRes.text())
+    }
   },
 })
 

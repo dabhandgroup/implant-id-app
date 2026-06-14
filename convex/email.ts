@@ -815,3 +815,53 @@ export const sendAdminInviteEmail = internalAction({
     })
   },
 })
+
+// ── Clinic-created patient invite ────────────────────────────────────────────
+
+export const sendClinicPatientInviteEmail = internalAction({
+  args: {
+    firstName:     v.string(),
+    email:         v.string(),
+    implantIdCode: v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r = resend()
+    const loginUrl = `https://portal.implantid.io/login?email=${encodeURIComponent(args.email)}`
+    await r.emails.send({
+      from:    FROM,
+      to:      args.email,
+      subject: `Your Implant ID record is ready — ${args.implantIdCode}`,
+      html: buildEmail({
+        title:   'Your Implant ID record is ready',
+        heading: `Hi ${args.firstName}, your implant record is ready`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            Your clinic has registered your implant details in the Implant ID system.
+            Your unique Implant ID is shown below — keep it safe, as clinicians may
+            ask for it to access your record quickly.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Sign in to your patient portal to view your MRI safety status, add your
+            implant card to Apple&nbsp;Wallet or Google&nbsp;Wallet, and share your
+            record with any clinic or hospital.
+          </p>
+        `,
+        highlightBox: {
+          content: `
+            <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:1.4px;
+                       text-transform:uppercase;color:#29869F;">Your Implant ID</p>
+            <p style="margin:0;font-size:32px;font-weight:700;color:#1a6a80;
+                       letter-spacing:0.5px;line-height:1.2;">${args.implantIdCode}</p>
+          `,
+        },
+        cta: {
+          label: 'Sign in to your portal →',
+          url:   loginUrl,
+        },
+        footerNote: `If you weren't expecting this email, please contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})

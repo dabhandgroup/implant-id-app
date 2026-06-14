@@ -521,24 +521,8 @@ export default function AddPatientClient() {
         contrastAllergyNote: contrastAllergyNote.trim() || undefined,
       })
 
-      // Send welcome email
-      let emailSent = false
-      try {
-        const resp = await fetch('/api/patient-invite', {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({
-            email:         email.trim(),
-            firstName:     firstName.trim(),
-            implantIdCode: result.implantIdCode,
-          }),
-        })
-        emailSent = resp.ok
-      } catch {
-        // Non-fatal — record was created, email just didn't send
-      }
-
-      setSuccess({ implantIdCode: result.implantIdCode, emailSent })
+      // Email + Clerk account creation are handled server-side by Convex scheduled actions
+      setSuccess({ implantIdCode: result.implantIdCode, emailSent: true })
     } catch (ex) {
       showErr((ex as { message?: string })?.message ?? 'Something went wrong — please try again')
     } finally {
@@ -574,7 +558,7 @@ export default function AddPatientClient() {
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                 <polyline points="22,6 12,13 2,6" />
               </svg>
-              <span>Welcome email sent to <strong>{email}</strong> with their ID and a link to set up their account.</span>
+              <span>A welcome email is being sent to <strong>{email}</strong> with their Implant ID and a sign-in link to access their portal.</span>
             </div>
           ) : (
             <div className="ap-success-notice warn">

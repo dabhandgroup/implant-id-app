@@ -68,7 +68,7 @@ export default defineSchema({
 
   // Patient profiles
   patients: defineTable({
-    userId:        v.id('users'),
+    userId:        v.optional(v.id('users')),
     implantIdCode: v.string(),          // e.g. IID-SMIJO2311XK
 
     // Personal details

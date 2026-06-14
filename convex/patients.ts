@@ -59,6 +59,93 @@ export const getMyPatient = query({
   },
 })
 
+/** Create a patient record on behalf of a patient (clinic staff / surgeon only). */
+export const clinicAddPatient = mutation({
+  args: {
+    firstName: v.string(),
+    lastName:  v.string(),
+    dob:       v.string(),
+    email:     v.optional(v.string()),
+    phone:     v.optional(v.string()),
+    countryOfBirth: v.optional(v.string()),
+
+    selfReportedDevice:       v.optional(v.string()),
+    selfReportedDeviceId:     v.optional(v.string()),
+    selfReportedManufacturer: v.optional(v.string()),
+    selfReportedModelNumber:  v.optional(v.string()),
+    selfReportedDeviceType:   v.optional(v.string()),
+    selfReportedImplantMonth: v.optional(v.string()),
+    selfReportedImplantYear:  v.optional(v.string()),
+    selfReportedHospital:     v.optional(v.string()),
+    selfReportedSurgeon:      v.optional(v.string()),
+
+    emergencyContactName:     v.optional(v.string()),
+    emergencyContactPhone:    v.optional(v.string()),
+    emergencyContactRelation: v.optional(v.string()),
+    additionalNotes:          v.optional(v.string()),
+    heightCm:                 v.optional(v.number()),
+    weightKg:                 v.optional(v.number()),
+    contrastAllergy:          v.optional(v.boolean()),
+    contrastAllergyNote:      v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const caller = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!caller) throw new Error('User profile not found')
+    if (!['clinic_staff', 'surgeon', 'admin'].includes(caller.role)) {
+      throw new Error('Only clinic staff can add patients')
+    }
+
+    let code = ''
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const candidate = generatePatientId(args.firstName, args.lastName, args.dob)
+      const clash = await ctx.db
+        .query('patients')
+        .withIndex('by_implant_code', (q) => q.eq('implantIdCode', candidate))
+        .first()
+      if (!clash) { code = candidate; break }
+    }
+    if (!code) throw new Error('Could not generate a unique patient ID — please try again')
+
+    const patientId = await ctx.db.insert('patients', {
+      implantIdCode: code,
+      firstName:     args.firstName,
+      lastName:      args.lastName,
+      dob:           args.dob,
+      phone:         args.phone,
+      countryOfBirth: args.countryOfBirth,
+
+      selfReportedDevice:       args.selfReportedDevice,
+      selfReportedDeviceId:     args.selfReportedDeviceId,
+      selfReportedManufacturer: args.selfReportedManufacturer,
+      selfReportedModelNumber:  args.selfReportedModelNumber,
+      selfReportedDeviceType:   args.selfReportedDeviceType,
+      selfReportedImplantMonth: args.selfReportedImplantMonth,
+      selfReportedImplantYear:  args.selfReportedImplantYear,
+      selfReportedHospital:     args.selfReportedHospital,
+      selfReportedSurgeon:      args.selfReportedSurgeon,
+
+      emergencyContactName:     args.emergencyContactName,
+      emergencyContactPhone:    args.emergencyContactPhone,
+      emergencyContactRelation: args.emergencyContactRelation,
+      additionalNotes:          args.additionalNotes,
+      heightCm:                 args.heightCm,
+      weightKg:                 args.weightKg,
+      contrastAllergy:          args.contrastAllergy,
+      contrastAllergyNote:      args.contrastAllergyNote,
+
+      verificationStatus: 'pending' as const,
+    })
+
+    return { id: patientId, implantIdCode: code }
+  },
+})
+
 /** Create a patient profile for the current user. Idempotent — safe to call twice. */
 export const createPatient = mutation({
   args: {

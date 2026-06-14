@@ -840,12 +840,9 @@ export default function RegisterClient() {
     verify: (code: string) => void,
   ) {
     function onKeyDown(idx: number, e: React.KeyboardEvent<HTMLInputElement>) {
-      if (/^\d$/.test(e.key)) {
-        e.preventDefault()
-        const next = [...otp]; next[idx] = e.key; setOtp(next)
-        if (idx < 5) refs.current[idx + 1]?.focus()
-        if (next.every(d => d)) verify(next.join(''))
-      } else if (e.key === 'Backspace') {
+      // No preventDefault on digit keys — letting onChange handle character insertion
+      // so that iOS SMS autofill (which fires onChange with the full code) isn't blocked.
+      if (e.key === 'Backspace') {
         e.preventDefault()
         if (otp[idx]) {
           const next = [...otp]; next[idx] = ''; setOtp(next)
@@ -860,14 +857,22 @@ export default function RegisterClient() {
       }
     }
     function onChange(idx: number, val: string) {
-      // Only fires for iOS SMS autofill / autocomplete — multi-char fill
       const raw = val.replace(/\D/g, '')
       if (raw.length > 1) {
+        // Multi-char: iOS SMS autofill tapped the suggestion (fires onChange with full code)
         const next = ['', '', '', '', '', '']
         raw.slice(0, 6).split('').forEach((c, i) => { next[i] = c })
         setOtp(next)
         refs.current[Math.min(raw.length - 1, 5)]?.focus()
         if (next.every(d => d)) verify(next.join(''))
+      } else if (raw.length === 1) {
+        // Single digit typed normally
+        const next = [...otp]; next[idx] = raw; setOtp(next)
+        if (idx < 5) refs.current[idx + 1]?.focus()
+        if (next.every(d => d)) verify(next.join(''))
+      } else {
+        // Non-digit or cleared
+        const next = [...otp]; next[idx] = ''; setOtp(next)
       }
     }
     function onPaste(e: React.ClipboardEvent) {

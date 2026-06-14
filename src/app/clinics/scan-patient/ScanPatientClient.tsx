@@ -45,7 +45,6 @@ export default function ScanPatientClient() {
   }, [result?._id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { setAccessRequested(false) }, [result?._id])
-
   useEffect(() => () => { stopCamera() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Camera ────────────────────────────────────────────────────────────────
@@ -59,7 +58,6 @@ export default function ScanPatientClient() {
     setCaptureError('')
   }
 
-  // Background RAF scan — auto-detects QR without user pressing anything
   const scanFrame = useCallback(() => {
     const video  = videoRef.current
     const canvas = canvasRef.current
@@ -79,15 +77,13 @@ export default function ScanPatientClient() {
     }).catch(() => { rafRef.current = requestAnimationFrame(scanFrame) })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Manual capture — freeze current frame and try to read QR
   async function captureFrame() {
     const video  = videoRef.current
     const canvas = canvasRef.current
     if (!video || !canvas) return
     setIsCapturing(true)
     setCaptureError('')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight
     const ctx = canvas.getContext('2d')
     if (!ctx) { setIsCapturing(false); return }
     ctx.drawImage(video, 0, 0)
@@ -99,7 +95,7 @@ export default function ScanPatientClient() {
         const iid = extractIidCode(code.data)
         if (iid) { stopCamera(); setSearchCode(iid); setInputCode(iid); showToast('QR code detected'); return }
       }
-      setCaptureError('No QR code found — ensure the full code is in frame and try again')
+      setCaptureError('No QR code found — ensure the code is fully in frame and try again')
     } catch {
       setCaptureError('Could not process image — try again')
     } finally {
@@ -291,166 +287,191 @@ export default function ScanPatientClient() {
   return (
     <div className="m-content scan-page">
 
-      <div className="scan-layout">
+      {/* ── Unified card ── */}
+      <div className="scan-card">
+        <div className="scan-layout">
 
-        {/* ── Left column: camera ── */}
-        <div>
-          <div className="scan-col-hd">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-              <rect x="2" y="2" width="8" height="8" rx="1.5"/>
-              <rect x="2.5" y="2.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
-              <rect x="14" y="2" width="8" height="8" rx="1.5"/>
-              <rect x="14.5" y="2.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
-              <rect x="2" y="14" width="8" height="8" rx="1.5"/>
-              <rect x="2.5" y="14.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
-              <rect x="14" y="14" width="2.5" height="2.5" rx=".3" fill="currentColor" stroke="none"/>
-              <rect x="18" y="14" width="2.5" height="2.5" rx=".3" fill="currentColor" stroke="none"/>
-              <rect x="14" y="18" width="2.5" height="2.5" rx=".3" fill="currentColor" stroke="none"/>
-              <rect x="16.5" y="16.5" width="2" height="2" rx=".3" fill="currentColor" stroke="none"/>
-            </svg>
-            Scan QR code
-          </div>
+          {/* ── Left column: camera ── */}
+          <div className="scan-col">
 
-          <div className={`viewfinder${cameraActive ? ' scanning' : ''}`}>
-            {/* Corner brackets always on top */}
-            <span className="vf-corner vf-corner-tl" />
-            <span className="vf-corner vf-corner-tr" />
-            <span className="vf-corner vf-corner-bl" />
-            <span className="vf-corner vf-corner-br" />
-
-            {/* Video */}
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              style={{
-                position: 'absolute', inset: 0, width: '100%', height: '100%',
-                objectFit: 'cover', borderRadius: 16,
-                display: cameraActive ? 'block' : 'none',
-                transform: videoMirrored ? 'scaleX(-1)' : 'none',
-                zIndex: 1,
-              }}
-            />
-            <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-            {/* Camera active: vignette + inner target zone */}
-            {cameraActive && <div className="vf-vignette" />}
-            {cameraActive && (
-              <div className="vf-target">
-                <div className="vf-target-line" />
-              </div>
-            )}
-
-            {/* Idle: scan line + instruction */}
-            {!cameraActive && <div className="vf-scan-line" />}
-            {!cameraActive && (
-              <div className="vf-idle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="vf-icon" aria-hidden="true">
+            <div className="scan-col-hd">
+              <div className="scan-col-hd-badge accent">
+                {/* QR code icon */}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
                   <rect x="2" y="2" width="8" height="8" rx="1.5"/>
-                  <rect x="3" y="3" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".5"/>
+                  <rect x="2.5" y="2.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
                   <rect x="14" y="2" width="8" height="8" rx="1.5"/>
-                  <rect x="15" y="3" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".5"/>
+                  <rect x="14.5" y="2.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
                   <rect x="2" y="14" width="8" height="8" rx="1.5"/>
-                  <rect x="3" y="15" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".5"/>
-                  <rect x="14" y="14" width="3" height="3" rx=".5" fill="currentColor" stroke="none" opacity=".4"/>
-                  <rect x="19" y="14" width="3" height="3" rx=".5" fill="currentColor" stroke="none" opacity=".4"/>
-                  <rect x="14" y="19" width="3" height="3" rx=".5" fill="currentColor" stroke="none" opacity=".4"/>
-                  <rect x="17" y="17" width="2.5" height="2.5" rx=".4" fill="currentColor" stroke="none" opacity=".3"/>
+                  <rect x="2.5" y="14.5" width="3" height="3" rx=".3" fill="currentColor" stroke="none"/>
+                  <rect x="14" y="14" width="2.5" height="2.5" rx=".3" fill="currentColor" stroke="none"/>
+                  <rect x="18" y="14" width="2.5" height="2.5" rx=".3" fill="currentColor" stroke="none"/>
+                  <rect x="14" y="18" width="2.5" height="2.5" rx=".3" fill="currentColor" stroke="none"/>
+                  <rect x="16.5" y="16.5" width="2" height="2" rx=".3" fill="currentColor" stroke="none"/>
                 </svg>
-                <p>Hold the patient&rsquo;s QR card up to the camera</p>
+              </div>
+              <div>
+                <p className="scan-col-hd-title">Scan QR code</p>
+                <p className="scan-col-hd-sub">Hold the patient&rsquo;s card up to the camera</p>
+              </div>
+            </div>
+
+            <div className={`viewfinder${cameraActive ? ' scanning' : ''}`}>
+              <span className="vf-corner vf-corner-tl" />
+              <span className="vf-corner vf-corner-tr" />
+              <span className="vf-corner vf-corner-bl" />
+              <span className="vf-corner vf-corner-br" />
+
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                style={{
+                  position: 'absolute', inset: 0, width: '100%', height: '100%',
+                  objectFit: 'cover', borderRadius: 13,
+                  display: cameraActive ? 'block' : 'none',
+                  transform: videoMirrored ? 'scaleX(-1)' : 'none',
+                  zIndex: 1,
+                }}
+              />
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+              {cameraActive && <div className="vf-vignette" />}
+              {cameraActive && (
+                <div className="vf-target">
+                  <div className="vf-target-line" />
+                </div>
+              )}
+
+              {!cameraActive && <div className="vf-scan-line" />}
+              {!cameraActive && (
+                <div className="vf-idle">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.35" className="vf-icon" aria-hidden="true">
+                    <rect x="2" y="2" width="8" height="8" rx="1.5"/>
+                    <rect x="3" y="3" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".55"/>
+                    <rect x="14" y="2" width="8" height="8" rx="1.5"/>
+                    <rect x="15" y="3" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".55"/>
+                    <rect x="2" y="14" width="8" height="8" rx="1.5"/>
+                    <rect x="3" y="15" width="4" height="4" rx=".5" fill="currentColor" stroke="none" opacity=".55"/>
+                    <rect x="14" y="14" width="3" height="3" rx=".5" fill="currentColor" stroke="none" opacity=".4"/>
+                    <rect x="19" y="14" width="3" height="3" rx=".5" fill="currentColor" stroke="none" opacity=".4"/>
+                    <rect x="14" y="19" width="3" height="3" rx=".5" fill="currentColor" stroke="none" opacity=".4"/>
+                    <rect x="17" y="17" width="2.5" height="2.5" rx=".4" fill="currentColor" stroke="none" opacity=".28"/>
+                  </svg>
+                  <p>Position the QR code inside the frame</p>
+                </div>
+              )}
+            </div>
+
+            {cameraError && (
+              <div className="cam-error">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
+                </svg>
+                {cameraError}
               </div>
             )}
-          </div>
 
-          {cameraError && (
-            <div className="cam-error">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" aria-hidden="true">
-                <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
-              </svg>
-              {cameraError}
-            </div>
-          )}
-
-          <div className="scan-ctas">
-            {cameraActive ? (
-              <>
-                <button className="btn btn-s btn-lg" onClick={captureFrame} disabled={isCapturing} aria-label="Capture frame and detect QR code">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M8.5 3H6a2 2 0 0 0-2 2v1M15.5 3H18a2 2 0 0 1 2 2v1M21 15.5V18a2 2 0 0 1-2 2h-1M3 15.5V18a2 2 0 0 0 2 2h1"/>
+            <div className="scan-ctas">
+              {cameraActive ? (
+                <>
+                  <button className="btn btn-s btn-lg" onClick={captureFrame} disabled={isCapturing}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M8.5 3H6a2 2 0 0 0-2 2v1M15.5 3H18a2 2 0 0 1 2 2v1M21 15.5V18a2 2 0 0 1-2 2h-1M3 15.5V18a2 2 0 0 0 2 2h1"/>
+                    </svg>
+                    {isCapturing ? 'Scanning…' : 'Capture'}
+                  </button>
+                  {captureError && <div className="scan-capture-err">{captureError}</div>}
+                  <button className="scan-ctas-cancel" onClick={stopCamera}>Cancel</button>
+                </>
+              ) : (
+                <button className="btn btn-s btn-lg" onClick={startCamera}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                    <path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
                   </svg>
-                  {isCapturing ? 'Scanning…' : 'Capture'}
+                  Start camera
                 </button>
-                {captureError && <div className="scan-capture-err">{captureError}</div>}
-                <button className="scan-ctas-cancel" onClick={stopCamera}>Cancel</button>
-              </>
-            ) : (
-              <button className="btn btn-s btn-lg" onClick={startCamera}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-                  <path d="M23 7 16 12 23 17V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+              )}
+            </div>
+          </div>
+
+          {/* ── Divider ── */}
+          <div className="scan-divider">
+            <span className="scan-divider-pill">or</span>
+          </div>
+
+          {/* ── Right column: manual entry ── */}
+          <div className="scan-col">
+
+            <div className="scan-col-hd">
+              <div className="scan-col-hd-badge neutral">
+                {/* ID badge icon */}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/>
+                  <circle cx="8.5" cy="11" r="2"/>
+                  <path d="M14 9h4M14 13h2"/>
+                  <path d="M5.5 17c0-1.38 1.34-2.5 3-2.5s3 1.12 3 2.5"/>
                 </svg>
-                Start camera
-              </button>
-            )}
-          </div>
-        </div>
+              </div>
+              <div>
+                <p className="scan-col-hd-title">Enter Implant ID</p>
+                <p className="scan-col-hd-sub">From card, Apple Wallet, or email</p>
+              </div>
+            </div>
 
-        {/* ── Vertical separator ── */}
-        <div className="scan-sep">
-          <span className="scan-sep-or">or</span>
-        </div>
+            {/* Info panel */}
+            <div className="lookup-info">
+              <p className="lookup-info-desc">
+                The Implant ID code appears on the patient&rsquo;s physical card, their Apple Wallet pass, or in their registration confirmation email.
+              </p>
+              <div className="lookup-info-eyebrow">Example</div>
+              <div className="lookup-info-code">IID-SMIJO2311XK</div>
+            </div>
 
-        {/* ── Right column: patient lookup card ── */}
-        <div className="lookup-col">
-          <div className="scan-col-hd">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            Enter code manually
-          </div>
-          <p className="lookup-desc">
-            Enter the Implant ID from the patient&rsquo;s physical card, Apple Wallet pass, or confirmation email.
-          </p>
-          <div className="lookup-input-wrap">
-            <svg className="lookup-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/>
-            </svg>
-            <input
-              ref={inputRef}
-              type="text"
-              className="lookup-input"
-              placeholder="IID-XXXXXXXX"
-              value={inputCode}
-              onChange={e => setInputCode(e.target.value)}
-              onKeyDown={handleKeyDown}
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck={false}
-              aria-label="Patient Implant ID code"
-            />
-          </div>
-          <button
-            className="btn btn-s btn-lg lookup-btn-full"
-            onClick={handleSearch}
-            disabled={!inputCode.trim()}
-          >
-            Look up patient
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
-          </button>
-          <div className="lookup-foot">
-            <span className="lookup-hint">Not case-sensitive — e.g. IID-SMIJO2311XK</span>
-            {inputCode && (
-              <button onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 12.5, padding: 0 }}>
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
+            {/* Input */}
+            <div className="lookup-input-wrap">
+              <svg className="lookup-input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/>
+              </svg>
+              <input
+                ref={inputRef}
+                type="text"
+                className="lookup-input"
+                placeholder="IID-XXXXXXXX"
+                value={inputCode}
+                onChange={e => setInputCode(e.target.value)}
+                onKeyDown={handleKeyDown}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                aria-label="Patient Implant ID code"
+              />
+            </div>
 
-      </div>{/* end scan-layout */}
+            <button
+              className="btn btn-s btn-lg lookup-btn-full"
+              onClick={handleSearch}
+              disabled={!inputCode.trim()}
+            >
+              Look up patient
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+
+            <div className="lookup-foot">
+              <span className="lookup-hint">Not case-sensitive</span>
+              {inputCode && (
+                <button onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 12.5, padding: 0 }}>
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+        </div>
+      </div>{/* end scan-card */}
 
       {/* ── Results ── */}
       {isLoading && (
@@ -466,7 +487,7 @@ export default function ScanPatientClient() {
           <div>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--err)', marginBottom: 3 }}>No record found</div>
             <div style={{ fontSize: 13.5, color: 'var(--muted)' }}>
-              No patient found for code <strong style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{searchCode}</strong>.
+              No patient found for <strong style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{searchCode}</strong>.
             </div>
           </div>
         </div>

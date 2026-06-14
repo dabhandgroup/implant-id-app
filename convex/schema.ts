@@ -75,6 +75,7 @@ export default defineSchema({
     firstName: v.string(),
     lastName:  v.string(),
     dob:       v.optional(v.string()),  // YYYY-MM-DD
+    email:     v.optional(v.string()),
     phone:     v.optional(v.string()),
 
     // Self-reported implant (unverified until clinic confirms)

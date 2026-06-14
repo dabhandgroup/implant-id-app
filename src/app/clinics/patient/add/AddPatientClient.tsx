@@ -91,7 +91,7 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
   const [search, setSearch] = useState('')
   const ref     = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const typeBuf  = useRef('')
+  const typeBuf   = useRef('')
   const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const selected = options.find(o => o.value === value)
@@ -343,7 +343,7 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
             <div className="nm">{selected.device_name}</div>
             <div className="mn">{selected.manufacturer}{selected.model_number ? ` · ${selected.model_number}` : ''}</div>
           </div>
-          <button className="dev-sel-x" type="button" onClick={clear} title="Change device" aria-label="Change device">
+          <button className="dev-sel-x" type="button" onClick={clear} aria-label="Change device">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
@@ -403,19 +403,9 @@ function ImplantBlock({ entry, index, total, onChange, onRemove }: {
   )
 }
 
-// ── Error banner ──────────────────────────────────────────────────────────────
+// ── Req marker ────────────────────────────────────────────────────────────────
 
-function ErrorBanner({ msg }: { msg: string }) {
-  if (!msg) return null
-  return (
-    <div style={{
-      background: 'color-mix(in srgb,var(--err) 10%,transparent)',
-      border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)',
-      borderRadius: 10, padding: '10px 14px',
-      fontSize: 13.5, color: 'var(--err)', marginBottom: 20,
-    }}>{msg}</div>
-  )
-}
+const Req = () => <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -448,33 +438,28 @@ export default function AddPatientClient() {
   ])
   const [contrastAllergy,     setContrastAllergy]     = useState(false)
   const [contrastAllergyNote, setContrastAllergyNote] = useState('')
-
-  // ── Step 3: review ────────────────────────────────────────────────────────
-  const [notes, setNotes] = useState('')
+  const [notes,               setNotes]               = useState('')
 
   // ── UI ────────────────────────────────────────────────────────────────────
-  const [loading,       setLoading]       = useState(false)
-  const [error,         setError]         = useState('')
-  const [submitConfirm, setSubmitConfirm] = useState(false)
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
+  const [success,  setSuccess]  = useState<{ implantIdCode: string; emailSent: boolean } | null>(null)
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   function showErr(msg: string) {
     setError(msg)
-    document.querySelector('.clinic-content')?.scrollTo(0, 0)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function goStep(s: Step) {
     setError('')
     setStep(s)
-    document.querySelector('.clinic-content')?.scrollTo(0, 0)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function dotCls(i: number) {
-    const c = ['dot']
-    if (i <= stepIdx) c.push('on')
-    if (i < stepIdx)  c.push('done')
-    return c.join(' ')
+  function stepLabel(s: Step) {
+    return s === 'details' ? 'Patient details' : s === 'implant' ? 'Implant details' : 'Review & submit'
   }
 
   // ── Step 1 → 2 ───────────────────────────────────────────────────────────
@@ -487,6 +472,8 @@ export default function AddPatientClient() {
     const dobDate = new Date(dob)
     if (isNaN(dobDate.getTime())) return showErr('Please enter a valid date of birth')
     if (dobDate > new Date())     return showErr('Date of birth cannot be in the future')
+    if (!email.trim() || !email.includes('@'))
+      return showErr('Please enter the patient\'s email address — it\'s needed to send their welcome email')
     goStep('implant')
   }
 
@@ -513,7 +500,7 @@ export default function AddPatientClient() {
         firstName: firstName.trim(),
         lastName:  lastName.trim(),
         dob,
-        email:          email.trim() || undefined,
+        email:          email.trim(),
         phone:          phoneNum.trim() ? `${phoneDial} ${phoneNum.trim()}` : undefined,
         countryOfBirth: countryName || undefined,
 
@@ -534,7 +521,24 @@ export default function AddPatientClient() {
         contrastAllergyNote: contrastAllergyNote.trim() || undefined,
       })
 
-      router.push(`/clinics/all-patients?added=${result.implantIdCode}`)
+      // Send welcome email
+      let emailSent = false
+      try {
+        const resp = await fetch('/api/patient-invite', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            email:         email.trim(),
+            firstName:     firstName.trim(),
+            implantIdCode: result.implantIdCode,
+          }),
+        })
+        emailSent = resp.ok
+      } catch {
+        // Non-fatal — record was created, email just didn't send
+      }
+
+      setSuccess({ implantIdCode: result.implantIdCode, emailSent })
     } catch (ex) {
       showErr((ex as { message?: string })?.message ?? 'Something went wrong — please try again')
     } finally {
@@ -542,7 +546,66 @@ export default function AddPatientClient() {
     }
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Success state ─────────────────────────────────────────────────────────
+
+  if (success) {
+    return (
+      <div className="ap-page">
+        <div className="ap-success-card">
+          <div className="ap-success-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+          </div>
+          <h2 className="ap-success-title">Patient record created</h2>
+          <p className="ap-success-sub">
+            <strong>{firstName} {lastName}</strong> has been added to the system.
+          </p>
+
+          <div className="ap-success-id-box">
+            <div className="ap-success-id-label">Implant ID assigned</div>
+            <div className="ap-success-id-code">{success.implantIdCode}</div>
+          </div>
+
+          {success.emailSent ? (
+            <div className="ap-success-notice ok">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              <span>Welcome email sent to <strong>{email}</strong> with their ID and a link to set up their account.</span>
+            </div>
+          ) : (
+            <div className="ap-success-notice warn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="9" /><path d="M12 7v5M12 16h.01" />
+              </svg>
+              <span>Record created but email could not be sent. Please share the ID above with the patient directly.</span>
+            </div>
+          )}
+
+          <div className="ap-success-actions">
+            <button className="btn btn-lg" onClick={() => {
+              setSuccess(null); setStep('details')
+              setFirstName(''); setLastName(''); setDob(''); setEmail('')
+              setPhoneNum(''); setHeightCm(''); setWeightKg('')
+              setCountryName(''); setCountryFlag(''); setNotes('')
+              setContrastAllergy(false); setContrastAllergyNote('')
+              setImplants([{ id: 0, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' }])
+            }}>
+              + Add another patient
+            </button>
+            <button className="btn btn-s btn-lg" onClick={() => router.push('/clinics/all-patients')}>
+              View all patients →
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Form ──────────────────────────────────────────────────────────────────
 
   return (
     <div className="ap-page">
@@ -556,88 +619,119 @@ export default function AddPatientClient() {
           </svg>
         </div>
         <div>
-          <h1 className="ap-hd-title">Add patient record</h1>
-          <p className="ap-hd-sub">Register a new patient in the system on their behalf</p>
+          <h1 className="ap-hd-title">Register a patient</h1>
+          <p className="ap-hd-sub">
+            Enter the patient's details and implant information. They'll receive an email
+            with their unique Implant ID and a link to set up their account.
+          </p>
         </div>
       </div>
 
-      <div className="ap-card">
-
-        {/* Stepper */}
-        <div className="ap-stepper">
-          {(['Patient details', 'Implant details', 'Review & submit'] as const).map((label, i) => (
-            <div key={i} className={`ap-step${i <= stepIdx ? ' on' : ''}${i < stepIdx ? ' done' : ''}`}>
-              <div className="ap-step-num">{i < stepIdx ? '✓' : i + 1}</div>
-              <span className="ap-step-label">{label}</span>
-              {i < 2 && <div className="ap-step-line" />}
+      {/* Stepper */}
+      <div className="ap-stepper">
+        {STEPS.map((s, i) => (
+          <React.Fragment key={s}>
+            <div className={`ap-step${i <= stepIdx ? ' on' : ''}${i < stepIdx ? ' done' : ''}`}
+              style={{ cursor: i < stepIdx ? 'pointer' : 'default' }}
+              onClick={() => { if (i < stepIdx) goStep(s) }}>
+              <div className="ap-step-num">
+                {i < stepIdx ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : i + 1}
+              </div>
+              <span className="ap-step-label">{stepLabel(s)}</span>
             </div>
-          ))}
-        </div>
+            {i < STEPS.length - 1 && <div className="ap-step-line" />}
+          </React.Fragment>
+        ))}
+      </div>
 
-        <ErrorBanner msg={error} />
+      {/* Error banner */}
+      {error && (
+        <div className="ap-error">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="9" /><path d="M12 7v5M12 16h.01" />
+          </svg>
+          {error}
+        </div>
+      )}
+
+      <div className="ap-card">
 
         {/* ── STEP 1: Patient details ──────────────────────────────────────── */}
         <div className={`step-pane${step === 'details' ? ' on' : ''}`}>
           <form onSubmit={goToImplant}>
-            <div className="ap-section-title">Personal information</div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="field">
-                <label>First name <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
-                <input className="input" placeholder="First name"
-                  value={firstName} onChange={e => setFirstName(e.target.value)} />
+            <div className="ap-section">
+              <div className="ap-section-title">Personal information</div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field">
+                  <label>First name <Req /></label>
+                  <input className="input" placeholder="First name"
+                    value={firstName} onChange={e => setFirstName(e.target.value)} autoComplete="off" />
+                </div>
+                <div className="field">
+                  <label>Last name <Req /></label>
+                  <input className="input" placeholder="Last name"
+                    value={lastName} onChange={e => setLastName(e.target.value)} autoComplete="off" />
+                </div>
               </div>
+
               <div className="field">
-                <label>Last name <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
-                <input className="input" placeholder="Last name"
-                  value={lastName} onChange={e => setLastName(e.target.value)} />
+                <label>Date of birth <Req /></label>
+                <DobPicker value={dob} onChange={setDob} />
+              </div>
+
+              <div className="field">
+                <label>Country of birth</label>
+                <CountrySelect flag={countryFlag} country={countryName}
+                  onChange={(f, n) => { setCountryFlag(f); setCountryName(n) }} />
               </div>
             </div>
 
-            <div className="field">
-              <label>Date of birth <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
-              <DobPicker value={dob} onChange={setDob} />
-            </div>
+            <div className="ap-section">
+              <div className="ap-section-title">Contact details</div>
+              <p className="ap-section-sub">
+                The patient will receive a welcome email at this address with their unique
+                Implant ID and instructions to set up their account.
+              </p>
 
-            <div className="field">
-              <label>Country of birth</label>
-              <CountrySelect flag={countryFlag} country={countryName}
-                onChange={(f, n) => { setCountryFlag(f); setCountryName(n) }} />
-            </div>
-
-            <div className="ap-section-title" style={{ marginTop: 24 }}>Contact information</div>
-
-            <div className="field">
-              <label>Email address</label>
-              <input className="input" type="email" placeholder="patient@example.com"
-                value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
-
-            <div className="field">
-              <label>Phone number</label>
-              <PhonePicker flag={phoneFlag} dial={phoneDial} phoneNum={phoneNum} placeholder={phonePH}
-                onCountryChange={c => { setPhoneFlag(c.flag); setPhoneDial(c.dial); setPhonePH(c.placeholder) }}
-                onPhoneChange={setPhoneNum} />
-            </div>
-
-            <div className="ap-section-title" style={{ marginTop: 24 }}>Physical measurements</div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="field">
-                <label>Height <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(cm)</span></label>
-                <input className="input" type="number" min="50" max="250" placeholder="e.g. 175"
-                  value={heightCm} onChange={e => setHeightCm(e.target.value)} />
+                <label>Email address <Req /></label>
+                <input className="input" type="email" placeholder="patient@example.com"
+                  value={email} onChange={e => setEmail(e.target.value)} autoComplete="off" />
               </div>
+
               <div className="field">
-                <label>Weight <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(kg)</span></label>
-                <input className="input" type="number" min="1" max="500" placeholder="e.g. 72"
-                  value={weightKg} onChange={e => setWeightKg(e.target.value)} />
+                <label>Phone number</label>
+                <PhonePicker flag={phoneFlag} dial={phoneDial} phoneNum={phoneNum} placeholder={phonePH}
+                  onCountryChange={c => { setPhoneFlag(c.flag); setPhoneDial(c.dial); setPhonePH(c.placeholder) }}
+                  onPhoneChange={setPhoneNum} />
+              </div>
+            </div>
+
+            <div className="ap-section">
+              <div className="ap-section-title">Physical measurements <span className="ap-section-opt">(optional)</span></div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div className="field">
+                  <label>Height (cm)</label>
+                  <input className="input" type="number" inputMode="decimal" min="50" max="250" placeholder="e.g. 175"
+                    value={heightCm} onChange={e => setHeightCm(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Weight (kg)</label>
+                  <input className="input" type="number" inputMode="decimal" min="1" max="500" placeholder="e.g. 72"
+                    value={weightKg} onChange={e => setWeightKg(e.target.value)} />
+                </div>
               </div>
             </div>
 
             <div className="ap-foot">
-              <button className="btn btn-s btn-lg" type="submit">
-                Continue to implant details →
+              <button className="btn btn-s btn-lg" type="submit" style={{ marginLeft: 'auto' }}>
+                Implant details →
               </button>
             </div>
           </form>
@@ -646,42 +740,56 @@ export default function AddPatientClient() {
         {/* ── STEP 2: Implant details ──────────────────────────────────────── */}
         <div className={`step-pane${step === 'implant' ? ' on' : ''}`}>
           <form onSubmit={goToReview}>
-            <div className="ap-section-title">Implant information</div>
-            <p className="ap-section-sub">
-              Search the device database and fill in procedure details. Multiple implants can be added.
-            </p>
 
-            {implants.map((imp, idx) => (
-              <ImplantBlock key={imp.id} entry={imp} index={idx} total={implants.length}
-                onChange={updated => setImplants(prev => prev.map(i => i.id === imp.id ? updated : i))}
-                onRemove={() => setImplants(prev => prev.filter(i => i.id !== imp.id))} />
-            ))}
+            <div className="ap-section">
+              <div className="ap-section-title">Implant information</div>
+              <p className="ap-section-sub">
+                Search for the patient's device and add procedure details.
+                Multiple implants can be added.
+              </p>
 
-            <button type="button" className="btn btn-block" style={{ marginBottom: 24 }}
-              onClick={() => {
-                implantIdCounter.current += 1
-                setImplants(prev => [...prev, { id: implantIdCounter.current, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' }])
-              }}>
-              + Add another implant
-            </button>
+              {implants.map((imp, idx) => (
+                <ImplantBlock key={imp.id} entry={imp} index={idx} total={implants.length}
+                  onChange={updated => setImplants(prev => prev.map(i => i.id === imp.id ? updated : i))}
+                  onRemove={() => setImplants(prev => prev.filter(i => i.id !== imp.id))} />
+              ))}
 
-            <div className="ap-section-title">Medical notes</div>
+              <button type="button" className="btn btn-block" style={{ marginTop: 4, marginBottom: 4 }}
+                onClick={() => {
+                  implantIdCounter.current += 1
+                  setImplants(prev => [...prev, { id: implantIdCounter.current, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' }])
+                }}>
+                + Add another implant
+              </button>
+            </div>
 
-            <div className="field">
-              <label>Contrast allergy</label>
-              <div style={{ display: 'flex', gap: 8, marginBottom: contrastAllergy ? 10 : 0 }}>
-                <button type="button" className={contrastAllergy ? 'btn' : 'btn btn-s'} style={{ flex: 1 }}
-                  onClick={() => setContrastAllergy(false)}>No known allergy</button>
-                <button type="button"
-                  className={contrastAllergy ? 'btn btn-s' : 'btn'}
-                  style={{ flex: 1, background: contrastAllergy ? '#f59e0b' : undefined, borderColor: contrastAllergy ? '#f59e0b' : undefined }}
-                  onClick={() => setContrastAllergy(true)}>Has allergy / reaction</button>
+            <div className="ap-section">
+              <div className="ap-section-title">Medical notes <span className="ap-section-opt">(optional)</span></div>
+
+              <div className="field">
+                <label>Contrast allergy</label>
+                <div style={{ display: 'flex', gap: 8, marginBottom: contrastAllergy ? 10 : 0 }}>
+                  <button type="button" className={contrastAllergy ? 'btn' : 'btn btn-s'} style={{ flex: 1 }}
+                    onClick={() => setContrastAllergy(false)}>No known allergy</button>
+                  <button type="button"
+                    className={contrastAllergy ? 'btn btn-s' : 'btn'}
+                    style={{ flex: 1, background: contrastAllergy ? '#f59e0b' : undefined, borderColor: contrastAllergy ? '#f59e0b' : undefined }}
+                    onClick={() => setContrastAllergy(true)}>Has allergy / reaction</button>
+                </div>
+                {contrastAllergy && (
+                  <textarea className="input" rows={2} placeholder="Describe the reaction or contrast agent involved…"
+                    value={contrastAllergyNote} onChange={e => setContrastAllergyNote(e.target.value)}
+                    style={{ marginTop: 8, resize: 'vertical' }} />
+                )}
               </div>
-              {contrastAllergy && (
-                <textarea className="input" rows={2} placeholder="Describe the reaction or contrast agent involved…"
-                  value={contrastAllergyNote} onChange={e => setContrastAllergyNote(e.target.value)}
-                  style={{ marginTop: 8, resize: 'vertical' }} />
-              )}
+
+              <div className="field">
+                <label>Additional notes</label>
+                <textarea className="input" rows={3}
+                  placeholder="Allergies, previous devices, special instructions…"
+                  value={notes} onChange={e => setNotes(e.target.value)}
+                  style={{ resize: 'vertical' }} />
+              </div>
             </div>
 
             <div className="ap-foot" style={{ justifyContent: 'space-between' }}>
@@ -693,110 +801,90 @@ export default function AddPatientClient() {
 
         {/* ── STEP 3: Review & submit ──────────────────────────────────────── */}
         <div className={`step-pane${step === 'review' ? ' on' : ''}`}>
-          <div className="ap-section-title">Review patient record</div>
-          <p className="ap-section-sub">Check all details before creating the record.</p>
 
-          <div className="ap-summary">
-            <div className="ap-summary-group">
-              <div className="ap-summary-heading">Personal details</div>
-              <div className="ap-sr"><span className="ap-sk">Full name</span><span className="ap-sv">{firstName} {lastName}</span></div>
-              <div className="ap-sr"><span className="ap-sk">Date of birth</span><span className="ap-sv">
-                {dob ? new Date(dob + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
-              </span></div>
-              {countryName && <div className="ap-sr"><span className="ap-sk">Country of birth</span><span className="ap-sv">{countryFlag} {countryName}</span></div>}
-              {email && <div className="ap-sr"><span className="ap-sk">Email</span><span className="ap-sv">{email}</span></div>}
-              {phoneNum && <div className="ap-sr"><span className="ap-sk">Phone</span><span className="ap-sv">{phoneDial} {phoneNum}</span></div>}
-              {(heightCm || weightKg) && (
-                <div className="ap-sr">
-                  <span className="ap-sk">Measurements</span>
-                  <span className="ap-sv">
-                    {heightCm ? `${heightCm} cm` : ''}
-                    {heightCm && weightKg ? ' · ' : ''}
-                    {weightKg ? `${weightKg} kg` : ''}
-                  </span>
-                </div>
-              )}
-            </div>
+          <div className="ap-section">
+            <div className="ap-section-title">Review patient record</div>
+            <p className="ap-section-sub">
+              Check all details before creating the record. The patient will receive
+              a welcome email at <strong>{email}</strong>.
+            </p>
 
-            {implants.map((imp, idx) => (
-              <div key={imp.id} className="ap-summary-group">
-                <div className="ap-summary-heading">{implants.length > 1 ? `Implant ${idx + 1}` : 'Implant'}</div>
-                <div className="ap-sr"><span className="ap-sk">Device</span><span className="ap-sv">{imp.device?.device_name || 'Not specified'}</span></div>
-                {imp.device?.manufacturer && <div className="ap-sr"><span className="ap-sk">Manufacturer</span><span className="ap-sv">{imp.device.manufacturer}</span></div>}
-                {imp.hospital && <div className="ap-sr"><span className="ap-sk">Hospital</span><span className="ap-sv">{imp.hospital}</span></div>}
-                {imp.surgeon && <div className="ap-sr"><span className="ap-sk">Surgeon</span><span className="ap-sv">{imp.surgeon}</span></div>}
-                {(imp.surgeryMonth || imp.surgeryYear) && (
+            <div className="ap-summary">
+              <div className="ap-summary-group">
+                <div className="ap-summary-heading">Personal details</div>
+                <div className="ap-sr"><span className="ap-sk">Full name</span><span className="ap-sv">{firstName} {lastName}</span></div>
+                <div className="ap-sr"><span className="ap-sk">Date of birth</span><span className="ap-sv">
+                  {dob ? new Date(dob + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}
+                </span></div>
+                {countryName && <div className="ap-sr"><span className="ap-sk">Country of birth</span><span className="ap-sv">{countryFlag} {countryName}</span></div>}
+                <div className="ap-sr"><span className="ap-sk">Email</span><span className="ap-sv">{email}</span></div>
+                {phoneNum && <div className="ap-sr"><span className="ap-sk">Phone</span><span className="ap-sv">{phoneDial} {phoneNum}</span></div>}
+                {(heightCm || weightKg) && (
                   <div className="ap-sr">
-                    <span className="ap-sk">Surgery date</span>
-                    <span className="ap-sv">{imp.surgeryMonth ? MONTHS.find(m => m.value === imp.surgeryMonth)?.label : ''} {imp.surgeryYear}</span>
+                    <span className="ap-sk">Measurements</span>
+                    <span className="ap-sv">
+                      {heightCm ? `${heightCm} cm` : ''}
+                      {heightCm && weightKg ? ' · ' : ''}
+                      {weightKg ? `${weightKg} kg` : ''}
+                    </span>
                   </div>
                 )}
               </div>
-            ))}
 
-            {contrastAllergy && (
-              <div className="ap-summary-group">
-                <div className="ap-summary-heading">Medical alerts</div>
-                <div className="ap-sr"><span className="ap-sk">Contrast allergy</span><span className="ap-sv" style={{ color: '#f59e0b', fontWeight: 500 }}>⚠ Yes</span></div>
-                {contrastAllergyNote && <div className="ap-sr"><span className="ap-sk">Allergy note</span><span className="ap-sv">{contrastAllergyNote}</span></div>}
-              </div>
-            )}
+              {implants.map((imp, idx) => (
+                <div key={imp.id} className="ap-summary-group">
+                  <div className="ap-summary-heading">{implants.length > 1 ? `Implant ${idx + 1}` : 'Implant'}</div>
+                  <div className="ap-sr"><span className="ap-sk">Device</span><span className="ap-sv">{imp.device?.device_name || <span style={{ color: 'var(--muted2)' }}>Not specified</span>}</span></div>
+                  {imp.device?.manufacturer && <div className="ap-sr"><span className="ap-sk">Manufacturer</span><span className="ap-sv">{imp.device.manufacturer}</span></div>}
+                  {imp.hospital && <div className="ap-sr"><span className="ap-sk">Hospital</span><span className="ap-sv">{imp.hospital}</span></div>}
+                  {imp.surgeon && <div className="ap-sr"><span className="ap-sk">Surgeon</span><span className="ap-sv">{imp.surgeon}</span></div>}
+                  {(imp.surgeryMonth || imp.surgeryYear) && (
+                    <div className="ap-sr">
+                      <span className="ap-sk">Surgery date</span>
+                      <span className="ap-sv">{MONTHS.find(m => m.value === imp.surgeryMonth)?.label} {imp.surgeryYear}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {(contrastAllergy || notes) && (
+                <div className="ap-summary-group">
+                  <div className="ap-summary-heading">Medical notes</div>
+                  {contrastAllergy && <div className="ap-sr"><span className="ap-sk">Contrast allergy</span><span className="ap-sv" style={{ color: '#f59e0b', fontWeight: 600 }}>⚠ Yes{contrastAllergyNote ? ` — ${contrastAllergyNote}` : ''}</span></div>}
+                  {notes && <div className="ap-sr"><span className="ap-sk">Notes</span><span className="ap-sv">{notes}</span></div>}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="field" style={{ marginTop: 20 }}>
-            <label>Additional notes <span style={{ color: 'var(--muted2)', fontWeight: 400 }}>(optional)</span></label>
-            <textarea className="input" rows={3}
-              placeholder="Allergies, previous devices, special instructions…"
-              value={notes} onChange={e => setNotes(e.target.value)} />
-          </div>
-
-          <div className="dev-warn" style={{ marginBottom: 18 }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" />
+          <div className="ap-email-notice">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <polyline points="22,6 12,13 2,6" />
             </svg>
-            <span>
-              This record will be created as pending and will require verification before the patient
-              can access full portal features.
-            </span>
+            <div>
+              <strong>An email will be sent to {email}</strong>
+              <span> with their unique Implant ID code and a link to set up their patient account.</span>
+            </div>
           </div>
 
           <div className="ap-foot" style={{ justifyContent: 'space-between' }}>
             <button type="button" className="btn btn-lg" onClick={() => goStep('implant')}>← Back</button>
-            <button type="button" className="btn btn-s btn-lg" onClick={() => setSubmitConfirm(true)} disabled={loading}>
-              Create patient record →
+            <button type="button" className="btn btn-s btn-lg" onClick={doSubmit} disabled={loading}>
+              {loading ? (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                    style={{ animation: 'spin 1s linear infinite' }}>
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                  Creating record…
+                </>
+              ) : 'Create record & send email →'}
             </button>
           </div>
         </div>
 
       </div>
-
-      {/* ── Confirm modal ────────────────────────────────────────────────────── */}
-      {submitConfirm && (
-        <div className="logout-back open" onClick={() => !loading && setSubmitConfirm(false)}>
-          <div className="logout-modal" onClick={e => e.stopPropagation()}>
-            <div className="logout-body">
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                  <line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" />
-                </svg>
-              </div>
-              <h3>Create patient record?</h3>
-              <p>
-                A new record for <strong>{firstName} {lastName}</strong> will be created with status{' '}
-                <strong>pending verification</strong>. They will need to be verified before accessing
-                full portal features.
-              </p>
-            </div>
-            <div className="logout-actions">
-              <button className="btn" onClick={() => setSubmitConfirm(false)} disabled={loading}>Cancel</button>
-              <button className="btn btn-s" onClick={() => { setSubmitConfirm(false); doSubmit() }} disabled={loading}>
-                {loading ? 'Creating…' : 'Yes, create record →'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

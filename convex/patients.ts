@@ -117,6 +117,7 @@ export const clinicAddPatient = mutation({
       firstName:     args.firstName,
       lastName:      args.lastName,
       dob:           args.dob,
+      email:         args.email,
       phone:         args.phone,
       countryOfBirth: args.countryOfBirth,
 

@@ -306,7 +306,7 @@ export default function ScanPatientClient() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="m-content scan-page">
+    <div className="scan-page">
 
       {/* ── Unified card ── */}
       <div className="scan-card">

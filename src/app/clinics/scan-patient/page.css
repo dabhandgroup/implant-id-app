@@ -1,5 +1,5 @@
 body{background:var(--bg)}
-.scan-page{padding-bottom:60px}
+.scan-page{padding-bottom:60px;max-width:1200px;margin:0 auto;width:100%;box-sizing:border-box}
 
 /* ── Outer unified card ───────────────────────────────────────────────────── */
 .scan-card{

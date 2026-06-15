@@ -364,6 +364,15 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
               <h1 style={{ fontSize:'clamp(18px,2vw,24px)', letterSpacing:'-.02em' }}>{pageTitle}</h1>
             </div>
             <div className="app-top-r">
+              <a
+                href="/clinics/library"
+                className="ibtn"
+                aria-label="Search devices and manufacturers"
+                title="Search devices"
+                style={{ textDecoration: 'none' }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              </a>
               <button
                 className="ibtn notif-btn"
                 onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setNotifOpen(true) }}

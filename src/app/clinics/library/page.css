@@ -10,7 +10,7 @@ body{background:var(--bg)}
 .lib-search input::placeholder{color:rgba(255,255,255,.55)}
 .lib-search button{background:#fff;color:var(--accent-deep);border:0;font-family:var(--ff);font-weight:600;font-size:13px;padding:10px 20px;border-radius:999px;cursor:pointer;transition:all .15s;white-space:nowrap}
 .lib-search button:hover{background:var(--accent-deep);color:#fff}
-.lib-content{padding:24px 32px 60px}
+.lib-content{padding:24px 0 60px;max-width:1200px;margin:0 auto;width:100%;box-sizing:border-box}
 .lib-layout{display:grid;grid-template-columns:240px 1fr;gap:28px;align-items:start}
 .lib-side{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:6px 0;position:sticky;top:20px}
 .lib-side-grp{padding:16px 18px;border-bottom:1px solid var(--border)}
@@ -56,7 +56,7 @@ body{background:var(--bg)}
 .res-card-body .st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 8px currentColor}
 @media(max-width:900px){
   .lib-hero{padding:20px 18px}
-  .lib-content{padding:18px 16px 100px}
+  .lib-content{padding:18px 0 100px}
   .lib-layout{grid-template-columns:1fr;gap:16px}
   .lib-side{position:static}
   .res-row{grid-template-columns:auto 1fr}.res-row>div:nth-child(n+4){display:none}

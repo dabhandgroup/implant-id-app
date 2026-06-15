@@ -67,29 +67,28 @@ export default function ManufacturersClient() {
   )
 
   return (
-    <div className="m-content">
-      <div className="mfr-header">
-        <div>
-          <div className="ey">Device manufacturers</div>
-          <h2 style={{ fontSize: 'clamp(20px,2vw,26px)', letterSpacing: '-.025em', marginTop: 6 }}>
-            {MANUFACTURERS.length} manufacturers verified on Implant ID
-          </h2>
-          <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 6, maxWidth: 520, lineHeight: 1.5 }}>
-            Browse every manufacturer in the database. Tap a card to see their full device catalogue and MRI safety documentation.
-          </p>
-        </div>
-        <div className="mfr-search-wrap">
-          <div className="mfr-search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
-            </svg>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search manufacturers…"
-              aria-label="Search manufacturers"
-            />
-          </div>
+    <div className="mfr-page">
+      <div className="ey">Device manufacturers</div>
+      <h2 style={{ fontSize: 'clamp(20px,2vw,26px)', letterSpacing: '-.025em', marginTop: 6 }}>
+        {MANUFACTURERS.length} manufacturers verified on Implant ID
+      </h2>
+      <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 6, maxWidth: 560, lineHeight: 1.5 }}>
+        Browse every manufacturer in the database. Tap a card to see their full device catalogue and MRI safety documentation.
+      </p>
+      <div className="mfr-search-wrap">
+        <div className="mfr-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search manufacturers or devices…"
+            aria-label="Search manufacturers"
+          />
+          {search && (
+            <button className="mfr-clear" onClick={() => setSearch('')} aria-label="Clear search">✕</button>
+          )}
         </div>
       </div>
 

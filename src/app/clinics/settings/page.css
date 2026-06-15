@@ -81,7 +81,11 @@
   white-space: nowrap;
   margin-bottom: -2px;
   transition: color .15s, border-color .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
+.stab-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 .stab-btn:hover { color: var(--text); }
 .stab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 .stab-pane { display: none; }

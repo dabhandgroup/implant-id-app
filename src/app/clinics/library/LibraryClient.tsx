@@ -409,7 +409,7 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
                   return (
                     <a
                       key={d.device_id}
-                      href={`/device/${slug}`}
+                      href={`/device/${encodeURIComponent(slug)}`}
                       className="res-card"
                       aria-label={`${d.device_name} — ${mri.label}`}
                     >
@@ -449,7 +449,7 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
                   return (
                     <a
                       key={d.device_id}
-                      href={`/device/${slug}`}
+                      href={`/device/${encodeURIComponent(slug)}`}
                       className="res-row"
                       aria-label={`${d.device_name} — ${mri.label}`}
                     >

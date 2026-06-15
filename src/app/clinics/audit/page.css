@@ -1,6 +1,14 @@
 @import '../dashboard/page.css';
 @import '../all-patients/page.css';
 
+.audit-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 60px;
+}
+
 .audit-row {
   display: grid;
   grid-template-columns: 140px 140px 1fr auto;

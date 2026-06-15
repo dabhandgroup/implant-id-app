@@ -106,9 +106,22 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
+  // Placed on the container div so events bubble up from any focused child —
+  // trigger button OR open list items — giving native-select type-ahead.
+  function handleKeyDown(e: React.KeyboardEvent) {
+    // Don't intercept typing inside the search input (searchable mode)
+    if ((e.target as HTMLElement).tagName === 'INPUT') return
+
     if (e.key === 'Escape') { setOpen(false); return }
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); return }
+
+    // Enter/Space on list items = select (let default button behaviour run);
+    // Enter/Space on trigger button = toggle open.
+    const inList = !!(e.target as HTMLElement).closest('.custom-select-list')
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (!inList) { e.preventDefault(); setOpen(o => !o) }
+      return
+    }
+
     if (e.key.length !== 1) return
     e.preventDefault()
     typeBuf.current += e.key.toLowerCase()
@@ -116,14 +129,18 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
     typeTimer.current = setTimeout(() => { typeBuf.current = '' }, 1500)
     const match = options.find(o => o.label.toLowerCase().startsWith(typeBuf.current))
     if (match) {
-      onChange(match.value); setOpen(true)
-      setTimeout(() => listRef.current?.querySelector<HTMLElement>(`[data-val="${match.value}"]`)?.scrollIntoView({ block: 'nearest' }), 0)
+      onChange(match.value)
+      setOpen(true)
+      // Use two frames so the list is visible before scrolling
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        listRef.current?.querySelector<HTMLElement>(`[data-val="${match.value}"]`)?.scrollIntoView({ block: 'nearest' })
+      }))
     }
   }
 
   return (
-    <div className={`custom-select${open ? ' open' : ''}`} ref={ref} style={style}>
-      <button type="button" className="custom-select-btn" onClick={() => setOpen(o => !o)} onKeyDown={handleKeyDown}>
+    <div className={`custom-select${open ? ' open' : ''}`} ref={ref} style={style} onKeyDown={handleKeyDown}>
+      <button type="button" className="custom-select-btn" onClick={() => setOpen(o => !o)}>
         <span className="custom-select-val" style={{ color: value ? 'var(--text)' : 'var(--muted2)' }}>
           {selected?.icon && <span style={{ marginRight: 6 }}>{selected.icon}</span>}
           {selected?.label ?? placeholder}
@@ -141,6 +158,7 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
         <div className="custom-select-list" ref={listRef}>
           {filtered.map(o => (
             <button key={o.value} type="button" data-val={o.value}
+              className={o.value === value ? 'cs-selected' : ''}
               onClick={() => { onChange(o.value); setOpen(false); setSearch('') }}>
               {o.icon && <span style={{ marginRight: 8 }}>{o.icon}</span>}
               {o.label}
@@ -192,7 +210,7 @@ function DobPicker({ value, onChange }: { value: string; onChange: (v: string) =
       <CompactSelect style={{ flex: 1, minWidth: 0 }} options={MONTHS} value={mo} placeholder="Month"
         onChange={m => { setMo(m); const max = daysInMonth(m, yr || '2000'); const d2 = day ? String(Math.min(parseInt(day), max)).padStart(2, '0') : ''; setDay(d2); commit(d2 || day, m, yr) }} />
       <CompactSelect style={{ flex: 1, minWidth: 0 }} options={years} value={yr} placeholder="Year"
-        onChange={y => { setYr(y); commit(day, mo, y) }} searchable />
+        onChange={y => { setYr(y); commit(day, mo, y) }} />
     </div>
   )
 }

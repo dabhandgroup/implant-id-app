@@ -427,6 +427,7 @@
 .custom-select-list { max-height: 200px; overflow-y: auto; }
 .custom-select-list button { display: flex; align-items: center; width: 100%; padding: 9px 12px; background: none; border: none; border-bottom: 1px solid var(--border); cursor: pointer; font-family: var(--ff); font-size: 13px; color: var(--text); text-align: left; transition: background .1s; }
 .custom-select-list button:hover { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.custom-select-list button.cs-selected { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--accent-deep); font-weight: 500; }
 .custom-select-list button:last-child { border-bottom: none; }
 
 .dev-search-wrap { border: 1px solid var(--border2); border-radius: 10px; overflow: visible; background: var(--bg2); transition: border-color .15s, box-shadow .15s; position: relative; }

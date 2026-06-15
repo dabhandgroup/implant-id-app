@@ -90,6 +90,7 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
   const [open,   setOpen]   = useState(false)
   const [search, setSearch] = useState('')
   const ref     = useRef<HTMLDivElement>(null)
+  const btnRef  = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const typeBuf   = useRef('')
   const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -140,7 +141,13 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
 
   return (
     <div className={`custom-select${open ? ' open' : ''}`} ref={ref} style={style} onKeyDown={handleKeyDown}>
-      <button type="button" className="custom-select-btn" onClick={() => setOpen(o => !o)}>
+      <button
+        ref={btnRef}
+        type="button"
+        tabIndex={0}
+        className="custom-select-btn"
+        onClick={() => { setOpen(o => !o); btnRef.current?.focus() }}
+      >
         <span className="custom-select-val" style={{ color: value ? 'var(--text)' : 'var(--muted2)' }}>
           {selected?.icon && <span style={{ marginRight: 6 }}>{selected.icon}</span>}
           {selected?.label ?? placeholder}

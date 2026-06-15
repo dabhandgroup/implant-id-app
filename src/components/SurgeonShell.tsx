@@ -89,7 +89,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard',        href: '/surgeons/dashboard', Icon: IconDashboard },
   { label: 'My Patients',      href: '/surgeons/patients',  Icon: IconPatients  },
   { label: 'Look Up Patient',  href: '/surgeons/scan',      Icon: IconScan      },
-  { label: 'Implant library',  href: '/clinics/library',    Icon: IconLibrary   },
+  { label: 'Implant library',  href: '/clinics/devices',    Icon: IconLibrary   },
   { label: 'Settings',         href: '/surgeons/settings',  Icon: IconGear      },
 ]
 

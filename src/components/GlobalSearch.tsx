@@ -11,18 +11,18 @@ const PATIENTS = [
   { name: 'James Okafor',    sub: 'JO-9981-IID · Cochlear Nucleus CI622',       href: '/clinics/patient-view' },
 ]
 const DEVICES = [
-  { name: 'Medtronic Azure XT DR',        sub: 'Dual-chamber pacemaker · MRI Conditional 1.5T/3T', href: '/clinics/library' },
-  { name: 'Abbott Aveir DR i2i',          sub: 'Leadless pacemaker · MRI Conditional 1.5T/3T',     href: '/clinics/library' },
-  { name: 'Boston Scientific EMBLEM S-ICD', sub: 'Subcutaneous ICD · MRI Conditional 1.5T',        href: '/clinics/library' },
-  { name: 'Medtronic Percept PC DBS',     sub: 'Deep brain stimulator · MRI Conditional 1.5T',     href: '/clinics/library' },
-  { name: 'Cochlear Nucleus CI622',       sub: 'Cochlear implant · MRI Conditional 1.5T/3T',       href: '/clinics/library' },
-  { name: 'Stryker Triathlon Knee',       sub: 'Total knee replacement · MRI Conditional',          href: '/clinics/library' },
-  { name: 'Biotronik Edora 8 DR-T',       sub: 'Dual-chamber pacemaker · MRI Conditional 1.5T/3T', href: '/clinics/library' },
+  { name: 'Medtronic Azure XT DR',        sub: 'Dual-chamber pacemaker · MRI Conditional 1.5T/3T', href: '/clinics/devices' },
+  { name: 'Abbott Aveir DR i2i',          sub: 'Leadless pacemaker · MRI Conditional 1.5T/3T',     href: '/clinics/devices' },
+  { name: 'Boston Scientific EMBLEM S-ICD', sub: 'Subcutaneous ICD · MRI Conditional 1.5T',        href: '/clinics/devices' },
+  { name: 'Medtronic Percept PC DBS',     sub: 'Deep brain stimulator · MRI Conditional 1.5T',     href: '/clinics/devices' },
+  { name: 'Cochlear Nucleus CI622',       sub: 'Cochlear implant · MRI Conditional 1.5T/3T',       href: '/clinics/devices' },
+  { name: 'Stryker Triathlon Knee',       sub: 'Total knee replacement · MRI Conditional',          href: '/clinics/devices' },
+  { name: 'Biotronik Edora 8 DR-T',       sub: 'Dual-chamber pacemaker · MRI Conditional 1.5T/3T', href: '/clinics/devices' },
 ]
 const PAGES = [
   { name: 'All patients',    href: '/clinics/all-patients' },
   { name: 'Scan patient card', href: '/clinics/scan-patient' },
-  { name: 'Implant library', href: '/clinics/library' },
+  { name: 'Implant library', href: '/clinics/devices' },
   { name: 'Manufacturers',   href: '/clinics/manufacturers' },
   { name: 'Staff',           href: '/clinics/staff' },
   { name: 'Audit log',       href: '/clinics/audit' },

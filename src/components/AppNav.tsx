@@ -13,7 +13,7 @@ const APP_ROUTES = [
   '/clinics/staff',
   '/clinics/settings',
   '/clinics/audit',
-  '/clinics/library',
+  '/clinics/devices',
   '/clinics/manufacturers',
   '/clinics/onboarding',
   '/clinics/scan-patient',

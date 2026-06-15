@@ -278,7 +278,7 @@ export default function PatientViewClient() {
             <h3 style={{ fontSize: 20, marginBottom: 16 }}>Manuals &amp; safety sheets</h3>
             {primaryDevice ? (
               <a
-                href={`/clinics/library?q=${encodeURIComponent(`${primaryDevice.manufacturer} ${primaryDevice.model}`)}`}
+                href={`/clinics/devices?q=${encodeURIComponent(`${primaryDevice.manufacturer} ${primaryDevice.model}`)}`}
                 className="doc"
                 style={{ textDecoration: 'none' }}
               >

@@ -119,7 +119,7 @@ export default async function DevicePage(
             </svg>
             <span>Dashboard</span>
           </a>
-          <a className="sb-link" href="/clinics/library" title="Implant library">
+          <a className="sb-link" href="/clinics/devices" title="Implant library">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
             </svg>
@@ -256,7 +256,7 @@ export default async function DevicePage(
           <header className="app-top">
             <div className="app-top-l">
               <nav className="dv-breadcrumb" aria-label="Breadcrumb">
-                <a href="/clinics/library">
+                <a href="/clinics/devices">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 2 }}>
                     <polyline points="15 18 9 12 15 6" />
                   </svg>
@@ -621,7 +621,7 @@ export default async function DevicePage(
                     </svg>
                     Add to patient
                   </a>
-                  <a href="/clinics/library" className="qa-btn">
+                  <a href="/clinics/devices" className="qa-btn">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
                     </svg>
@@ -762,7 +762,7 @@ export default async function DevicePage(
                 </svg>
                 <span className="t">Patients</span>
               </a>
-              <a href="/clinics/library" className="mob-nav-tab" aria-label="Library">
+              <a href="/clinics/devices" className="mob-nav-tab" aria-label="Library">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
                 </svg>

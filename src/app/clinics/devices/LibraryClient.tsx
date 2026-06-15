@@ -515,7 +515,7 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
             </svg>
             <span className="t">Patients</span>
           </a>
-          <a href="/clinics/library" className="mob-nav-tab active" aria-label="Library" aria-current="page">
+          <a href="/clinics/devices" className="mob-nav-tab active" aria-label="Library" aria-current="page">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z" />
             </svg>

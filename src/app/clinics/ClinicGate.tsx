@@ -205,7 +205,7 @@ function ClinicPendingScreen({ application, signOut }: { application: Applicatio
             <div style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 12 }}>
               While you wait, you can browse our device library.
             </div>
-            <Link href="/clinics/library" className="btn btn-s">
+            <Link href="/clinics/devices" className="btn btn-s">
               Browse Device Library
             </Link>
           </div>

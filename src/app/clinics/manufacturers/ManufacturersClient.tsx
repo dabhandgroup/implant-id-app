@@ -110,7 +110,7 @@ export default function ManufacturersClient() {
               </div>
               <div className="mfr-devices">{m.devices.join(' · ')}</div>
               <div className="mfr-card-foot">
-                <a href={`/clinics/library?mfr=${m.id}`} className="btn btn-s">
+                <a href={`/clinics/devices?mfr=${m.id}`} className="btn btn-s">
                   View devices →
                 </a>
                 <span className="mfr-contact">Contact</span>

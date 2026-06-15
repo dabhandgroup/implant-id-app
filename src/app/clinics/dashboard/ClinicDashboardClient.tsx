@@ -39,7 +39,7 @@ export default function ClinicDashboardClient() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     const q = query.trim()
-    if (q) router.push(`/clinics/library?q=${encodeURIComponent(q)}`)
+    if (q) router.push(`/clinics/devices?q=${encodeURIComponent(q)}`)
   }
 
   return (
@@ -76,7 +76,7 @@ export default function ClinicDashboardClient() {
             </a>
           </div>
           <div style={{ color:'rgba(255,255,255,.82)', fontFamily:'var(--ff)', fontSize:13, textAlign:'center', marginTop:14, letterSpacing:'.2px' }}>
-            Browse <a href="/clinics/library" style={{ color:'#fff', fontWeight:600, textDecoration:'underline', textUnderlineOffset:3 }}>
+            Browse <a href="/clinics/devices" style={{ color:'#fff', fontWeight:600, textDecoration:'underline', textUnderlineOffset:3 }}>
               {deviceCount !== undefined ? `${deviceCount} devices` : 'our device library'}
             </a> · more added weekly
           </div>
@@ -87,15 +87,15 @@ export default function ClinicDashboardClient() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M8 15h2"/></svg>
             <b>Scan card</b><span>Apple Wallet or ID</span>
           </a>
-          <a href="/clinics/library?f=pacemaker" className="cat-tile">
+          <a href="/clinics/devices?f=pacemaker" className="cat-tile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 2v20M2 12h20"/></svg>
             <b>Pacemakers</b><span>Indexed devices</span>
           </a>
-          <a href="/clinics/library?f=crtd" className="cat-tile">
+          <a href="/clinics/devices?f=crtd" className="cat-tile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
             <b>CRT-Ds</b><span>Indexed devices</span>
           </a>
-          <a href="/clinics/library?f=icd" className="cat-tile">
+          <a href="/clinics/devices?f=icd" className="cat-tile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             <b>ICDs</b><span>Indexed devices</span>
           </a>
@@ -197,7 +197,7 @@ export default function ClinicDashboardClient() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4M19 8v6M16 11h6"/></svg>
                 Add patient
               </a>
-              <a href="/clinics/library" className="qa-btn">
+              <a href="/clinics/devices" className="qa-btn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
                 Library
               </a>

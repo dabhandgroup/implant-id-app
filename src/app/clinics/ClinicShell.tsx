@@ -12,7 +12,7 @@ const api = apiBase as any
 // ── Page title ────────────────────────────────────────────────────────────────
 
 function pageTitleFromPathname(pathname: string): string {
-  if (pathname.startsWith('/clinics/library'))        return 'Devices'
+  if (pathname.startsWith('/clinics/devices'))        return 'Devices'
   if (pathname.startsWith('/clinics/scan-patient'))   return 'Scan patient card'
   if (pathname.startsWith('/clinics/manufacturers'))  return 'Manufacturers'
   if (pathname.startsWith('/clinics/all-patients'))   return 'All patients'
@@ -103,7 +103,7 @@ function PendingScreen({ app, onSignOut }: { app: Application; onSignOut: () => 
             </div>
           </div>
           <div style={{ color:'var(--muted)', fontSize:14, marginBottom:12 }}>While you wait, you can browse our device library.</div>
-          <Link href="/clinics/library" className="btn btn-s">Browse Device Library</Link>
+          <Link href="/clinics/devices" className="btn btn-s">Browse Device Library</Link>
         </div>
       </div>
     </div>
@@ -239,7 +239,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="5" y="5" width="3" height="3"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="16" y="5" width="3" height="3"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="5" y="16" width="3" height="3"/><rect x="14" y="14" width="2.5" height="2.5" rx=".5"/><rect x="18" y="14" width="3" height="3" rx=".5"/><rect x="14" y="18" width="3" height="3" rx=".5"/><rect x="19" y="19" width="2" height="2" rx=".5"/></svg>
             <span>Scan card</span>
           </a>
-          <a className={`sb-link${isActive('/clinics/library') ? ' active' : ''}`} href="/clinics/library" title="Devices">
+          <a className={`sb-link${isActive('/clinics/devices') ? ' active' : ''}`} href="/clinics/devices" title="Devices">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
             <span>Devices</span>
           </a>
@@ -364,15 +364,6 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
               <h1 style={{ fontSize:'clamp(18px,2vw,24px)', letterSpacing:'-.02em' }}>{pageTitle}</h1>
             </div>
             <div className="app-top-r">
-              <a
-                href="/clinics/library"
-                className="ibtn"
-                aria-label="Search devices and manufacturers"
-                title="Search devices"
-                style={{ textDecoration: 'none' }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-              </a>
               <button
                 className="ibtn notif-btn"
                 onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setNotifOpen(true) }}
@@ -402,7 +393,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span className="t">Patients</span>
           </a>
-          <a href="/clinics/library" className={`mob-nav-tab${isActive('/clinics/library') ? ' active' : ''}`} aria-label="Library">
+          <a href="/clinics/devices" className={`mob-nav-tab${isActive('/clinics/devices') ? ' active' : ''}`} aria-label="Library">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
             <span className="t">Library</span>
           </a>

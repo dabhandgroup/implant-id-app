@@ -1,4 +1,5 @@
 import './page.css'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getDeviceByModel, getManufacturer, getDocuments } from '@/data/devices'
@@ -90,9 +91,11 @@ export default async function DeviceDetailPage(
           <div className="dv-hero-mfr">
             {manufacturer ? (
               <>
-                {manufacturer.common_name}
-                {manufacturer.website && (
-                  <> &middot; <a href={manufacturer.website} target="_blank" rel="noopener noreferrer">{manufacturer.country_of_origin}</a></>
+                <a href={`/clinics/devices?mfr=${device.manufacturer_id}`} className="dv-mfr-link">
+                  {manufacturer.common_name}
+                </a>
+                {manufacturer.country_of_origin && (
+                  <> &middot; {manufacturer.country_of_origin}</>
                 )}
               </>
             ) : device.manufacturer_id}
@@ -137,6 +140,23 @@ export default async function DeviceDetailPage(
             </svg>
             Verified {fmtDate(device.last_verified_date)} &middot; {device.verified_by}
           </div>
+        </div>
+
+        {/* MRI status icon — top right of hero */}
+        <div className="dv-hero-icon">
+          <Image
+            src={
+              device.mri_classification === 'MR Safe'   ? '/mr-safe@2x.png'   :
+              device.mri_classification === 'MR Unsafe' ? '/mr-unsafe@2x.png' :
+              '/mr-conditional@2x.png'
+            }
+            alt={device.mri_classification}
+            width={110}
+            height={110}
+            priority
+            unoptimized
+          />
+          <div className="dv-hero-icon-label">{device.mri_classification}</div>
         </div>
       </div>
 
@@ -343,7 +363,7 @@ export default async function DeviceDetailPage(
               </svg>
               Back to library
             </a>
-            <CopyModelButton modelNumber={modelNumbers[0] ?? device.model_number} />
+            <CopyModelButton modelNumbers={modelNumbers.length > 0 ? modelNumbers : [device.model_number]} />
           </div>
 
           {/* Manufacturer */}

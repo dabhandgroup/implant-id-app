@@ -44,6 +44,17 @@
   .staff-row > *:nth-child(n+3) { display: none; }
 }
 
+/* ── Add-staff two-column grid ─────────────────────────────────────────────── */
+.add-staff-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 820px) {
+  .add-staff-grid { grid-template-columns: 1fr; }
+}
+
 /* ── Custom select dropdown (csd) ──────────────────────────────────────────── */
 .csd { position: relative; display: inline-block; }
 .csd-btn {

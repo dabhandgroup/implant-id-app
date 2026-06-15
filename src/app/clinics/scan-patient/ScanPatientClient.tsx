@@ -12,6 +12,18 @@ function extractIidCode(raw: string): string | null {
   return match ? match[0].toUpperCase() : null
 }
 
+function timeAgo(ts: number): string {
+  const diff  = Date.now() - ts
+  const mins  = Math.floor(diff / 60_000)
+  const hours = Math.floor(diff / 3_600_000)
+  const days  = Math.floor(diff / 86_400_000)
+  if (mins  < 1)  return 'just now'
+  if (mins  < 60) return `${mins}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days  < 7)  return `${days}d ago`
+  return new Date(ts).toLocaleDateString('en-GB', { day:'2-digit', month:'short' })
+}
+
 export default function ScanPatientClient() {
   const searchParams = useSearchParams()
 
@@ -34,9 +46,18 @@ export default function ScanPatientClient() {
   const streamRef = useRef<MediaStream | null>(null)
   const rafRef    = useRef<number>(0)
 
-  const result        = useQuery(api.patients.getPatientByCode, searchCode ? { code: searchCode } : 'skip')
-  const recordLookup  = useMutation(api.patients.recordPatientLookup)
-  const requestAccess = useMutation(api.patients.requestClinicAccess)
+  const result          = useQuery(api.patients.getPatientByCode, searchCode ? { code: searchCode } : 'skip')
+  const recordLookup    = useMutation(api.patients.recordPatientLookup)
+  const requestAccess   = useMutation(api.patients.requestClinicAccess)
+
+  // Dashboard section queries
+  const stats           = useQuery(api.clinics.getClinicStats)
+  const recentLookups   = useQuery(api.clinics.getRecentLookups)
+  const todayCount      = useQuery(api.clinics.getTodayLookupCount)
+  const deviceCount     = useQuery(api.devices.getDeviceCount)
+  const clinicPatients  = useQuery(api.clinics.listClinicPatients)
+
+  const flagged = (clinicPatients ?? []).filter((p: any) => p.verificationStatus !== 'active').slice(0, 5)
 
   useEffect(() => {
     if (result?._id && searchCode) {
@@ -498,6 +519,160 @@ export default function ScanPatientClient() {
       <div className={`scan-toast${toastVisible ? ' show' : ''}`} role="status" aria-live="polite">
         {toast}
       </div>
+
+      {/* ── Stat row ─────────────────────────────────────────────────────────── */}
+      <div className="stat-row" style={{ marginTop: 32 }}>
+        <div className="stat-card">
+          <div className="k">Library size</div>
+          <div className="v">{deviceCount === undefined ? '…' : (deviceCount ?? 0).toLocaleString()}</div>
+          <div className="d">Indexed devices</div>
+        </div>
+        <div className="stat-card">
+          <div className="k">Lookups today</div>
+          <div className="v">{todayCount === undefined ? '…' : todayCount ?? 0}</div>
+          <div className="d">Across your clinic</div>
+        </div>
+        <div className="stat-card">
+          <div className="k">Patients linked</div>
+          <div className="v">{stats === undefined ? '…' : stats?.total ?? 0}</div>
+          <div className="d">{stats?.verified ?? 0} verified</div>
+        </div>
+        <div className="stat-card">
+          <div className="k">Flags needing review</div>
+          <div className="v" style={{ color: (stats?.pending ?? 0) > 0 ? 'var(--warn)' : undefined }}>
+            {stats === undefined ? '…' : stats?.pending ?? 0}
+          </div>
+          <div className="d">{(stats?.pending ?? 0) > 0 ? 'Action required' : 'All clear'}</div>
+        </div>
+      </div>
+
+      {/* ── Grid: recent lookups + quick actions + flagged ───────────────────── */}
+      <div className="grid-2">
+
+        {/* Recent patient lookups */}
+        <div className="table">
+          <div className="table-h">
+            <h3>Recent patient lookups</h3>
+            <a href="/clinics/all-patients" style={{ fontFamily:'var(--ff)', fontSize:13, color:'var(--accent)', fontWeight:600 }}>View all</a>
+          </div>
+
+          {recentLookups === undefined ? (
+            <div style={{ padding:'40px 22px', color:'var(--muted)', fontSize:13 }}>Loading…</div>
+          ) : recentLookups.length === 0 ? (
+            <div style={{ padding:'48px 22px', textAlign:'center', color:'var(--muted)', fontSize:13 }}>
+              No lookups yet. Scan a patient card above to get started.
+            </div>
+          ) : (
+            <>
+              <div className="impl-row impl-thead">
+                <div></div>
+                <div>Patient</div>
+                <div>ID</div>
+                <div>Action</div>
+                <div>Time</div>
+              </div>
+              {(recentLookups as any[]).slice(0, 8).map((row: any) => (
+                <a
+                  key={row._id}
+                  href={`/clinics/patient-view?code=${encodeURIComponent(row.implantIdCode || '')}`}
+                  className="impl-row"
+                  style={{ textDecoration:'none' }}
+                >
+                  <div className="impl-ic">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  </div>
+                  <div>
+                    <div className="impl-nm">{row.patientName}</div>
+                    {row.deviceName && <div className="impl-mfr">{row.deviceName}</div>}
+                  </div>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted2)' }}>{row.implantIdCode || '—'}</div>
+                  <div>
+                    <span style={{ fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, letterSpacing:'.4px', padding:'3px 8px', borderRadius:5, background:'color-mix(in srgb,var(--accent) 8%,transparent)', color:'var(--accent)' }}>
+                      {row.action}
+                    </span>
+                  </div>
+                  <div style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted2)' }}>{timeAgo(row.createdAt)}</div>
+                </a>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Quick actions + flagged */}
+        <div>
+          <div className="quick-actions" style={{ marginBottom:16 }}>
+            <h3 style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:600, letterSpacing:'.8px', textTransform:'uppercase', color:'var(--muted)' }}>Quick actions</h3>
+            <div className="qa-grid">
+              <a href="/clinics/all-patients" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                All patients
+              </a>
+              <a href="/clinics/add-patient" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4M19 8v6M16 11h6"/></svg>
+                Add patient
+              </a>
+              <a href="/clinics/library" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
+                Device library
+              </a>
+              <a href="/clinics/manufacturers" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Manufacturers
+              </a>
+              <a href="/clinics/staff" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Invite staff
+              </a>
+              <a href="/clinics/audit" className="qa-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+                Audit log
+              </a>
+            </div>
+          </div>
+
+          {/* Flagged for review */}
+          <div className="table">
+            <div className="table-h">
+              <h3>Flagged for review</h3>
+              {flagged.length > 0 && (
+                <span style={{ background:'color-mix(in srgb,var(--warn) 12%,transparent)', color:'var(--warn)', fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:5 }}>
+                  {flagged.length}
+                </span>
+              )}
+            </div>
+
+            {clinicPatients === undefined ? (
+              <div style={{ padding:'24px 22px', color:'var(--muted)', fontSize:13 }}>Loading…</div>
+            ) : flagged.length === 0 ? (
+              <div style={{ padding:'32px 22px', textAlign:'center', color:'var(--muted)', fontSize:14 }}>
+                <div style={{ fontSize:24, marginBottom:6 }}>✓</div>
+                All patients verified
+              </div>
+            ) : (
+              flagged.map((p: any) => (
+                <a
+                  key={p._id}
+                  href={`/clinics/patient-view?code=${encodeURIComponent(p.implantIdCode || '')}`}
+                  className="impl-row"
+                  style={{ gridTemplateColumns:'auto 1fr auto', textDecoration:'none' }}
+                >
+                  <div className="impl-ic">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  </div>
+                  <div>
+                    <div className="impl-nm">{[p.firstName, p.lastName].filter(Boolean).join(' ') || 'Unknown'}</div>
+                    <div className="impl-mfr">{p.implantIdCode || 'No ID'}</div>
+                  </div>
+                  <span style={{ fontSize:11, fontWeight:600, padding:'3px 8px', borderRadius:5, background:'color-mix(in srgb,var(--warn) 10%,transparent)', color:'var(--warn)', flexShrink:0 }}>
+                    Pending
+                  </span>
+                </a>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
     </div>
   )
 }

@@ -69,6 +69,7 @@ export default function MasterPatientsClient() {
                 <th>Patient ID</th>
                 <th>Name</th>
                 <th>DOB</th>
+                <th>Account</th>
                 <th>Status</th>
                 <th>Registered</th>
               </tr>
@@ -81,6 +82,11 @@ export default function MasterPatientsClient() {
                   </td>
                   <td>{p.firstName} {p.lastName}</td>
                   <td style={{ color: 'var(--muted)', fontSize: 13 }}>{p.dob ?? '—'}</td>
+                  <td>
+                    {(p as any).accountActivated
+                      ? <span className="m-status active">Active</span>
+                      : <span className="m-status" style={{ background: 'color-mix(in srgb,#64748b 10%,transparent)', color: '#475569', border: '1px solid color-mix(in srgb,#64748b 25%,transparent)' }}>Invite pending</span>}
+                  </td>
                   <td>
                     {p.verificationStatus === 'active'
                       ? <span className="m-status active">Verified</span>
@@ -120,7 +126,10 @@ export default function MasterPatientsClient() {
                 DOB: {p.dob ?? '—'} · {formatDate(p._creationTime)}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+              {(p as any).accountActivated
+                ? <span className="m-status active">Active</span>
+                : <span className="m-status" style={{ background: 'color-mix(in srgb,#64748b 10%,transparent)', color: '#475569', border: '1px solid color-mix(in srgb,#64748b 25%,transparent)' }}>Invite pending</span>}
               {p.verificationStatus === 'active'
                 ? <span className="m-status active">Verified</span>
                 : <span className="m-status pending">Pending</span>}

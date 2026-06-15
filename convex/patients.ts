@@ -803,10 +803,14 @@ export const listAllPatients = query({
       .unique()
     if (!user) return []
 
-    return ctx.db
+    const patients = await ctx.db
       .query('patients')
       .order('desc')
       .take(args.limit ?? 100)
+    return Promise.all(patients.map(async (p) => {
+      const userRow = p.userId ? await ctx.db.get(p.userId) : null
+      return { ...p, accountActivated: !!(userRow?.clerkId) }
+    }))
   },
 })
 

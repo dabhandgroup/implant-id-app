@@ -1125,6 +1125,7 @@ export const listClinicPatients = query({
       seen.add(pid)
       const patient = await ctx.db.get(req.patientId)
       if (!patient) continue
+      const patientUser = patient.userId ? await ctx.db.get(patient.userId) : null
       results.push({
         _id:                    patient._id,
         implantIdCode:          patient.implantIdCode,
@@ -1134,6 +1135,7 @@ export const listClinicPatients = query({
         selfReportedDevice:     patient.selfReportedDevice,
         selfReportedDeviceType: patient.selfReportedDeviceType,
         lastAccessed:           req.requestedAt,
+        accountActivated:       !!(patientUser?.clerkId),
       })
     }
     return results.sort((a, b) => (b.lastAccessed ?? 0) - (a.lastAccessed ?? 0))

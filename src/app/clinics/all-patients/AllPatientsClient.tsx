@@ -89,6 +89,7 @@ export default function AllPatientsClient() {
                 <th>Implant ID</th>
                 <th>Name</th>
                 <th>Device</th>
+                <th>Account</th>
                 <th>Status</th>
                 <th>Shared</th>
               </tr>
@@ -112,6 +113,24 @@ export default function AllPatientsClient() {
                   </td>
                   <td style={{ fontWeight: 500 }}>{p.firstName} {p.lastName}</td>
                   <td style={{ color: 'var(--muted)' }}>{p.selfReportedDevice ?? '—'}</td>
+                  <td>
+                    <span style={{
+                      fontFamily: 'var(--ff)',
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: 5,
+                      background: p.accountActivated
+                        ? 'color-mix(in srgb,var(--ok) 10%,transparent)'
+                        : 'color-mix(in srgb,#64748b 10%,transparent)',
+                      color: p.accountActivated ? 'var(--ok)' : '#475569',
+                      border: p.accountActivated
+                        ? '1px solid color-mix(in srgb,var(--ok) 25%,transparent)'
+                        : '1px solid color-mix(in srgb,#64748b 25%,transparent)',
+                    }}>
+                      {p.accountActivated ? 'Active' : 'Invite pending'}
+                    </span>
+                  </td>
                   <td>
                     <span style={{
                       fontFamily: 'var(--ff)',

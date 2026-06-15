@@ -171,8 +171,9 @@ export default function ScanPatientClient() {
     if (!result?._id || requestingAccess) return
     setRequestingAccess(true)
     try {
-      await requestAccess({ patientId: result._id, reason: 'Access requested via scan card' })
-      setAccessRequested(true); showToast('Access request sent')
+      const res: any = await requestAccess({ patientId: result._id, reason: 'Access requested via scan card' })
+      setAccessRequested(true)
+      showToast(res?.autoApproved ? 'Patient added to your list' : 'Access request sent')
     } catch { showToast('Could not send request — try again') }
     finally { setRequestingAccess(false) }
   }
@@ -297,6 +298,24 @@ export default function ScanPatientClient() {
               <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
             </svg>
             Tier 1 — MRI safety only. Tap &ldquo;Full record&rdquo; to access the complete patient record.
+          </div>
+        )}
+
+        {sharingEnabled && !(result as any).accountActivated && (
+          <div className="tier1-note" style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', borderColor: 'color-mix(in srgb,var(--accent) 20%,transparent)', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" style={{ width: 16, height: 16, flexShrink: 0 }} aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
+            </svg>
+            <span style={{ flex: 1, color: 'var(--text)', fontSize: 13 }}>Invite pending — patient hasn&apos;t activated their account yet.</span>
+            {accessRequested ? (
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ok)', whiteSpace: 'nowrap' }}>✓ Added</span>
+            ) : (
+              <button className="btn btn-s" style={{ fontSize: 12.5, padding: '5px 12px', whiteSpace: 'nowrap' }}
+                onClick={handleRequestAccess} disabled={requestingAccess} aria-label="Add patient to your clinic list">
+                {requestingAccess ? 'Adding…' : '+ Add to my patients'}
+              </button>
+            )}
           </div>
         )}
       </div>

@@ -642,6 +642,8 @@ export const getPatientByCode = query({
       .unique()
     if (!patient) return null
 
+    const patientUser = patient.userId ? await ctx.db.get(patient.userId) : null
+
     return {
       _id:                      patient._id,
       implantIdCode:            patient.implantIdCode,
@@ -657,6 +659,7 @@ export const getPatientByCode = query({
       selfReportedManufacturer: patient.selfReportedManufacturer,
       selfReportedModelNumber:  patient.selfReportedModelNumber,
       clinicSharingEnabled:     patient.clinicSharingEnabled,
+      accountActivated:         !!(patientUser?.clerkId),
     }
   },
 })
@@ -1456,6 +1459,35 @@ export const requestClinicAccess = mutation({
     const patient = await ctx.db.get(args.patientId)
     if (!patient) throw new Error('Patient not found')
 
+    // If the patient hasn't activated their account yet, auto-approve —
+    // they have no way to approve or deny requests themselves.
+    const patientUser = patient.userId ? await ctx.db.get(patient.userId) : null
+    const isInvitePending = !patientUser?.clerkId
+
+    if (isInvitePending) {
+      // Check for an existing approved request — don't duplicate
+      const existingApproved = await ctx.db
+        .query('accessRequests')
+        .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+        .filter((q) => q.and(
+          q.eq(q.field('patientId'), args.patientId),
+          q.eq(q.field('status'), 'approved'),
+        ))
+        .first()
+      if (existingApproved) return { autoApproved: true }
+
+      await ctx.db.insert('accessRequests', {
+        clinicId:    staffRow.clinicId,
+        staffId:     staffRow._id,
+        patientId:   args.patientId,
+        status:      'approved' as const,
+        requestedAt: Date.now(),
+        resolvedAt:  Date.now(),
+        reason:      args.reason,
+      })
+      return { autoApproved: true }
+    }
+
     // Don't create duplicate pending requests from the same clinic
     const existing = await ctx.db
       .query('accessRequests')
@@ -1467,7 +1499,7 @@ export const requestClinicAccess = mutation({
         ),
       )
       .first()
-    if (existing) return existing._id
+    if (existing) return { autoApproved: false }
 
     const clinic = await ctx.db.get(staffRow.clinicId)
     const clinicName = clinic?.name ?? 'A clinic'
@@ -1494,7 +1526,7 @@ export const requestClinicAccess = mutation({
       })
     }
 
-    return requestId
+    return { autoApproved: false }
   },
 })
 

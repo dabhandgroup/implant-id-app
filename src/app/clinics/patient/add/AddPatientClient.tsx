@@ -192,7 +192,7 @@ function DobPicker({ value, onChange }: { value: string; onChange: (v: string) =
       <CompactSelect style={{ flex: 1, minWidth: 0 }} options={MONTHS} value={mo} placeholder="Month"
         onChange={m => { setMo(m); const max = daysInMonth(m, yr || '2000'); const d2 = day ? String(Math.min(parseInt(day), max)).padStart(2, '0') : ''; setDay(d2); commit(d2 || day, m, yr) }} />
       <CompactSelect style={{ flex: 1, minWidth: 0 }} options={years} value={yr} placeholder="Year"
-        onChange={y => { setYr(y); commit(day, mo, y) }} />
+        onChange={y => { setYr(y); commit(day, mo, y) }} searchable />
     </div>
   )
 }

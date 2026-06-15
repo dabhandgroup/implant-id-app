@@ -15,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks/(.*)',            // Clerk webhook delivery — no browser session
   '/clinics/onboarding(.*)',       // clinic application form — no auth required to apply
   '/clinics/activate(.*)',         // clinic account activation — linked from approval email
+  '/patients/activate(.*)',        // patient account activation — linked from clinic invite email
   '/activate(.*)',                 // legacy activation route — kept for old email links
 ])
 

@@ -832,10 +832,12 @@ export const sendClinicPatientInviteEmail = internalAction({
     firstName:     v.string(),
     email:         v.string(),
     implantIdCode: v.string(),
+    activationUrl: v.optional(v.string()),
+    isActivation:  v.optional(v.boolean()),
   },
   handler: async (_ctx, args) => {
     const r = resend()
-    const loginUrl = `https://portal.implantid.io/login?email=${encodeURIComponent(args.email)}`
+    const loginUrl = args.activationUrl ?? `https://portal.implantid.io/login?email=${encodeURIComponent(args.email)}&role=patient`
     await r.emails.send({
       from:    FROM,
       to:      args.email,
@@ -864,7 +866,7 @@ export const sendClinicPatientInviteEmail = internalAction({
           `,
         },
         cta: {
-          label: 'Sign in to your portal →',
+          label: args.isActivation ? 'Activate my account →' : 'Sign in to your portal →',
           url:   loginUrl,
         },
         footerNote: `If you weren't expecting this email, please contact

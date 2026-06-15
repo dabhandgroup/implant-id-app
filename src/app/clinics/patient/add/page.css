@@ -253,6 +253,14 @@
 
 /* ── Success state ──────────────────────────────────────────────────────── */
 
+.ap-success-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 48px 32px 80px;
+  min-height: 60vh;
+}
+
 .ap-success-card {
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -260,6 +268,7 @@
   padding: 48px 40px;
   text-align: center;
   max-width: 500px;
+  width: 100%;
 }
 
 .ap-success-icon {
@@ -295,6 +304,12 @@
   border-radius: 14px;
   padding: 24px 32px;
   margin: 0 0 20px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.ap-success-id-box:hover {
+  background: color-mix(in srgb, var(--accent) 11%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 .ap-success-id-label {
@@ -313,6 +328,16 @@
   font-weight: 700;
   color: var(--accent);
   letter-spacing: .06em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.ap-success-id-copy-ic {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .ap-success-notice {
@@ -390,6 +415,26 @@
 
 .dob-row { display: flex; gap: 8px; }
 
+.year-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  font-family: var(--ff);
+  font-size: 13.5px;
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+  box-sizing: border-box;
+  outline: none;
+  min-width: 0;
+}
+.year-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.year-input::placeholder { color: var(--muted2); }
+
 .custom-select { position: relative; font-family: var(--ff); }
 .custom-select-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 10px; cursor: pointer; font-family: var(--ff); font-size: 13.5px; color: var(--text); transition: border-color .15s, box-shadow .15s; gap: 8px; }
 .custom-select.open .custom-select-btn, .custom-select-btn:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); outline: none; }
@@ -427,12 +472,14 @@
 
 @media (max-width: 680px) {
   .ap-page { padding: 20px 16px 80px; }
+  .ap-success-page { padding: 24px 16px 60px; align-items: flex-start; }
   .ap-section { padding: 20px 16px; }
   .ap-foot { padding: 16px; }
   .ap-stepper { gap: 0; }
   .ap-step-label { display: none; }
   .ap-step-line { min-width: 12px; }
   .ap-success-card { padding: 32px 20px; }
+  .ap-success-id-code { font-size: 22px; }
   .ap-success-actions { flex-direction: column; }
   .ap-email-notice { padding: 16px; }
 }

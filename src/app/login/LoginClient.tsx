@@ -109,6 +109,7 @@ export default function LoginClient() {
   const searchParams = useSearchParams()
   // If the user arrived via the approval email link, their email is pre-filled
   const prefillEmail = searchParams.get('email') ?? ''
+  const prefillRole  = searchParams.get('role') ?? ''
 
   // Clerk 7 signals API
   const { signIn } = useSignIn()
@@ -127,8 +128,9 @@ export default function LoginClient() {
     else                              router.replace('/patients/dashboard')
   }, [isLoaded, isSignedIn, user, router])
 
-  // tab / phase state — default to 'clinic' tab when arriving via approval link
-  const [tab,      setTab]      = useState<Tab>(prefillEmail ? 'clinic' : 'patient')
+  // tab / phase state — default to 'clinic' tab when arriving via approval link,
+  // but honour ?role=patient for patient invite emails
+  const [tab,      setTab]      = useState<Tab>(prefillRole === 'patient' ? 'patient' : (prefillEmail ? 'clinic' : 'patient'))
   const [patPhase, setPatPhase] = useState<PatientPhase>('phone')
   const [clPhase,  setClPhase]  = useState<ClinicPhase>('email')
 
@@ -164,7 +166,7 @@ export default function LoginClient() {
   // This just triggers the email code so they land straight on the OTP screen.
   const autoSent = useRef(false)
   useEffect(() => {
-    if (!prefillEmail || autoSent.current || !signIn) return
+    if (!prefillEmail || prefillRole === 'patient' || autoSent.current || !signIn) return
     autoSent.current = true
     ;(async () => {
       setLoading(true)

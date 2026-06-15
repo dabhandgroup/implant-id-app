@@ -159,16 +159,12 @@ export const clinicAddPatient = mutation({
       verificationStatus: 'pending' as const,
     })
 
-    // Create Clerk account + send invite email (async — non-blocking)
-    await ctx.scheduler.runAfter(0, internal.patients.createPatientAccount, {
-      email:     args.email,
-      firstName: args.firstName,
-      lastName:  args.lastName,
-      phone:     args.phone,
-    })
-    await ctx.scheduler.runAfter(0, internal.email.sendClinicPatientInviteEmail, {
-      firstName:     args.firstName,
+    // Create Clerk invitation + send invite email (async — non-blocking, sequential in one action)
+    await ctx.scheduler.runAfter(0, internal.patients.setupNewPatient, {
       email:         args.email,
+      firstName:     args.firstName,
+      lastName:      args.lastName,
+      phone:         args.phone,
       implantIdCode: code,
     })
 
@@ -176,22 +172,27 @@ export const clinicAddPatient = mutation({
   },
 })
 
-/** Create a Clerk account for a clinic-added patient (passwordless, patient role). */
-export const createPatientAccount = internalAction({
+/**
+ * Create a Clerk invitation for a clinic-added patient and send the invite email.
+ * Uses the ticket-based activation flow (same pattern as clinic staff approval).
+ * If the patient already has a Clerk account, sends a login email instead.
+ */
+export const setupNewPatient = internalAction({
   args: {
-    email:     v.string(),
-    firstName: v.string(),
-    lastName:  v.string(),
-    phone:     v.optional(v.string()),
+    email:         v.string(),
+    firstName:     v.string(),
+    lastName:      v.string(),
+    phone:         v.optional(v.string()),
+    implantIdCode: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const secretKey = process.env.CLERK_SECRET_KEY
     if (!secretKey) {
       console.error('[patient] CLERK_SECRET_KEY not set')
       return
     }
 
-    // Skip if Clerk account already exists for this email
+    // 1. Check if a Clerk account already exists for this email
     const searchRes = await fetch(
       `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.email)}&limit=1`,
       { headers: { Authorization: `Bearer ${secretKey}` } },
@@ -199,42 +200,91 @@ export const createPatientAccount = internalAction({
     if (searchRes.ok) {
       const found = (await searchRes.json()) as { id: string }[]
       if (found.length > 0) {
-        // Ensure role is set to patient
+        // Existing user — ensure patient role is set, then send a login link
         await fetch(`https://api.clerk.com/v1/users/${found[0].id}/metadata`, {
           method:  'PATCH',
           headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
           body:    JSON.stringify({ public_metadata: { role: 'patient' } }),
         })
-        console.log('[patient] Clerk account already exists for', args.email)
+        console.log('[patient] Existing Clerk account found for', args.email, '— sending login email')
+        await ctx.runAction(internal.email.sendClinicPatientInviteEmail, {
+          firstName:     args.firstName,
+          email:         args.email,
+          implantIdCode: args.implantIdCode,
+          // role=patient tells the login page to default to the patient tab
+          activationUrl: `https://portal.implantid.io/login?email=${encodeURIComponent(args.email)}&role=patient`,
+        })
         return
       }
     }
 
-    // Build phone entry if provided (strip formatting, keep digits + leading +)
-    const phoneNumbers = args.phone
-      ? [args.phone.replace(/[^\d+]/g, '')]
-      : undefined
+    // 2. New user — revoke any stale pending invitations first
+    const pendingRes = await fetch(
+      `https://api.clerk.com/v1/invitations?email_address=${encodeURIComponent(args.email)}&status=pending&limit=10`,
+      { headers: { Authorization: `Bearer ${secretKey}` } },
+    )
+    if (pendingRes.ok) {
+      const data = await pendingRes.json()
+      const arr: { id: string }[] = Array.isArray(data) ? data : (data?.data ?? [])
+      for (const inv of arr) {
+        await fetch(`https://api.clerk.com/v1/invitations/${inv.id}/revoke`, {
+          method: 'POST', headers: { Authorization: `Bearer ${secretKey}` },
+        }).catch(() => {})
+      }
+    }
 
-    // Create passwordless account — patient signs in via email OTP
-    const createRes = await fetch('https://api.clerk.com/v1/users', {
+    // 3. Create a Clerk invitation — notify: false, we send our own branded email
+    const invRes = await fetch('https://api.clerk.com/v1/invitations', {
       method:  'POST',
       headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email_addresses:           [args.email],
-        phone_numbers:             phoneNumbers,
-        first_name:                args.firstName,
-        last_name:                 args.lastName,
-        skip_password_requirement: true,
-        public_metadata:           { role: 'patient' },
+        email_address:   args.email,
+        public_metadata: { role: 'patient' },
+        redirect_url:    'https://portal.implantid.io/patients/dashboard',
+        notify:          false,
       }),
     })
 
-    if (createRes.ok) {
-      const u = (await createRes.json()) as { id: string }
-      console.log('[patient] Created Clerk account', u.id, 'for', args.email)
-    } else {
-      console.error('[patient] Clerk creation failed:', createRes.status, await createRes.text())
+    if (!invRes.ok) {
+      console.error('[patient] Clerk invitation failed:', invRes.status, await invRes.text())
+      // Fallback: send email with plain login URL
+      await ctx.runAction(internal.email.sendClinicPatientInviteEmail, {
+        firstName:     args.firstName,
+        email:         args.email,
+        implantIdCode: args.implantIdCode,
+      })
+      return
     }
+
+    const inv = await invRes.json() as { id: string; url?: string }
+    console.log('[patient] Clerk invitation created for', args.email, ':', JSON.stringify(inv))
+
+    // 4. Extract ticket from the invitation URL
+    let activationUrl: string | undefined
+    if (inv.url) {
+      try {
+        const parsed = new URL(inv.url)
+        const ticket = parsed.searchParams.get('__clerk_ticket')
+          ?? parsed.searchParams.get('ticket')
+          ?? [...parsed.searchParams.entries()].find(([k]) => k.includes('ticket'))?.[1]
+        if (ticket) {
+          activationUrl = `https://portal.implantid.io/patients/activate?email=${encodeURIComponent(args.email)}&ticket=${ticket}`
+        } else {
+          console.warn('[patient] No ticket in Clerk URL, falling back to login URL')
+        }
+      } catch {
+        console.error('[patient] Failed to parse Clerk invitation URL:', inv.url)
+      }
+    }
+
+    // 5. Send the invite email (with activation URL if we got a ticket)
+    await ctx.runAction(internal.email.sendClinicPatientInviteEmail, {
+      firstName:     args.firstName,
+      email:         args.email,
+      implantIdCode: args.implantIdCode,
+      activationUrl,
+      isActivation:  !!activationUrl,
+    })
   },
 })
 

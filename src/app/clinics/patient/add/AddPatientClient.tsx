@@ -152,6 +152,41 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
   )
 }
 
+// ── Year text input (allows typing e.g. "1996" directly) ─────────────────────
+
+function YearInput({ value, onChange, style }: { value: string; onChange: (y: string) => void; style?: React.CSSProperties }) {
+  const [typed, setTyped] = useState(value)
+  const maxYr = new Date().getFullYear() - 10
+
+  useEffect(() => { setTyped(value) }, [value])
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const v = e.target.value.replace(/\D/g, '').slice(0, 4)
+    setTyped(v)
+    if (v.length === 4) {
+      const n = parseInt(v)
+      if (n >= 1900 && n <= maxYr) onChange(v)
+    } else if (v === '') {
+      onChange('')
+    }
+  }
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      value={typed}
+      onChange={handleChange}
+      onBlur={() => { if (typed && typed.length !== 4) setTyped(value || '') }}
+      placeholder="Year"
+      className="year-input"
+      aria-label="Year of birth"
+      maxLength={4}
+      style={style}
+    />
+  )
+}
+
 // ── Date-of-birth picker ──────────────────────────────────────────────────────
 
 function DobPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -159,12 +194,6 @@ function DobPicker({ value, onChange }: { value: string; onChange: (v: string) =
   const [yr,  setYr]  = useState(parts[0] || '')
   const [mo,  setMo]  = useState(parts[1] || '')
   const [day, setDay] = useState(parts[2] || '')
-
-  const CURRENT_YEAR = new Date().getFullYear()
-  const years: Opt[] = Array.from({ length: 110 }, (_, i) => {
-    const y = String(CURRENT_YEAR - 10 - i)
-    return { value: y, label: y }
-  })
 
   function daysInMonth(m: string, y: string) {
     if (!m || !y) return 31
@@ -191,8 +220,7 @@ function DobPicker({ value, onChange }: { value: string; onChange: (v: string) =
         onChange={d => { setDay(d); commit(d, mo, yr) }} />
       <CompactSelect style={{ flex: 1, minWidth: 0 }} options={MONTHS} value={mo} placeholder="Month"
         onChange={m => { setMo(m); const max = daysInMonth(m, yr || '2000'); const d2 = day ? String(Math.min(parseInt(day), max)).padStart(2, '0') : ''; setDay(d2); commit(d2 || day, m, yr) }} />
-      <CompactSelect style={{ flex: 1, minWidth: 0 }} options={years} value={yr} placeholder="Year"
-        onChange={y => { setYr(y); commit(day, mo, y) }} />
+      <YearInput style={{ flex: 1, minWidth: 0 }} value={yr} onChange={y => { setYr(y); commit(day, mo, y) }} />
     </div>
   )
 }
@@ -444,6 +472,7 @@ export default function AddPatientClient() {
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const [success,  setSuccess]  = useState<{ implantIdCode: string; emailSent: boolean } | null>(null)
+  const [copiedIid, setCopiedIid] = useState(false)
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -534,7 +563,7 @@ export default function AddPatientClient() {
 
   if (success) {
     return (
-      <div className="ap-page">
+      <div className="ap-success-page">
         <div className="ap-success-card">
           <div className="ap-success-icon">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
@@ -547,9 +576,37 @@ export default function AddPatientClient() {
             <strong>{firstName} {lastName}</strong> has been added to the system.
           </p>
 
-          <div className="ap-success-id-box">
-            <div className="ap-success-id-label">Implant ID assigned</div>
-            <div className="ap-success-id-code">{success.implantIdCode}</div>
+          <div
+            className="ap-success-id-box"
+            role="button"
+            tabIndex={0}
+            onClick={() => {
+              navigator.clipboard.writeText(success.implantIdCode).then(() => {
+                setCopiedIid(true)
+                setTimeout(() => setCopiedIid(false), 2000)
+              })
+            }}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.click() }}
+            aria-label={`Copy Implant ID ${success.implantIdCode}`}
+          >
+            <div className="ap-success-id-label">
+              {copiedIid ? 'Copied to clipboard!' : 'Implant ID — click to copy'}
+            </div>
+            <div className="ap-success-id-code">
+              {success.implantIdCode}
+              <span className="ap-success-id-copy-ic">
+                {copiedIid ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" style={{ opacity: 0.45 }}>
+                    <rect x="9" y="9" width="13" height="13" rx="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                )}
+              </span>
+            </div>
           </div>
 
           {success.emailSent ? (

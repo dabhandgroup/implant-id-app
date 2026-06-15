@@ -159,6 +159,22 @@ export const clinicAddPatient = mutation({
       verificationStatus: 'pending' as const,
     })
 
+    // Link this patient to the clinic that added them so they appear in listClinicPatients immediately.
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', caller._id))
+      .first()
+    if (staffRow) {
+      await ctx.db.insert('accessRequests', {
+        clinicId:    staffRow.clinicId,
+        staffId:     staffRow._id,
+        patientId,
+        status:      'approved' as const,
+        requestedAt: Date.now(),
+        resolvedAt:  Date.now(),
+      })
+    }
+
     // Create Clerk invitation + send invite email (async — non-blocking, sequential in one action)
     await ctx.scheduler.runAfter(0, internal.patients.setupNewPatient, {
       email:         args.email,

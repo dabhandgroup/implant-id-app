@@ -152,41 +152,6 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
   )
 }
 
-// ── Year text input (allows typing e.g. "1996" directly) ─────────────────────
-
-function YearInput({ value, onChange, style }: { value: string; onChange: (y: string) => void; style?: React.CSSProperties }) {
-  const [typed, setTyped] = useState(value)
-  const maxYr = new Date().getFullYear() - 10
-
-  useEffect(() => { setTyped(value) }, [value])
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const v = e.target.value.replace(/\D/g, '').slice(0, 4)
-    setTyped(v)
-    if (v.length === 4) {
-      const n = parseInt(v)
-      if (n >= 1900 && n <= maxYr) onChange(v)
-    } else if (v === '') {
-      onChange('')
-    }
-  }
-
-  return (
-    <input
-      type="text"
-      inputMode="numeric"
-      value={typed}
-      onChange={handleChange}
-      onBlur={() => { if (typed && typed.length !== 4) setTyped(value || '') }}
-      placeholder="Year"
-      className="year-input"
-      aria-label="Year of birth"
-      maxLength={4}
-      style={style}
-    />
-  )
-}
-
 // ── Date-of-birth picker ──────────────────────────────────────────────────────
 
 function DobPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -194,6 +159,12 @@ function DobPicker({ value, onChange }: { value: string; onChange: (v: string) =
   const [yr,  setYr]  = useState(parts[0] || '')
   const [mo,  setMo]  = useState(parts[1] || '')
   const [day, setDay] = useState(parts[2] || '')
+
+  const CUR_YEAR = new Date().getFullYear()
+  const years: Opt[] = Array.from({ length: CUR_YEAR - 1899 }, (_, i) => {
+    const y = String(CUR_YEAR - i)
+    return { value: y, label: y }
+  })
 
   function daysInMonth(m: string, y: string) {
     if (!m || !y) return 31
@@ -220,7 +191,8 @@ function DobPicker({ value, onChange }: { value: string; onChange: (v: string) =
         onChange={d => { setDay(d); commit(d, mo, yr) }} />
       <CompactSelect style={{ flex: 1, minWidth: 0 }} options={MONTHS} value={mo} placeholder="Month"
         onChange={m => { setMo(m); const max = daysInMonth(m, yr || '2000'); const d2 = day ? String(Math.min(parseInt(day), max)).padStart(2, '0') : ''; setDay(d2); commit(d2 || day, m, yr) }} />
-      <YearInput style={{ flex: 1, minWidth: 0 }} value={yr} onChange={y => { setYr(y); commit(day, mo, y) }} />
+      <CompactSelect style={{ flex: 1, minWidth: 0 }} options={years} value={yr} placeholder="Year"
+        onChange={y => { setYr(y); commit(day, mo, y) }} />
     </div>
   )
 }

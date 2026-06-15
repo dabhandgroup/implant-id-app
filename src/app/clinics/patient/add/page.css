@@ -415,25 +415,6 @@
 
 .dob-row { display: flex; gap: 8px; }
 
-.year-input {
-  width: 100%;
-  padding: 10px 12px;
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-radius: 10px;
-  font-family: var(--ff);
-  font-size: 13.5px;
-  color: var(--text);
-  transition: border-color .15s, box-shadow .15s;
-  box-sizing: border-box;
-  outline: none;
-  min-width: 0;
-}
-.year-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
-}
-.year-input::placeholder { color: var(--muted2); }
 
 .custom-select { position: relative; font-family: var(--ff); }
 .custom-select-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--bg2); border: 1px solid var(--border2); border-radius: 10px; cursor: pointer; font-family: var(--ff); font-size: 13.5px; color: var(--text); transition: border-color .15s, box-shadow .15s; gap: 8px; }

@@ -270,12 +270,20 @@ export const sendStaffInviteEmail = internalAction({
   handler: async (_ctx, args) => {
     const r         = resend()
     const firstName = args.contactName.split(' ')[0]
-    const roleLabel = args.jobType === 'surgeon'      ? 'Surgeon'
-                    : args.jobType === 'admin'         ? 'Admin'
+    const roleLabel = args.jobType === 'surgeon' ? 'Surgeon'
+                    : args.jobType === 'admin'    ? 'Admin'
                     : 'Radiographer'
-    const portalUrl = args.jobType === 'surgeon'
-      ? `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`
-      : `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`
+    const isSurgeon  = args.jobType === 'surgeon'
+    const portalName = isSurgeon ? 'Surgeon Portal' : 'Clinic Portal'
+    const portalUrl  = `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`
+    const bodyExtra  = isSurgeon
+      ? `<p style="margin:12px 0 0;color:#64748b;font-size:14px;line-height:1.6;">
+           As a Surgeon, you have your own dedicated <strong style="color:#0e2a33;">Surgeon Portal</strong>
+           — a separate dashboard where you can view all patients linked to your practice,
+           manage pre-operative implant checks, and receive alerts for MRI clearance requests.
+           You&rsquo;ll be taken there automatically after signing in.
+         </p>`
+      : ''
 
     await r.emails.send({
       from:    FROM,
@@ -288,12 +296,13 @@ export const sendStaffInviteEmail = internalAction({
           <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
             <strong style="color:#0e2a33;">${args.clinicName}</strong> has added you to
             the Implant ID platform as a <strong style="color:#0e2a33;">${roleLabel}</strong>.
-            Your account is ready to use.
+            Your account is ready to use — no password needed.
           </p>
           <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
-            Click the button below to sign in. Enter your email address and we'll send you
-            a one-time verification code — no password needed.
+            Click the button below to access your <strong style="color:#0e2a33;">${portalName}</strong>.
+            Enter your email and we&rsquo;ll send you a one-time sign-in code.
           </p>
+          ${bodyExtra}
         `,
         highlightBox: {
           content: `
@@ -304,10 +313,10 @@ export const sendStaffInviteEmail = internalAction({
           `,
         },
         cta: {
-          label: 'Sign in to your portal →',
+          label: `Sign in to your ${portalName} →`,
           url:   portalUrl,
         },
-        footerNote: `If you weren't expecting this invitation, contact
+        footerNote: `If you weren&rsquo;t expecting this invitation, contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
         includeUnsubscribe: false,
       }),

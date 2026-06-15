@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   trailingSlash: false,
+  async redirects() {
+    return [
+      {
+        source: '/device/:model',
+        destination: '/clinics/devices/:model',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default nextConfig

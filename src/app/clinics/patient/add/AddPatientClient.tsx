@@ -107,16 +107,17 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  // Placed on the container div so events bubble up from any focused child —
-  // trigger button OR open list items — giving native-select type-ahead.
   function handleKeyDown(e: React.KeyboardEvent) {
-    // Don't intercept typing inside the search input (searchable mode)
     if ((e.target as HTMLElement).tagName === 'INPUT') return
 
-    if (e.key === 'Escape') { setOpen(false); return }
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      setOpen(false)
+      btnRef.current?.focus()
+      return
+    }
 
-    // Enter/Space on list items = select (let default button behaviour run);
-    // Enter/Space on trigger button = toggle open.
+    // Enter/Space: toggle when on the trigger; let default click run when on a list item
     const inList = !!(e.target as HTMLElement).closest('.custom-select-list')
     if (e.key === 'Enter' || e.key === ' ') {
       if (!inList) { e.preventDefault(); setOpen(o => !o) }
@@ -132,7 +133,6 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
     if (match) {
       onChange(match.value)
       setOpen(true)
-      // Use two frames so the list is visible before scrolling
       requestAnimationFrame(() => requestAnimationFrame(() => {
         listRef.current?.querySelector<HTMLElement>(`[data-val="${match.value}"]`)?.scrollIntoView({ block: 'nearest' })
       }))
@@ -140,12 +140,13 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
   }
 
   return (
-    <div className={`custom-select${open ? ' open' : ''}`} ref={ref} style={style} onKeyDown={handleKeyDown}>
+    <div className={`custom-select${open ? ' open' : ''}`} ref={ref} style={style}>
       <button
         ref={btnRef}
         type="button"
         tabIndex={0}
         className="custom-select-btn"
+        onKeyDown={handleKeyDown}
         onClick={() => { setOpen(o => !o); btnRef.current?.focus() }}
       >
         <span className="custom-select-val" style={{ color: value ? 'var(--text)' : 'var(--muted2)' }}>
@@ -162,11 +163,11 @@ function CompactSelect({ options, value, placeholder, onChange, searchable, styl
             <input placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} autoFocus />
           </div>
         )}
-        <div className="custom-select-list" ref={listRef}>
+        <div className="custom-select-list" ref={listRef} onKeyDown={handleKeyDown}>
           {filtered.map(o => (
             <button key={o.value} type="button" data-val={o.value}
               className={o.value === value ? 'cs-selected' : ''}
-              onClick={() => { onChange(o.value); setOpen(false); setSearch('') }}>
+              onClick={() => { onChange(o.value); setOpen(false); setSearch(''); btnRef.current?.focus() }}>
               {o.icon && <span style={{ marginRight: 8 }}>{o.icon}</span>}
               {o.label}
             </button>

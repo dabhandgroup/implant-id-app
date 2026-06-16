@@ -827,6 +827,92 @@ export const adminUpdatePatientEmail = mutation({
   },
 })
 
+/** Admin: assign a patient to a clinic — creates an approved accessRequest and emails the clinic. */
+export const adminAssignPatientToClinic = mutation({
+  args: {
+    patientId: v.id('patients'),
+    clinicId:  v.id('clinics'),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const admin = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin only')
+
+    const patient = await ctx.db.get(args.patientId)
+    if (!patient) throw new Error('Patient not found')
+
+    const clinic = await ctx.db.get(args.clinicId)
+    if (!clinic) throw new Error('Clinic not found')
+
+    const staffRow = await ctx.db.query('staff').withIndex('by_clinic', q => q.eq('clinicId', args.clinicId)).first()
+    if (!staffRow) throw new Error('This clinic has no active staff members yet — they must complete sign-up first')
+
+    const existing = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_clinic', q => q.eq('clinicId', args.clinicId))
+      .filter(q => q.eq(q.field('patientId'), patient._id))
+      .first()
+    if (existing) throw new Error('This patient is already linked to this clinic')
+
+    await ctx.db.insert('accessRequests', {
+      clinicId:    args.clinicId,
+      staffId:     staffRow._id,
+      patientId:   patient._id,
+      status:      'approved',
+      requestedAt: Date.now(),
+      reason:      'Assigned by admin',
+    })
+
+    const allStaff = await ctx.db.query('staff').withIndex('by_clinic', q => q.eq('clinicId', args.clinicId)).collect()
+    for (const s of allStaff) {
+      await ctx.db.insert('notifications', {
+        userId:    s.userId,
+        type:      'patient_share',
+        title:     `${patient.firstName} ${patient.lastName} has been assigned to your clinic`,
+        body:      `Implant ID: ${patient.implantIdCode}. Their record is now accessible from your patient list.`,
+        read:      false,
+        relatedId: patient._id,
+        createdAt: Date.now(),
+      })
+    }
+
+    if (clinic.email) {
+      const patientUser = patient.userId ? await ctx.db.get(patient.userId) : null
+      await ctx.scheduler.runAfter(0, internal.email.sendPatientShareEmail, {
+        patientName:   `${patient.firstName} ${patient.lastName}`,
+        patientEmail:  patientUser?.email ?? undefined,
+        implantIdCode: patient.implantIdCode,
+        device:        patient.selfReportedDevice ?? undefined,
+        clinicEmail:   clinic.email,
+        clinicName:    clinic.name,
+      })
+    }
+  },
+})
+
+/** Admin: list approved clinic access for a patient. */
+export const getPatientClinics = query({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') return []
+
+    const requests = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_patient', q => q.eq('patientId', args.patientId))
+      .filter(q => q.eq(q.field('status'), 'approved'))
+      .collect()
+
+    return Promise.all(requests.map(async r => {
+      const clinic = await ctx.db.get(r.clinicId)
+      return { ...r, clinic }
+    }))
+  },
+})
+
 /** List all patients — admin only. */
 export const listAllPatients = query({
   args: { limit: v.optional(v.number()) },

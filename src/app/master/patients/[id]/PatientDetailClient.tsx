@@ -50,15 +50,22 @@ export default function PatientDetailClient({ id }: Props) {
   const [emailDraft,      setEmailDraft]      = useState('')
   const [emailSaving,     setEmailSaving]     = useState(false)
   const [emailError,      setEmailError]      = useState('')
+  const [clinicModalOpen, setClinicModalOpen] = useState(false)
+  const [clinicSearch,    setClinicSearch]    = useState('')
+  const [assigningClinic, setAssigningClinic] = useState(false)
+  const [assignClinicErr, setAssignClinicErr] = useState('')
 
-  const patient                 = useQuery(api.patients.getPatientById, { patientId: id as Id<'patients'> })
-  const allDevices              = useQuery(api.devices.listDevices)
-  const verifyPatient           = useMutation(api.patients.verifyPatient)
-  const linkDevice              = useMutation(api.patients.linkDeviceToPatient)
-  const removeDevice            = useMutation(api.patients.removePatientDevice)
-  const adminSetStatus          = useMutation(api.patients.adminSetPatientStatus)
-  const adminUpdatePatientEmail = useMutation(api.patients.adminUpdatePatientEmail)
-  const router                  = useRouter()
+  const patient                   = useQuery(api.patients.getPatientById, { patientId: id as Id<'patients'> })
+  const allDevices                = useQuery(api.devices.listDevices)
+  const patientClinics            = useQuery(api.patients.getPatientClinics, { patientId: id as Id<'patients'> })
+  const allClinics                = useQuery(api.clinics.listClinics)
+  const verifyPatient             = useMutation(api.patients.verifyPatient)
+  const linkDevice                = useMutation(api.patients.linkDeviceToPatient)
+  const removeDevice              = useMutation(api.patients.removePatientDevice)
+  const adminSetStatus            = useMutation(api.patients.adminSetPatientStatus)
+  const adminUpdatePatientEmail   = useMutation(api.patients.adminUpdatePatientEmail)
+  const adminAssignPatientToClinic = useMutation(api.patients.adminAssignPatientToClinic)
+  const router                    = useRouter()
 
   // Filter devices for search
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -372,7 +379,7 @@ export default function PatientDetailClient({ id }: Props) {
       </div>
 
       {/* Emergency contact section */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)' }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--muted2)' }}>
             Emergency contact
@@ -384,6 +391,124 @@ export default function PatientDetailClient({ id }: Props) {
           <InfoCard label="Relationship" value={patient.emergencyContactRelation} />
         </div>
       </div>
+
+      {/* Clinic access section */}
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--muted2)' }}>
+            Clinic access
+          </div>
+          <button className="btn" style={{ fontSize: 12, padding: '5px 12px' }}
+            onClick={() => { setClinicModalOpen(true); setClinicSearch(''); setAssignClinicErr('') }}>
+            + Assign to clinic
+          </button>
+        </div>
+        <div style={{ padding: 16 }}>
+          {patientClinics === undefined ? (
+            <p style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', margin: 0 }}>Loading…</p>
+          ) : patientClinics.length === 0 ? (
+            <p style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', margin: 0 }}>
+              No clinics have access yet. Use "Assign to clinic" to link this patient.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(patientClinics as any[]).map((r: any) => r.clinic && (
+                <div key={r._id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
+                      {r.clinic.name}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                      {r.clinic.city ? `${r.clinic.city} · ` : ''}{r.clinic.email ?? 'No email on file'}
+                      {' · '}Approved {new Date(r.requestedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {r.reason && ` · ${r.reason}`}
+                    </div>
+                  </div>
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--ok)', background: 'color-mix(in srgb,var(--ok) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 25%,transparent)', padding: '3px 8px', borderRadius: 5, flexShrink: 0 }}>
+                    Active
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Assign to clinic modal */}
+      {clinicModalOpen && (
+        <div className="logout-back open" onClick={() => setClinicModalOpen(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520, width: '95vw' }}>
+            <div className="logout-body">
+              <h3>Assign to clinic</h3>
+              <p style={{ color: 'var(--muted)', fontSize: 13.5, marginBottom: 16 }}>
+                The clinic will receive an email with the patient's record and a scan QR code.
+              </p>
+              <div className="field" style={{ marginBottom: 0 }}>
+                <label>Search clinics</label>
+                <input className="input" type="text" placeholder="e.g. Royal Melbourne" autoFocus
+                  value={clinicSearch} onChange={e => setClinicSearch(e.target.value)} />
+              </div>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(() => {
+                const filtered = ((allClinics as any[]) ?? []).filter((c: any) => {
+                  if (!clinicSearch.trim()) return true
+                  const q = clinicSearch.toLowerCase()
+                  return c.name.toLowerCase().includes(q) ||
+                    (c.city ?? '').toLowerCase().includes(q) ||
+                    (c.email ?? '').toLowerCase().includes(q)
+                }).slice(0, 10)
+
+                const alreadyLinked = new Set(
+                  ((patientClinics as any[]) ?? []).map((r: any) => r.clinicId)
+                )
+
+                if (!filtered.length) return (
+                  <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', marginTop: 12 }}>No clinics found</p>
+                )
+                return (
+                  <div style={{ border: '1px solid var(--border)', borderRadius: 10, marginTop: 10, maxHeight: 260, overflowY: 'auto' }}>
+                    {filtered.map((c: any) => {
+                      const linked = alreadyLinked.has(c._id)
+                      return (
+                        <div key={c._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, color: 'var(--text)' }}>{c.name}</div>
+                            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{[c.city, c.country].filter(Boolean).join(', ')}{c.email ? ` · ${c.email}` : ''}</div>
+                          </div>
+                          {linked ? (
+                            <span style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'var(--ff)' }}>Already linked</span>
+                          ) : (
+                            <button className="btn btn-s" style={{ fontSize: 12, padding: '5px 12px', flexShrink: 0 }}
+                              disabled={assigningClinic}
+                              onClick={async () => {
+                                setAssigningClinic(true); setAssignClinicErr('')
+                                try {
+                                  await adminAssignPatientToClinic({ patientId: id as Id<'patients'>, clinicId: c._id })
+                                  setClinicModalOpen(false)
+                                } catch (e) {
+                                  setAssignClinicErr((e as any)?.message ?? 'Failed to assign')
+                                } finally {
+                                  setAssigningClinic(false)
+                                }
+                              }}>
+                              Assign
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+              {assignClinicErr && <div style={{ fontSize: 13, color: 'var(--err)', marginTop: 10 }}>{assignClinicErr}</div>}
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setClinicModalOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Verify patient modal */}
       {verifyModalOpen && (

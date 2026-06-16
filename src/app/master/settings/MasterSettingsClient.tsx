@@ -152,7 +152,10 @@ export default function MasterSettingsClient() {
   const [totpDisableLoading,setTotpDisableLoading] = useState(false)
   const [totpDisableErr,    setTotpDisableErr]     = useState('')
   const [secretCopied,      setSecretCopied]       = useState(false)
-  const [activeSection,     setActiveSection]      = useState<'security' | 'profile' | 'notifications' | 'admins'>('security')
+  const [activeSection,     setActiveSection]      = useState<'security' | 'profile' | 'notifications' | 'admins' | 'ai'>('security')
+  const [apiKeyDraft,       setApiKeyDraft]        = useState('')
+  const [apiKeyLoaded,      setApiKeyLoaded]       = useState(false)
+  const [apiKeySaved,       setApiKeySaved]        = useState(false)
 
   // Email change
   const updateMyEmail        = useAction(api.users.updateMyEmail)
@@ -194,6 +197,12 @@ export default function MasterSettingsClient() {
     function handle(e: KeyboardEvent) { if (e.key === 'Escape') setTotpSetup(null) }
     document.addEventListener('keydown', handle)
     return () => document.removeEventListener('keydown', handle)
+  }, [])
+
+  // Load API key from localStorage
+  useEffect(() => {
+    setApiKeyDraft(localStorage.getItem('implantid_anthropic_key') ?? '')
+    setApiKeyLoaded(true)
   }, [])
 
   // All hooks above — guard after all hooks
@@ -315,7 +324,7 @@ export default function MasterSettingsClient() {
         className="m-settings-grid">
         {/* Settings nav */}
         <nav style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          {(['security', 'profile', 'notifications', 'admins'] as const).map(s => (
+          {(['security', 'profile', 'notifications', 'admins', 'ai'] as const).map(s => (
             <button key={s} onClick={() => setActiveSection(s)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px',
@@ -331,9 +340,11 @@ export default function MasterSettingsClient() {
                   ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                   : s === 'notifications'
                     ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                    : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    : s === 'ai'
+                      ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 2a9 9 0 0 1 9 9c0 4.97-4.03 9-9 9s-9-4.03-9-9a9 9 0 0 1 9-9z"/><path d="M9 9h.01M15 9h.01M9.5 14.5s1 1.5 2.5 1.5 2.5-1.5 2.5-1.5"/></svg>
+                      : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               }
-              {s === 'security' ? 'Security' : s === 'admins' ? 'Admin Users' : s === 'notifications' ? 'Notifications' : 'Profile'}
+              {s === 'security' ? 'Security' : s === 'admins' ? 'Admin Users' : s === 'notifications' ? 'Notifications' : s === 'ai' ? 'AI Assistant' : 'Profile'}
             </button>
           ))}
         </nav>
@@ -750,6 +761,69 @@ export default function MasterSettingsClient() {
                     })}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* ── AI ASSISTANT ─────────────────────────────────────────────── */}
+          {activeSection === 'ai' && apiKeyLoaded && (
+            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
+                  Anthropic API Key
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  Stored only in your browser — never sent to our servers.
+                  Get a key at <strong>console.anthropic.com</strong>.
+                </div>
+              </div>
+              <div style={{ padding: '20px 22px' }}>
+                <div className="field" style={{ marginBottom: 14 }}>
+                  <label>API Key</label>
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder="sk-ant-…"
+                    value={apiKeyDraft}
+                    onChange={e => { setApiKeyDraft(e.target.value); setApiKeySaved(false) }}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <button
+                    className="btn btn-s"
+                    onClick={() => {
+                      localStorage.setItem('implantid_anthropic_key', apiKeyDraft.trim())
+                      setApiKeySaved(true)
+                      setTimeout(() => setApiKeySaved(false), 3000)
+                    }}
+                    disabled={!apiKeyDraft.trim()}
+                  >
+                    {apiKeySaved ? '✓ Saved' : 'Save key'}
+                  </button>
+                  {apiKeyDraft && (
+                    <button className="btn" style={{ fontSize: 13 }}
+                      onClick={() => {
+                        setApiKeyDraft('')
+                        localStorage.removeItem('implantid_anthropic_key')
+                      }}>
+                      Remove
+                    </button>
+                  )}
+                  {apiKeyDraft && (
+                    <a href="/master/devices/ai"
+                      className="btn btn-s"
+                      style={{ fontSize: 13, textDecoration: 'none' }}>
+                      Open AI Assistant →
+                    </a>
+                  )}
+                </div>
+                <div style={{ marginTop: 18, background: 'color-mix(in srgb,var(--accent) 5%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 14%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
+                  <strong style={{ color: 'var(--text)' }}>What it does:</strong> The AI Assistant lets you chat with Claude to
+                  research medical devices, find MRI safety specs, and import device data from spreadsheets. Your key
+                  is stored in this browser only and used directly — it is never logged or transmitted to Implant ID servers.
+                </div>
               </div>
             </div>
           )}

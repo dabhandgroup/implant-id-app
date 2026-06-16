@@ -18,6 +18,7 @@ function pageTitleFromPathname(pathname: string): string {
   if (pathname.startsWith('/master/devices/add'))    return 'Add Device'
   if (pathname.startsWith('/master/devices/bulk'))   return 'Bulk Upload'
   if (pathname.startsWith('/master/devices/scrape')) return 'Scrape'
+  if (pathname.startsWith('/master/devices/ai'))     return 'AI Assistant'
   if (pathname.startsWith('/master/devices'))        return 'Devices'
   if (pathname.startsWith('/master/patients'))       return 'Patients'
   if (pathname.startsWith('/master/manufacturers'))  return 'Manufacturers'
@@ -310,6 +311,10 @@ export default function MasterShell({ children }: MasterShellProps) {
           <a href="/master/devices/scrape" className={`sb-link${isActive('/master/devices/scrape') ? ' active' : ''}`}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
             <span>Scrape</span>
+          </a>
+          <a href="/master/devices/ai" className={`sb-link${isActive('/master/devices/ai') ? ' active' : ''}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 2a9 9 0 0 1 9 9c0 4.97-4.03 9-9 9s-9-4.03-9-9a9 9 0 0 1 9-9z"/><path d="M9 9h.01M15 9h.01M9.5 14.5s1 1.5 2.5 1.5 2.5-1.5 2.5-1.5"/></svg>
+            <span>AI</span>
           </a>
 
           {/* ── ADMIN ── */}

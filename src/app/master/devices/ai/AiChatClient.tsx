@@ -463,22 +463,13 @@ export default function AiChatClient() {
         </div>
       )}
 
-      {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <SparkleIcon color="var(--accent)" />
-          AI Device Assistant
-          <span style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted2)', fontWeight: 400 }}>· {MODEL}</span>
-        </div>
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 20, position: 'relative' }}>
         {messages.length > 0 && (
-          <button className="btn" style={{ fontSize: 12, padding: '5px 12px' }} onClick={clearChat}>
+          <button className="btn" style={{ position: 'absolute', top: 16, right: 20, fontSize: 12, padding: '4px 10px', zIndex: 1 }} onClick={clearChat}>
             Clear chat
           </button>
         )}
-      </div>
-
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
         {messages.length === 0 && (
           <div style={{ margin: 'auto', textAlign: 'center', maxWidth: 480 }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
@@ -651,7 +642,7 @@ export default function AiChatClient() {
       </div>
 
       {/* Input area */}
-      <div style={{ padding: '16px 28px 20px', borderTop: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
+      <div style={{ padding: '16px 20px 20px', borderTop: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
 
         {/* File drop zone — always visible */}
         <div

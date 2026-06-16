@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import * as XLSX from 'xlsx'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -145,6 +145,14 @@ export default function AiChatClient() {
   const [importing,     setImporting]     = useState<Record<number, 'loading' | 'done' | 'error'>>({})
   const [importErrors,  setImportErrors]  = useState<Record<number, string>>({})
 
+  // Derive parsed devices from the last assistant message so we can pass them
+  // to useQuery unconditionally (hooks must not be inside conditionals).
+  const _lastMsg = messages.length > 0 ? messages[messages.length - 1] : null
+  const _dupPairs = (_lastMsg?.role === 'assistant' && _lastMsg?.isFileImport && !loading)
+    ? parseDevicesFromResponse(_lastMsg.content).map(d => ({ manufacturer: d.manufacturer, model: d.model }))
+    : []
+  const duplicateCheck = useQuery(api.devices.findDuplicates, { pairs: _dupPairs })
+
   const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -187,14 +195,19 @@ export default function AiChatClient() {
 
   async function readXLSXAsText(file: File): Promise<string> {
     const buffer = await file.arrayBuffer()
-    const workbook = XLSX.read(buffer, { type: 'array' })
+    // SheetJS requires Uint8Array, not ArrayBuffer
+    const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' })
+    const MAX_CHARS_PER_SHEET = 80_000
     const parts: string[] = []
     for (const sheetName of workbook.SheetNames) {
       const sheet = workbook.Sheets[sheetName]
-      const csv = XLSX.utils.sheet_to_csv(sheet, { skipHidden: true })
-      if (csv.trim().replace(/,+/g, '').trim()) {
-        parts.push(`=== Sheet: ${sheetName} ===\n${csv}`)
-      }
+      let csv = XLSX.utils.sheet_to_csv(sheet, { skipHidden: true })
+      // Strip completely empty rows
+      csv = csv.split('\n').filter(r => r.replace(/,/g, '').trim()).join('\n')
+      if (!csv.trim()) continue
+      const truncated = csv.length > MAX_CHARS_PER_SHEET
+      if (truncated) csv = csv.slice(0, MAX_CHARS_PER_SHEET)
+      parts.push(`=== Sheet: ${sheetName}${truncated ? ' (truncated — first 80KB)' : ''} ===\n${csv}`)
     }
     return parts.join('\n\n')
   }
@@ -531,69 +544,82 @@ export default function AiChatClient() {
                 </div>
 
                 {/* Sign-off + import for last assistant file-import message */}
-                {isLast && m.role === 'assistant' && m.isFileImport && parsedDevices.length > 0 && (
-                  <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                    <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--ok) 6%,transparent)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.2">
-                        <polyline points="9 11 12 14 22 4"/>
-                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                      </svg>
-                      <span style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>
-                        {parsedDevices.length} device{parsedDevices.length !== 1 ? 's' : ''} ready to review
-                      </span>
-                      <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>
-                        Added as pending — requires admin approval
-                      </span>
-                    </div>
-                    <div style={{ padding: '14px 16px' }}>
-                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginBottom: signedOff ? 14 : 0 }}>
-                        <input
-                          type="checkbox"
-                          checked={signedOff}
-                          onChange={e => setSignedOff(e.target.checked)}
-                          style={{ marginTop: 2, accentColor: 'var(--accent)', width: 16, height: 16, flexShrink: 0 }}
-                        />
-                        <span style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>
-                          I have reviewed the extracted information above and confirm it is accurate. I understand these will be added as <strong>pending review</strong> and must be approved before going live.
+                {isLast && m.role === 'assistant' && m.isFileImport && parsedDevices.length > 0 && (() => {
+                  const newDevices = parsedDevices.filter((_, idx) => !duplicateCheck?.[idx]?.exists)
+                  const dupCount = parsedDevices.length - newDevices.length
+                  return (
+                    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--ok) 6%,transparent)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.2">
+                          <polyline points="9 11 12 14 22 4"/>
+                          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        <span style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>
+                          {parsedDevices.length} device{parsedDevices.length !== 1 ? 's' : ''} found
+                          {dupCount > 0 && <span style={{ color: 'var(--err)', marginLeft: 6 }}>· {dupCount} already in catalogue</span>}
                         </span>
-                      </label>
-                      {signedOff && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                          {parsedDevices.map((device, idx) => (
-                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px' }}>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {device.manufacturer} — {device.model}
+                        <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>
+                          Submitted as pending — requires admin approval
+                        </span>
+                      </div>
+                      <div style={{ padding: '14px 16px' }}>
+                        {newDevices.length > 0 && (
+                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginBottom: signedOff ? 14 : 0 }}>
+                            <input
+                              type="checkbox"
+                              checked={signedOff}
+                              onChange={e => setSignedOff(e.target.checked)}
+                              style={{ marginTop: 2, accentColor: 'var(--accent)', width: 16, height: 16, flexShrink: 0 }}
+                            />
+                            <span style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>
+                              I have reviewed the extracted information above and confirm it is accurate. I understand these will be added as <strong>pending review</strong> and must be approved before going live.
+                            </span>
+                          </label>
+                        )}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: newDevices.length > 0 && !signedOff ? 0 : 0 }}>
+                          {parsedDevices.map((device, idx) => {
+                            const isDup = duplicateCheck?.[idx]?.exists
+                            const dupStatus = duplicateCheck?.[idx]?.status
+                            return (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10, background: isDup ? 'color-mix(in srgb,var(--err) 4%,transparent)' : 'var(--bg)', border: `1px solid ${isDup ? 'color-mix(in srgb,var(--err) 20%,transparent)' : 'var(--border)'}`, borderRadius: 8, padding: '10px 14px' }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {device.manufacturer} — {device.model}
+                                  </div>
+                                  <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                                    {device.deviceType} · MRI {device.mriStatus} · {device.classification}
+                                  </div>
                                 </div>
-                                <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                                  {device.deviceType} · MRI {device.mriStatus} · {device.classification}
-                                </div>
+                                {isDup ? (
+                                  <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--err)', fontWeight: 600, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                    Already in catalogue{dupStatus ? ` (${dupStatus.replace('_', ' ')})` : ''}
+                                  </span>
+                                ) : importing[idx] === 'done' ? (
+                                  <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--ok)', fontWeight: 600, flexShrink: 0 }}>✓ Sent for review</span>
+                                ) : importing[idx] === 'loading' ? (
+                                  <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>Submitting…</span>
+                                ) : signedOff ? (
+                                  <button
+                                    className="btn btn-s"
+                                    style={{ fontSize: 12, padding: '5px 12px', flexShrink: 0 }}
+                                    onClick={() => handleImportDevice(device, idx)}
+                                  >
+                                    Submit for review
+                                  </button>
+                                ) : null}
                               </div>
-                              {importing[idx] === 'done' ? (
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--ok)', fontWeight: 600, flexShrink: 0 }}>✓ Sent for review</span>
-                              ) : importing[idx] === 'loading' ? (
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>Submitting…</span>
-                              ) : (
-                                <button
-                                  className="btn btn-s"
-                                  style={{ fontSize: 12, padding: '5px 12px', flexShrink: 0 }}
-                                  onClick={() => handleImportDevice(device, idx)}
-                                >
-                                  Submit for review
-                                </button>
-                              )}
-                            </div>
-                          ))}
+                            )
+                          })}
                           {Object.entries(importErrors).map(([idx, msg]) => (
                             <div key={idx} style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--err)', padding: '6px 10px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', borderRadius: 6 }}>
                               Device {Number(idx) + 1}: {msg}
                             </div>
                           ))}
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
               </div>
             </div>
           )

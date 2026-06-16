@@ -345,6 +345,36 @@ export const getDeviceWithUsageBySlug = query({
   },
 })
 
+/** Check which manufacturer+model pairs already exist in the catalogue (case-insensitive). */
+export const findDuplicates = query({
+  args: {
+    pairs: v.array(v.object({ manufacturer: v.string(), model: v.string() })),
+  },
+  handler: async (ctx, args) => {
+    if (args.pairs.length === 0) return []
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') return []
+
+    const allDevices = await ctx.db.query('devices').collect()
+    return args.pairs.map(pair => {
+      const mfr = pair.manufacturer.toLowerCase().trim()
+      const mod = pair.model.toLowerCase().trim()
+      const match = allDevices.find(d =>
+        d.manufacturer.toLowerCase().trim() === mfr &&
+        d.model.toLowerCase().trim() === mod
+      )
+      return {
+        manufacturer: pair.manufacturer,
+        model: pair.model,
+        exists: !!match,
+        status: match?.status ?? null,
+      }
+    })
+  },
+})
+
 /** Total count of published (non-draft) devices in the library. */
 export const getDeviceCount = query({
   args: {},

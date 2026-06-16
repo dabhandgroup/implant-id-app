@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation } from 'convex/react'
+import * as XLSX from 'xlsx'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
@@ -11,27 +12,27 @@ const MODEL = 'claude-opus-4-8'
 
 const SYSTEM_PROMPT = `You are an AI assistant for Implant ID, a medical device registry platform.
 Your job is to help administrators research and add medical implant device data to the catalogue.
+You only work with data the user provides — you do not browse the internet or access external sources.
 
 You can help with:
-- Researching specific devices (pacemakers, ICDs, cochlear implants, spinal cord stimulators, orthopaedic implants, etc.)
-- Finding device specifications: manufacturer, model number, MRI safety status, device type
-- Parsing and importing device data from uploaded PDFs, spec sheets, spreadsheets, or pasted data
+- Researching devices based on data the user has provided or pasted
+- Parsing and extracting device data from uploaded PDFs, spec sheets, spreadsheets, images, or pasted text
 - Formatting device data into the fields required by the catalogue
 
 Required catalogue fields for each device:
 - Manufacturer name
-- Device name / model
+- Device name / model number
 - Device type (e.g. Pacemaker, ICD, Cochlear Implant, Hip Replacement, etc.)
-- Classification: active (has power source), passive (no power source), or legacy (discontinued)
-- MRI status: "safe", "conditional", or "unsafe" (if truly unknown, use "unknown")
+- Classification: active (has power source), passive (no power), or legacy (discontinued)
+- MRI status: "safe", "conditional", "unsafe" — if truly unknown, use "unknown"
 
-Optional catalogue fields (include if found):
+Optional fields (include if found):
 - Field strengths (e.g. 1.5T, 3.0T)
-- Contraindications
+- Contraindications / notes
 
 When processing any uploaded file or pasted data, ALWAYS:
 
-1. Show a comparison table for each device found:
+1. Show a comparison table for EACH device found:
 
 **Device [N]: [Device Name]**
 | Field | Raw data from document | Ready to import |
@@ -44,9 +45,9 @@ When processing any uploaded file or pasted data, ALWAYS:
 | Field Strengths | [if noted] | [e.g. 1.5T, 3.0T] |
 | Contraindications | [if noted] | [summary] |
 
-Flag missing or uncertain fields. Note any MRI status uncertainty — this is a patient safety issue.
+Flag missing or uncertain fields. MRI status uncertainty must be clearly noted — patient safety issue.
 
-2. After ALL comparison tables, include a machine-readable import block (required, always, even for one device):
+2. After ALL comparison tables, include a machine-readable import block (always, even for one device):
 
 \`\`\`import-json
 [
@@ -62,9 +63,9 @@ Flag missing or uncertain fields. Note any MRI status uncertainty — this is a 
 ]
 \`\`\`
 
-End with a summary: "Found X device(s). Y ready to import. Z need manual review."
+End with: "Found X device(s). Y ready to import. Z need manual review."
 
-Be concise, factual, and accurate. When unsure about MRI status, say so.`
+Be concise and factual. Never invent data — only use what is in the provided documents.`
 
 type ApiContent =
   | { type: 'text'; text: string }
@@ -123,34 +124,31 @@ function MarkdownText({ text }: { text: string }) {
     .replace(/`(.+?)`/g, '<code style="background:color-mix(in srgb,var(--accent) 10%,transparent);padding:1px 5px;border-radius:4px;font-size:13px;font-family:SF Mono,Monaco,monospace">$1</code>')
     .replace(/\n\n/g, '</p><p style="margin:0 0 10px">')
     .replace(/\n/g, '<br/>')
-
   return (
-    <p
-      style={{ margin: 0, lineHeight: 1.65 }}
-      dangerouslySetInnerHTML={{ __html: formatted }}
-    />
+    <p style={{ margin: 0, lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: formatted }} />
   )
 }
 
 export default function AiChatClient() {
   const router = useRouter()
-  const addDevice = useMutation(api.devices.addDevice)
+  const bulkInsertDevices = useMutation(api.devices.bulkInsertDevices)
 
-  const [apiKey,         setApiKey]         = useState<string>('')
-  const [keyLoaded,      setKeyLoaded]      = useState(false)
-  const [messages,       setMessages]       = useState<Message[]>([])
-  const [input,          setInput]          = useState('')
-  const [loading,        setLoading]        = useState(false)
-  const [error,          setError]          = useState('')
-  const [isDragging,     setIsDragging]     = useState(false)
-  const [attachedFiles,  setAttachedFiles]  = useState<AttachedFile[]>([])
-  const [signedOff,      setSignedOff]      = useState(false)
-  const [importing,      setImporting]      = useState<Record<number, 'loading' | 'done' | 'error'>>({})
-  const [importErrors,   setImportErrors]   = useState<Record<number, string>>({})
+  const [apiKey,        setApiKey]        = useState<string>('')
+  const [keyLoaded,     setKeyLoaded]     = useState(false)
+  const [messages,      setMessages]      = useState<Message[]>([])
+  const [input,         setInput]         = useState('')
+  const [loading,       setLoading]       = useState(false)
+  const [error,         setError]         = useState('')
+  const [isDragging,    setIsDragging]    = useState(false)
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
+  const [signedOff,     setSignedOff]     = useState(false)
+  const [importing,     setImporting]     = useState<Record<number, 'loading' | 'done' | 'error'>>({})
+  const [importErrors,  setImportErrors]  = useState<Record<number, string>>({})
 
-  const bottomRef    = useRef<HTMLDivElement>(null)
-  const textareaRef  = useRef<HTMLTextAreaElement>(null)
-  const dragCounter  = useRef(0)
+  const bottomRef   = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const dragCounter = useRef(0)
 
   useEffect(() => {
     const stored = localStorage.getItem(API_KEY_STORAGE) ?? ''
@@ -172,10 +170,7 @@ export default function AiChatClient() {
   function readFileAsBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        resolve(result.split(',')[1])
-      }
+      reader.onload = () => resolve((reader.result as string).split(',')[1])
       reader.onerror = reject
       reader.readAsDataURL(file)
     })
@@ -190,57 +185,67 @@ export default function AiChatClient() {
     })
   }
 
+  async function readXLSXAsText(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer()
+    const workbook = XLSX.read(buffer, { type: 'array' })
+    const parts: string[] = []
+    for (const sheetName of workbook.SheetNames) {
+      const sheet = workbook.Sheets[sheetName]
+      const csv = XLSX.utils.sheet_to_csv(sheet, { skipHidden: true })
+      if (csv.trim().replace(/,+/g, '').trim()) {
+        parts.push(`=== Sheet: ${sheetName} ===\n${csv}`)
+      }
+    }
+    return parts.join('\n\n')
+  }
+
   async function processDroppedFiles(files: File[]) {
     setError('')
-    const supported: File[] = []
-    const unsupported: string[] = []
+    const attached: AttachedFile[] = []
+    const errs: string[] = []
 
     for (const file of files) {
       const type = file.type.toLowerCase()
       const name = file.name.toLowerCase()
-      const ok =
-        type === 'application/pdf' ||
+
+      const isXLSX = name.endsWith('.xlsx') || name.endsWith('.xls') ||
+                     type.includes('spreadsheetml') || type.includes('ms-excel')
+      const isText = !isXLSX && (
         type === 'text/csv' || type === 'text/plain' || type === 'text/tsv' ||
-        type.startsWith('image/') ||
-        name.endsWith('.csv') || name.endsWith('.tsv') ||
-        name.endsWith('.txt') || name.endsWith('.pdf')
-
-      if (ok) supported.push(file)
-      else if (name.endsWith('.xlsx') || name.endsWith('.xls'))
-        unsupported.push(`${file.name} — please export as CSV first`)
-      else
-        unsupported.push(`${file.name} — unsupported format`)
-    }
-
-    if (unsupported.length) {
-      setError(unsupported.join('\n'))
-    }
-
-    if (!supported.length) return
-
-    const attached: AttachedFile[] = []
-    for (const file of supported) {
-      const type = file.type.toLowerCase()
-      const name = file.name.toLowerCase()
-      const isText = type === 'text/csv' || type === 'text/plain' || type === 'text/tsv' ||
-                     name.endsWith('.csv') || name.endsWith('.tsv') || name.endsWith('.txt')
+        name.endsWith('.csv') || name.endsWith('.tsv') || name.endsWith('.txt')
+      )
+      const isPDF  = type === 'application/pdf' || name.endsWith('.pdf')
       const isImage = type.startsWith('image/')
 
-      if (isText) {
+      if (isXLSX) {
+        try {
+          const text = await readXLSXAsText(file)
+          attached.push({ name: file.name, mimeType: 'text/csv', data: text, isText: true })
+        } catch {
+          errs.push(`${file.name} — could not read spreadsheet`)
+        }
+      } else if (isText) {
         const text = await readFileAsText(file)
         attached.push({ name: file.name, mimeType: file.type || 'text/plain', data: text, isText: true })
-      } else {
+      } else if (isPDF) {
         const base64 = await readFileAsBase64(file)
-        attached.push({
-          name: file.name,
-          mimeType: isImage ? (file.type || 'image/jpeg') : 'application/pdf',
-          data: base64,
-          isText: false,
-        })
+        attached.push({ name: file.name, mimeType: 'application/pdf', data: base64, isText: false })
+      } else if (isImage) {
+        const base64 = await readFileAsBase64(file)
+        attached.push({ name: file.name, mimeType: file.type || 'image/jpeg', data: base64, isText: false })
+      } else {
+        errs.push(`${file.name} — unsupported format (use PDF, CSV, XLSX, or image)`)
       }
     }
 
-    setAttachedFiles(attached)
+    if (errs.length) setError(errs.join('\n'))
+    if (!attached.length) return
+
+    setAttachedFiles(prev => {
+      const existing = new Set(prev.map(f => f.name))
+      return [...prev, ...attached.filter(f => !existing.has(f.name))]
+    })
+
     const names = attached.map(f => f.name).join(', ')
     setInput(`I've attached: ${names}. Please extract all medical device data and present the comparison table showing what's in the document vs the catalogue import fields.`)
     textareaRef.current?.focus()
@@ -343,14 +348,20 @@ export default function AiChatClient() {
     setImporting(p => ({ ...p, [index]: 'loading' }))
     setImportErrors(p => { const n = { ...p }; delete n[index]; return n })
     try {
-      await addDevice({
-        manufacturer:    device.manufacturer,
-        model:           device.model,
-        deviceType:      device.deviceType,
-        classification:  device.classification,
-        mriStatus:       device.mriStatus,
-        fieldStrengths:  device.fieldStrengths,
-        contraindications: device.contraindications,
+      await bulkInsertDevices({
+        devices: [{
+          name:            `${device.manufacturer} ${device.model}`,
+          manufacturer:    device.manufacturer,
+          model:           device.model,
+          deviceType:      device.deviceType,
+          classification:  device.classification ?? 'active',
+          mriStatus:       device.mriStatus,
+          fieldStrengths:  device.fieldStrengths,
+          contraindications: device.contraindications,
+        }],
+        submitterName:  'Master Admin',
+        submitterTitle: 'Master Admin',
+        source:         'admin',
       })
       setImporting(p => ({ ...p, [index]: 'done' }))
     } catch (e) {
@@ -418,7 +429,7 @@ export default function AiChatClient() {
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      {/* Drag overlay */}
+      {/* Full-page drag overlay */}
       {isDragging && (
         <div style={{
           position: 'absolute', inset: 0, zIndex: 50,
@@ -427,14 +438,16 @@ export default function AiChatClient() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexDirection: 'column', gap: 12, pointerEvents: 'none',
         }}>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
           </div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 600, color: 'var(--accent)' }}>Drop to process</div>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>PDF, CSV, TXT, or image files</div>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 18, fontWeight: 600, color: 'var(--accent)' }}>Drop to process</div>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', marginTop: 4 }}>PDF, XLSX, CSV, TXT, or image</div>
           </div>
         </div>
       )}
@@ -456,20 +469,14 @@ export default function AiChatClient() {
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 20 }}>
         {messages.length === 0 && (
-          <div style={{ margin: 'auto', textAlign: 'center', maxWidth: 460 }}>
+          <div style={{ margin: 'auto', textAlign: 'center', maxWidth: 480 }}>
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
               <SparkleIcon size={24} color="var(--accent)" />
             </div>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 500, marginBottom: 8 }}>Device research assistant</div>
-            <p style={{ color: 'var(--muted)', fontSize: 13.5, lineHeight: 1.6, marginBottom: 8 }}>
-              Ask me to research a device, or drag and drop a spec sheet, CSV, or PDF to extract and import device data.
+            <p style={{ color: 'var(--muted)', fontSize: 13.5, lineHeight: 1.6, marginBottom: 20 }}>
+              Ask me to research a device, or upload a spec sheet to extract and import device data. I only work with data you provide — I don&apos;t access the internet.
             </p>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'color-mix(in srgb,var(--accent) 8%,transparent)', border: '1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius: 8, padding: '7px 14px', marginBottom: 20 }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-              </svg>
-              <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--accent-deep)', fontWeight: 500 }}>Drop a PDF or CSV anywhere to import devices</span>
-            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
                 'What are the MRI safety specs for the Medtronic Micra AV pacemaker?',
@@ -526,10 +533,16 @@ export default function AiChatClient() {
                 {/* Sign-off + import for last assistant file-import message */}
                 {isLast && m.role === 'assistant' && m.isFileImport && parsedDevices.length > 0 && (
                   <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-                    <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--ok) 6%,transparent)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.2">
+                        <polyline points="9 11 12 14 22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                      </svg>
                       <span style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>
-                        {parsedDevices.length} device{parsedDevices.length !== 1 ? 's' : ''} ready to import
+                        {parsedDevices.length} device{parsedDevices.length !== 1 ? 's' : ''} ready to review
+                      </span>
+                      <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>
+                        Added as pending — requires admin approval
                       </span>
                     </div>
                     <div style={{ padding: '14px 16px' }}>
@@ -541,7 +554,7 @@ export default function AiChatClient() {
                           style={{ marginTop: 2, accentColor: 'var(--accent)', width: 16, height: 16, flexShrink: 0 }}
                         />
                         <span style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--text)', lineHeight: 1.5 }}>
-                          I have reviewed the extracted information above and confirm it is accurate and ready to import into the catalogue.
+                          I have reviewed the extracted information above and confirm it is accurate. I understand these will be added as <strong>pending review</strong> and must be approved before going live.
                         </span>
                       </label>
                       {signedOff && (
@@ -553,20 +566,20 @@ export default function AiChatClient() {
                                   {device.manufacturer} — {device.model}
                                 </div>
                                 <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                                  {device.deviceType} · {device.mriStatus} · {device.classification}
+                                  {device.deviceType} · MRI {device.mriStatus} · {device.classification}
                                 </div>
                               </div>
                               {importing[idx] === 'done' ? (
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--ok)', fontWeight: 600, flexShrink: 0 }}>✓ Added</span>
+                                <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--ok)', fontWeight: 600, flexShrink: 0 }}>✓ Sent for review</span>
                               ) : importing[idx] === 'loading' ? (
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>Adding…</span>
+                                <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>Submitting…</span>
                               ) : (
                                 <button
                                   className="btn btn-s"
                                   style={{ fontSize: 12, padding: '5px 12px', flexShrink: 0 }}
                                   onClick={() => handleImportDevice(device, idx)}
                                 >
-                                  Add to catalogue
+                                  Submit for review
                                 </button>
                               )}
                             </div>
@@ -596,8 +609,7 @@ export default function AiChatClient() {
                 {[0, 1, 2].map(i => (
                   <div key={i} style={{
                     width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)',
-                    animation: `ai-pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
-                    opacity: 0.5,
+                    animation: `ai-pulse 1.2s ease-in-out ${i * 0.2}s infinite`, opacity: 0.5,
                   }} />
                 ))}
               </div>
@@ -615,27 +627,74 @@ export default function AiChatClient() {
       </div>
 
       {/* Input area */}
-      <div style={{ padding: '16px 28px', borderTop: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
-        {/* Attached files */}
-        {attachedFiles.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-            {attachedFiles.map(f => (
-              <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 25%,transparent)', borderRadius: 6, padding: '4px 10px 4px 8px', fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent-deep)' }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14 2 14 8 20 8"/>
-                </svg>
-                {f.name}
-                <button
-                  onClick={() => setAttachedFiles(p => p.filter(x => x.name !== f.name))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 0, lineHeight: 1, fontSize: 13, marginLeft: 2 }}
-                  aria-label={`Remove ${f.name}`}
-                >✕</button>
-              </div>
-            ))}
-          </div>
-        )}
+      <div style={{ padding: '16px 28px 20px', borderTop: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
 
+        {/* File drop zone — always visible */}
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          style={{
+            border: `2px dashed ${isDragging ? 'var(--accent)' : attachedFiles.length ? 'color-mix(in srgb,var(--accent) 40%,transparent)' : 'var(--border2)'}`,
+            borderRadius: 12,
+            background: isDragging ? 'color-mix(in srgb,var(--accent) 6%,transparent)' : attachedFiles.length ? 'color-mix(in srgb,var(--accent) 4%,transparent)' : 'transparent',
+            padding: attachedFiles.length ? '10px 14px' : '18px 20px',
+            marginBottom: 12,
+            cursor: 'pointer',
+            transition: 'border-color .15s, background .15s',
+          }}
+        >
+          {attachedFiles.length === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, pointerEvents: 'none' }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 500, color: 'var(--text)', marginBottom: 2 }}>
+                  Drop a spec sheet, CSV, or spreadsheet
+                </div>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)' }}>
+                  PDF · XLSX (all sheets) · CSV · TXT · Image — or click to browse
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              {attachedFiles.map(f => (
+                <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'color-mix(in srgb,var(--accent) 12%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 25%,transparent)', borderRadius: 6, padding: '4px 10px 4px 8px', fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent-deep)' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  {f.name}
+                  <button
+                    onClick={e => { e.stopPropagation(); setAttachedFiles(p => p.filter(x => x.name !== f.name)) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 0, lineHeight: 1, fontSize: 13, marginLeft: 2 }}
+                    aria-label={`Remove ${f.name}`}
+                  >✕</button>
+                </div>
+              ))}
+              <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent)', marginLeft: 4 }}>+ Add more</span>
+            </div>
+          )}
+        </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.csv,.tsv,.txt,.xlsx,.xls,image/*"
+          multiple
+          style={{ display: 'none' }}
+          onChange={async e => {
+            if (e.target.files) await processDroppedFiles(Array.from(e.target.files))
+            e.target.value = ''
+          }}
+        />
+
+        {/* Text input */}
         <div
           style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'var(--bg)', border: '1.5px solid var(--border2)', borderRadius: 14, padding: '8px 8px 8px 16px', transition: 'border-color .15s' }}
           onFocusCapture={e => (e.currentTarget.style.borderColor = 'var(--accent)')}
@@ -644,7 +703,7 @@ export default function AiChatClient() {
           <textarea
             ref={textareaRef}
             rows={1}
-            placeholder="Ask about a device, paste spreadsheet data, or drag & drop a spec sheet above…"
+            placeholder="Ask about a device, paste data, or drop a file above…"
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -652,8 +711,7 @@ export default function AiChatClient() {
             style={{
               flex: 1, border: 'none', outline: 'none', resize: 'none', background: 'transparent',
               fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', lineHeight: 1.55,
-              maxHeight: 160, overflowY: 'auto', paddingTop: 4,
-              verticalAlign: 'top',
+              maxHeight: 160, overflowY: 'auto', paddingTop: 4, verticalAlign: 'top',
             }}
           />
           <button
@@ -671,7 +729,7 @@ export default function AiChatClient() {
         </div>
 
         <div style={{ fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--muted2)', marginTop: 8, textAlign: 'center' }}>
-          Enter to send · Shift+Enter for new line · Drag &amp; drop PDF, CSV, or spec sheet to process
+          Enter to send · Shift+Enter for new line · Devices are submitted for review, not published automatically
         </div>
       </div>
 

@@ -22,7 +22,7 @@ body{background:var(--bg)}
 .f-group{display:flex;flex-direction:column;gap:6px}
 .f-group.full{grid-column:1/-1}
 .f-label{font-family:var(--ff);font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:.2px}
-.f-input{font-family:var(--fb);font-size:15px;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg);color:var(--text);transition:all .15s;outline:none}
+.f-input{font-family:var(--fb);font-size:1rem;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg);color:var(--text);transition:all .15s;outline:none}
 .f-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
 .f-input:disabled{background:color-mix(in srgb,var(--border) 30%,var(--bg));color:var(--muted);cursor:not-allowed}
 select.f-input{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230e2a33' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}

@@ -108,7 +108,7 @@ body{background:var(--bg)}
 .ob-field-group{display:flex;flex-direction:column;gap:6px}
 .ob-field-label{font-family:var(--ff);font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:.2px;display:flex;align-items:center;gap:8px}
 .ob-field-req{font-size:11px;color:var(--muted2);font-weight:400;letter-spacing:0}
-.ob-field-input{font-family:var(--fb);font-size:15px;padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);transition:all .15s;outline:none;width:100%;box-sizing:border-box}
+.ob-field-input{font-family:var(--fb);font-size:1rem;padding:11px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);transition:all .15s;outline:none;width:100%;box-sizing:border-box}
 .ob-field-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
 .ob-field-input:read-only{background:color-mix(in srgb,var(--border) 30%,var(--bg));color:var(--muted);cursor:not-allowed}
 

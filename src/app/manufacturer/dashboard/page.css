@@ -36,7 +36,7 @@ body{background:var(--bg)}
 /* Device table */
 .dev-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
 .dev-toolbar .search{flex:1;max-width:380px;position:relative}
-.dev-toolbar .search input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px 10px 38px;font-family:var(--fb);font-size:14px;color:var(--text)}
+.dev-toolbar .search input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px 10px 38px;font-family:var(--fb);font-size:1rem;color:var(--text)}
 .dev-toolbar .search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--muted2)}
 .dev-toolbar-r{display:flex;gap:8px}
 .dev-tbl{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden}
@@ -67,7 +67,7 @@ body{background:var(--bg)}
 .form-card .field{margin-bottom:0}
 .form-card .field-full{grid-column:1/-1}
 .form-card label{font-family:var(--ff);font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted2);font-weight:600;display:block;margin-bottom:6px}
-.form-card .input,.form-card .select,.form-card textarea.input{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 13px;font-family:var(--fb);font-size:14px;color:var(--text);width:100%;transition:all .15s}
+.form-card .input,.form-card .select,.form-card textarea.input{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 13px;font-family:var(--fb);font-size:1rem;color:var(--text);width:100%;transition:all .15s}
 .form-card .input:focus,.form-card .select:focus,.form-card textarea.input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent)}
 .form-card textarea.input{resize:vertical;min-height:84px;font-family:var(--fb)}
 .form-card .hint{font-size:12px;color:var(--muted2);margin-top:5px}

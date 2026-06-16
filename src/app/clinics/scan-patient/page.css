@@ -84,7 +84,7 @@ body{background:var(--bg)}
 /* ── Input ────────────────────────────────────────────────────────────────── */
 .lookup-input-wrap{position:relative;margin-bottom:10px}
 .lookup-input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none}
-.lookup-input{width:100%;box-sizing:border-box;font-family:SF\ Mono,Monaco,monospace;letter-spacing:.04em;font-size:14.5px;padding:12px 14px 12px 38px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);transition:all .15s;outline:none}
+.lookup-input{width:100%;box-sizing:border-box;font-family:SF\ Mono,Monaco,monospace;letter-spacing:.04em;font-size:1rem;padding:12px 14px 12px 38px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);transition:all .15s;outline:none}
 .lookup-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
 .lookup-input::placeholder{font-family:var(--ff);letter-spacing:0;color:var(--muted2)}
 .lookup-btn-full{width:100%;justify-content:center;gap:8px}

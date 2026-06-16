@@ -106,6 +106,7 @@ function CompactSelect({
   const [open,   setOpen]   = useState(false)
   const [search, setSearch] = useState('')
   const ref      = useRef<HTMLDivElement>(null)
+  const btnRef   = useRef<HTMLButtonElement>(null)
   const listRef  = useRef<HTMLDivElement>(null)
   const typeBuf  = useRef('')
   const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -126,32 +127,43 @@ function CompactSelect({
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLButtonElement>) {
-    if (e.key === 'Escape') { setOpen(false); return }
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); return }
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if ((e.target as HTMLElement).tagName === 'INPUT') return
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      setOpen(false)
+      btnRef.current?.focus()
+      return
+    }
+    const inList = !!(e.target as HTMLElement).closest('.custom-select-list')
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (!inList) { e.preventDefault(); setOpen(o => !o) }
+      return
+    }
     if (e.key.length !== 1) return
     e.preventDefault()
     typeBuf.current += e.key.toLowerCase()
     if (typeTimer.current) clearTimeout(typeTimer.current)
     typeTimer.current = setTimeout(() => { typeBuf.current = '' }, 1500)
-    const buf = typeBuf.current
     const match = options.find(o =>
-      o.label.toLowerCase().startsWith(buf) || o.value.toLowerCase().startsWith(buf)
+      o.label.toLowerCase().startsWith(typeBuf.current) ||
+      o.value.toLowerCase().startsWith(typeBuf.current)
     )
     if (match) {
       onChange(match.value)
       setOpen(true)
-      setTimeout(() => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
         listRef.current?.querySelector<HTMLElement>(`[data-val="${match.value}"]`)
           ?.scrollIntoView({ block: 'nearest' })
-      }, 0)
+      }))
     }
   }
 
   return (
     <div className={`custom-select${open ? ' open' : ''}`} ref={ref} style={style}>
-      <button type="button" className="custom-select-btn"
-        onClick={() => setOpen(o => !o)} onKeyDown={handleKeyDown}>
+      <button ref={btnRef} type="button" tabIndex={0} className="custom-select-btn"
+        onClick={() => { setOpen(o => !o); btnRef.current?.focus() }}
+        onKeyDown={handleKeyDown}>
         <span className="custom-select-val"
           style={{ color: value ? 'var(--text)' : 'var(--muted2)' }}>
           {selected?.icon && <span style={{ marginRight: 6 }}>{selected.icon}</span>}
@@ -172,10 +184,10 @@ function CompactSelect({
             />
           </div>
         )}
-        <div className="custom-select-list" ref={listRef}>
+        <div className="custom-select-list" ref={listRef} onKeyDown={handleKeyDown}>
           {filtered.map(o => (
             <button key={o.value} type="button" data-val={o.value}
-              onClick={() => { onChange(o.value); setOpen(false); setSearch('') }}>
+              onClick={() => { onChange(o.value); setOpen(false); setSearch(''); btnRef.current?.focus() }}>
               {o.icon && <span style={{ marginRight: 8 }}>{o.icon}</span>}
               {o.label}
             </button>
@@ -698,14 +710,14 @@ export default function RegisterClient() {
     e.preventDefault()
     if (!firstName.trim())  return showErr('Please enter your first name')
     if (!lastName.trim())   return showErr('Please enter your last name')
+    if (!email.trim() || !email.includes('@'))
+      return showErr('Please enter a valid email address')
+    if (!phoneNum.trim())   return showErr('Please enter your phone number')
     if (!dob)               return showErr('Please enter your date of birth')
     const dobDate = new Date(dob)
     if (isNaN(dobDate.getTime())) return showErr('Please enter a valid date of birth')
     if (dobDate > new Date())     return showErr('Date of birth cannot be in the future')
     if (!countryName)       return showErr('Please select your country of birth')
-    if (!email.trim() || !email.includes('@'))
-      return showErr('Please enter a valid email address')
-    if (!phoneNum.trim())   return showErr('Please enter your phone number')
 
     setLoading(true)
     try {
@@ -970,19 +982,6 @@ export default function RegisterClient() {
                 </div>
               </div>
 
-              {/* DOB */}
-              <div className="field">
-                <label>Date of birth <span className="req">*</span></label>
-                <DobPicker value={dob} onChange={setDob} />
-              </div>
-
-              {/* Country of birth */}
-              <div className="field">
-                <label>Country of birth <span className="req">*</span></label>
-                <CountrySelect flag={countryFlag} country={countryName}
-                  onChange={(f, n) => { setCountryFlag(f); setCountryName(n) }} />
-              </div>
-
               {/* Email */}
               <div className="field">
                 <label>Email <span className="req">*</span></label>
@@ -1003,6 +1002,19 @@ export default function RegisterClient() {
                 <span className="field-hint">
                   We'll send a verification code to this number.
                 </span>
+              </div>
+
+              {/* DOB */}
+              <div className="field">
+                <label>Date of birth <span className="req">*</span></label>
+                <DobPicker value={dob} onChange={setDob} />
+              </div>
+
+              {/* Country of birth */}
+              <div className="field">
+                <label>Country of birth <span className="req">*</span></label>
+                <CountrySelect flag={countryFlag} country={countryName}
+                  onChange={(f, n) => { setCountryFlag(f); setCountryName(n) }} />
               </div>
 
               {/* Height / Weight */}

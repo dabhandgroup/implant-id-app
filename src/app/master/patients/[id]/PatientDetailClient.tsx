@@ -46,14 +46,19 @@ export default function PatientDetailClient({ id }: Props) {
   const [addDeviceError,  setAddDeviceError]  = useState('')
   const [statusSaving,    setStatusSaving]    = useState(false)
   const [statusMsg,       setStatusMsg]       = useState('')
+  const [editEmail,       setEditEmail]       = useState(false)
+  const [emailDraft,      setEmailDraft]      = useState('')
+  const [emailSaving,     setEmailSaving]     = useState(false)
+  const [emailError,      setEmailError]      = useState('')
 
-  const patient          = useQuery(api.patients.getPatientById, { patientId: id as Id<'patients'> })
-  const allDevices       = useQuery(api.devices.listDevices)
-  const verifyPatient    = useMutation(api.patients.verifyPatient)
-  const linkDevice       = useMutation(api.patients.linkDeviceToPatient)
-  const removeDevice     = useMutation(api.patients.removePatientDevice)
-  const adminSetStatus   = useMutation(api.patients.adminSetPatientStatus)
-  const router           = useRouter()
+  const patient                 = useQuery(api.patients.getPatientById, { patientId: id as Id<'patients'> })
+  const allDevices              = useQuery(api.devices.listDevices)
+  const verifyPatient           = useMutation(api.patients.verifyPatient)
+  const linkDevice              = useMutation(api.patients.linkDeviceToPatient)
+  const removeDevice            = useMutation(api.patients.removePatientDevice)
+  const adminSetStatus          = useMutation(api.patients.adminSetPatientStatus)
+  const adminUpdatePatientEmail = useMutation(api.patients.adminUpdatePatientEmail)
+  const router                  = useRouter()
 
   // Filter devices for search
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -225,7 +230,73 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* Info cards grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12, marginBottom: 24 }}>
-        <InfoCard label="Email"                 value={(patient as any).email} />
+        {/* Editable email card */}
+        {editEmail ? (
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--accent)', borderRadius: 10, padding: '14px 18px' }}>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 8 }}>
+              Email
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <input
+                type="email"
+                className="input"
+                value={emailDraft}
+                onChange={e => { setEmailDraft(e.target.value); setEmailError('') }}
+                style={{ flex: 1, padding: '7px 10px', fontSize: 13.5 }}
+                autoFocus
+              />
+              <button
+                className="btn btn-s"
+                style={{ fontSize: 12, padding: '6px 12px', flexShrink: 0 }}
+                disabled={emailSaving}
+                onClick={async () => {
+                  const trimmed = emailDraft.trim().toLowerCase()
+                  if (!trimmed || !trimmed.includes('@')) { setEmailError('Enter a valid email'); return }
+                  setEmailSaving(true); setEmailError('')
+                  try {
+                    await adminUpdatePatientEmail({ patientId: id as Id<'patients'>, email: trimmed })
+                    setEditEmail(false)
+                  } catch (e) {
+                    setEmailError((e as any)?.message ?? 'Failed to save')
+                  } finally {
+                    setEmailSaving(false)
+                  }
+                }}
+              >
+                {emailSaving ? 'Saving…' : 'Save'}
+              </button>
+              <button
+                className="btn"
+                style={{ fontSize: 12, padding: '6px 12px', flexShrink: 0 }}
+                onClick={() => { setEditEmail(false); setEmailError('') }}
+              >
+                Cancel
+              </button>
+            </div>
+            {emailError && <div style={{ fontSize: 12, color: 'var(--err)', marginTop: 6 }}>{emailError}</div>}
+          </div>
+        ) : (
+          <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 18px' }}>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>
+              Email
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', flex: 1, wordBreak: 'break-all' }}>
+                {(patient as any).email
+                  ? String((patient as any).email)
+                  : <span style={{ color: 'var(--muted2)' }}>—</span>}
+              </div>
+              <button
+                className="btn"
+                style={{ fontSize: 11, padding: '4px 10px', flexShrink: 0 }}
+                onClick={() => { setEmailDraft((patient as any).email ?? ''); setEditEmail(true); setEmailError('') }}
+                aria-label="Edit email address"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        )}
         <InfoCard label="Date of birth"         value={patient.dob} />
         <InfoCard label="Phone"                 value={patient.phone} />
         <InfoCard label="Country of birth"      value={patient.countryOfBirth} />

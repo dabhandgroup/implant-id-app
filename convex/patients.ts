@@ -804,6 +804,29 @@ export const adminSetPatientStatus = mutation({
   },
 })
 
+/** Update a patient's email address in the users table — admin only. */
+export const adminUpdatePatientEmail = mutation({
+  args: {
+    patientId: v.id('patients'),
+    email:     v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const admin = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin only')
+
+    const patient = await ctx.db.get(args.patientId)
+    if (!patient) throw new Error('Patient not found')
+    if (!patient.userId) throw new Error('Patient has no linked user account yet')
+
+    const email = args.email.trim().toLowerCase()
+    if (!email || !email.includes('@')) throw new Error('Invalid email address')
+
+    await ctx.db.patch(patient.userId, { email })
+  },
+})
+
 /** List all patients — admin only. */
 export const listAllPatients = query({
   args: { limit: v.optional(v.number()) },

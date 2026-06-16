@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   const apiKey = req.headers.get('x-anthropic-key')
   if (!apiKey) return NextResponse.json({ error: 'No API key provided' }, { status: 400 })
 
-  let body: unknown
+  let body: Record<string, unknown>
   try {
     body = await req.json()
   } catch {
@@ -24,9 +24,21 @@ export async function POST(req: NextRequest) {
       'x-api-key':         apiKey,
       'anthropic-version': '2023-06-01',
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, stream: true }),
   })
 
-  const data = await res.json()
-  return NextResponse.json(data, { status: res.status })
+  // Non-200 responses are JSON error objects, not SSE streams
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({ error: { message: `Anthropic error ${res.status}` } }))
+    return NextResponse.json(data, { status: res.status })
+  }
+
+  // Forward the SSE stream directly to the browser
+  return new Response(res.body, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
+    },
+  })
 }

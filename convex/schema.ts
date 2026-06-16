@@ -348,6 +348,21 @@ export default defineSchema({
   })
     .index('by_clerk', ['clerkUserId']),
 
+  // AI chat sessions (master admin only — stored per clerk user)
+  aiChats: defineTable({
+    clerkId:   v.string(),
+    title:     v.string(),
+    messages:  v.array(v.object({
+      role:        v.union(v.literal('user'), v.literal('assistant')),
+      content:     v.string(),
+      isFileImport: v.optional(v.boolean()),
+    })),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index('by_clerk',         ['clerkId'])
+    .index('by_clerk_updated', ['clerkId', 'updatedAt']),
+
   // Scrape jobs — persisted so results survive navigation and show as history
   scrapeJobs: defineTable({
     manufacturer:  v.string(),

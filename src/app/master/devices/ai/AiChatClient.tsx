@@ -7,7 +7,6 @@ import { api as apiBase } from '../../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
-const API_KEY_STORAGE = 'implantid_anthropic_key'
 const MODEL = 'claude-opus-4-8'
 
 const SYSTEM_PROMPT = `You are an AI assistant for Implant ID, a medical device registry platform.
@@ -210,10 +209,9 @@ export default function AiChatClient() {
   const saveChatMut       = useMutation(api.aiChats.saveChat)
   const updateChatMut     = useMutation(api.aiChats.updateChat)
   const deleteChatMut     = useMutation(api.aiChats.deleteChat)
+  const renameChatMut     = useMutation(api.aiChats.renameChat)
 
   // All hooks unconditionally at the top
-  const [apiKey,           setApiKey]           = useState<string>('')
-  const [keyLoaded,        setKeyLoaded]        = useState(false)
   const [messages,         setMessages]         = useState<Message[]>([])
   const [input,            setInput]            = useState('')
   const [loading,          setLoading]          = useState(false)
@@ -226,6 +224,8 @@ export default function AiChatClient() {
   const [expandedCards,    setExpandedCards]    = useState<Set<number>>(new Set())
   const [activeChatId,     setActiveChatId]     = useState<string | null>(null)
   const [hoveredChatId,    setHoveredChatId]    = useState<string | null>(null)
+  const [renamingChatId,   setRenamingChatId]   = useState<string | null>(null)
+  const [renameValue,      setRenameValue]      = useState('')
 
   // Derive dup pairs from last assistant message unconditionally
   const _lastMsg = messages.length > 0 ? messages[messages.length - 1] : null
@@ -234,17 +234,13 @@ export default function AiChatClient() {
     : []
   const duplicateCheck = useQuery(api.devices.findDuplicates, { pairs: _dupPairs })
   const chatHistory    = useQuery(api.aiChats.listChats) as SavedChat[] | undefined
+  const storedApiKey   = useQuery(api.aiChats.getApiKey)
 
   const bottomRef    = useRef<HTMLDivElement>(null)
   const textareaRef  = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dragCounter  = useRef(0)
-
-  useEffect(() => {
-    const stored = localStorage.getItem(API_KEY_STORAGE) ?? ''
-    setApiKey(stored)
-    setKeyLoaded(true)
-  }, [])
+  const renameInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -486,11 +482,27 @@ export default function AiChatClient() {
     try { await deleteChatMut({ id: id as never }) } catch { /* ignore */ }
   }
 
+  function startRename(chat: SavedChat) {
+    setRenamingChatId(chat._id)
+    setRenameValue(chat.title)
+    setTimeout(() => renameInputRef.current?.select(), 0)
+  }
+
+  async function commitRename(id: string) {
+    const title = renameValue.trim()
+    if (title) {
+      try { await renameChatMut({ id: id as never, title }) } catch { /* ignore */ }
+    }
+    setRenamingChatId(null)
+  }
+
   function toggleCardExpanded(idx: number) {
     setExpandedCards(prev => { const next = new Set(prev); if (next.has(idx)) next.delete(idx); else next.add(idx); return next })
   }
 
-  if (!keyLoaded) return null
+  if (storedApiKey === undefined) return null
+
+  const apiKey = storedApiKey ?? ''
 
   if (!apiKey) {
     return (
@@ -501,7 +513,7 @@ export default function AiChatClient() {
           </div>
           <h2 style={{ fontFamily: 'var(--ff)', fontWeight: 500, marginBottom: 10 }}>AI Assistant</h2>
           <p style={{ color: 'var(--muted)', fontSize: 14.5, lineHeight: 1.6, marginBottom: 28 }}>
-            The AI assistant uses your own Anthropic API key. Your key is stored only in your browser — it never touches our servers.
+            The AI assistant uses your Anthropic API key. Add your key in Settings and it will be available across all your devices.
           </p>
           <div style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 18%,transparent)', borderRadius: 12, padding: '20px 24px', marginBottom: 28, textAlign: 'left' }}>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 }}>How to set up</div>
@@ -558,12 +570,12 @@ export default function AiChatClient() {
               {group.items.map(chat => (
                 <div
                   key={chat._id}
-                  onClick={() => loadChat(chat)}
+                  onClick={() => renamingChatId === chat._id ? null : loadChat(chat)}
                   onMouseEnter={() => setHoveredChatId(chat._id)}
                   onMouseLeave={() => setHoveredChatId(null)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '7px 12px 7px 14px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 2,
+                    padding: '7px 8px 7px 14px', cursor: renamingChatId === chat._id ? 'default' : 'pointer',
                     borderLeft: activeChatId === chat._id ? '2px solid var(--accent)' : '2px solid transparent',
                     background: activeChatId === chat._id
                       ? 'color-mix(in srgb,var(--accent) 8%,transparent)'
@@ -574,28 +586,49 @@ export default function AiChatClient() {
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontFamily: 'var(--ff)', fontSize: 12.5,
-                      fontWeight: activeChatId === chat._id ? 600 : 400,
-                      color: 'var(--text)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {chat.title}
-                    </div>
+                    {renamingChatId === chat._id ? (
+                      <input
+                        ref={renameInputRef}
+                        value={renameValue}
+                        onChange={e => setRenameValue(e.target.value)}
+                        onBlur={() => commitRename(chat._id)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { e.preventDefault(); commitRename(chat._id) }
+                          if (e.key === 'Escape') { setRenamingChatId(null) }
+                        }}
+                        onClick={e => e.stopPropagation()}
+                        style={{ width: '100%', border: '1px solid var(--accent)', borderRadius: 4, background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--ff)', fontSize: 12.5, padding: '2px 5px', outline: 'none' }}
+                      />
+                    ) : (
+                      <div style={{
+                        fontFamily: 'var(--ff)', fontSize: 12.5,
+                        fontWeight: activeChatId === chat._id ? 600 : 400,
+                        color: 'var(--text)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {chat.title}
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={e => { e.stopPropagation(); handleDeleteChat(chat._id) }}
-                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--err)' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted2)' }}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'var(--muted2)', padding: '2px 4px', fontSize: 12.5,
-                      flexShrink: 0, lineHeight: 1,
-                      opacity: hoveredChatId === chat._id ? 1 : 0,
-                      transition: 'opacity .1s',
-                    }}
-                    aria-label="Delete chat"
-                  >✕</button>
+                  {hoveredChatId === chat._id && renamingChatId !== chat._id && (
+                    <>
+                      <button
+                        onClick={e => { e.stopPropagation(); startRename(chat) }}
+                        title="Rename"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', padding: '2px 3px', flexShrink: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}
+                        aria-label="Rename chat"
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); handleDeleteChat(chat._id) }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--err)' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted2)' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', padding: '2px 3px', fontSize: 12.5, flexShrink: 0, lineHeight: 1 }}
+                        aria-label="Delete chat"
+                      >✕</button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -625,7 +658,7 @@ export default function AiChatClient() {
         )}
 
         {/* Messages */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 12px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {messages.length === 0 && (
             <div style={{ margin: 'auto', textAlign: 'center', maxWidth: 460 }}>
@@ -788,7 +821,7 @@ export default function AiChatClient() {
         </div>
 
         {/* Input area */}
-        <div style={{ padding: '14px 24px 18px', borderTop: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
+        <div style={{ padding: '12px 12px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg2)', flexShrink: 0 }}>
           {/* File drop zone */}
           <div
             onClick={() => fileInputRef.current?.click()}

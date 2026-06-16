@@ -75,3 +75,52 @@ export const deleteChat = mutation({
     await ctx.db.delete(args.id)
   },
 })
+
+/** Rename an AI chat session. */
+export const renameChat = mutation({
+  args: { id: v.id('aiChats'), title: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const chat = await ctx.db.get(args.id)
+    if (!chat || chat.clerkId !== identity.subject) throw new Error('Not found')
+
+    await ctx.db.patch(args.id, { title: args.title.trim() })
+  },
+})
+
+/** Get the stored Anthropic API key for the current admin. */
+export const getApiKey = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') return null
+    return user.anthropicApiKey ?? null
+  },
+})
+
+/** Save (or update) the Anthropic API key for the current admin. */
+export const saveApiKey = mutation({
+  args: { key: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+    await ctx.db.patch(user._id, { anthropicApiKey: args.key })
+  },
+})
+
+/** Remove the stored Anthropic API key for the current admin. */
+export const deleteApiKey = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user) throw new Error('Not found')
+    await ctx.db.patch(user._id, { anthropicApiKey: undefined })
+  },
+})

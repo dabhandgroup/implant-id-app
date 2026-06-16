@@ -8,6 +8,7 @@ export default defineSchema({
     email: v.string(),
     role: v.union(v.literal('patient'), v.literal('clinic_staff'), v.literal('surgeon'), v.literal('admin'), v.literal('manufacturer')),
     name: v.string(),
+    anthropicApiKey: v.optional(v.string()),
   })
     .index('by_clerk', ['clerkId'])
     .index('by_email', ['email']),

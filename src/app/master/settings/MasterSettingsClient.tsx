@@ -154,8 +154,11 @@ export default function MasterSettingsClient() {
   const [secretCopied,      setSecretCopied]       = useState(false)
   const [activeSection,     setActiveSection]      = useState<'security' | 'profile' | 'notifications' | 'admins' | 'ai'>('security')
   const [apiKeyDraft,       setApiKeyDraft]        = useState('')
-  const [apiKeyLoaded,      setApiKeyLoaded]       = useState(false)
   const [apiKeySaved,       setApiKeySaved]        = useState(false)
+
+  const storedApiKey  = useQuery(api.aiChats.getApiKey)
+  const saveApiKeyMut = useMutation(api.aiChats.saveApiKey)
+  const delApiKeyMut  = useMutation(api.aiChats.deleteApiKey)
 
   // Email change
   const updateMyEmail        = useAction(api.users.updateMyEmail)
@@ -199,11 +202,10 @@ export default function MasterSettingsClient() {
     return () => document.removeEventListener('keydown', handle)
   }, [])
 
-  // Load API key from localStorage
+  // Sync draft when stored key loads
   useEffect(() => {
-    setApiKeyDraft(localStorage.getItem('implantid_anthropic_key') ?? '')
-    setApiKeyLoaded(true)
-  }, [])
+    if (storedApiKey !== undefined) setApiKeyDraft(storedApiKey ?? '')
+  }, [storedApiKey])
 
   // All hooks above — guard after all hooks
   if (!isLoaded) return <div className="m-content" />
@@ -766,64 +768,70 @@ export default function MasterSettingsClient() {
           )}
 
           {/* ── AI ASSISTANT ─────────────────────────────────────────────── */}
-          {activeSection === 'ai' && apiKeyLoaded && (
+          {activeSection === 'ai' && (
             <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
                   Anthropic API Key
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-                  Stored only in your browser — never sent to our servers.
+                  Stored securely in your account — synced across all your devices.
                   Get a key at <strong>console.anthropic.com</strong>.
                 </div>
               </div>
               <div style={{ padding: '20px 22px' }}>
-                <div className="field" style={{ marginBottom: 14 }}>
-                  <label>API Key</label>
-                  <input
-                    className="input"
-                    type="password"
-                    placeholder="sk-ant-…"
-                    value={apiKeyDraft}
-                    onChange={e => { setApiKeyDraft(e.target.value); setApiKeySaved(false) }}
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <button
-                    className="btn btn-s"
-                    onClick={() => {
-                      localStorage.setItem('implantid_anthropic_key', apiKeyDraft.trim())
-                      setApiKeySaved(true)
-                      setTimeout(() => setApiKeySaved(false), 3000)
-                    }}
-                    disabled={!apiKeyDraft.trim()}
-                  >
-                    {apiKeySaved ? '✓ Saved' : 'Save key'}
-                  </button>
-                  {apiKeyDraft && (
-                    <button className="btn" style={{ fontSize: 13 }}
-                      onClick={() => {
-                        setApiKeyDraft('')
-                        localStorage.removeItem('implantid_anthropic_key')
-                      }}>
-                      Remove
-                    </button>
-                  )}
-                  {apiKeyDraft && (
-                    <a href="/master/devices/ai"
-                      className="btn btn-s"
-                      style={{ fontSize: 13, textDecoration: 'none' }}>
-                      Open AI Assistant →
-                    </a>
-                  )}
-                </div>
-                <div style={{ marginTop: 18, background: 'color-mix(in srgb,var(--accent) 5%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 14%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
-                  <strong style={{ color: 'var(--text)' }}>What it does:</strong> The AI Assistant lets you chat with Claude to
-                  research medical devices, find MRI safety specs, and import device data from spreadsheets. Your key
-                  is stored in this browser only and used directly — it is never logged or transmitted to Implant ID servers.
-                </div>
+                {storedApiKey === undefined ? (
+                  <div style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
+                ) : (
+                  <>
+                    <div className="field" style={{ marginBottom: 14 }}>
+                      <label>API Key</label>
+                      <input
+                        className="input"
+                        type="password"
+                        placeholder="sk-ant-…"
+                        value={apiKeyDraft}
+                        onChange={e => { setApiKeyDraft(e.target.value); setApiKeySaved(false) }}
+                        autoComplete="off"
+                        spellCheck={false}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <button
+                        className="btn btn-s"
+                        onClick={async () => {
+                          await saveApiKeyMut({ key: apiKeyDraft.trim() })
+                          setApiKeySaved(true)
+                          setTimeout(() => setApiKeySaved(false), 3000)
+                        }}
+                        disabled={!apiKeyDraft.trim()}
+                      >
+                        {apiKeySaved ? '✓ Saved' : 'Save key'}
+                      </button>
+                      {storedApiKey && (
+                        <button className="btn" style={{ fontSize: 13 }}
+                          onClick={async () => {
+                            setApiKeyDraft('')
+                            await delApiKeyMut({})
+                          }}>
+                          Remove
+                        </button>
+                      )}
+                      {storedApiKey && (
+                        <a href="/master/devices/ai"
+                          className="btn btn-s"
+                          style={{ fontSize: 13, textDecoration: 'none' }}>
+                          Open AI Assistant →
+                        </a>
+                      )}
+                    </div>
+                    <div style={{ marginTop: 18, background: 'color-mix(in srgb,var(--accent) 5%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 14%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
+                      <strong style={{ color: 'var(--text)' }}>What it does:</strong> The AI Assistant lets you chat with Claude to
+                      research medical devices, find MRI safety specs, and import device data from spreadsheets. Your key
+                      is stored in your account and syncs across all devices — it is never logged or used outside of AI Assistant calls.
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           )}

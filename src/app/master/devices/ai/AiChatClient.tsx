@@ -326,13 +326,11 @@ export default function AiChatClient() {
         content: m.apiContent ?? m.content,
       }))
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/ai', {
         method: 'POST',
         headers: {
-          'Content-Type':                      'application/json',
-          'x-api-key':                         apiKey,
-          'anthropic-version':                 '2023-06-01',
-          'anthropic-dangerous-allow-browser': 'true',
+          'Content-Type':   'application/json',
+          'x-anthropic-key': apiKey,
         },
         body: JSON.stringify({
           model:      MODEL,

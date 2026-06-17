@@ -1210,22 +1210,34 @@ export default function DashboardClient() {
                 }}>
                   <div style={{
                     width:38, height:38, borderRadius:10, flexShrink:0,
-                    background:'color-mix(in srgb,#f59e0b 10%,transparent)',
-                    border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)',
+                    background: isPending ? 'color-mix(in srgb,#f59e0b 10%,transparent)' : 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                    border: isPending ? '1px solid color-mix(in srgb,#f59e0b 22%,transparent)' : '1px solid color-mix(in srgb,var(--accent) 22%,transparent)',
                     display:'grid', placeItems:'center',
                   }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.7" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
+                    {isPending ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.7" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                    ) : (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    )}
                   </div>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
                       <span style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>
                         {patient.selfReportedDevice}
                       </span>
-                      <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'color-mix(in srgb,#f59e0b 10%,transparent)', border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
-                        Pending verification
-                      </span>
+                      {isPending ? (
+                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'color-mix(in srgb,#f59e0b 10%,transparent)', border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
+                          Pending verification
+                        </span>
+                      ) : (
+                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--muted)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, padding:'2px 7px' }}>
+                          Self-reported
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize:12.5, color:'var(--muted)', display:'flex', gap:12, flexWrap:'wrap' }}>
                       {(patient as any).selfReportedManufacturer && <span>{(patient as any).selfReportedManufacturer}</span>}
@@ -1243,20 +1255,32 @@ export default function DashboardClient() {
                 }}>
                   <div style={{
                     width:38, height:38, borderRadius:10, flexShrink:0,
-                    background:'color-mix(in srgb,#f59e0b 10%,transparent)',
-                    border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)',
+                    background: isPending ? 'color-mix(in srgb,#f59e0b 10%,transparent)' : 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                    border: isPending ? '1px solid color-mix(in srgb,#f59e0b 22%,transparent)' : '1px solid color-mix(in srgb,var(--accent) 22%,transparent)',
                     display:'grid', placeItems:'center',
                   }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.7" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
+                    {isPending ? (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.7" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                      </svg>
+                    ) : (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    )}
                   </div>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
                       <span style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>{imp.device}</span>
-                      <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'color-mix(in srgb,#f59e0b 10%,transparent)', border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
-                        Pending verification
-                      </span>
+                      {isPending ? (
+                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'color-mix(in srgb,#f59e0b 10%,transparent)', border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
+                          Pending verification
+                        </span>
+                      ) : (
+                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--muted)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:5, padding:'2px 7px' }}>
+                          Self-reported
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize:12.5, color:'var(--muted)', display:'flex', gap:12, flexWrap:'wrap' }}>
                       {imp.manufacturer && <span>{imp.manufacturer}</span>}

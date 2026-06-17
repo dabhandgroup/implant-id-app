@@ -1035,6 +1035,12 @@ export default function RegisterClient() {
                 disabled={loading}>
                 {loading ? 'Sending code…' : 'Continue →'}
               </button>
+              <p style={{ textAlign: 'center', marginTop: 14, fontSize: 11.5, color: 'var(--muted2)', lineHeight: 1.55 }}>
+                By continuing, you agree to our{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Terms of Service</a>
+                {' '}and{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Privacy Policy</a>
+              </p>
             </form>
           </div>
 

@@ -24,12 +24,27 @@ export default function OffboardClient() {
           Back to account
         </button>
 
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Deactivate account</h1>
-        <p style={{ color: 'var(--muted)', fontSize: 15, lineHeight: 1.65, marginBottom: 32 }}>
-          Deactivating your Implant ID account will remove your access to the platform. For medical record-keeping compliance, your implant data may be retained for a period required by law. Contact support if you need a full data deletion request.
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Delete account</h1>
+        <p style={{ color: 'var(--muted)', fontSize: 15, lineHeight: 1.65, marginBottom: 20 }}>
+          Deleting your Implant ID account will immediately remove your access to the platform and deactivate your wallet passes. Clinics will no longer be able to look up your record.
         </p>
 
-        <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 12, padding: '16px 20px', marginBottom: 24 }}>
+        {/* Data retention notice */}
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 18px', marginBottom: 24 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
+            Data retention
+          </div>
+          <p style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
+            To comply with UK healthcare record-keeping regulations (NHS Records Management Code of Practice), your medical implant data is retained for a minimum of <strong>8 years</strong> from your last activity, even after account deletion. Your personal contact and login data is deleted within <strong>30 days</strong>.
+          </p>
+          <p style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, margin: '8px 0 0' }}>
+            To request full erasure of your health data, contact{' '}
+            <a href="mailto:privacy@implantid.io" style={{ color: 'var(--accent)', textDecoration: 'none' }}>privacy@implantid.io</a>
+            . We will review your request in accordance with UK GDPR Article 17.
+          </p>
+        </div>
+
+        <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 24 }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)', fontWeight: 500, lineHeight: 1.6 }}>
             ⚠ This action cannot be undone. Your wallet passes will be deactivated and clinics will no longer be able to access your record.
           </div>
@@ -40,7 +55,7 @@ export default function OffboardClient() {
             Cancel — keep my account
           </button>
           <button onClick={() => setConfirmOpen(true)} className="btn btn-danger" style={{ flex: 1 }}>
-            Deactivate account
+            Delete my account
           </button>
         </div>
 
@@ -54,7 +69,7 @@ export default function OffboardClient() {
         </div>
       </div>
 
-      {/* Deactivation confirm modal */}
+      {/* Deletion confirm modal */}
       {confirmOpen && (
         <div className="logout-back open" onClick={() => setConfirmOpen(false)}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
@@ -62,12 +77,17 @@ export default function OffboardClient() {
               <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
-              <h3>Are you sure?</h3>
-              <p>Deactivating will sign you out and disable your account. This cannot be undone from the app — <a href="https://implantid.io/contact" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>contact support</a> to fully delete your data.</p>
+              <h3>Delete your account?</h3>
+              <p>
+                Your access will be removed immediately and your wallet passes deactivated. Medical implant data is retained for 8 years per UK healthcare regulations.{' '}
+                <a href="mailto:privacy@implantid.io" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Contact us</a> to request full data erasure.
+              </p>
             </div>
             <div className="logout-actions">
               <button className="btn" onClick={() => setConfirmOpen(false)}>Cancel</button>
-              <button className="btn btn-danger" onClick={handleSignOut}>Yes, deactivate</button>
+              <button className="btn btn-danger" onClick={handleSignOut} disabled={signingOut}>
+                {signingOut ? 'Deleting…' : 'Yes, delete account'}
+              </button>
             </div>
           </div>
         </div>

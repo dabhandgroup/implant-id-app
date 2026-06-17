@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import OffboardClient from './OffboardClient'
 
 export const metadata: Metadata = {
-  title: 'Deactivate account · Implant ID',
+  title: 'Delete account · Implant ID',
 }
 
 export const dynamic = 'force-dynamic'

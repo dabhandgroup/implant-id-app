@@ -776,6 +776,12 @@ export default function LoginClient() {
               : <>New clinic? <a href="/clinics/onboarding">Apply to join →</a></>
             }
           </p>
+
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 11.5, color: 'var(--muted2)', lineHeight: 1.55 }}>
+            <a href="/privacy" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Privacy Policy</a>
+            {' · '}
+            <a href="/terms" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Terms of Service</a>
+          </p>
         </div>
       </section>
     </main>

@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next'
 import '@/styles/globals.css'
 import Providers from './providers'
 import AppNav from '@/components/AppNav'
-import LegalFooter from '@/components/LegalFooter'
 import CookieBanner from '@/components/CookieBanner'
 // GlobalSearch removed — master admin now uses the live Convex-backed search in MasterShell
 
@@ -39,7 +38,6 @@ export default function RootLayout({
         <Providers>
           <AppNav />
           {children}
-          <LegalFooter />
           <CookieBanner />
         </Providers>
       </body>

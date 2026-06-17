@@ -1037,9 +1037,9 @@ export default function RegisterClient() {
               </button>
               <p style={{ textAlign: 'center', marginTop: 14, fontSize: 11.5, color: 'var(--muted2)', lineHeight: 1.55 }}>
                 By continuing, you agree to our{' '}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Terms of Service</a>
+                <a href="https://implantid.io/legal/terms-and-conditions" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Terms of Service</a>
                 {' '}and{' '}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Privacy Policy</a>
+                <a href="https://implantid.io/legal/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Privacy Policy</a>
               </p>
             </form>
           </div>

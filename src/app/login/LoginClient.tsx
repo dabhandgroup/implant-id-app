@@ -778,9 +778,11 @@ export default function LoginClient() {
           </p>
 
           <p style={{ textAlign: 'center', marginTop: 20, fontSize: 11.5, color: 'var(--muted2)', lineHeight: 1.55 }}>
-            <a href="/privacy" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Privacy Policy</a>
+            <a href="https://implantid.io/legal/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Privacy Policy</a>
             {' · '}
-            <a href="/terms" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Terms of Service</a>
+            <a href="https://implantid.io/legal/terms-and-conditions" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>Terms of Service</a>
+            {' · '}
+            <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted2)', textDecoration: 'underline' }}>GDPR</a>
           </p>
         </div>
       </section>

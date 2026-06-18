@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useClerk, useUser }         from '@clerk/nextjs'
 import { usePathname }               from 'next/navigation'
 import LegalFooter from '@/components/LegalFooter'
@@ -161,6 +161,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
+  const sidebarRef      = useRef<HTMLDivElement>(null)
 
   const unreadCount  = notifications?.filter((n: any) => !n.read).length ?? 0
   const userName     = user?.fullName ?? user?.firstName ?? 'Clinic User'
@@ -176,6 +177,20 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
     document.addEventListener('click', handleOutside)
     return () => document.removeEventListener('click', handleOutside)
   }, [])
+
+  useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    if (profileOpen) {
+      const t = setTimeout(() => {
+        const last = el.querySelector('.pm-signout')
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 330)
+      return () => clearTimeout(t)
+    } else {
+      el.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [profileOpen])
 
   useEffect(() => { setMobOpen(false) }, [pathname])
 
@@ -234,7 +249,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             </button>
           </div>
 
-          <div className="sb-scroll">
+          <div ref={sidebarRef} className="sb-scroll">
 
           {/* ── Lookup ── */}
           <div className="sb-section">Lookup</div>
@@ -291,8 +306,6 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <span className="label">Notifications</span>
             <span className="count">{unreadCount}</span>
           </button>
-
-          <div className="sb-spacer" />
 
           <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
               <a href="/clinics/settings" className="sb-link">

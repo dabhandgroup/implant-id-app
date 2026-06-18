@@ -91,6 +91,7 @@ export default function AccountClient() {
   const sbBotRef      = useRef<HTMLDivElement>(null)
   const mobProfileRef = useRef<HTMLDivElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
+  const sidebarRef    = useRef<HTMLDivElement>(null)
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -102,6 +103,20 @@ export default function AccountClient() {
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
   }, [])
+
+  useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    if (profileOpen) {
+      const t = setTimeout(() => {
+        const last = el.querySelector('.pm-signout')
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 330)
+      return () => clearTimeout(t)
+    } else {
+      el.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [profileOpen])
 
   // Escape closes modals
   useEffect(() => {
@@ -356,7 +371,7 @@ export default function AccountClient() {
             </button>
           </div>
 
-          <div className="sb-scroll">
+          <div ref={sidebarRef} className="sb-scroll">
 
           <span className="sb-section">My record</span>
           <a className="sb-link" href="/patients/dashboard" title="My record">
@@ -446,8 +461,6 @@ export default function AccountClient() {
             <span className="label">Notifications</span>
             <span className="count">{notifications?.filter((n: {read: boolean}) => !n.read).length || 0}</span>
           </button>
-
-          <div className="sb-spacer" />
 
           <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
               <a href="/patients/account" className="sb-link">

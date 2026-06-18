@@ -94,6 +94,7 @@ export default function NotificationsClient() {
 
   const sbBotRef      = useRef<HTMLDivElement>(null)
   const mobProfileRef = useRef<HTMLDivElement>(null)
+  const sidebarRef    = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -104,6 +105,20 @@ export default function NotificationsClient() {
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
   }, [])
+
+  useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    if (profileOpen) {
+      const t = setTimeout(() => {
+        const last = el.querySelector('.pm-signout')
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 330)
+      return () => clearTimeout(t)
+    } else {
+      el.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [profileOpen])
 
   useEffect(() => {
     function handle(e: KeyboardEvent) {
@@ -171,7 +186,7 @@ export default function NotificationsClient() {
             </button>
           </div>
 
-          <div className="sb-scroll">
+          <div ref={sidebarRef} className="sb-scroll">
 
           <span className="sb-section">My record</span>
           <a className="sb-link" href="/patients/dashboard" title="My record">
@@ -261,8 +276,6 @@ export default function NotificationsClient() {
               <span className="pill">{unreadCount}</span>
             )}
           </a>
-
-          <div className="sb-spacer" />
 
           <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
               <a href="/patients/account" className="sb-link">

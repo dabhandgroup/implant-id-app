@@ -115,6 +115,7 @@ export default function DashboardClient() {
   const wCodeRefs       = useRef<(HTMLInputElement | null)[]>([])
   // Prevents the welcome init effect from re-running when Clerk updates the user object mid-flow
   const welcomeShownRef = useRef(false)
+  const sidebarRef      = useRef<HTMLDivElement>(null)
 
   // Generate QR code data URL for the pass card
   useEffect(() => {
@@ -144,6 +145,20 @@ export default function DashboardClient() {
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
   }, [])
+
+  useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    if (profileOpen) {
+      const t = setTimeout(() => {
+        const last = el.querySelector('.pm-signout')
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 330)
+      return () => clearTimeout(t)
+    } else {
+      el.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [profileOpen])
 
   // Escape key closes modals/drawers
   useEffect(() => {
@@ -634,7 +649,7 @@ export default function DashboardClient() {
             </button>
           </div>
 
-          <div className="sb-scroll">
+          <div ref={sidebarRef} className="sb-scroll">
 
           {/* Nav */}
           <span className="sb-section">My record</span>
@@ -727,8 +742,6 @@ export default function DashboardClient() {
             <span className="label">Notifications</span>
             <span className="count">{notifications?.filter((n: {read: boolean}) => !n.read).length || 0}</span>
           </button>
-
-          <div className="sb-spacer" />
 
           <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
               <a href="/patients/account" className="sb-link">

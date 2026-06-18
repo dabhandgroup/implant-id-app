@@ -445,7 +445,7 @@ export default function NotificationsClient() {
 
           {/* Mobile bottom nav */}
           <nav className="mob-nav">
-            <div className="mob-nav-inner">
+            <div className="mob-nav-tabs">
               <a href="/patients/dashboard" className="mob-nav-tab" aria-label="My record">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
                   <rect x="3" y="3" width="7" height="9" rx="1.5"/>

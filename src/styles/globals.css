@@ -266,26 +266,22 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-lock{width:13px!important;height:13px!important;flex-shrink:0;opacity:.5;overflow:hidden;max-width:20px;transition:max-width .3s cubic-bezier(.4,0,.2,1),opacity .18s ease-out,margin .3s}
 /* Hide the lock badge when rail is collapsed (icon only) — reappears on hover */
 .app.collapsed .sidebar:not(:hover) .sb-lock{max-width:0;opacity:0;margin-left:-4px}
-/* Wrapper keeps .sb-bot and .profile-menu in the same positioned context */
-.sb-profile-wrap{position:relative;margin-top:auto;margin-bottom:4px;border-top:1px solid var(--border)}
+/* Profile section at sidebar bottom */
+.sb-profile-wrap{margin-top:auto;border-top:1px solid var(--border)}
 .sb-bot{padding:10px;display:flex;align-items:center;gap:10px;cursor:pointer;border-radius:10px;transition:background .15s, padding .3s cubic-bezier(.4,0,.2,1), gap .3s cubic-bezier(.4,0,.2,1);border:1px solid transparent;position:relative}
 .sb-bot:hover{background:color-mix(in srgb,var(--text) 4%,transparent);border-color:var(--border)}
 .sb-bot .av{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--ff);font-weight:600;font-size:13px;flex-shrink:0}
-.sb-bot .chev{margin-left:auto;opacity:.5;transition:all .15s}
+.sb-bot .chev{margin-left:auto;opacity:.5;transition:transform .2s ease,opacity .15s}
+.sb-bot.open .chev{transform:rotate(180deg)}
 .app.collapsed .sb-bot .chev{display:none}
 .app.collapsed .sidebar:hover .sb-bot .chev{display:block}
 .sb-bot .chev svg{width:14px;height:14px}
-.profile-menu{position:fixed;left:12px;bottom:68px;width:252px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:var(--card-shadow);opacity:0;visibility:hidden;transform:translateY(6px);transition:opacity .18s,visibility .18s,transform .18s;z-index:50}
-.profile-menu.open{opacity:1;visibility:visible;transform:translateY(0)}
-.app.collapsed .profile-menu{left:78px}
-.profile-menu a,.profile-menu button{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;color:var(--text);font-family:var(--ff);font-size:13px;text-decoration:none;cursor:pointer;background:transparent;border:0;width:100%;text-align:left;transition:all .12s}
-.profile-menu a:hover,.profile-menu button:hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
-.profile-menu a svg,.profile-menu button svg{width:15px;height:15px;flex-shrink:0;color:var(--muted);opacity:.85}
-.profile-menu hr{border:0;height:1px;background:var(--border);margin:4px 2px}
-.profile-menu .danger{color:var(--err)}
-.profile-menu .danger svg{color:var(--err);opacity:1}
-.pm-user{display:flex;align-items:center;gap:10px;padding:10px 10px 8px}
-.pm-label{font-family:var(--ff);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted2);font-weight:600;padding:8px 12px 4px;margin-top:2px}
+/* Profile menu — inline accordion within the sidebar */
+.profile-menu{overflow:hidden;max-height:0;opacity:0;transition:max-height .28s cubic-bezier(.4,0,.2,1),opacity .18s ease}
+.profile-menu.open{max-height:600px;opacity:1;padding-bottom:6px}
+.app.collapsed .profile-menu.open{max-height:0!important;opacity:0!important;pointer-events:none}
+.pm-signout{color:var(--err)!important}
+.pm-signout:hover{color:var(--err)!important;background:color-mix(in srgb,var(--err) 8%,transparent)!important}
 .sb-bot .name{font-family:var(--ff);font-size:13px;font-weight:500;color:var(--text);line-height:1.2}
 .sb-bot .role{font-size:11.5px;color:var(--muted2);line-height:1.2;margin-top:2px}
 
@@ -832,10 +828,6 @@ html,body{overflow-x:clip}
   /* Mob-nav floats above sidebar so hamburger→X stays visible */
   .mob-nav{display:flex;z-index:90!important}
   .mob-header{display:flex}
-  /* On mobile the sidebar uses transform:translateX, which makes position:fixed relative
-     to the sidebar box rather than the viewport. Switch to absolute so the menu always
-     appears flush above the trigger button regardless of how far the sidebar is scrolled. */
-  .profile-menu{position:absolute!important;left:0!important;right:0!important;bottom:calc(100% + 4px)!important;width:auto!important}
   .app-top{padding:12px 20px!important;top:60px!important;position:sticky!important}
   .app-main:not(:has(.app-top)) .app-content{padding-top:20px!important}
 }

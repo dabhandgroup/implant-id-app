@@ -352,15 +352,15 @@ export default function PatientDetailClient({ id }: Props) {
                 <div key={d._id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 2 }}>
-                      {d.manufacturer} {d.deviceName}
+                      {d.device?.manufacturer} {d.device?.model}
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      {d.mriStatus && (
-                        <span style={{ fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 5, color: MRI_COLOUR[d.mriStatus] ?? 'var(--muted)', background: `color-mix(in srgb,${MRI_COLOUR[d.mriStatus] ?? 'transparent'} 10%,transparent)`, border: `1px solid color-mix(in srgb,${MRI_COLOUR[d.mriStatus] ?? 'transparent'} 25%,transparent)` }}>
-                          {MRI_LABEL[d.mriStatus] ?? d.mriStatus}
+                      {d.device?.mriStatus && (
+                        <span style={{ fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 5, color: MRI_COLOUR[d.device.mriStatus] ?? 'var(--muted)', background: `color-mix(in srgb,${MRI_COLOUR[d.device.mriStatus] ?? 'transparent'} 10%,transparent)`, border: `1px solid color-mix(in srgb,${MRI_COLOUR[d.device.mriStatus] ?? 'transparent'} 25%,transparent)` }}>
+                          {MRI_LABEL[d.device.mriStatus] ?? d.device.mriStatus}
                         </span>
                       )}
-                      {d.deviceType && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{d.deviceType}</span>}
+                      {d.device?.deviceType && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{d.device.deviceType}</span>}
                       {d.serialNumber && <span style={{ fontSize: 12, color: 'var(--muted)' }}>S/N: {d.serialNumber}</span>}
                     </div>
                   </div>

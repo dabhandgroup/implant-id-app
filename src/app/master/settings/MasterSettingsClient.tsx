@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useUser, useClerk }   from '@clerk/nextjs'
+import { useUser, useClerk, useReverification } from '@clerk/nextjs'
 import { useRouter }           from 'next/navigation'
 import { useQuery, useMutation, useAction } from 'convex/react'
 import { api as apiBase }      from '../../../../convex/_generated/api'
@@ -44,6 +44,12 @@ export default function MasterSettingsClient() {
   const { user, isLoaded }  = useUser()
   const { signOut }         = useClerk()
   const router              = useRouter()
+
+  const addPasskeySecure    = useReverification(async () => { await user?.createPasskey() })
+  const removePasskeySecure = useReverification(async (id: string) => {
+    const pk = (user?.passkeys ?? []).find((p: { id: string }) => p.id === id)
+    await pk?.delete()
+  })
 
   // ── Notification settings ─────────────────────────────────────────────────
   const notifSettings   = useQuery(api.adminSettings.getMyAdminNotificationSettings)
@@ -224,7 +230,7 @@ export default function MasterSettingsClient() {
     setPasskeyErr('')
     setPasskeyLoading(true)
     try {
-      await user.createPasskey()
+      await addPasskeySecure()
     } catch (err: unknown) {
       const e = err as { errors?: Array<{ message: string }> }
       setPasskeyErr(e?.errors?.[0]?.message ?? 'Failed to add passkey — try again.')
@@ -237,8 +243,7 @@ export default function MasterSettingsClient() {
     if (!user) return
     setPasskeyErr('')
     try {
-      const pk = passkeys.find(p => p.id === id)
-      await pk?.delete()
+      await removePasskeySecure(id)
     } catch (err: unknown) {
       const e = err as { errors?: Array<{ message: string }> }
       setPasskeyErr(e?.errors?.[0]?.message ?? 'Failed to remove passkey — try again.')

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useClerk } from '@clerk/nextjs'
 import LegalFooter from '@/components/LegalFooter'
 
 export default function Error({
@@ -10,6 +11,8 @@ export default function Error({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  const { signOut } = useClerk()
+
   useEffect(() => {
     console.error(error)
   }, [error])
@@ -103,9 +106,9 @@ export default function Error({
           <button onClick={reset} className="btn btn-s btn-lg">
             Try again
           </button>
-          <a href="/" className="btn btn-lg" style={{ textDecoration: 'none' }}>
-            Go to home
-          </a>
+          <button className="btn btn-lg" onClick={() => signOut({ redirectUrl: '/login' })}>
+            Sign out
+          </button>
         </div>
       </div>
 

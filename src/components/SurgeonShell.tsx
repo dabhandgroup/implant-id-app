@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useClerk, useUser } from '@clerk/nextjs'
 import { usePathname } from 'next/navigation'
+import LegalFooter from '@/components/LegalFooter'
 
 interface SurgeonShellProps {
   children: React.ReactNode
@@ -267,6 +268,8 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
           <main style={{ flex: 1 }}>
             {children}
           </main>
+
+          <LegalFooter />
 
         </div>
       </div>

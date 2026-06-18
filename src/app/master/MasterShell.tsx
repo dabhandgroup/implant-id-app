@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useClerk }                    from '@clerk/nextjs'
 import { usePathname, useRouter }      from 'next/navigation'
+import LegalFooter from '@/components/LegalFooter'
 import { useQuery }                    from 'convex/react'
 import { api as apiBase }              from '../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -448,6 +449,8 @@ export default function MasterShell({ children }: MasterShellProps) {
           <main style={{ flex: 1 }}>
             {children}
           </main>
+
+          <LegalFooter />
 
         </div>
       </div>

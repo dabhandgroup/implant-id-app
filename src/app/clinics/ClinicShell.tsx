@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useClerk, useUser }         from '@clerk/nextjs'
 import { usePathname }               from 'next/navigation'
+import LegalFooter from '@/components/LegalFooter'
 import { useQuery, useMutation }     from 'convex/react'
 import { api as apiBase }            from '../../../convex/_generated/api'
 import Link                          from 'next/link'
@@ -378,6 +379,8 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
           <section className="app-content">
             {children}
           </section>
+
+          <LegalFooter />
 
         </main>
       </div>

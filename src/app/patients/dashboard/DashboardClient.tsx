@@ -5,7 +5,7 @@ import { useQuery, useMutation }        from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
 import { useRouter, useSearchParams }   from 'next/navigation'
 import QRCode                          from 'qrcode'
-import LegalFooter                     from '@/components/LegalFooter'
+
 
 // ── Confetti fall from top ────────────────────────────────────────────────────
 const CONFETTI_COLORS = ['#29869f','#29a8cc','#2f9e72','#d97d2c','#8b5cf6','#ec4899','#f59e0b']
@@ -1398,8 +1398,6 @@ export default function DashboardClient() {
             </div>
 
           </div>{/* /pt-wrap */}
-
-          <LegalFooter />
 
           {/* Mobile bottom navigation */}
           <nav className="mob-nav" aria-label="Mobile navigation">

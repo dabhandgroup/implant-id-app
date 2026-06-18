@@ -5,7 +5,7 @@ export default function LegalFooter() {
     <footer className="legal-footer">
       <div className="legal-footer-inner">
         <a href="/" className="legal-footer-brand" aria-label="Implant ID home">
-          <img src="/icon.svg" alt="" width={27} height={27} />
+          <img src="/icon.svg" alt="" width={34} height={34} />
           <span><b>Implant</b>ID</span>
         </a>
         <p className="legal-footer-copy">

@@ -3,6 +3,7 @@
 import { useState }          from 'react'
 import { useClerk, useUser } from '@clerk/nextjs'
 import { usePathname }       from 'next/navigation'
+import LegalFooter from '@/components/LegalFooter'
 import { useQuery }          from 'convex/react'
 import { api as apiBase }    from '../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -99,6 +100,9 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
           </div>
 
           {children}
+
+          <LegalFooter />
+
         </div>
       </div>
 

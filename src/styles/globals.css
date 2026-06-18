@@ -246,8 +246,8 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .app.collapsed .sidebar:not(:hover) .sb-logo{padding:6px 3px 16px}
 .app.collapsed .sidebar:hover .sb-logo{padding:6px 10px 16px}
 .app.collapsed .sidebar:not(:hover) .sb-logo .sb-toggle{display:none}
-.app.collapsed .sidebar:not(:hover) .sb-bot{padding:10px 7px;gap:0}
-.app.collapsed .sidebar:hover .sb-bot{padding:10px}
+.app.collapsed .sidebar:not(:hover) .sb-identity{padding:10px 7px;gap:0;justify-content:center}
+.app.collapsed .sidebar:hover .sb-identity{padding:10px 12px}
 /* When the collapsed rail is hovered, push the grid column to make room (content shrinks). */
 .app.collapsed:has(.sidebar:hover){grid-template-columns:236px 1fr}
 .sb-expand{display:none;position:fixed;top:14px;left:80px;width:30px;height:30px;border-radius:8px;background:var(--bg2);border:1px solid var(--border2);color:var(--muted);cursor:pointer;align-items:center;justify-content:center;z-index:60;transition:all .15s}
@@ -267,26 +267,14 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-lock{width:13px!important;height:13px!important;flex-shrink:0;opacity:.5;overflow:hidden;max-width:20px;transition:max-width .3s cubic-bezier(.4,0,.2,1),opacity .18s ease-out,margin .3s}
 /* Hide the lock badge when rail is collapsed (icon only) — reappears on hover */
 .app.collapsed .sidebar:not(:hover) .sb-lock{max-width:0;opacity:0;margin-left:-4px}
-/* Profile trigger is pinned below the scroll zone — always visible */
-.sb-profile-wrap{border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
-.sb-spacer{flex:1;min-height:0}
-.sb-push{flex:1;min-height:0}
-.sb-bot{padding:10px;display:flex;align-items:center;gap:10px;cursor:pointer;border-radius:10px;transition:background .15s, padding .3s cubic-bezier(.4,0,.2,1), gap .3s cubic-bezier(.4,0,.2,1);border:1px solid transparent;position:relative}
-.sb-bot:hover{background:color-mix(in srgb,var(--text) 4%,transparent);border-color:var(--border)}
-.sb-bot .av{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--ff);font-weight:600;font-size:13px;flex-shrink:0}
-.sb-bot .chev{margin-left:auto;opacity:.5;transition:transform .2s ease,opacity .15s}
-.sb-bot.open .chev{transform:rotate(180deg)}
-.app.collapsed .sb-bot .chev{display:none}
-.app.collapsed .sidebar:hover .sb-bot .chev{display:block}
-.sb-bot .chev svg{width:14px;height:14px}
-/* Profile menu — inline accordion within the sidebar */
-.profile-menu{overflow:hidden;max-height:0;opacity:0;transition:max-height .28s cubic-bezier(.4,0,.2,1),opacity .18s ease}
-.profile-menu.open{max-height:600px;opacity:1;padding-bottom:6px}
-.app.collapsed .profile-menu.open{max-height:0!important;opacity:0!important;pointer-events:none}
-.pm-signout{color:var(--err)!important}
-.pm-signout:hover{color:var(--err)!important;background:color-mix(in srgb,var(--err) 8%,transparent)!important}
-.sb-bot .name{font-family:var(--ff);font-size:13px;font-weight:500;color:var(--text);line-height:1.2}
-.sb-bot .role{font-size:11.5px;color:var(--muted2);line-height:1.2;margin-top:2px}
+/* Inline profile identity block — always visible at bottom of sb-scroll */
+.sb-divider{height:1px;background:var(--border);margin:10px 0 6px}
+.sb-identity{padding:10px 12px;display:flex;align-items:center;gap:10px;border-radius:10px;background:color-mix(in srgb,var(--text) 3%,transparent);margin-bottom:2px}
+.sb-identity .av{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--ff);font-weight:600;font-size:13px;flex-shrink:0}
+.sb-identity .name{font-family:var(--ff);font-size:13px;font-weight:500;color:var(--text);line-height:1.2}
+.sb-identity .role{font-size:11.5px;color:var(--muted2);line-height:1.2;margin-top:2px}
+.sb-signout{color:var(--err)!important}
+.sb-signout:hover{color:var(--err)!important;background:color-mix(in srgb,var(--err) 8%,transparent)!important}
 
 .app-main{display:flex;flex-direction:column;min-width:0}
 .app-top{display:flex;align-items:center;justify-content:space-between;padding:12px 28px;background:color-mix(in srgb,var(--bg2) 92%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;gap:16px}
@@ -572,9 +560,9 @@ footer::before{content:"";position:absolute;top:-200px;left:50%;transform:transl
 /* Smoother sidebar hover */
 .app.collapsed .sidebar{transition:width .28s cubic-bezier(.4,0,.2,1), box-shadow .2s}
 .app.collapsed .sidebar:hover{transition-delay:.12s}
-.sb-link,.sb-link span,.sb-bot .name,.sb-bot .role{transition:opacity .15s}
-.app.collapsed .sb-link span,.app.collapsed .sb-bot .name,.app.collapsed .sb-bot .role{opacity:0}
-.app.collapsed .sidebar:hover .sb-link span,.app.collapsed .sidebar:hover .sb-bot .name,.app.collapsed .sidebar:hover .sb-bot .role{opacity:1;transition-delay:.18s}
+.sb-link,.sb-link span,.sb-identity .name,.sb-identity .role{transition:opacity .15s}
+.app.collapsed .sb-link span,.app.collapsed .sb-identity .name,.app.collapsed .sb-identity .role{opacity:0}
+.app.collapsed .sidebar:hover .sb-link span,.app.collapsed .sidebar:hover .sb-identity .name,.app.collapsed .sidebar:hover .sb-identity .role{opacity:1;transition-delay:.18s}
 
 /* Live search suggestions (dashboard hero search) */
 .live-sugg{position:absolute;top:calc(100% + 8px);left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:6px;box-shadow:var(--card-shadow);z-index:30;opacity:0;visibility:hidden;transform:translateY(-4px);transition:all .15s;color:var(--text)}
@@ -786,8 +774,6 @@ html,body{overflow-x:clip}
 .mob-hdr-menu a:hover,.mob-hdr-menu button:hover{background:color-mix(in srgb,var(--text) 5%,transparent)}
 .mob-hdr-menu .danger{color:var(--err)}
 
-/* === Mobile profile bottom sheet (hidden on desktop) === */
-.mob-sheet-backdrop,.mob-sheet{display:none}
 
 /* === Mobile bottom nav bar (tabs only — no logo) === */
 .mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:calc(62px + env(safe-area-inset-bottom,0px));background:var(--bg2);border-top:1px solid var(--border);z-index:90;padding:0 4px;padding-bottom:env(safe-area-inset-bottom,0px);align-items:flex-start;box-shadow:0 -2px 20px rgba(14,42,51,.08)}
@@ -819,12 +805,11 @@ html,body{overflow-x:clip}
   /* Hide sidebar logo on mobile — already shown in mob-header */
   .sidebar .sb-logo{display:none!important}
   /* Neutralise ALL collapsed-state overrides inside the mobile drawer */
-  .sidebar .sb-link span,.sidebar .sb-bot .name,.sidebar .sb-bot .role,.sidebar .sb-notif .label,.sidebar .sb-notif .count{max-width:200px!important;opacity:1!important;margin-left:0!important}
+  .sidebar .sb-link span,.sidebar .sb-identity .name,.sidebar .sb-identity .role,.sidebar .sb-notif .label,.sidebar .sb-notif .count{max-width:200px!important;opacity:1!important;margin-left:0!important}
   /* Section headers: remove overflow + nowrap constraints so text is never clipped */
   .sidebar .sb-section{opacity:1!important;padding:16px 15px 6px!important;overflow:visible!important;white-space:normal!important}
-  /* sb-bot: always left-aligned on mobile regardless of collapsed state */
-  .sidebar .sb-bot{justify-content:flex-start!important;padding:10px!important;gap:10px!important}
-  .sidebar .sb-bot .chev{display:block!important}
+  /* sb-identity: always left-aligned on mobile regardless of collapsed state */
+  .sidebar .sb-identity{justify-content:flex-start!important;padding:10px 12px!important;gap:10px!important}
   .sb-link{justify-content:flex-start!important;padding:11px 15px!important}
   /* Match notif button padding to links */
   .sb-notif{padding:11px 15px!important;gap:11px!important}
@@ -836,24 +821,6 @@ html,body{overflow-x:clip}
   .mob-header{display:flex}
   .app-top{padding:12px 20px!important;top:60px!important;position:sticky!important}
   .app-main:not(:has(.app-top)) .app-content{padding-top:20px!important}
-  /* Profile section in sidebar hidden on mobile — bottom sheet is the mobile profile UI */
-  .sidebar .sb-profile-wrap{display:none!important}
-  /* Profile bottom sheet */
-  .mob-sheet-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:95;opacity:0;pointer-events:none;transition:opacity .25s}
-  .mob-sheet-backdrop.open{opacity:1;pointer-events:auto}
-  .mob-sheet{position:fixed;left:0;right:0;bottom:0;background:var(--bg2);border-radius:20px 20px 0 0;z-index:96;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;max-height:85vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,16px)}
-  .mob-sheet.open{transform:translateY(0)}
-  .mob-sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:14px auto 10px;flex-shrink:0}
-  .mob-sheet-info{padding:10px 22px 16px;border-bottom:1px solid var(--border)}
-  .mob-sheet-info strong{display:block;font-family:var(--ff);font-weight:600;font-size:15px;color:var(--text)}
-  .mob-sheet-info span{display:block;font-size:12.5px;color:var(--muted2);margin-top:3px}
-  .mob-sheet-item{display:flex;align-items:center;gap:14px;padding:14px 22px;font-family:var(--ff);font-size:15px;color:var(--text);text-decoration:none;background:transparent;border:0;width:100%;text-align:left;cursor:pointer;min-height:52px;transition:background .12s}
-  .mob-sheet-item:active{background:color-mix(in srgb,var(--text) 5%,transparent)}
-  .mob-sheet-item svg{width:20px;height:20px;flex-shrink:0;stroke:var(--muted)}
-  .mob-sheet-section{font-size:11px;font-weight:600;color:var(--muted2);letter-spacing:.06em;text-transform:uppercase;padding:12px 22px 4px;display:block}
-  .mob-sheet-divider{height:1px;background:var(--border);margin:6px 0}
-  .mob-sheet-danger{color:var(--err)}
-  .mob-sheet-danger svg{stroke:var(--err)}
 }
 
 /* Language sidebar */

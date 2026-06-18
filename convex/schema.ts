@@ -288,6 +288,13 @@ export default defineSchema({
     .index('by_clinic', ['clinicId'])
     .index('by_staff', ['staffId']),
 
+  // Device lookup events — incremented by recordPatientLookup for each linked device
+  deviceLookups: defineTable({
+    deviceId:  v.id('devices'),
+    createdAt: v.number(),
+  })
+    .index('by_device_and_time', ['deviceId', 'createdAt']),
+
   // Manufacturer applications (pre-approval)
   manufacturers: defineTable({
     // Basic identity

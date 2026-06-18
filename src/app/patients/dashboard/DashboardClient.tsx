@@ -1613,7 +1613,7 @@ export default function DashboardClient() {
         </div>
         <div className="notif-foot">
           <a href="#" onClick={e => { e.preventDefault(); markRead() }}>Mark all as read</a>
-          <a href="/patients/account">Notification settings</a>
+          <a href="/patients/notifications">View all →</a>
         </div>
       </aside>
 

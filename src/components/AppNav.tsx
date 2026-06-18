@@ -21,6 +21,7 @@ const APP_ROUTES = [
   '/patients/account',
   '/patients/find-care',
   '/patients/share',
+  '/patients/notifications',
   '/patients/wallet',
   '/patients/offboard',
   '/admin/dashboard',

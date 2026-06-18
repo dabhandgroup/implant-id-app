@@ -1001,6 +1001,24 @@ export const getMyNotifications = query({
   },
 })
 
+/** Mark a single notification as read. */
+export const markNotificationRead = mutation({
+  args: { notificationId: v.id('notifications') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return
+    const notif = await ctx.db.get(args.notificationId)
+    if (!notif) return
+    // Verify ownership — don't allow marking other users' notifications
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user || notif.userId !== user._id) return
+    await ctx.db.patch(args.notificationId, { read: true })
+  },
+})
+
 /** Mark all unread notifications as read for the current user. */
 export const markAllNotificationsRead = mutation({
   args: {},
@@ -1562,6 +1580,19 @@ export const recordPatientLookup = mutation({
       detail:    `Patient record viewed via scan`,
       createdAt: Date.now(),
     })
+
+    // Record a lookup event for each of the patient's linked devices (manufacturer analytics)
+    const linkedDevices = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_patient', (q) => q.eq('patientId', args.patientId))
+      .collect()
+    const now = Date.now()
+    for (const link of linkedDevices) {
+      await ctx.db.insert('deviceLookups', {
+        deviceId:  link.deviceId,
+        createdAt: now,
+      })
+    }
 
     // Notify patient
     const patient = await ctx.db.get(args.patientId)

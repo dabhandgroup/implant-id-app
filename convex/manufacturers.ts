@@ -825,3 +825,43 @@ export const rejectDevice = mutation({
     return { rejected: true }
   },
 })
+
+/** Returns the number of times any of the manufacturer's devices have been looked up in the last 30 days. */
+export const getManufacturerLookupStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return { lookups30d: 0 }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user || user.role !== 'manufacturer') return { lookups30d: 0 }
+
+    const mfr = await ctx.db
+      .query('manufacturers')
+      .withIndex('by_email', (q) => q.eq('contactEmail', user.email))
+      .first()
+    if (!mfr) return { lookups30d: 0 }
+
+    const devices = await ctx.db
+      .query('devices')
+      .withIndex('by_submitted_manufacturer', (q) => q.eq('submittedByManufacturerId', mfr._id))
+      .collect()
+
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+    let lookups30d = 0
+    for (const device of devices) {
+      const rows = await ctx.db
+        .query('deviceLookups')
+        .withIndex('by_device_and_time', (q) =>
+          q.eq('deviceId', device._id).gte('createdAt', cutoff)
+        )
+        .collect()
+      lookups30d += rows.length
+    }
+
+    return { lookups30d }
+  },
+})

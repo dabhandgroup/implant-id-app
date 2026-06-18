@@ -9,6 +9,7 @@
  */
 
 import type * as adminSettings from "../adminSettings.js";
+import type * as aiChats from "../aiChats.js";
 import type * as clinics from "../clinics.js";
 import type * as devices from "../devices.js";
 import type * as documents from "../documents.js";
@@ -30,6 +31,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   adminSettings: typeof adminSettings;
+  aiChats: typeof aiChats;
   clinics: typeof clinics;
   devices: typeof devices;
   documents: typeof documents;

@@ -22,11 +22,12 @@ function formatDate(ts: number) {
 export default function MfrDashboardClient() {
   const { user }  = useUser()
   const { signOut } = useClerk()
-  const mfr       = useQuery(api.manufacturers.getMyManufacturer)
+  const mfr        = useQuery(api.manufacturers.getMyManufacturer)
   const allDevices = useQuery(
     api.devices.listMyDevices,
     mfr?.companyName ? { manufacturerName: mfr.companyName } : 'skip',
   )
+  const lookupStats = useQuery(api.manufacturers.getManufacturerLookupStats)
 
   const [tab,           setTab]           = useState<Tab>('dashboard')
   const [sbCollapsed,   setSbCollapsed]   = useState(false)
@@ -168,8 +169,8 @@ export default function MfrDashboardClient() {
                   </div>
                   <div className="kpi">
                     <div className="k">Clinic lookups (30d)</div>
-                    <div className="v">—</div>
-                    <div className="delta muted">Tracking in progress</div>
+                    <div className="v">{lookupStats === undefined ? '…' : lookupStats.lookups30d}</div>
+                    <div className="delta muted">{lookupStats === undefined ? '' : lookupStats.lookups30d === 0 ? 'No lookups yet' : 'Times your devices were viewed'}</div>
                   </div>
                 </div>
 

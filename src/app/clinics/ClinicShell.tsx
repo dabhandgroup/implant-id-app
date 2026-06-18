@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useClerk, useUser }         from '@clerk/nextjs'
 import { usePathname }               from 'next/navigation'
 import LegalFooter from '@/components/LegalFooter'
@@ -161,6 +161,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
+  const sidebarRef      = useRef<HTMLElement>(null)
 
   const unreadCount  = notifications?.filter((n: any) => !n.read).length ?? 0
   const userName     = user?.fullName ?? user?.firstName ?? 'Clinic User'
@@ -176,6 +177,17 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
     document.addEventListener('click', handleOutside)
     return () => document.removeEventListener('click', handleOutside)
   }, [])
+
+  useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    if (profileOpen) {
+      const t = setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }), 50)
+      return () => clearTimeout(t)
+    } else {
+      el.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [profileOpen])
 
   useEffect(() => { setMobOpen(false) }, [pathname])
 
@@ -222,7 +234,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
       <div className={`app${sbCollapsed ? ' collapsed' : ''}`} id="app">
 
         {/* ── Sidebar ── */}
-        <aside className={`sidebar${mobOpen ? ' open' : ''}`}>
+        <aside ref={sidebarRef} className={`sidebar${mobOpen ? ' open' : ''}`}>
 
           <div className="sb-logo">
             <a href="/clinics/scan-patient" className="logo">

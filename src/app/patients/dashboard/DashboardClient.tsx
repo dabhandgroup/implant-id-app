@@ -115,6 +115,7 @@ export default function DashboardClient() {
   const wCodeRefs       = useRef<(HTMLInputElement | null)[]>([])
   // Prevents the welcome init effect from re-running when Clerk updates the user object mid-flow
   const welcomeShownRef = useRef(false)
+  const sidebarRef      = useRef<HTMLElement>(null)
 
   // Generate QR code data URL for the pass card
   useEffect(() => {
@@ -144,6 +145,17 @@ export default function DashboardClient() {
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
   }, [])
+
+  useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    if (profileOpen) {
+      const t = setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }), 50)
+      return () => clearTimeout(t)
+    } else {
+      el.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [profileOpen])
 
   // Escape key closes modals/drawers
   useEffect(() => {
@@ -615,7 +627,7 @@ export default function DashboardClient() {
       <div className={`app${sbCollapsed ? ' collapsed' : ''}`}>
 
         {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-        <aside className={`sidebar${sbOpen ? ' open' : ''}`}>
+        <aside ref={sidebarRef} className={`sidebar${sbOpen ? ' open' : ''}`}>
 
           {/* Logo + collapse toggle */}
           <div className="sb-logo">

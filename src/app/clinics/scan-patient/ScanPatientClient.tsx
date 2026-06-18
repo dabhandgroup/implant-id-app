@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useQuery, useMutation }   from 'convex/react'
-import { useSearchParams }         from 'next/navigation'
+import { useQuery }                from 'convex/react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { api as apiBase }          from '../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
@@ -26,19 +26,15 @@ function timeAgo(ts: number): string {
 
 export default function ScanPatientClient() {
   const searchParams = useSearchParams()
+  const router       = useRouter()
 
   // ── All hooks at top ──────────────────────────────────────────────────────
-  const [inputCode,        setInputCode]        = useState(searchParams?.get('code') ?? '')
-  const [searchCode,       setSearchCode]       = useState(searchParams?.get('code') ?? '')
-  const [toast,            setToast]            = useState('')
-  const [toastVisible,     setToastVisible]     = useState(false)
-  const [cameraActive,     setCameraActive]     = useState(false)
-  const [cameraError,      setCameraError]      = useState('')
-  const [captureError,     setCaptureError]     = useState('')
-  const [isCapturing,      setIsCapturing]      = useState(false)
-  const [videoMirrored,    setVideoMirrored]    = useState(false)
-  const [accessRequested,  setAccessRequested]  = useState(false)
-  const [requestingAccess, setRequestingAccess] = useState(false)
+  const [inputCode,    setInputCode]    = useState('')
+  const [cameraActive, setCameraActive] = useState(false)
+  const [cameraError,  setCameraError]  = useState('')
+  const [captureError, setCaptureError] = useState('')
+  const [isCapturing,  setIsCapturing]  = useState(false)
+  const [videoMirrored,setVideoMirrored]= useState(false)
 
   const inputRef  = useRef<HTMLInputElement>(null)
   const videoRef  = useRef<HTMLVideoElement>(null)
@@ -46,26 +42,21 @@ export default function ScanPatientClient() {
   const streamRef = useRef<MediaStream | null>(null)
   const rafRef    = useRef<number>(0)
 
-  const result          = useQuery(api.patients.getPatientByCode, searchCode ? { code: searchCode } : 'skip')
-  const recordLookup    = useMutation(api.patients.recordPatientLookup)
-  const requestAccess   = useMutation(api.patients.requestClinicAccess)
-
   // Dashboard section queries
-  const stats           = useQuery(api.clinics.getClinicStats)
-  const recentLookups   = useQuery(api.clinics.getRecentLookups)
-  const todayCount      = useQuery(api.clinics.getTodayLookupCount)
-  const deviceCount     = useQuery(api.devices.getDeviceCount)
-  const clinicPatients  = useQuery(api.clinics.listClinicPatients)
+  const stats          = useQuery(api.clinics.getClinicStats)
+  const recentLookups  = useQuery(api.clinics.getRecentLookups)
+  const todayCount     = useQuery(api.clinics.getTodayLookupCount)
+  const deviceCount    = useQuery(api.devices.getDeviceCount)
+  const clinicPatients = useQuery(api.clinics.listClinicPatients)
 
   const flagged = (clinicPatients ?? []).filter((p: any) => p.verificationStatus !== 'active').slice(0, 5)
 
+  // If a ?code= param is present (e.g. from a deep link), go straight to patient view
   useEffect(() => {
-    if (result?._id && searchCode) {
-      recordLookup({ patientId: result._id, clinicName: undefined }).catch(() => {})
-    }
-  }, [result?._id]) // eslint-disable-line react-hooks/exhaustive-deps
+    const code = searchParams?.get('code')
+    if (code) router.replace('/clinics/patient-view?code=' + encodeURIComponent(code))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { setAccessRequested(false) }, [result?._id])
   useEffect(() => () => { stopCamera() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Camera ────────────────────────────────────────────────────────────────
@@ -92,7 +83,7 @@ export default function ScanPatientClient() {
       const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' })
       if (code?.data) {
         const iid = extractIidCode(code.data)
-        if (iid) { stopCamera(); setSearchCode(iid); setInputCode(iid); showToast('QR code detected'); return }
+        if (iid) { stopCamera(); router.push('/clinics/patient-view?code=' + encodeURIComponent(iid)); return }
       }
       rafRef.current = requestAnimationFrame(scanFrame)
     }).catch(() => { rafRef.current = requestAnimationFrame(scanFrame) })
@@ -114,7 +105,7 @@ export default function ScanPatientClient() {
       const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' })
       if (code?.data) {
         const iid = extractIidCode(code.data)
-        if (iid) { stopCamera(); setSearchCode(iid); setInputCode(iid); showToast('QR code detected'); return }
+        if (iid) { stopCamera(); router.push('/clinics/patient-view?code=' + encodeURIComponent(iid)); return }
       }
       setCaptureError('No QR code found — ensure the code is fully in frame and try again')
     } catch {
@@ -152,174 +143,14 @@ export default function ScanPatientClient() {
 
   function handleSearch() {
     const c = inputCode.trim().toUpperCase()
-    if (c) setSearchCode(c)
+    if (c) router.push('/clinics/patient-view?code=' + encodeURIComponent(c))
   }
 
   function handleKeyDown(e: React.KeyboardEvent) { if (e.key === 'Enter') handleSearch() }
 
   function handleClear() {
-    setInputCode(''); setSearchCode(''); setAccessRequested(false)
+    setInputCode('')
     inputRef.current?.focus()
-  }
-
-  function showToast(msg: string) {
-    setToast(msg); setToastVisible(true)
-    setTimeout(() => setToastVisible(false), 2500)
-  }
-
-  async function handleRequestAccess() {
-    if (!result?._id || requestingAccess) return
-    setRequestingAccess(true)
-    try {
-      const res: any = await requestAccess({ patientId: result._id, reason: 'Access requested via scan card' })
-      setAccessRequested(true)
-      showToast(res?.autoApproved ? 'Patient added to your list' : 'Access request sent')
-    } catch { showToast('Could not send request — try again') }
-    finally { setRequestingAccess(false) }
-  }
-
-  // ── Derived ───────────────────────────────────────────────────────────────
-
-  const isLoading      = !!(searchCode && result === undefined)
-  const notFound       = !!(searchCode && result === null)
-  const found          = result !== null && result !== undefined
-  const sharingEnabled = found ? result.clinicSharingEnabled !== false : true
-
-  const MRI_BADGE: Record<string, { cls: string; label: string }> = {
-    safe:        { cls: 'mri-safe',        label: 'MR Safe'        },
-    conditional: { cls: 'mri-conditional', label: 'MR Conditional' },
-    unsafe:      { cls: 'mri-unsafe',      label: 'MR Unsafe'      },
-  }
-  const mriKey   = found ? (result.mriStatus ?? (result.verificationStatus === 'active' ? 'conditional' : null)) : null
-  const mriBadge = mriKey ? MRI_BADGE[mriKey] : null
-
-  // ── Result card ───────────────────────────────────────────────────────────
-
-  function ResultCard() {
-    if (!found) return null
-    return (
-      <div className="lookup-result">
-        <div className="result-found-badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-            <path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/>
-          </svg>
-          Patient record found
-        </div>
-
-        {mriBadge && (
-          <div className={`result-mri-badge ${mriBadge.cls}`}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              {mriKey !== 'unsafe' ? <path d="m9 12 2 2 4-4"/> : <path d="M18 6 6 18M6 6l12 12"/>}
-            </svg>
-            {mriBadge.label}
-          </div>
-        )}
-
-        <div className="result-fields">
-          <div className="result-field">
-            <div className="rf-label">Implant ID</div>
-            <div className="rf-val" style={{ fontFamily: 'SF Mono,Monaco,monospace', fontWeight: 700, color: 'var(--accent)', fontSize: 13 }}>{result.implantIdCode}</div>
-          </div>
-          <div className="result-field">
-            <div className="rf-label">Name</div>
-            <div className="rf-val" style={{ fontWeight: 500 }}>{result.firstName} {result.lastName}</div>
-          </div>
-          {result.dob && (
-            <div className="result-field">
-              <div className="rf-label">Date of birth</div>
-              <div className="rf-val">{result.dob}</div>
-            </div>
-          )}
-          {sharingEnabled && result.selfReportedDevice && (
-            <div className="result-field">
-              <div className="rf-label">Device</div>
-              <div className="rf-val">{result.selfReportedDevice}</div>
-            </div>
-          )}
-          <div className="result-field">
-            <div className="rf-label">Status</div>
-            <div className="rf-val">
-              <span style={{
-                fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 5,
-                background: result.verificationStatus === 'active' ? 'color-mix(in srgb,var(--ok) 10%,transparent)' : 'color-mix(in srgb,#f59e0b 10%,transparent)',
-                color: result.verificationStatus === 'active' ? 'var(--ok)' : '#92400e',
-              }}>
-                {result.verificationStatus === 'active' ? 'Verified' : 'Pending'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {sharingEnabled ? (
-          <div className="result-actions">
-            <a href={`/clinics/patient-view?code=${result.implantIdCode}`} className="btn btn-s" style={{ textDecoration: 'none', textAlign: 'center' }}>
-              Full record →
-            </a>
-            <button className="btn" onClick={() => { navigator.clipboard?.writeText(result.implantIdCode); showToast('Copied') }}>
-              Copy ID
-            </button>
-          </div>
-        ) : (
-          <div className="result-actions">
-            {accessRequested ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'color-mix(in srgb,var(--ok) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius: 10, flex: 1, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)', fontWeight: 500 }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
-                  <path d="m9 12 2 2 4-4"/><circle cx="12" cy="12" r="9"/>
-                </svg>
-                Access request sent — patient will be notified
-              </div>
-            ) : (
-              <button className="btn btn-s" style={{ flex: 1, justifyContent: 'center' }} onClick={handleRequestAccess} disabled={requestingAccess}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                {requestingAccess ? 'Requesting…' : 'Request access'}
-              </button>
-            )}
-            <button className="btn" onClick={() => { navigator.clipboard?.writeText(result.implantIdCode); showToast('Copied') }}>
-              Copy ID
-            </button>
-          </div>
-        )}
-
-        {!sharingEnabled && !accessRequested && (
-          <div className="tier1-note">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            This patient has restricted access to their full record. Click &ldquo;Request access&rdquo; to email them for permission.
-          </div>
-        )}
-
-        {sharingEnabled && (
-          <div className="tier1-note">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-              <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
-            </svg>
-            Tier 1 — MRI safety only. Tap &ldquo;Full record&rdquo; to access the complete patient record.
-          </div>
-        )}
-
-        {sharingEnabled && !(result as any).accountActivated && (
-          <div className="tier1-note" style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', borderColor: 'color-mix(in srgb,var(--accent) 20%,transparent)', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" style={{ width: 16, height: 16, flexShrink: 0 }} aria-hidden="true">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/>
-            </svg>
-            <span style={{ flex: 1, color: 'var(--text)', fontSize: 13 }}>Invite pending — patient hasn&apos;t activated their account yet.</span>
-            {accessRequested ? (
-              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ok)', whiteSpace: 'nowrap' }}>✓ Added</span>
-            ) : (
-              <button className="btn btn-s" style={{ fontSize: 12.5, padding: '5px 12px', whiteSpace: 'nowrap' }}
-                onClick={handleRequestAccess} disabled={requestingAccess} aria-label="Add patient to your clinic list">
-                {requestingAccess ? 'Adding…' : '+ Add to my patients'}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-    )
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -512,32 +343,6 @@ export default function ScanPatientClient() {
 
         </div>
       </div>{/* end scan-card */}
-
-      {/* ── Results ── */}
-      {isLoading && (
-        <div style={{ color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 14, padding: '16px 0' }}>
-          Looking up record…
-        </div>
-      )}
-      {notFound && (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 12, padding: '14px 18px', marginTop: 16 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
-            <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
-          </svg>
-          <div>
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--err)', marginBottom: 3 }}>No record found</div>
-            <div style={{ fontSize: 13.5, color: 'var(--muted)' }}>
-              No patient found for <strong style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{searchCode}</strong>.
-            </div>
-          </div>
-        </div>
-      )}
-      {found && <ResultCard />}
-
-      {/* ── Toast ── */}
-      <div className={`scan-toast${toastVisible ? ' show' : ''}`} role="status" aria-live="polite">
-        {toast}
-      </div>
 
       {/* ── Stat row ─────────────────────────────────────────────────────────── */}
       <div className="stat-row" style={{ marginTop: 32 }}>

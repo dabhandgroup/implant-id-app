@@ -198,9 +198,9 @@ export default function PatientViewClient() {
 
       {/* ── Topbar extras ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-        <a href="/clinics/all-patients" className="btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <a href="/clinics/scan-patient" className="btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-          Back to patients
+          Back to scan
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 4, fontSize: 11.5 }}>
           <span style={{ color: 'var(--muted)', fontSize: 11, padding: '0 4px', whiteSpace: 'nowrap' }}>View as</span>
@@ -215,6 +215,86 @@ export default function PatientViewClient() {
               {r.charAt(0).toUpperCase() + r.slice(1)}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* ── Patient implant card ────────────────────────────────────────────── */}
+      <div
+        className="pv-pass"
+        style={
+          isPending ? {
+            background: 'linear-gradient(155deg,#e8edf2 0%,#d4dce6 55%,#eef1f5 100%)',
+            color: '#1e293b',
+          }
+          : patient.mriStatus === 'unsafe' ? {
+            background: 'linear-gradient(155deg,#991b1b 0%,#b91c1c 55%,#dc2626 100%)',
+          }
+          : patient.mriStatus === 'conditional' ? {
+            background: 'linear-gradient(155deg,#c2410c 0%,#ea580c 55%,#f97316 100%)',
+          }
+          : patient.mriStatus === 'safe' ? {
+            background: 'linear-gradient(155deg,#166534 0%,#15803d 55%,#16a34a 100%)',
+          }
+          : undefined
+        }
+      >
+        <div className="pv-pass-top">
+          <div className="pv-pass-brand">
+            <img src="/icon.svg" alt="" style={isPending ? { filter: 'brightness(0) opacity(0.35)' } : undefined} />
+            <span style={isPending ? { color: '#475569' } : undefined}>Implant ID</span>
+          </div>
+          {!isPending && patient.mriStatus && patient.mriStatus !== 'unknown' && (
+            <div className="pv-pass-mri">
+              <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.92)', letterSpacing:'.3px', whiteSpace:'nowrap' }}>
+                {mriMeta.label}
+              </span>
+              <img
+                src={patient.mriStatus === 'safe' ? '/mr-safe.svg' : patient.mriStatus === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
+                alt={mriMeta.label}
+                style={{ width: 40, height: 40, display: 'block', flexShrink: 0 }}
+              />
+            </div>
+          )}
+        </div>
+
+        {isPending && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            background: 'rgba(251,191,36,0.14)', border: '1.5px solid rgba(251,191,36,0.55)',
+            borderRadius: 999, padding: '6px 14px', marginBottom: 14,
+            fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700,
+            letterSpacing: '.4px', color: '#92400e',
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }}/>
+            Pending verification
+          </div>
+        )}
+
+        <div className="pv-pass-type" style={{ color: isPending ? '#64748b' : undefined }}>
+          {primaryDevice?.deviceType ?? (patient as any).selfReportedDeviceType ?? ''}
+        </div>
+
+        <div className="pv-pass-name" style={{ color: isPending ? '#334155' : undefined }}>
+          {primaryDevice
+            ? `${primaryDevice.manufacturer ?? ''} ${primaryDevice.model ?? ''}`.trim()
+            : ((patient as any).selfReportedDevice ?? 'Awaiting verification')}
+        </div>
+
+        <div className="pv-pass-grid">
+          <div>
+            <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Patient</div>
+            <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{patient.firstName} {patient.lastName}</div>
+          </div>
+          {dob && (
+            <div>
+              <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Date of birth</div>
+              <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{dob}</div>
+            </div>
+          )}
+          <div>
+            <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Implant ID</div>
+            <div className="v" style={{ color: isPending ? '#334155' : undefined, fontFamily: 'SF Mono,Monaco,monospace', letterSpacing: '.04em', fontSize: 13 }}>{patient.implantIdCode}</div>
+          </div>
         </div>
       </div>
 

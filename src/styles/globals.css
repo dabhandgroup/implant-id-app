@@ -173,6 +173,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 .sb-scroll::-webkit-scrollbar-track{background:transparent}
 .sb-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:3px}
+.app.collapsed .sidebar:not(:hover) .sb-scroll{overflow-y:hidden}
 .app.collapsed .sidebar{width:68px}
 .app.collapsed .sidebar:hover{width:236px;box-shadow:0 20px 60px -10px rgba(0,0,0,.25)}
 
@@ -800,7 +801,7 @@ html,body{overflow-x:clip}
   .app{grid-template-columns:1fr!important}
   .app-main{grid-column:1!important;padding-bottom:62px}
   /* Sidebar slides in from the right — !important beats any inline <style> blocks */
-  .sidebar{display:flex!important;left:auto!important;right:0!important;transform:translateX(110%)!important;transition:transform .28s cubic-bezier(.4,0,.2,1)!important;width:300px!important;box-shadow:-6px 0 40px rgba(14,42,51,.2)!important;z-index:80!important;background:var(--bg2)!important;padding-top:66px!important;padding-bottom:100px!important}
+  .sidebar{display:flex!important;left:auto!important;right:0!important;transform:translateX(110%)!important;transition:transform .28s cubic-bezier(.4,0,.2,1)!important;width:300px!important;box-shadow:-6px 0 40px rgba(14,42,51,.2)!important;z-index:80!important;background:var(--bg2)!important;padding-bottom:100px!important}
   .sidebar.open{transform:translateX(0)!important}
   /* Hide sidebar logo on mobile — already shown in mob-header */
   .sidebar .sb-logo{display:none!important}

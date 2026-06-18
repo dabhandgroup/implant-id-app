@@ -51,10 +51,15 @@ export default function FindCareClient() {
   })
 
   // ── Map helpers ───────────────────────────────────────────────────────────
-  // Always return the default London map; users click "View on map" for specifics
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function mapSrc(clinic: any | null) {
-    return `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d19860.5!2d-0.148!3d51.519!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1sen!2suk`
+    if (!clinic) {
+      // UK overview when nothing is selected
+      return `https://maps.google.com/maps?q=United+Kingdom&output=embed&z=5`
+    }
+    const parts = [clinic.name, clinic.address, clinic.city, clinic.country].filter(Boolean)
+    const q = encodeURIComponent(parts.join(', '))
+    return `https://maps.google.com/maps?q=${q}&output=embed`
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function directionsUrl(clinic: any) {

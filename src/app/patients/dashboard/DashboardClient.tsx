@@ -5,6 +5,7 @@ import { useQuery, useMutation }        from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
 import { useRouter, useSearchParams }   from 'next/navigation'
 import QRCode                          from 'qrcode'
+import { CustomSelect }               from '@/components/ui/CustomSelect'
 
 
 // ── Confetti fall from top ────────────────────────────────────────────────────
@@ -351,6 +352,8 @@ export default function DashboardClient() {
 
   const DEVICE_TYPES = ['Pacemaker','ICD (Defibrillator)','CRT device','Neurostimulator / DBS','Cochlear implant','Retinal implant','Hip replacement','Knee replacement','Shoulder replacement','Spinal implant','Breast implant','Stent','Heart valve','Other']
   const MONTH_NAMES  = ['January','February','March','April','May','June','July','August','September','October','November','December']
+  const DEVICE_TYPE_OPTIONS = [{ label: '— None —', value: '' }, ...DEVICE_TYPES.map(t => ({ label: t, value: t }))]
+  const MONTH_OPTIONS       = [{ label: '— None —', value: '' }, ...MONTH_NAMES.map((m, i) => ({ label: m, value: String(i+1).padStart(2, '0') }))]
 
   return (
     <>
@@ -1674,23 +1677,23 @@ export default function DashboardClient() {
                 </div>
               </div>
               <div className="field" style={{ marginBottom:14 }}>
-                <label htmlFor="imp-type" style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Device type</label>
-                <select id="imp-type" className="input"
-                  value={implantForm.deviceType} onChange={e => setImplantForm(f => ({ ...f, deviceType: e.target.value }))}
-                  style={{ appearance:'auto' }}>
-                  <option value="">Select type…</option>
-                  {DEVICE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <label style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Device type</label>
+                <CustomSelect
+                  value={implantForm.deviceType}
+                  onChange={v => setImplantForm(f => ({ ...f, deviceType: v }))}
+                  options={DEVICE_TYPE_OPTIONS}
+                  placeholder="Select type (optional)"
+                />
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
                 <div className="field">
-                  <label htmlFor="imp-month" style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Implant month</label>
-                  <select id="imp-month" className="input"
-                    value={implantForm.implantMonth} onChange={e => setImplantForm(f => ({ ...f, implantMonth: e.target.value }))}
-                    style={{ appearance:'auto' }}>
-                    <option value="">Month (optional)</option>
-                    {MONTH_NAMES.map((m,i) => <option key={m} value={String(i+1).padStart(2,'0')}>{m}</option>)}
-                  </select>
+                  <label style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Implant month</label>
+                  <CustomSelect
+                    value={implantForm.implantMonth}
+                    onChange={v => setImplantForm(f => ({ ...f, implantMonth: v }))}
+                    options={MONTH_OPTIONS}
+                    placeholder="Month (optional)"
+                  />
                 </div>
                 <div className="field">
                   <label htmlFor="imp-year" style={{ fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500, color:'var(--muted)', display:'block', marginBottom:6 }}>Implant year</label>

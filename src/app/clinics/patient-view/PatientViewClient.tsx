@@ -35,15 +35,20 @@ export default function PatientViewClient() {
   const searchParams = useSearchParams()
   const code         = (searchParams?.get('code') ?? '').trim().toUpperCase()
 
-  const [role,     setRole]     = useState<ViewRole>('admin')
-  const [auditFired, setAuditFired] = useState(false)
+  const [role,          setRole]          = useState<ViewRole>('admin')
+  const [auditFired,    setAuditFired]    = useState(false)
+  const [verifyLoading, setVerifyLoading] = useState(false)
+  const [verifyErr,     setVerifyErr]     = useState('')
+  const [verifySaved,   setVerifySaved]   = useState(false)
+  const [verifyNotes,   setVerifyNotes]   = useState('')
 
   const patient      = useQuery(api.patients.getFullPatientByCode, code ? { code } : 'skip')
   const auditEntries = useQuery(
     api.clinics.getPatientAuditEntries,
     patient?._id ? { patientId: patient._id } : 'skip',
   )
-  const recordLookup = useMutation(api.patients.recordPatientLookup)
+  const recordLookup  = useMutation(api.patients.recordPatientLookup)
+  const verifyPatient = useMutation(api.patients.verifyPatient)
 
   if (patient?._id && !auditFired) {
     setAuditFired(true)
@@ -121,6 +126,22 @@ export default function PatientViewClient() {
   }
   if (patient.createdAt) {
     timeline.push({ t: fmtDate(patient.createdAt), label: 'Enrolled on Implant ID', sub: 'Wallet pass issued' })
+  }
+
+  async function doVerify() {
+    setVerifyLoading(true)
+    setVerifyErr('')
+    try {
+      await verifyPatient({
+        patientId:   patient._id,
+        clinicNotes: verifyNotes.trim() || undefined,
+      })
+      setVerifySaved(true)
+    } catch (err: unknown) {
+      setVerifyErr(err instanceof Error ? err.message : 'Failed to verify record')
+    } finally {
+      setVerifyLoading(false)
+    }
   }
 
   return (
@@ -385,6 +406,58 @@ export default function PatientViewClient() {
               </div>
             )}
           </div>
+
+          {/* Verify this record — shown to admin/surgeon while pending */}
+          {isPending && (role === 'admin' || role === 'surgeon') && (
+            <div className="card">
+              <div className="ey" style={{ marginBottom: 8 }}>Verify this record</div>
+              {verifySaved ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'color-mix(in srgb,var(--ok) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                  Record verified — patient now has an active status.
+                </div>
+              ) : (
+                <>
+                  <p style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 14 }}>
+                    Confirm the patient&apos;s self-reported implant details and mark this record as clinically verified.
+                  </p>
+                  <div className="field" style={{ marginBottom: 14 }}>
+                    <label style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
+                      Clinical notes <span style={{ fontWeight: 400 }}>(optional)</span>
+                    </label>
+                    <textarea
+                      className="input"
+                      rows={3}
+                      value={verifyNotes}
+                      onChange={e => setVerifyNotes(e.target.value)}
+                      placeholder="Any notes about this verification…"
+                      style={{ resize: 'vertical', fontFamily: 'var(--ff)' }}
+                    />
+                  </div>
+                  {verifyErr && (
+                    <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 14 }}>
+                      {verifyErr}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="btn btn-s"
+                    style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6 }}
+                    onClick={doVerify}
+                    disabled={verifyLoading}
+                    aria-label="Confirm and verify this patient record"
+                  >
+                    {verifyLoading ? 'Verifying…' : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                        Confirm &amp; verify record
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Reference note */}
           <div style={{

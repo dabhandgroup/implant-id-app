@@ -334,6 +334,8 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
               </button>
           </div>
 
+          <div className="sb-push" />
+
           <div className="sb-profile-wrap">
             <div
               className={`sb-bot${profileOpen ? ' open' : ''}`}

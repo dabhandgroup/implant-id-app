@@ -296,6 +296,8 @@ export default function NotificationsClient() {
               </button>
           </div>
 
+          <div className="sb-push" />
+
           <div className="sb-profile-wrap">
             <div ref={sbBotRef} className={`sb-bot${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)}>
               <div className="av" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>

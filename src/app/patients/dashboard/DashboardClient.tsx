@@ -762,6 +762,8 @@ export default function DashboardClient() {
               </button>
           </div>
 
+          <div className="sb-push" />
+
           <div className="sb-profile-wrap">
             <div
               ref={sbBotRef}

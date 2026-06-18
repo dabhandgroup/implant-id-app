@@ -266,8 +266,8 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-lock{width:13px!important;height:13px!important;flex-shrink:0;opacity:.5;overflow:hidden;max-width:20px;transition:max-width .3s cubic-bezier(.4,0,.2,1),opacity .18s ease-out,margin .3s}
 /* Hide the lock badge when rail is collapsed (icon only) — reappears on hover */
 .app.collapsed .sidebar:not(:hover) .sb-lock{max-width:0;opacity:0;margin-left:-4px}
-/* Profile section at sidebar bottom — spacer div above it carries flex:1 so sidebar scrolls properly */
-.sb-profile-wrap{border-top:1px solid var(--border)}
+/* Profile trigger sticks to sidebar bottom; accordion items scroll above it in the sidebar */
+.sb-profile-wrap{border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--bg2);z-index:2}
 .sb-spacer{flex:1;min-height:0}
 .sb-bot{padding:10px;display:flex;align-items:center;gap:10px;cursor:pointer;border-radius:10px;transition:background .15s, padding .3s cubic-bezier(.4,0,.2,1), gap .3s cubic-bezier(.4,0,.2,1);border:1px solid transparent;position:relative}
 .sb-bot:hover{background:color-mix(in srgb,var(--text) 4%,transparent);border-color:var(--border)}

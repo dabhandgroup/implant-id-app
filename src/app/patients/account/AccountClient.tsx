@@ -447,8 +447,7 @@ export default function AccountClient() {
 
           <div className="sb-spacer" />
 
-          <div className="sb-profile-wrap">
-            <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
+          <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
               <a href="/patients/account" className="sb-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
                 <span>My account</span>
@@ -478,8 +477,9 @@ export default function AccountClient() {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 <span>Sign out</span>
               </button>
-            </div>
+          </div>
 
+          <div className="sb-profile-wrap">
             <div ref={sbBotRef} className={`sb-bot${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)}>
               <div className="av" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>
                 {initials}

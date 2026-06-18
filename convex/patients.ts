@@ -1337,6 +1337,42 @@ export const revokeClinicAccess = mutation({
   },
 })
 
+/** Update all patient notification and privacy preferences. */
+export const updatePatientPreferences = mutation({
+  args: {
+    visibility:      v.optional(v.union(v.literal('global'), v.literal('restricted'), v.literal('emergency'))),
+    notifRecord:     v.optional(v.boolean()),
+    notifWallet:     v.optional(v.boolean()),
+    notifTips:       v.optional(v.boolean()),
+    notifNetwork:    v.optional(v.boolean()),
+    emergencyAccess: v.optional(v.boolean()),
+    shareLocation:   v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .unique()
+    if (!user) throw new Error('User not found')
+    const patient = await ctx.db
+      .query('patients')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .unique()
+    if (!patient) throw new Error('Patient record not found')
+    const patch: Record<string, unknown> = {}
+    if (args.visibility      !== undefined) patch.visibility      = args.visibility
+    if (args.notifRecord     !== undefined) patch.notifRecord     = args.notifRecord
+    if (args.notifWallet     !== undefined) patch.notifWallet     = args.notifWallet
+    if (args.notifTips       !== undefined) patch.notifTips       = args.notifTips
+    if (args.notifNetwork    !== undefined) patch.notifNetwork    = args.notifNetwork
+    if (args.emergencyAccess !== undefined) patch.emergencyAccess = args.emergencyAccess
+    if (args.shareLocation   !== undefined) patch.shareLocation   = args.shareLocation
+    await ctx.db.patch(patient._id, patch)
+  },
+})
+
 /** Update the patient's clinic sharing preference (clinicSharingEnabled). */
 export const updateSharingPreference = mutation({
   args: { clinicSharingEnabled: v.boolean() },

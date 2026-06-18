@@ -139,8 +139,8 @@ export default function MasterDashboardPage() {
         </div>
       </div>
 
-      {/* Three-column insight row — stacks on mobile */}
-      <div className="m-insight-row">
+      {/* Two-column insight row — stacks on mobile */}
+      <div className="m-insight-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
 
         {/* Device breakdown — real data */}
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px' }}>
@@ -174,22 +174,6 @@ export default function MasterDashboardPage() {
               <span style={{ fontSize: 16, lineHeight: 1 }}>{r.flag}</span>
               <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--text)', flex: 1 }}>{r.label}</span>
               <span style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{r.count}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Platform health — static infra data */}
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px' }}>
-          <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, marginBottom: 14, color: 'var(--text)' }}>Platform Health</div>
-          {[
-            { label: 'API Uptime',      value: '99.97%', ok: true },
-            { label: 'Avg Response',    value: '124 ms', ok: true },
-            { label: 'Error Rate',      value: '0.03%',  ok: true },
-            { label: 'Last Deploy',     value: 'Live',   ok: true },
-          ].map(h => (
-            <div key={h.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)' }}>{h.label}</span>
-              <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600, color: 'var(--ok)' }}>{h.value}</span>
             </div>
           ))}
         </div>

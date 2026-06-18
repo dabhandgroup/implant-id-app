@@ -30,6 +30,7 @@ export default function AccountClient() {
   const markRead                = useMutation(api.patients.markAllNotificationsRead)
   const pendingRequests         = useQuery(apiAny.patients.getMyPendingAccessRequests) as Array<{ _id: string; clinicName: string; clinicCity?: string; requestedAt: number; reason?: string }> | undefined
   const updateSharingPref       = useMutation(apiAny.patients.updateSharingPreference)
+  const updatePatientPrefs      = useMutation(apiAny.patients.updatePatientPreferences)
   const respondToAccessRequest  = useMutation(apiAny.patients.respondToAccessRequest)
 
   // ── UI state ──────────────────────────────────────────────────────────────
@@ -116,7 +117,7 @@ export default function AccountClient() {
     if (patient === null) router.replace('/patients/register')
   }, [patient, router])
 
-  // Initialise clinical + sharing fields from patient data when it loads
+  // Initialise clinical + sharing + notification fields from patient data when it loads
   useEffect(() => {
     if (!patient) return
     if (patient.heightCm)            setHeightCm(String(patient.heightCm))
@@ -125,6 +126,15 @@ export default function AccountClient() {
     if (patient.contrastAllergyNote) setContrastAllergyNote(patient.contrastAllergyNote)
     // clinicSharingEnabled: undefined means not set yet — default to true (open sharing)
     setClinicSharing(patient.clinicSharingEnabled !== false)
+    // Notification prefs — undefined means not yet set, use defaults
+    if (patient.notifRecord  !== undefined) setNotifRecord(patient.notifRecord)
+    if (patient.notifWallet  !== undefined) setNotifWallet(patient.notifWallet)
+    if (patient.notifTips    !== undefined) setNotifTips(patient.notifTips)
+    if (patient.notifNetwork !== undefined) setNotifNetwork(patient.notifNetwork)
+    // Privacy prefs
+    if (patient.visibility      !== undefined) setVisibility(patient.visibility)
+    if (patient.emergencyAccess !== undefined) setEmergencyAccess(patient.emergencyAccess)
+    if (patient.shareLocation   !== undefined) setShareLocation(patient.shareLocation)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient?._id])
 
@@ -901,7 +911,7 @@ export default function AccountClient() {
                   <span>When your implant record is verified or updated</span>
                 </div>
                 <label className="toggle">
-                  <input type="checkbox" checked={notifRecord} onChange={e => setNotifRecord(e.target.checked)} />
+                  <input type="checkbox" checked={notifRecord} onChange={e => { setNotifRecord(e.target.checked); updatePatientPrefs({ notifRecord: e.target.checked }).catch(() => {}) }} />
                   <span className="slider" />
                 </label>
               </div>
@@ -911,7 +921,7 @@ export default function AccountClient() {
                   <span>When your Wallet pass is refreshed with new data</span>
                 </div>
                 <label className="toggle">
-                  <input type="checkbox" checked={notifWallet} onChange={e => setNotifWallet(e.target.checked)} />
+                  <input type="checkbox" checked={notifWallet} onChange={e => { setNotifWallet(e.target.checked); updatePatientPrefs({ notifWallet: e.target.checked }).catch(() => {}) }} />
                   <span className="slider" />
                 </label>
               </div>
@@ -921,7 +931,7 @@ export default function AccountClient() {
                   <span>Helpful tips about managing your implant record</span>
                 </div>
                 <label className="toggle">
-                  <input type="checkbox" checked={notifTips} onChange={e => setNotifTips(e.target.checked)} />
+                  <input type="checkbox" checked={notifTips} onChange={e => { setNotifTips(e.target.checked); updatePatientPrefs({ notifTips: e.target.checked }).catch(() => {}) }} />
                   <span className="slider" />
                 </label>
               </div>
@@ -931,7 +941,7 @@ export default function AccountClient() {
                   <span>New clinics in your area joining the Implant ID network</span>
                 </div>
                 <label className="toggle">
-                  <input type="checkbox" checked={notifNetwork} onChange={e => setNotifNetwork(e.target.checked)} />
+                  <input type="checkbox" checked={notifNetwork} onChange={e => { setNotifNetwork(e.target.checked); updatePatientPrefs({ notifNetwork: e.target.checked }).catch(() => {}) }} />
                   <span className="slider" />
                 </label>
               </div>
@@ -946,7 +956,7 @@ export default function AccountClient() {
                   <label className="f-label">Profile visibility</label>
                   <CustomSelect
                     value={visibility}
-                    onChange={setVisibility}
+                    onChange={v => { setVisibility(v); updatePatientPrefs({ visibility: v as 'global' | 'restricted' | 'emergency' }).catch(() => {}) }}
                     options={VISIBILITY_OPTIONS}
                   />
                 </div>
@@ -957,7 +967,7 @@ export default function AccountClient() {
                   <span>Allow paramedics to see critical implant info without login</span>
                 </div>
                 <label className="toggle">
-                  <input type="checkbox" checked={emergencyAccess} onChange={e => setEmergencyAccess(e.target.checked)} />
+                  <input type="checkbox" checked={emergencyAccess} onChange={e => { setEmergencyAccess(e.target.checked); updatePatientPrefs({ emergencyAccess: e.target.checked }).catch(() => {}) }} />
                   <span className="slider" />
                 </label>
               </div>

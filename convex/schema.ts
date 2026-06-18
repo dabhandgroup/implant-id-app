@@ -123,6 +123,19 @@ export default defineSchema({
 
     // Patient-controlled sharing: true = any clinic can see full record; false = limited view + request access
     clinicSharingEnabled: v.optional(v.boolean()),
+
+    // Profile visibility preference
+    visibility: v.optional(v.union(v.literal('global'), v.literal('restricted'), v.literal('emergency'))),
+
+    // Notification preferences
+    notifRecord:  v.optional(v.boolean()),
+    notifWallet:  v.optional(v.boolean()),
+    notifTips:    v.optional(v.boolean()),
+    notifNetwork: v.optional(v.boolean()),
+
+    // Privacy toggles
+    emergencyAccess: v.optional(v.boolean()),
+    shareLocation:   v.optional(v.boolean()),
   })
     .index('by_user',         ['userId'])
     .index('by_implant_code', ['implantIdCode']),

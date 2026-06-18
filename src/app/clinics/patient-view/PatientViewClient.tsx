@@ -41,14 +41,27 @@ export default function PatientViewClient() {
   const [verifyErr,     setVerifyErr]     = useState('')
   const [verifySaved,   setVerifySaved]   = useState(false)
   const [verifyNotes,   setVerifyNotes]   = useState('')
+  // Add device flow
+  const [addDevOpen,    setAddDevOpen]    = useState(false)
+  const [devSearch,     setDevSearch]     = useState('')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selDevice,     setSelDevice]     = useState<any | null>(null)
+  const [addSerial,     setAddSerial]     = useState('')
+  const [addDate,       setAddDate]       = useState('')
+  const [addNotes,      setAddNotes]      = useState('')
+  const [addLoading,    setAddLoading]    = useState(false)
+  const [addErr,        setAddErr]        = useState('')
+  const [addSaved,      setAddSaved]      = useState(false)
 
   const patient      = useQuery(api.patients.getFullPatientByCode, code ? { code } : 'skip')
   const auditEntries = useQuery(
     api.clinics.getPatientAuditEntries,
     patient?._id ? { patientId: patient._id } : 'skip',
   )
+  const allDevices    = useQuery(api.devices.listDevices, {})
   const recordLookup  = useMutation(api.patients.recordPatientLookup)
   const verifyPatient = useMutation(api.patients.verifyPatient)
+  const linkDevice    = useMutation(api.patients.linkDeviceToPatient)
 
   if (patient?._id && !auditFired) {
     setAuditFired(true)
@@ -126,6 +139,42 @@ export default function PatientViewClient() {
   }
   if (patient.createdAt) {
     timeline.push({ t: fmtDate(patient.createdAt), label: 'Enrolled on Implant ID', sub: 'Wallet pass issued' })
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const devResults: any[] = devSearch.trim().length >= 2 && allDevices
+    ? allDevices.filter((d: any) => {
+        const q = devSearch.toLowerCase()
+        return d.manufacturer?.toLowerCase().includes(q) ||
+               d.model?.toLowerCase().includes(q) ||
+               d.deviceType?.toLowerCase().includes(q)
+      }).slice(0, 8)
+    : []
+
+  async function doAddDevice() {
+    if (!selDevice) return
+    setAddLoading(true)
+    setAddErr('')
+    try {
+      await linkDevice({
+        patientId:    patient._id,
+        deviceId:     selDevice._id,
+        serialNumber: addSerial.trim() || undefined,
+        implantDate:  addDate || undefined,
+        clinicNotes:  addNotes.trim() || undefined,
+      })
+      setAddSaved(true)
+      setAddDevOpen(false)
+      setSelDevice(null)
+      setDevSearch('')
+      setAddSerial('')
+      setAddDate('')
+      setAddNotes('')
+    } catch (err: unknown) {
+      setAddErr(err instanceof Error ? err.message : 'Failed to link device')
+    } finally {
+      setAddLoading(false)
+    }
   }
 
   async function doVerify() {
@@ -319,6 +368,115 @@ export default function PatientViewClient() {
               <div style={{ color: 'var(--muted)', fontSize: 14 }}>No linked device — documents unavailable.</div>
             )}
           </div>
+
+          {/* Link device from catalogue — admin and surgeon */}
+          {(role === 'admin' || role === 'surgeon') && (
+            <div className="card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div className="ey">Link device from catalogue</div>
+                {!addDevOpen && !addSaved && (
+                  <button
+                    type="button"
+                    className="btn btn-s"
+                    style={{ fontSize: 12.5, padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                    onClick={() => setAddDevOpen(true)}
+                    aria-label="Link a device from the catalogue to this patient"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add device
+                  </button>
+                )}
+              </div>
+
+              {addSaved && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'color-mix(in srgb,var(--ok) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                  Device linked — record updated.
+                </div>
+              )}
+
+              {!addDevOpen && !addSaved && (
+                <div style={{ color: 'var(--muted)', fontSize: 13.5 }}>
+                  Link a verified device from the Implant ID catalogue to this patient&apos;s record.
+                </div>
+              )}
+
+              {addDevOpen && (
+                <>
+                  <div style={{ position: 'relative', marginBottom: 12 }}>
+                    <input
+                      className="input"
+                      type="text"
+                      placeholder="Search by manufacturer, model, or type…"
+                      value={devSearch}
+                      onChange={e => { setDevSearch(e.target.value); setSelDevice(null) }}
+                      autoFocus
+                    />
+                    {devResults.length > 0 && !selDevice && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.18)', marginTop: 4, maxHeight: 220, overflowY: 'auto' }}>
+                        {devResults.map((d: any) => (
+                          <button
+                            key={d._id}
+                            type="button"
+                            onClick={() => { setSelDevice(d); setDevSearch(`${d.manufacturer} ${d.model}`) }}
+                            style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontFamily: 'var(--ff)' }}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb,var(--accent) 6%,transparent)')}
+                            onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                          >
+                            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{d.manufacturer} {d.model}</div>
+                            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{d.deviceType} · {d.mriStatus === 'safe' ? 'MR Safe' : d.mriStatus === 'conditional' ? 'MR Conditional' : d.mriStatus === 'unsafe' ? 'MR Unsafe' : 'MRI unknown'}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {selDevice && (
+                    <>
+                      <div style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+                        <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{selDevice.manufacturer} {selDevice.model}</div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{selDevice.deviceType}</div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                        <div className="field">
+                          <label style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Serial number</label>
+                          <input className="input" type="text" placeholder="Optional" value={addSerial} onChange={e => setAddSerial(e.target.value)} />
+                        </div>
+                        <div className="field">
+                          <label style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Implant date</label>
+                          <input className="input" type="date" value={addDate} onChange={e => setAddDate(e.target.value)} />
+                        </div>
+                      </div>
+                      <div className="field" style={{ marginBottom: 14 }}>
+                        <label style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Clinical notes</label>
+                        <textarea className="input" rows={2} placeholder="Optional notes…" value={addNotes} onChange={e => setAddNotes(e.target.value)} style={{ resize: 'vertical', fontFamily: 'var(--ff)' }} />
+                      </div>
+                    </>
+                  )}
+
+                  {addErr && (
+                    <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 12 }}>
+                      {addErr}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className="btn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setAddDevOpen(false); setSelDevice(null); setDevSearch(''); setAddErr('') }}>
+                      Cancel
+                    </button>
+                    <button type="button" className="btn btn-s" style={{ flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 5 }} onClick={doAddDevice} disabled={!selDevice || addLoading}>
+                      {addLoading ? 'Saving…' : (
+                        <>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                          Link device
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
         </div>
 

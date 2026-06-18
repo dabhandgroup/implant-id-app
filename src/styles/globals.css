@@ -275,7 +275,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .app.collapsed .sb-bot .chev{display:none}
 .app.collapsed .sidebar:hover .sb-bot .chev{display:block}
 .sb-bot .chev svg{width:14px;height:14px}
-.profile-menu{position:fixed;left:12px;bottom:68px;width:220px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:var(--card-shadow);opacity:0;visibility:hidden;transform:translateY(6px);transition:opacity .18s,visibility .18s,transform .18s;z-index:50}
+.profile-menu{position:fixed;left:12px;bottom:68px;width:252px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:var(--card-shadow);opacity:0;visibility:hidden;transform:translateY(6px);transition:opacity .18s,visibility .18s,transform .18s;z-index:50}
 .profile-menu.open{opacity:1;visibility:visible;transform:translateY(0)}
 .app.collapsed .profile-menu{left:78px}
 .profile-menu a,.profile-menu button{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:8px;color:var(--text);font-family:var(--ff);font-size:13px;text-decoration:none;cursor:pointer;background:transparent;border:0;width:100%;text-align:left;transition:all .12s}
@@ -284,6 +284,8 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .profile-menu hr{border:0;height:1px;background:var(--border);margin:4px 2px}
 .profile-menu .danger{color:var(--err)}
 .profile-menu .danger svg{color:var(--err);opacity:1}
+.pm-user{display:flex;align-items:center;gap:10px;padding:10px 10px 8px}
+.pm-label{font-family:var(--ff);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted2);font-weight:600;padding:8px 12px 4px;margin-top:2px}
 .sb-bot .name{font-family:var(--ff);font-size:13px;font-weight:500;color:var(--text);line-height:1.2}
 .sb-bot .role{font-size:11.5px;color:var(--muted2);line-height:1.2;margin-top:2px}
 

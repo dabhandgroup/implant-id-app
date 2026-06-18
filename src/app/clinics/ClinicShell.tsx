@@ -303,6 +303,16 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <span className="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg></span>
           </div>
           <div className={`profile-menu${profileOpen ? ' open' : ''}`} id="profile-menu">
+            <div className="pm-user">
+              <div style={{ width:34,height:34,borderRadius:'50%',background:'var(--accent)',color:'#fff',display:'grid',placeItems:'center',fontFamily:'var(--ff)',fontWeight:600,fontSize:13,flexShrink:0 }}>
+                {userInitials}
+              </div>
+              <div>
+                <div style={{ fontFamily:'var(--ff)',fontSize:13,fontWeight:600,color:'var(--text)',lineHeight:1.2 }}>{userName}</div>
+                <div style={{ fontSize:11,color:'var(--muted2)',lineHeight:1.2,marginTop:2 }}>{clinicName}</div>
+              </div>
+            </div>
+            <hr />
             <a href="/clinics/settings">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
               My account
@@ -322,6 +332,15 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <a href="mailto:hello@implantid.io">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
               Help &amp; docs
+            </a>
+            <div className="pm-label">Legal</div>
+            <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Privacy Policy
+            </a>
+            <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Terms of Service
             </a>
             <hr />
             <button className="danger" onClick={requestSignOut}>
@@ -354,6 +373,11 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
                 <hr />
                 <a href="/clinics/settings">My account</a>
                 <a href="/clinics/settings">Settings</a>
+                <a href="mailto:hello@implantid.io">Help &amp; docs</a>
+                <hr />
+                <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+                <hr />
                 <button className="danger" onClick={requestSignOut}>Sign out</button>
               </div>
             </div>

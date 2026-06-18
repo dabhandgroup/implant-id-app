@@ -168,11 +168,11 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 /* APP SHELL */
 .app{display:grid;grid-template-columns:236px 1fr;min-height:100vh;background:var(--bg);transition:grid-template-columns .3s cubic-bezier(.4,0,.2,1)}
 .app.collapsed{grid-template-columns:68px 1fr}
-.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:14px 6px;position:fixed;top:0;left:0;bottom:0;width:236px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;transition:width .3s cubic-bezier(.4,0,.2,1), box-shadow .2s;z-index:30}
-.sidebar::-webkit-scrollbar{width:4px}
-.sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-.sidebar::-webkit-scrollbar-track{background:transparent}
-.sb-scroll{display:flex;flex-direction:column;gap:3px}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:14px 6px;position:fixed;top:0;left:0;bottom:0;width:236px;display:flex;flex-direction:column;gap:3px;overflow:hidden;transition:width .3s cubic-bezier(.4,0,.2,1), box-shadow .2s;z-index:30}
+.sb-scroll::-webkit-scrollbar{width:4px}
+.sb-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sb-scroll::-webkit-scrollbar-track{background:transparent}
+.sb-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:3px}
 .app.collapsed .sidebar{width:68px}
 .app.collapsed .sidebar:hover{width:236px;box-shadow:0 20px 60px -10px rgba(0,0,0,.25)}
 
@@ -267,8 +267,8 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-lock{width:13px!important;height:13px!important;flex-shrink:0;opacity:.5;overflow:hidden;max-width:20px;transition:max-width .3s cubic-bezier(.4,0,.2,1),opacity .18s ease-out,margin .3s}
 /* Hide the lock badge when rail is collapsed (icon only) — reappears on hover */
 .app.collapsed .sidebar:not(:hover) .sb-lock{max-width:0;opacity:0;margin-left:-4px}
-/* Profile trigger sticks to sidebar bottom; accordion items scroll above it in the sidebar */
-.sb-profile-wrap{border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;position:sticky;bottom:0;z-index:2}
+/* Profile trigger is pinned below the scroll zone — always visible */
+.sb-profile-wrap{border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
 .sb-spacer{flex:1;min-height:0}
 .sb-push{flex:1;min-height:0}
 .sb-bot{padding:10px;display:flex;align-items:center;gap:10px;cursor:pointer;border-radius:10px;transition:background .15s, padding .3s cubic-bezier(.4,0,.2,1), gap .3s cubic-bezier(.4,0,.2,1);border:1px solid transparent;position:relative}

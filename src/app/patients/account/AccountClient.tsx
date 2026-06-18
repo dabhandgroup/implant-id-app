@@ -91,7 +91,7 @@ export default function AccountClient() {
   const sbBotRef      = useRef<HTMLDivElement>(null)
   const mobProfileRef = useRef<HTMLDivElement>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const sidebarRef    = useRef<HTMLElement>(null)
+  const sidebarRef    = useRef<HTMLDivElement>(null)
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -108,7 +108,10 @@ export default function AccountClient() {
     const el = sidebarRef.current
     if (!el) return
     if (profileOpen) {
-      const t = setTimeout(() => el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }), 50)
+      const t = setTimeout(() => {
+        const last = el.querySelector('.pm-signout')
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 330)
       return () => clearTimeout(t)
     } else {
       el.scrollTo({ top: 0, behavior: 'smooth' })
@@ -354,7 +357,7 @@ export default function AccountClient() {
       <div className={`app${sbCollapsed ? ' collapsed' : ''}`}>
 
         {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-        <aside ref={sidebarRef} className={`sidebar${sbOpen ? ' open' : ''}`}>
+        <aside className={`sidebar${sbOpen ? ' open' : ''}`}>
 
           <div className="sb-logo">
             <a href="/" className="logo">
@@ -368,7 +371,7 @@ export default function AccountClient() {
             </button>
           </div>
 
-          <div className="sb-scroll">
+          <div ref={sidebarRef} className="sb-scroll">
 
           <span className="sb-section">My record</span>
           <a className="sb-link" href="/patients/dashboard" title="My record">
@@ -459,8 +462,6 @@ export default function AccountClient() {
             <span className="count">{notifications?.filter((n: {read: boolean}) => !n.read).length || 0}</span>
           </button>
 
-          </div>
-
           <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
               <a href="/patients/account" className="sb-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
@@ -493,7 +494,7 @@ export default function AccountClient() {
               </button>
           </div>
 
-          <div className="sb-push" />
+          </div>
 
           <div className="sb-profile-wrap">
             <div ref={sbBotRef} className={`sb-bot${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)}>

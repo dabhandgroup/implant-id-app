@@ -836,6 +836,8 @@ html,body{overflow-x:clip}
   .mob-header{display:flex}
   .app-top{padding:12px 20px!important;top:60px!important;position:sticky!important}
   .app-main:not(:has(.app-top)) .app-content{padding-top:20px!important}
+  /* Profile section in sidebar hidden on mobile — bottom sheet is the mobile profile UI */
+  .sidebar .sb-profile-wrap{display:none!important}
   /* Profile bottom sheet */
   .mob-sheet-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:95;opacity:0;pointer-events:none;transition:opacity .25s}
   .mob-sheet-backdrop.open{opacity:1;pointer-events:auto}

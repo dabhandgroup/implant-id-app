@@ -41,6 +41,10 @@ export default function PatientViewClient() {
   const [verifyErr,     setVerifyErr]     = useState('')
   const [verifySaved,   setVerifySaved]   = useState(false)
   const [verifyNotes,   setVerifyNotes]   = useState('')
+  // Save patient flow
+  const [saveLoading,   setSaveLoading]   = useState(false)
+  const [unsaveOpen,    setUnsaveOpen]    = useState(false)
+  const [unsaveLoading, setUnsaveLoading] = useState(false)
   // Add device flow
   const [addDevOpen,    setAddDevOpen]    = useState(false)
   const [devSearch,     setDevSearch]     = useState('')
@@ -58,10 +62,13 @@ export default function PatientViewClient() {
     api.clinics.getPatientAuditEntries,
     patient?._id ? { patientId: patient._id } : 'skip',
   )
+  const isSaved       = useQuery(api.clinics.isPatientSaved, patient?._id ? { patientId: patient._id } : 'skip')
   const allDevices    = useQuery(api.devices.listDevices, {})
   const recordLookup  = useMutation(api.patients.recordPatientLookup)
   const verifyPatient = useMutation(api.patients.verifyPatient)
   const linkDevice    = useMutation(api.patients.linkDeviceToPatient)
+  const savePatient   = useMutation(api.clinics.savePatientToClinic)
+  const unsavePatient = useMutation(api.clinics.unsavePatientFromClinic)
 
   if (patient?._id && !auditFired) {
     setAuditFired(true)
@@ -174,6 +181,25 @@ export default function PatientViewClient() {
       setAddErr(err instanceof Error ? err.message : 'Failed to link device')
     } finally {
       setAddLoading(false)
+    }
+  }
+
+  async function doSavePatient() {
+    setSaveLoading(true)
+    try {
+      await savePatient({ patientId: patient._id })
+    } finally {
+      setSaveLoading(false)
+    }
+  }
+
+  async function doUnsavePatient() {
+    setUnsaveLoading(true)
+    try {
+      await unsavePatient({ patientId: patient._id })
+      setUnsaveOpen(false)
+    } finally {
+      setUnsaveLoading(false)
     }
   }
 
@@ -318,6 +344,39 @@ export default function PatientViewClient() {
           </div>
         </div>
         <div className="pt-acts">
+          {isSaved ? (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, color: 'var(--ok)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                Saved
+              </span>
+              <button
+                type="button"
+                className="btn"
+                style={{ fontSize: 12.5, padding: '5px 12px', color: 'var(--err)', borderColor: 'color-mix(in srgb,var(--err) 30%,transparent)' }}
+                onClick={() => setUnsaveOpen(true)}
+                aria-label="Remove patient from your saved list"
+              >
+                Remove
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-s"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              onClick={doSavePatient}
+              disabled={saveLoading || isSaved === undefined}
+              aria-label="Save patient to your clinic's patient list"
+            >
+              {saveLoading ? 'Saving…' : (
+                <>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                  Save patient
+                </>
+              )}
+            </button>
+          )}
           <button type="button" className="btn btn-s" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
             Export PDF
@@ -713,6 +772,44 @@ export default function PatientViewClient() {
 
         </div>
       </div>
+
+      {/* ── Unsave confirmation modal ─────────────────────────────────────── */}
+      {unsaveOpen && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.45)' }}
+          onClick={() => !unsaveLoading && setUnsaveOpen(false)}
+        >
+          <div
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, padding: '28px 28px 24px', maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ fontFamily: 'var(--ff)', fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 10 }}>Remove patient?</h3>
+            <p style={{ fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--muted)', lineHeight: 1.55, marginBottom: 24 }}>
+              <strong style={{ color: 'var(--text)' }}>{patient.firstName} {patient.lastName}</strong> will be removed from your clinic&apos;s patient list. You can re-add them at any time by scanning their card.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                className="btn"
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={() => setUnsaveOpen(false)}
+                disabled={unsaveLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6 }}
+                onClick={doUnsavePatient}
+                disabled={unsaveLoading}
+              >
+                {unsaveLoading ? 'Removing…' : 'Remove patient'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

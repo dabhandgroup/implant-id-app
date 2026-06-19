@@ -1142,6 +1142,85 @@ export const listClinicPatients = query({
   },
 })
 
+/** Check if the calling clinic has already saved a patient. */
+export const isPatientSaved = query({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return false
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user) return false
+    const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!staffRow) return false
+    const existing = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_clinic', q => q.eq('clinicId', staffRow.clinicId))
+      .filter(q => q.and(q.eq(q.field('patientId'), args.patientId), q.eq(q.field('status'), 'approved')))
+      .first()
+    return !!existing
+  },
+})
+
+/** Save a scanned patient to the clinic's patient list (creates an approved access request). */
+export const savePatientToClinic = mutation({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user) throw new Error('User not found')
+    const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!staffRow) throw new Error('Not a clinic staff member')
+
+    // Idempotent — update to approved if a non-approved request exists, else insert
+    const existing = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_clinic', q => q.eq('clinicId', staffRow.clinicId))
+      .filter(q => q.eq(q.field('patientId'), args.patientId))
+      .first()
+
+    if (existing) {
+      if (existing.status !== 'approved') {
+        await ctx.db.patch(existing._id, { status: 'approved', resolvedAt: Date.now() })
+      }
+      return
+    }
+
+    await ctx.db.insert('accessRequests', {
+      clinicId:    staffRow.clinicId,
+      staffId:     staffRow._id,
+      patientId:   args.patientId,
+      status:      'approved',
+      requestedAt: Date.now(),
+      resolvedAt:  Date.now(),
+      reason:      'Saved from scan',
+    })
+  },
+})
+
+/** Remove a patient from the clinic's saved list. */
+export const unsavePatientFromClinic = mutation({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user) throw new Error('User not found')
+    const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!staffRow) throw new Error('Not a clinic staff member')
+
+    const requests = await ctx.db
+      .query('accessRequests')
+      .withIndex('by_clinic', q => q.eq('clinicId', staffRow.clinicId))
+      .filter(q => q.eq(q.field('patientId'), args.patientId))
+      .collect()
+
+    for (const req of requests) {
+      await ctx.db.delete(req._id)
+    }
+  },
+})
+
 /** Recent patient lookups for the clinic dashboard (reads auditLog). */
 export const getRecentLookups = query({
   args: {},

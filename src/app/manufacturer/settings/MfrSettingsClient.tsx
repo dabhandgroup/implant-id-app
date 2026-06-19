@@ -25,8 +25,6 @@ function Field({ label, value }: { label: string; value?: string | string[] | nu
   )
 }
 
-type MfrTab = 'company' | 'regulatory' | 'contact' | 'account'
-
 export default function MfrSettingsClient() {
   const { user } = useUser()
   const { signOut } = useClerk()

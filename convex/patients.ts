@@ -1519,6 +1519,10 @@ export const addSelfReportedImplant = mutation({
     implantMonth: v.optional(v.string()),
     implantYear:  v.optional(v.string()),
     hospital:     v.optional(v.string()),
+    surgeonName:  v.optional(v.string()),
+    surgeonEmail: v.optional(v.string()),
+    clinicId:     v.optional(v.string()),
+    clinicName:   v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -1549,7 +1553,11 @@ export const addSelfReportedImplant = mutation({
         modelNumber:  args.modelNumber,
         implantMonth: args.implantMonth,
         implantYear:  args.implantYear,
-        hospital:     args.hospital,
+        hospital:     args.hospital ?? args.clinicName,
+        surgeonName:  args.surgeonName,
+        surgeonEmail: args.surgeonEmail,
+        clinicId:     args.clinicId,
+        clinicName:   args.clinicName,
         addedAt:      Date.now(),
       },
     ]

@@ -1169,7 +1169,7 @@ export default function DashboardClient() {
                 <h2 style={{ margin:0 }}>Your implants</h2>
                 <button
                   className="btn"
-                  onClick={() => setImplantOpen(true)}
+                  onClick={() => router.push('/patients/add-implant')}
                   style={{ display:'flex', alignItems:'center', gap:6 }}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
@@ -1310,7 +1310,7 @@ export default function DashboardClient() {
                   padding:'28px 24px', textAlign:'center', color:'var(--muted2)', fontFamily:'var(--ff)', fontSize:14,
                 }}>
                   No implants recorded yet.{' '}
-                  <button className="link-btn" onClick={() => setImplantOpen(true)}>Add your first implant →</button>
+                  <button className="link-btn" onClick={() => router.push('/patients/add-implant')}>Add your first implant →</button>
                 </div>
               )}
             </div>

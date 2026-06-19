@@ -14,12 +14,20 @@ export default function ManufacturerVerifyClient() {
   const [error, setError] = useState('')
 
   function handleOtpChange(index: number, value: string) {
-    const digit = value.replace(/\D/g, '').slice(-1)
+    const clean = value.replace(/\D/g, '')
+    if (clean.length > 1) {
+      const digits = clean.slice(0, 6)
+      const next = ['', '', '', '', '', '']
+      for (let j = 0; j < digits.length; j++) next[j] = digits[j]
+      setOtp(next)
+      const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
+      inputs[Math.min(digits.length - 1, 5)]?.focus()
+      return
+    }
+    const digit = clean
     const newOtp = [...otp]
     newOtp[index] = digit
     setOtp(newOtp)
-
-    // Auto-focus to next input
     if (digit && index < 5) {
       const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
       inputs[index + 1]?.focus()
@@ -110,8 +118,9 @@ export default function ManufacturerVerifyClient() {
                 key={i}
                 type="text"
                 className="code-input"
-                maxLength={1}
+                maxLength={6}
                 inputMode="numeric"
+                autoComplete="one-time-code"
                 value={digit}
                 onChange={e => handleOtpChange(i, e.target.value)}
                 disabled={loading}

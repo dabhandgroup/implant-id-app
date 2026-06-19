@@ -84,7 +84,18 @@ export default function ForgotClient() {
   function OtpInputs({ onComplete }: { onComplete: (code: string) => void }) {
 
     function handleChange(i: number, val: string) {
-      const digit = val.slice(-1)
+      const clean = val.replace(/\D/g, '')
+      if (clean.length > 1) {
+        const digits = clean.slice(0, 6)
+        const next = ['', '', '', '', '', '']
+        for (let j = 0; j < digits.length; j++) next[j] = digits[j]
+        setOtp(next)
+        const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
+        inputs[Math.min(digits.length - 1, 5)]?.focus()
+        if (digits.length === 6) onComplete(digits)
+        return
+      }
+      const digit = clean
       const next  = [...otp]; next[i] = digit; setOtp(next)
       if (digit && i < 5) {
         const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
@@ -120,9 +131,10 @@ export default function ForgotClient() {
         {otp.map((v, i) => (
           <input
             key={i}
-            maxLength={1}
+            maxLength={6}
             inputMode="numeric"
             pattern="[0-9]*"
+            autoComplete="one-time-code"
             className="code-input"
             value={v}
             onChange={e => handleChange(i, e.target.value)}

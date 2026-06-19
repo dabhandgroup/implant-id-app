@@ -8,7 +8,17 @@ import { useRouter, useSearchParams }  from 'next/navigation'
 interface OtpProps { otp: string[]; setOtp: (v: string[]) => void; onComplete: (c: string) => void }
 function OtpRow({ otp, setOtp, onComplete }: OtpProps) {
   function handleChange(i: number, raw: string) {
-    const digit = raw.replace(/\D/g, '').slice(-1)
+    const clean = raw.replace(/\D/g, '')
+    if (clean.length > 1) {
+      const digits = clean.slice(0, 6)
+      const next = ['','','','','','']
+      for (let j = 0; j < digits.length; j++) next[j] = digits[j]
+      setOtp(next)
+      document.querySelectorAll<HTMLInputElement>('.mfr-otp-input')[Math.min(digits.length - 1, 5)]?.focus()
+      if (digits.length === 6) onComplete(digits)
+      return
+    }
+    const digit = clean
     const next = [...otp]; next[i] = digit; setOtp(next)
     if (digit && i < 5) document.querySelectorAll<HTMLInputElement>('.mfr-otp-input')[i + 1]?.focus()
     if (i === 5 && digit) {
@@ -34,7 +44,8 @@ function OtpRow({ otp, setOtp, onComplete }: OtpProps) {
   return (
     <div style={{ display: 'flex', gap: 8, margin: '16px 0 4px' }}>
       {otp.map((v, i) => (
-        <input key={i} className="mfr-otp-input input" maxLength={2} inputMode="numeric" pattern="[0-9]*"
+        <input key={i} className="mfr-otp-input input" maxLength={6} inputMode="numeric" pattern="[0-9]*"
+          autoComplete="one-time-code"
           value={v} onChange={e => handleChange(i, e.target.value)}
           onKeyDown={e => handleKeyDown(i, e)} onPaste={handlePaste}
           onFocus={e => e.target.select()}

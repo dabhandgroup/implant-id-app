@@ -13,7 +13,17 @@ function OtpInputs({ otp, setOtp, onComplete }: OtpProps) {
   const refs = useRef<(HTMLInputElement | null)[]>([])
 
   function handleChange(i: number, raw: string) {
-    const digit = raw.replace(/\D/g, '').slice(-1)
+    const clean = raw.replace(/\D/g, '')
+    if (clean.length > 1) {
+      const digits = clean.slice(0, 6)
+      const next = ['', '', '', '', '', '']
+      for (let j = 0; j < digits.length; j++) next[j] = digits[j]
+      setOtp(next)
+      refs.current[Math.min(digits.length - 1, 5)]?.focus()
+      if (digits.length === 6) onComplete(digits)
+      return
+    }
+    const digit = clean
     const next = [...otp]
     next[i] = digit
     setOtp(next)
@@ -50,10 +60,10 @@ function OtpInputs({ otp, setOtp, onComplete }: OtpProps) {
         <input
           key={i}
           ref={el => { refs.current[i] = el }}
-          maxLength={2}
+          maxLength={6}
           inputMode="numeric"
           pattern="[0-9]*"
-          autoComplete={i === 0 ? 'one-time-code' : 'off'}
+          autoComplete="one-time-code"
           value={v}
           onChange={e => handleChange(i, e.target.value)}
           onKeyDown={e => handleKeyDown(i, e)}

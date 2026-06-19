@@ -13,7 +13,17 @@ interface OtpProps {
 
 function OtpInputs({ otp, setOtp, onComplete }: OtpProps) {
   function handleChange(i: number, raw: string) {
-    const digit = raw.replace(/\D/g, '').slice(-1)
+    const clean = raw.replace(/\D/g, '')
+    if (clean.length > 1) {
+      const digits = clean.slice(0, 6)
+      const next = ['', '', '', '', '', '']
+      for (let j = 0; j < digits.length; j++) next[j] = digits[j]
+      setOtp(next)
+      document.querySelectorAll<HTMLInputElement>('.mstr-code-input')[Math.min(digits.length - 1, 5)]?.focus()
+      if (digits.length === 6) onComplete(digits)
+      return
+    }
+    const digit = clean
     const next = [...otp]; next[i] = digit; setOtp(next)
     if (digit && i < 5)
       document.querySelectorAll<HTMLInputElement>('.mstr-code-input')[i + 1]?.focus()
@@ -41,8 +51,8 @@ function OtpInputs({ otp, setOtp, onComplete }: OtpProps) {
   return (
     <div className="mstr-code-row">
       {otp.map((v, i) => (
-        <input key={i} maxLength={2} inputMode="numeric" pattern="[0-9]*"
-          autoComplete={i === 0 ? 'one-time-code' : 'off'}
+        <input key={i} maxLength={6} inputMode="numeric" pattern="[0-9]*"
+          autoComplete="one-time-code"
           className="mstr-code-input" value={v}
           onChange={e => handleChange(i, e.target.value)}
           onKeyDown={e => handleKeyDown(i, e)}

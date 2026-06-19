@@ -235,47 +235,6 @@ export default function PatientViewClient() {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
           Back to scan
         </a>
-
-        {/* ── Save patient ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-          {(isSaved || justSaved) ? (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, color: 'var(--ok)' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-                Saved to patients
-              </span>
-              <button
-                type="button"
-                className="btn"
-                style={{ fontSize: 12, padding: '4px 10px', color: 'var(--err)', borderColor: 'color-mix(in srgb,var(--err) 30%,transparent)' }}
-                onClick={() => setUnsaveOpen(true)}
-                aria-label="Remove patient from your saved list"
-              >
-                Remove
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-s"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              onClick={doSavePatient}
-              disabled={saveLoading || isSaved === undefined}
-              aria-label="Save patient to your clinic's patient list"
-            >
-              {saveLoading ? 'Saving…' : (
-                <>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                  Save patient
-                </>
-              )}
-            </button>
-          )}
-          {saveErr && (
-            <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--err)' }}>{saveErr}</span>
-          )}
-        </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 4, fontSize: 11.5 }}>
           <span style={{ color: 'var(--muted)', fontSize: 11, padding: '0 4px', whiteSpace: 'nowrap' }}>View as</span>
           {(['admin', 'radiographer', 'surgeon'] as const).map(r => (
@@ -392,13 +351,50 @@ export default function PatientViewClient() {
           </div>
         </div>
         <div className="pt-acts">
-          <button type="button" className="btn btn-s" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          {/* Save patient — only shown to clinic staff (isSaved is null for non-staff) */}
+          {isSaved !== null && (
+            <>
+              {(isSaved || justSaved) ? (
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, color: 'var(--ok)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                    Saved
+                  </span>
+                  <button
+                    type="button"
+                    className="btn"
+                    style={{ fontSize: 12.5, padding: '5px 12px', color: 'var(--err)', borderColor: 'color-mix(in srgb,var(--err) 30%,transparent)' }}
+                    onClick={() => setUnsaveOpen(true)}
+                    aria-label="Remove patient from your saved list"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+                  <button
+                    type="button"
+                    className="btn btn-s"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={doSavePatient}
+                    disabled={saveLoading || isSaved === undefined}
+                    aria-label="Save patient to your clinic's patient list"
+                  >
+                    {saveLoading ? 'Saving…' : (
+                      <>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                        Save patient
+                      </>
+                    )}
+                  </button>
+                  {saveErr && <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--err)' }}>{saveErr}</span>}
+                </div>
+              )}
+            </>
+          )}
+          <button type="button" className="btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
             Export PDF
-          </button>
-          <button type="button" className="btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4M12 2v13"/></svg>
-            Share wallet pass
           </button>
         </div>
       </div>

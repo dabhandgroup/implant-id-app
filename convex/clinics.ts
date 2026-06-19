@@ -1147,11 +1147,11 @@ export const isPatientSaved = query({
   args: { patientId: v.id('patients') },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
-    if (!identity) return false
+    if (!identity) return null
     const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
-    if (!user) return false
+    if (!user) return null
     const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
-    if (!staffRow) return false
+    if (!staffRow) return null  // not clinic staff — hide the save button
     const existing = await ctx.db
       .query('accessRequests')
       .withIndex('by_clinic', q => q.eq('clinicId', staffRow.clinicId))

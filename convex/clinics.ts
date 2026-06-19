@@ -784,23 +784,40 @@ export const reviewApplication = mutation({
         })
       }
 
-      // If we know the submitting Clerk user, link them as admin staff
-      // (guard against duplicate staff rows on re-approval)
-      if (app.clerkUserId) {
-        const user = await ctx.db
-          .query('users')
-          .withIndex('by_clerk', (q) => q.eq('clerkId', app.clerkUserId!))
-          .first()
+      // Always create the clinic contact's staff row.
+      // If their users row exists (they were logged in when applying), use it.
+      // Otherwise create a placeholder (clerkId='') — upsertUser will link the
+      // real Clerk ID when they first sign in. This mirrors addStaffMember.
+      {
+        let contactUser = app.clerkUserId
+          ? await ctx.db
+              .query('users')
+              .withIndex('by_clerk', (q) => q.eq('clerkId', app.clerkUserId!))
+              .first()
+          : await ctx.db
+              .query('users')
+              .withIndex('by_email', (q) => q.eq('email', app.contactEmail))
+              .first()
 
-        if (user) {
+        if (!contactUser) {
+          const uid = await ctx.db.insert('users', {
+            clerkId: app.clerkUserId ?? '',
+            email:   app.contactEmail,
+            role:    'clinic_staff',
+            name:    app.contactName,
+          })
+          contactUser = await ctx.db.get(uid)
+        }
+
+        if (contactUser) {
           const existingStaff = await ctx.db
             .query('staff')
             .withIndex('by_clinic', (q) => q.eq('clinicId', clinicId))
-            .filter((q) => q.eq(q.field('userId'), user._id))
+            .filter((q) => q.eq(q.field('userId'), contactUser!._id))
             .first()
           if (!existingStaff) {
             await ctx.db.insert('staff', {
-              userId:      user._id,
+              userId:      contactUser._id,
               clinicId,
               jobType:     'admin',
               accessLevel: 'admin',
@@ -843,6 +860,68 @@ export const reviewApplication = mutation({
     })
 
     return null
+  },
+})
+
+/**
+ * One-shot repair: for every approved clinic application that has no staff row,
+ * find-or-create the users row and create the staff row. Run once from the
+ * Convex dashboard (or via a temporary admin button) to fix clinics approved
+ * before the reviewApplication fix was deployed.
+ */
+export const backfillClinicStaffRows = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const apps = await ctx.db
+      .query('clinicApplications')
+      .withIndex('by_status', q => q.eq('status', 'approved'))
+      .collect()
+
+    let fixed = 0
+    for (const app of apps) {
+      // Find the clinic
+      const clinic = await ctx.db
+        .query('clinics')
+        .filter(q => q.eq(q.field('email'), app.contactEmail))
+        .first()
+      if (!clinic) continue
+
+      // Check if ANY staff row already exists for this clinic
+      const existingStaff = await ctx.db
+        .query('staff')
+        .withIndex('by_clinic', q => q.eq('clinicId', clinic._id))
+        .first()
+      if (existingStaff) continue // already has staff — skip
+
+      // Find or create the users row
+      let contactUser = app.clerkUserId
+        ? await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', app.clerkUserId!)).first()
+        : await ctx.db.query('users').withIndex('by_email', q => q.eq('email', app.contactEmail)).first()
+
+      if (!contactUser) {
+        const uid = await ctx.db.insert('users', {
+          clerkId: app.clerkUserId ?? '',
+          email:   app.contactEmail,
+          role:    'clinic_staff',
+          name:    app.contactName,
+        })
+        contactUser = await ctx.db.get(uid)
+      }
+
+      if (contactUser) {
+        await ctx.db.insert('staff', {
+          userId:      contactUser._id,
+          clinicId:    clinic._id,
+          jobType:     'admin',
+          accessLevel: 'admin',
+          allPatients: true,
+          status:      'active',
+        })
+        fixed++
+      }
+    }
+
+    return { fixed, total: apps.length }
   },
 })
 

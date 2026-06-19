@@ -350,8 +350,8 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <div className="mob-hdr-profile">
               <button
                 className="mob-hdr-av"
-                onClick={() => setMobOpen(v => !v)}
-                aria-label="Open navigation"
+                onClick={() => setMobProfileOpen(v => !v)}
+                aria-label="Open profile menu"
               >
                 {userInitials}
               </button>

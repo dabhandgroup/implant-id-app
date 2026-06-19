@@ -35,6 +35,7 @@ export default function MfrDashboardClient() {
   const [mobOpen,       setMobOpen]       = useState(false)
   const [signOutConfirm,setSignOutConfirm]= useState(false)
   const [signingOut,    setSigningOut]    = useState(false)
+  const [mobProfileOpen,setMobProfileOpen]= useState(false)
 
   async function handleSignOut() {
     setSigningOut(true)
@@ -115,7 +116,7 @@ export default function MfrDashboardClient() {
           <div className="mob-header">
             <a href="/manufacturer/dashboard" className="mob-header-logo"><img src="/icon.svg" alt="" /><span className="logo-text"><b>Implant</b><span>ID</span></span></a>
             <div className="mob-hdr-profile">
-              <button className="mob-hdr-av" onClick={() => {}} aria-label="Profile">{initials}</button>
+              <button className="mob-hdr-av" onClick={() => setMobProfileOpen(v => !v)} aria-label="Open profile menu">{initials}</button>
             </div>
           </div>
 
@@ -377,6 +378,42 @@ export default function MfrDashboardClient() {
           </div>
         </div>
       )}
+
+      <div className={`mob-sheet-backdrop${mobProfileOpen ? ' open' : ''}`} onClick={() => setMobProfileOpen(false)} aria-hidden="true" />
+      <div className={`mob-sheet${mobProfileOpen ? ' open' : ''}`} role="dialog" aria-modal={mobProfileOpen} aria-label="Profile menu">
+        <div className="mob-sheet-handle" aria-hidden="true" />
+        <div className="mob-sheet-info">
+          <strong>{companyName}</strong>
+          <span>Manufacturer</span>
+        </div>
+        <a href="/manufacturer/settings" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Account settings
+        </a>
+        <a href="mailto:hello@implantid.io" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+          Help &amp; docs
+        </a>
+        <div className="mob-sheet-divider" />
+        <span className="mob-sheet-section">Legal</span>
+        <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Privacy Policy
+        </a>
+        <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Terms of Service
+        </a>
+        <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          GDPR
+        </a>
+        <div className="mob-sheet-divider" />
+        <button className="mob-sheet-item mob-sheet-danger" onClick={() => { setMobProfileOpen(false); setSignOutConfirm(true) }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </button>
+      </div>
     </>
   )
 }

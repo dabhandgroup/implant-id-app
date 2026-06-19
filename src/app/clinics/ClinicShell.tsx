@@ -165,6 +165,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [profileOpen,    setProfileOpen]    = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
+  const sbBotRef = useRef<HTMLDivElement>(null)
   const unreadCount  = notifications?.filter((n: any) => !n.read).length ?? 0
   const userName     = user?.fullName ?? user?.firstName ?? 'Clinic User'
   const userInitials = initials(userName)
@@ -179,6 +180,15 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [notifOpen])
+
+  useEffect(() => {
+    if (!profileOpen) return
+    function onOutside(e: MouseEvent) {
+      if (sbBotRef.current && !sbBotRef.current.contains(e.target as Node)) setProfileOpen(false)
+    }
+    document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
+  }, [profileOpen])
 
   function isActive(href: string) {
     if (href === '/clinics/dashboard') return pathname === '/clinics/dashboard'
@@ -285,52 +295,31 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
           </button>
 
           </div>
-          <div className="sb-bot">
-          <div className={`sb-profile-links${profileOpen ? ' open' : ''}`} aria-hidden={!profileOpen}>
-          <div className="sb-profile-links-inner">
-          <a href="/clinics/settings" className="sb-link" tabIndex={profileOpen ? 0 : -1}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
-            <span>My account</span>
-          </a>
-          <a href="/clinics/settings" className="sb-link" tabIndex={profileOpen ? 0 : -1}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51"/></svg>
-            <span>Settings</span>
-          </a>
-          <a href="/clinics/staff" className="sb-link" tabIndex={profileOpen ? 0 : -1}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            <span>Invite a colleague</span>
-          </a>
-          <a href="mailto:hello@implantid.io" className="sb-link" tabIndex={profileOpen ? 0 : -1}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
-            <span>Help &amp; docs</span>
-          </a>
-          <span className="sb-section">Legal</span>
-          <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link" tabIndex={profileOpen ? 0 : -1}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>Privacy Policy</span>
-          </a>
-          <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link" tabIndex={profileOpen ? 0 : -1}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            <span>Terms of Service</span>
-          </a>
-          <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link" tabIndex={profileOpen ? 0 : -1}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-            <span>GDPR</span>
-          </a>
-          <button className="sb-link sb-signout" onClick={requestSignOut} tabIndex={profileOpen ? 0 : -1}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            <span>Sign out</span>
-          </button>
-          </div>
-          </div>
-          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
-            <div className="av">{userInitials}</div>
-            <div>
-              <div className="name">{userName}</div>
-              <div className="role">{clinicName}</div>
+          <div className="sb-bot" ref={sbBotRef}>
+            <div className={`sb-profile-popup${profileOpen ? ' open' : ''}`} role="menu" aria-hidden={!profileOpen}>
+              <div className="sb-pp-head">
+                <div className="sb-pp-name">{userName}</div>
+                <div className="sb-pp-sub">{clinicName}</div>
+              </div>
+              <a href="/clinics/settings" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>My account</a>
+              <a href="/clinics/settings" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Settings</a>
+              <a href="/clinics/staff" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Invite a colleague</a>
+              <a href="mailto:hello@implantid.io" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Help &amp; docs</a>
+              <div className="sb-pp-divider" />
+              <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Privacy Policy</a>
+              <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Terms of Service</a>
+              <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>GDPR</a>
+              <div className="sb-pp-divider" />
+              <button className="sb-pp-item sb-pp-signout" onClick={requestSignOut} tabIndex={profileOpen ? 0 : -1}>Sign out</button>
             </div>
-            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
+            <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
+              <div className="av">{userInitials}</div>
+              <div>
+                <div className="name">{userName}</div>
+                <div className="role">{clinicName}</div>
+              </div>
+              <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
           </div>
 
         </aside>

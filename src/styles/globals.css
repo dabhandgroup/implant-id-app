@@ -249,7 +249,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .app.collapsed .sidebar:not(:hover) .sb-logo .sb-toggle{display:none}
 .app.collapsed .sidebar:not(:hover) .sb-identity{padding:10px 7px;gap:0;justify-content:center}
 .app.collapsed .sidebar:not(:hover) .sb-identity .chev{opacity:0;pointer-events:none}
-.app.collapsed .sidebar:not(:hover) .sb-profile-links{grid-template-rows:0fr!important;opacity:0!important;pointer-events:none}
+.app.collapsed .sidebar:not(:hover) .sb-profile-popup{display:none}
 .app.collapsed .sidebar:hover .sb-identity{padding:10px 12px}
 /* When the collapsed rail is hovered, push the grid column to make room (content shrinks). */
 .app.collapsed:has(.sidebar:hover){grid-template-columns:236px 1fr}
@@ -272,7 +272,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .app.collapsed .sidebar:not(:hover) .sb-lock{max-width:0;opacity:0;margin-left:-4px}
 /* Inline profile identity block — always visible at bottom of sb-scroll */
 .sb-divider{height:1px;background:var(--border);margin:10px 0 6px}
-.sb-bot{flex-shrink:0;border-top:1px solid var(--border);margin-top:6px;padding:4px 0 2px}
+.sb-bot{flex-shrink:0;border-top:1px solid var(--border);margin-top:6px;padding:4px 0 2px;position:relative}
 .sb-identity{padding:10px 12px;display:flex;align-items:center;gap:10px;border-radius:10px;background:color-mix(in srgb,var(--text) 3%,transparent);margin-bottom:2px;cursor:pointer;user-select:none}
 .sb-identity .av{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--ff);font-weight:600;font-size:13px;flex-shrink:0}
 .sb-identity .name{font-family:var(--ff);font-size:13px;font-weight:500;color:var(--text);line-height:1.2}
@@ -280,9 +280,16 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-identity .chev{margin-left:auto;flex-shrink:0;color:var(--muted2);opacity:.5;transition:transform .2s,opacity .15s}
 .sb-identity:hover .chev{opacity:1}
 .sb-identity.open .chev{transform:rotate(180deg)}
-.sb-profile-links{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .25s cubic-bezier(.4,0,.2,1),opacity .2s}
-.sb-profile-links.open{grid-template-rows:1fr;opacity:1}
-.sb-profile-links-inner{min-height:0;overflow:hidden;padding-bottom:4px}
+/* Floating profile popup */
+.sb-profile-popup{position:absolute;bottom:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 36px rgba(0,0,0,.14);overflow:hidden;z-index:200;opacity:0;transform:translateY(8px);pointer-events:none;transition:opacity .15s,transform .15s cubic-bezier(.4,0,.2,1)}
+.sb-profile-popup.open{opacity:1;transform:translateY(0);pointer-events:auto}
+.sb-pp-head{padding:14px 16px 12px;border-bottom:1px solid var(--border)}
+.sb-pp-name{font-family:var(--ff);font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3}
+.sb-pp-sub{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.3}
+.sb-pp-item{display:block;padding:9px 16px;font-family:var(--ff);font-size:13.5px;color:var(--text);text-decoration:none;cursor:pointer;background:none;border:none;width:100%;text-align:left;transition:background .1s}
+.sb-pp-item:hover{background:color-mix(in srgb,var(--text) 5%,transparent)}
+.sb-pp-divider{height:1px;background:var(--border);margin:4px 0}
+.sb-pp-signout{color:var(--err)!important}
 .sb-signout{color:var(--err)!important}
 .sb-signout:hover{color:var(--err)!important;background:color-mix(in srgb,var(--err) 8%,transparent)!important}
 

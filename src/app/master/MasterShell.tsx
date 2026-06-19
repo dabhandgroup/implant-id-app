@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useClerk }                    from '@clerk/nextjs'
 import { usePathname, useRouter }      from 'next/navigation'
 import LegalFooter from '@/components/LegalFooter'
@@ -38,6 +38,7 @@ export default function MasterShell({ children }: MasterShellProps) {
   const [notifOpen,      setNotifOpen]      = useState(false)
   const [profileOpen,    setProfileOpen]    = useState(false)
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
+  const sbBotRef = useRef<HTMLDivElement>(null)
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
 
@@ -95,6 +96,15 @@ export default function MasterShell({ children }: MasterShellProps) {
   useEffect(() => {
     setMobOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    if (!profileOpen) return
+    function onOutside(e: MouseEvent) {
+      if (sbBotRef.current && !sbBotRef.current.contains(e.target as Node)) setProfileOpen(false)
+    }
+    document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
+  }, [profileOpen])
 
   function isActive(href: string) {
     if (href === '/master/dashboard') return pathname === '/master/dashboard'
@@ -347,42 +357,29 @@ export default function MasterShell({ children }: MasterShellProps) {
           </a>
 
           </div>
-          <div className="sb-bot">
-          {/* ── Profile ── */}
-          {profileOpen && (
-          <div className="sb-profile-links">
-            <a href="/master/settings" className="sb-link">
-              <IconUser /><span>Account settings</span>
-            </a>
-            <a href="mailto:hello@implantid.io" className="sb-link">
-              <IconHelp /><span>Help &amp; support</span>
-            </a>
-            <span className="sb-section">Legal</span>
-            <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>Privacy Policy</span>
-            </a>
-            <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              <span>Terms of Service</span>
-            </a>
-            <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-              <span>GDPR</span>
-            </a>
-            <button className="sb-link sb-signout" onClick={requestSignOut}>
-              <IconOut /><span>Sign out</span>
-            </button>
-          </div>
-          )}
-          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(p => !p)} role="button" tabIndex={0} aria-expanded={profileOpen}>
-            <div className="av">MA</div>
-            <div>
-              <div className="name">Master Admin</div>
-              <div className="role">Implant ID</div>
+          <div className="sb-bot" ref={sbBotRef}>
+            <div className={`sb-profile-popup${profileOpen ? ' open' : ''}`} role="menu" aria-hidden={!profileOpen}>
+              <div className="sb-pp-head">
+                <div className="sb-pp-name">Master Admin</div>
+                <div className="sb-pp-sub">Implant ID</div>
+              </div>
+              <a href="/master/settings" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Account settings</a>
+              <a href="mailto:hello@implantid.io" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Help &amp; support</a>
+              <div className="sb-pp-divider" />
+              <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Privacy Policy</a>
+              <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Terms of Service</a>
+              <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>GDPR</a>
+              <div className="sb-pp-divider" />
+              <button className="sb-pp-item sb-pp-signout" onClick={requestSignOut} tabIndex={profileOpen ? 0 : -1}>Sign out</button>
             </div>
-            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
+            <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(p => !p)} role="button" tabIndex={0} aria-expanded={profileOpen}>
+              <div className="av">MA</div>
+              <div>
+                <div className="name">Master Admin</div>
+                <div className="role">Implant ID</div>
+              </div>
+              <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
           </div>
 
         </aside>

@@ -193,15 +193,9 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
             </a>
           ))}
 
-          {/* Profile footer */}
-          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(p => !p)} role="button" tabIndex={0} aria-expanded={profileOpen}>
-            <div className="av">{initials}</div>
-            <div>
-              <div className="name">{user?.fullName ?? user?.firstName ?? 'Surgeon'}</div>
-              <div className="role">Surgeon</div>
-            </div>
-            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
+          <div className="sb-bot">
+          {/* Profile footer */}
           {profileOpen && (
           <div className="sb-profile-links">
             <a href="/surgeons/settings" className="sb-link">
@@ -229,6 +223,14 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
             </button>
           </div>
           )}
+          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(p => !p)} role="button" tabIndex={0} aria-expanded={profileOpen}>
+            <div className="av">{initials}</div>
+            <div>
+              <div className="name">{user?.fullName ?? user?.firstName ?? 'Surgeon'}</div>
+              <div className="role">Surgeon</div>
+            </div>
+            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
           </div>
 
         </aside>

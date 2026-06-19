@@ -73,15 +73,9 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
             <span>Settings</span>
           </a>
 
-          {/* Profile */}
-          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
-            <div className="av" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>{initials}</div>
-            <div>
-              <div className="name">{name}</div>
-              <div className="role">Manufacturer</div>
-            </div>
-            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
+          <div className="sb-bot">
+          {/* Profile */}
           {profileOpen && (
           <div className="sb-profile-links">
             <a href="/manufacturer/settings" className="sb-link">
@@ -111,6 +105,14 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
             </button>
           </div>
           )}
+          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
+            <div className="av" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>{initials}</div>
+            <div>
+              <div className="name">{name}</div>
+              <div className="role">Manufacturer</div>
+            </div>
+            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
           </div>
         </aside>
 

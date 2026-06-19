@@ -279,15 +279,8 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <span className="count">{unreadCount}</span>
           </button>
 
-          <div className="sb-divider" />
-          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
-            <div className="av">{userInitials}</div>
-            <div>
-              <div className="name">{userName}</div>
-              <div className="role">{clinicName}</div>
-            </div>
-            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
+          <div className="sb-bot">
           {profileOpen && (
           <div className="sb-profile-links">
           <a href="/clinics/settings" className="sb-link">
@@ -325,7 +318,14 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
           </button>
           </div>
           )}
-
+          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
+            <div className="av">{userInitials}</div>
+            <div>
+              <div className="name">{userName}</div>
+              <div className="role">{clinicName}</div>
+            </div>
+            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
           </div>
 
         </aside>

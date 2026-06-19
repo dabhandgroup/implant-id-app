@@ -272,6 +272,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .app.collapsed .sidebar:not(:hover) .sb-lock{max-width:0;opacity:0;margin-left:-4px}
 /* Inline profile identity block — always visible at bottom of sb-scroll */
 .sb-divider{height:1px;background:var(--border);margin:10px 0 6px}
+.sb-bot{flex-shrink:0;border-top:1px solid var(--border);margin-top:6px;padding:4px 0 2px}
 .sb-identity{padding:10px 12px;display:flex;align-items:center;gap:10px;border-radius:10px;background:color-mix(in srgb,var(--text) 3%,transparent);margin-bottom:2px;cursor:pointer;user-select:none}
 .sb-identity .av{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--ff);font-weight:600;font-size:13px;flex-shrink:0}
 .sb-identity .name{font-family:var(--ff);font-size:13px;font-weight:500;color:var(--text);line-height:1.2}

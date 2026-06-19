@@ -508,6 +508,7 @@ export const getMyImplantSafety = query({
     const links = await ctx.db
       .query('patientDevices')
       .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
+      .filter((q) => q.eq(q.field('status'), 'active'))
       .collect()
 
     const statuses = await Promise.all(
@@ -579,11 +580,12 @@ export const lookupByImplantId = query({
       .unique()
     if (!patient) return null
 
-    // Fetch verified device links
+    // Fetch active device links only
     const links = await ctx.db
       .query('patientDevices')
       .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
-      .take(20)
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .collect()
 
     const devices = (
       await Promise.all(
@@ -747,14 +749,24 @@ export const verifyPatient = mutation({
     await ctx.db.patch(args.patientId, { verificationStatus: 'active' })
 
     if (args.deviceId) {
-      await ctx.db.insert('patientDevices', {
-        patientId:    args.patientId,
-        deviceId:     args.deviceId,
-        serialNumber: args.serialNumber,
-        implantDate:  args.implantDate,
-        clinicNotes:  args.clinicNotes,
-        status:       'active',
-      })
+      const existingLink = await ctx.db
+        .query('patientDevices')
+        .withIndex('by_patient', (q) => q.eq('patientId', args.patientId))
+        .filter((q) => q.and(
+          q.eq(q.field('deviceId'), args.deviceId!),
+          q.eq(q.field('status'), 'active'),
+        ))
+        .first()
+      if (!existingLink) {
+        await ctx.db.insert('patientDevices', {
+          patientId:    args.patientId,
+          deviceId:     args.deviceId,
+          serialNumber: args.serialNumber,
+          implantDate:  args.implantDate,
+          clinicNotes:  args.clinicNotes,
+          status:       'active',
+        })
+      }
     }
 
     // Get the patient's user record to find their email
@@ -1718,7 +1730,8 @@ export const getFullPatientByCode = query({
     const links = await ctx.db
       .query('patientDevices')
       .withIndex('by_patient', (q) => q.eq('patientId', patient._id))
-      .take(20)
+      .filter((q) => q.eq(q.field('status'), 'active'))
+      .collect()
 
     const devices = (
       await Promise.all(

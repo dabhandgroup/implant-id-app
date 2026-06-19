@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useSearchParams }       from 'next/navigation'
 import { api as apiBase }        from '../../../../convex/_generated/api'
@@ -36,7 +36,7 @@ export default function PatientViewClient() {
   const code         = (searchParams?.get('code') ?? '').trim().toUpperCase()
 
   const [role,          setRole]          = useState<ViewRole>('admin')
-  const [auditFired,    setAuditFired]    = useState(false)
+  const auditFiredRef = useRef(false)
   const [verifyLoading, setVerifyLoading] = useState(false)
   const [verifyErr,     setVerifyErr]     = useState('')
   const [verifySaved,   setVerifySaved]   = useState(false)
@@ -72,10 +72,13 @@ export default function PatientViewClient() {
   const savePatient   = useMutation(api.clinics.savePatientToClinic)
   const unsavePatient = useMutation(api.clinics.unsavePatientFromClinic)
 
-  if (patient?._id && !auditFired) {
-    setAuditFired(true)
-    recordLookup({ patientId: patient._id, clinicName: undefined }).catch(() => {})
-  }
+  useEffect(() => {
+    if (patient?._id && !auditFiredRef.current) {
+      auditFiredRef.current = true
+      recordLookup({ patientId: patient._id, clinicName: undefined }).catch(() => {})
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient?._id])
 
   // ── No-code state ──────────────────────────────────────────────────────────
 

@@ -40,6 +40,8 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
             </button>
           </div>
 
+          <div className="sb-scroll">
+
           {mfr && (
             <div style={{ padding: '10px 16px 6px', margin: '0 8px 8px', background: 'color-mix(in srgb,var(--accent) 8%,transparent)', borderRadius: 10 }}>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '.8px', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 2 }}>
@@ -72,23 +74,44 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
           </a>
 
           {/* Profile */}
-          <div className="sb-bot" onClick={() => setProfileOpen(v => !v)}>
+          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
             <div className="av" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>{initials}</div>
             <div>
               <div className="name">{name}</div>
               <div className="role">Manufacturer</div>
             </div>
+            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           {profileOpen && (
-            <div className="profile-menu open">
-              <a href="/manufacturer/settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>Account</a>
-              <hr />
-              <button className="danger" onClick={() => { setProfileOpen(false); setLogoutOpen(true) }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                Sign out
-              </button>
-            </div>
+          <div className="sb-profile-links">
+            <a href="/manufacturer/settings" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+              <span>Account settings</span>
+            </a>
+            <a href="mailto:hello@implantid.io" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+              <span>Help &amp; docs</span>
+            </a>
+            <span className="sb-section">Legal</span>
+            <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Privacy Policy</span>
+            </a>
+            <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Terms of Service</span>
+            </a>
+            <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              <span>GDPR</span>
+            </a>
+            <button className="sb-link sb-signout" onClick={() => setLogoutOpen(true)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <span>Sign out</span>
+            </button>
+          </div>
           )}
+          </div>
         </aside>
 
         <div className="app-main">

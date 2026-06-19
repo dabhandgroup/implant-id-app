@@ -85,7 +85,6 @@ export default function MasterShell({ children }: MasterShellProps) {
   // Close menus when clicking outside
   useEffect(() => {
     function handleOutside() {
-      setProfileOpen(false)
       setMobProfileOpen(false)
     }
     document.addEventListener('click', handleOutside)
@@ -270,6 +269,7 @@ export default function MasterShell({ children }: MasterShellProps) {
             </button>
           </div>
 
+          <div className="sb-scroll">
           {/* Overview */}
           <a href="/master/dashboard" className={`sb-link${isActive('/master/dashboard') ? ' active' : ''}`}>
             <IconOverview /><span>Overview</span>
@@ -349,30 +349,40 @@ export default function MasterShell({ children }: MasterShellProps) {
           </a>
 
           {/* ── Profile ── */}
-          <div className="sb-profile-wrap">
-            <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
-              <a href="/master/settings">
-                <IconUser />Account settings
-              </a>
-              <a href="mailto:hello@implantid.io">
-                <IconHelp />Help &amp; support
-              </a>
-              <hr />
-              <button className="danger" onClick={requestSignOut}>
-                <IconOut />Sign out
-              </button>
+          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(p => !p)} role="button" tabIndex={0} aria-expanded={profileOpen}>
+            <div className="av">MA</div>
+            <div>
+              <div className="name">Master Admin</div>
+              <div className="role">Implant ID</div>
             </div>
-            <div
-              className="sb-bot"
-              onClick={(e) => { e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); setProfileOpen(p => !p) }}
-            >
-              <div className="av">MA</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="name">Master Admin</div>
-                <div className="role">Implant ID</div>
-              </div>
-              <span className="chev"><IconChevU /></span>
-            </div>
+            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          {profileOpen && (
+          <div className="sb-profile-links">
+            <a href="/master/settings" className="sb-link">
+              <IconUser /><span>Account settings</span>
+            </a>
+            <a href="mailto:hello@implantid.io" className="sb-link">
+              <IconHelp /><span>Help &amp; support</span>
+            </a>
+            <span className="sb-section">Legal</span>
+            <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Privacy Policy</span>
+            </a>
+            <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Terms of Service</span>
+            </a>
+            <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              <span>GDPR</span>
+            </a>
+            <button className="sb-link sb-signout" onClick={requestSignOut}>
+              <IconOut /><span>Sign out</span>
+            </button>
+          </div>
+          )}
           </div>
 
         </aside>

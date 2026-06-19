@@ -111,7 +111,6 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
   // Close profile menus when clicking outside
   useEffect(() => {
     function handleOutside() {
-      setProfileOpen(false)
       setMobProfileOpen(false)
     }
     document.addEventListener('click', handleOutside)
@@ -178,6 +177,7 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
             </button>
           </div>
 
+          <div className="sb-scroll">
           {/* Portal label */}
           <span className="sb-section">Surgeon Portal</span>
 
@@ -194,30 +194,41 @@ export default function SurgeonShell({ children }: SurgeonShellProps) {
           ))}
 
           {/* Profile footer */}
-          <div
-            className="sb-bot"
-            onClick={(e) => { e.stopPropagation(); setProfileOpen(p => !p) }}
-            role="button"
-            aria-label="Profile menu"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setProfileOpen(p => !p) }}
-          >
+          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(p => !p)} role="button" tabIndex={0} aria-expanded={profileOpen}>
             <div className="av">{initials}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div>
               <div className="name">{user?.fullName ?? user?.firstName ?? 'Surgeon'}</div>
               <div className="role">Surgeon</div>
             </div>
-            <span className="chev"><IconChevU /></span>
+            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
-
-          <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
-            <a href="/surgeons/settings">
-              <IconUser />Account settings
+          {profileOpen && (
+          <div className="sb-profile-links">
+            <a href="/surgeons/settings" className="sb-link">
+              <IconUser /><span>Account settings</span>
             </a>
-            <hr />
-            <button className="danger" onClick={requestSignOut}>
-              <IconOut />Sign out
+            <a href="mailto:hello@implantid.io" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+              <span>Help &amp; docs</span>
+            </a>
+            <span className="sb-section">Legal</span>
+            <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Privacy Policy</span>
+            </a>
+            <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Terms of Service</span>
+            </a>
+            <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              <span>GDPR</span>
+            </a>
+            <button className="sb-link sb-signout" onClick={requestSignOut}>
+              <IconOut /><span>Sign out</span>
             </button>
+          </div>
+          )}
           </div>
 
         </aside>

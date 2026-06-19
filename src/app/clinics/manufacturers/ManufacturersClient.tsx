@@ -1,51 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { MANUFACTURERS as MFR_DATA, ALL_DEVICES } from '@/data/devices'
 
-const MANUFACTURERS = [
-  {
-    id: 'medtronic', abbr: 'MDT', name: 'Medtronic',
-    flag: '🇺🇸', country: 'United States', deviceCount: 3,
-    devices: ['Azure XT DR', 'CapSureFix MRI', 'RestoreAdvanced'],
-    verified: true,
-  },
-  {
-    id: 'abbott', abbr: 'ABT', name: 'Abbott',
-    flag: '🇺🇸', country: 'United States', deviceCount: 2,
-    devices: ['Assurity MRI', 'Tendril STS'],
-    verified: true,
-  },
-  {
-    id: 'boston-scientific', abbr: 'BSc', name: 'Boston Scientific',
-    flag: '🇺🇸', country: 'United States', deviceCount: 1,
-    devices: ['Accolade MRI'],
-    verified: true,
-  },
-  {
-    id: 'biotronik', abbr: 'BIO', name: 'Biotronik',
-    flag: '🇩🇪', country: 'Germany', deviceCount: 1,
-    devices: ['Etrinsa 8 HF-T'],
-    verified: true,
-  },
-  {
-    id: 'cochlear', abbr: 'COC', name: 'Cochlear',
-    flag: '🇦🇺', country: 'Australia', deviceCount: 1,
-    devices: ['Nucleus Profile Plus'],
-    verified: true,
-  },
-  {
-    id: 'cook-medical', abbr: 'COK', name: 'Cook Medical',
-    flag: '🇺🇸', country: 'United States', deviceCount: 1,
-    devices: ['Zilver PTX'],
-    verified: true,
-  },
-  {
-    id: 'edwards', abbr: 'EDW', name: 'Edwards Lifesciences',
-    flag: '🇺🇸', country: 'United States', deviceCount: 1,
-    devices: ['Pre-6000 series (legacy)'],
-    verified: false,
-  },
-]
+function getAbbr(name: string): string {
+  const words = name.split(/[\s(/]+/).filter(Boolean)
+  if (words.length === 1) return name.slice(0, 3).toUpperCase()
+  return words.slice(0, 3).map(w => w[0]).join('').toUpperCase()
+}
+
+function getFlag(country: string): string {
+  if (country.includes('Australia')) return '🇦🇺'
+  if (country.includes('Germany'))   return '🇩🇪'
+  if (country.includes('Japan'))     return '🇯🇵'
+  return '🇺🇸'
+}
+
+function getCountry(c: string): string {
+  if (c.includes('Ireland')) return 'Ireland / USA'
+  if (c.includes('Australia')) return 'Australia'
+  if (c.includes('Germany')) return 'Germany'
+  return 'United States'
+}
+
+function toSlug(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
 
 const VerifiedBadge = () => (
   <span className="mfr-verified">
@@ -60,7 +40,27 @@ const VerifiedBadge = () => (
 export default function ManufacturersClient() {
   const [search, setSearch] = useState('')
 
-  const filtered = MANUFACTURERS.filter(m =>
+  const manufacturers = useMemo(() => {
+    return MFR_DATA.map(m => {
+      const mfrDevices = ALL_DEVICES.filter(d => d.manufacturer_id === m.manufacturer_id)
+      const deviceNames = mfrDevices.slice(0, 3).map(d => d.device_name)
+      return {
+        id:           m.manufacturer_id,
+        slug:         toSlug(m.common_name),
+        abbr:         getAbbr(m.common_name),
+        name:         m.common_name,
+        flag:         getFlag(m.country_of_origin),
+        country:      getCountry(m.country_of_origin),
+        deviceCount:  mfrDevices.length,
+        devices:      deviceNames,
+        verified:     m.fda_registered,
+        contactEmail: m.contact_email,
+        website:      m.website,
+      }
+    })
+  }, [])
+
+  const filtered = manufacturers.filter(m =>
     !search.trim() ||
     m.name.toLowerCase().includes(search.toLowerCase()) ||
     m.devices.some(d => d.toLowerCase().includes(search.toLowerCase()))
@@ -70,7 +70,7 @@ export default function ManufacturersClient() {
     <div className="mfr-page">
       <div className="ey">Device manufacturers</div>
       <h2 style={{ fontSize: 'clamp(20px,2vw,26px)', letterSpacing: '-.025em', marginTop: 6 }}>
-        {MANUFACTURERS.length} manufacturers verified on Implant ID
+        {manufacturers.length} manufacturers in the Implant ID database
       </h2>
       <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 6, maxWidth: 560, lineHeight: 1.5 }}>
         Browse every manufacturer in the database. Tap a card to see their full device catalogue and MRI safety documentation.
@@ -105,15 +105,37 @@ export default function ManufacturersClient() {
                   </div>
                 </div>
                 {m.verified ? <VerifiedBadge /> : (
-                  <span className="mfr-unverified">Unverified</span>
+                  <span className="mfr-unverified">Legacy</span>
                 )}
               </div>
               <div className="mfr-devices">{m.devices.join(' · ')}</div>
               <div className="mfr-card-foot">
-                <a href={`/clinics/devices?mfr=${m.id}`} className="btn btn-s">
+                <a href={`/clinics/devices?mfr=${m.slug}`} className="btn btn-s">
                   View devices →
                 </a>
-                <span className="mfr-contact">Contact</span>
+                {m.contactEmail ? (
+                  <a
+                    href={`mailto:${m.contactEmail}`}
+                    className="mfr-contact"
+                    aria-label={`Email ${m.name}`}
+                  >
+                    Contact
+                  </a>
+                ) : m.website ? (
+                  <a
+                    href={m.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mfr-contact"
+                    aria-label={`Visit ${m.name} website`}
+                  >
+                    Website
+                  </a>
+                ) : (
+                  <span className="mfr-contact" style={{ color: 'var(--muted2)', cursor: 'default' }}>
+                    No contact
+                  </span>
+                )}
               </div>
             </div>
           ))}

@@ -760,6 +760,58 @@ export const sendManufacturerRejectionEmail = internalAction({
   },
 })
 
+// ── Device rejection email (sent to manufacturer when a submitted device is rejected) ──
+
+export const sendDeviceRejectionEmail = internalAction({
+  args: {
+    contactName:  v.string(),
+    contactEmail: v.string(),
+    companyName:  v.string(),
+    deviceModel:  v.string(),
+    reason:       v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const r = resend()
+    const firstName = args.contactName.split(' ')[0]
+
+    const reasonBlock = args.reason
+      ? `<div style="background:#fef9ec;border-left:3px solid #f0c040;border-radius:0 8px 8px 0;
+                     padding:16px 20px;margin:24px 0;">
+           <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.2px;
+                      text-transform:uppercase;color:#92700a;">Reviewer note</p>
+           <p style="margin:0;font-size:14px;color:#5a4a0a;line-height:1.6;">${args.reason}</p>
+         </div>`
+      : ''
+
+    await r.emails.send({
+      from: FROM,
+      to: args.contactEmail,
+      subject: `Device submission update — ${args.deviceModel}`,
+      html: buildEmail({
+        title: 'Device Submission Update',
+        heading: `Hi ${firstName},`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            Thank you for submitting <strong style="color:#0e2a33;">${args.deviceModel}</strong>
+            for listing on the Implant ID platform.
+          </p>
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            After review, we are unable to approve this device submission at this time.
+            ${args.reason ? 'Please see the reviewer note below.' : 'You are welcome to revise and resubmit with updated documentation.'}
+          </p>
+          ${reasonBlock}
+        `,
+        cta: {
+          label: 'View your manufacturer portal →',
+          url: 'https://portal.implantid.io/manufacturers',
+        },
+        footerNote: `Questions? Contact <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})
+
 // ── Master admin invitation email ─────────────────────────────────────────────
 
 export const sendAdminInviteEmail = internalAction({

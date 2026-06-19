@@ -1319,3 +1319,99 @@ export const getPatientAuditEntries = query({
       .slice(0, 10)
   },
 })
+
+/** Full clinic activity log — enriched with staff name and patient info. */
+export const getClinicAuditLog = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) return []
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) return []
+
+    const entries = await ctx.db
+      .query('auditLog')
+      .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
+      .order('desc')
+      .take(args.limit ?? 200)
+
+    return await Promise.all(
+      entries.map(async (e) => {
+        let staffName = 'Unknown'
+        try {
+          const sr = await ctx.db.get(e.staffId)
+          if (sr) {
+            const u = await ctx.db.get(sr.userId)
+            if (u) staffName = u.name || staffName
+          }
+        } catch { /* ignore */ }
+
+        let patientName = ''
+        let patientCode = ''
+        if (e.target) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const p = await ctx.db.get(e.target as any) as any
+            if (p) {
+              patientName = [p.firstName, p.lastName].filter(Boolean).join(' ')
+              patientCode = p.implantIdCode ?? ''
+            }
+          } catch { /* invalid id */ }
+        }
+
+        return {
+          _id:         e._id,
+          action:      e.action,
+          detail:      e.detail ?? '',
+          staffName,
+          patientName,
+          patientCode,
+          createdAt:   e.createdAt,
+        }
+      })
+    )
+  },
+})
+
+/** Update basic clinic information (name, email, phone, address). Admin staff only. */
+export const updateClinicInfo = mutation({
+  args: {
+    name:    v.string(),
+    email:   v.optional(v.string()),
+    phone:   v.optional(v.string()),
+    address: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) throw new Error('User not found')
+
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) throw new Error('Not a clinic staff member')
+
+    await ctx.db.patch(staffRow.clinicId, {
+      name:    args.name.trim(),
+      email:   args.email?.trim() || undefined,
+      phone:   args.phone?.trim() || undefined,
+      address: args.address.trim(),
+    })
+
+    return { updated: true }
+  },
+})

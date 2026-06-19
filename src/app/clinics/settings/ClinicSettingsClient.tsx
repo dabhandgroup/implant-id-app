@@ -2,32 +2,73 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from 'convex/react'
+import { useClerk } from '@clerk/nextjs'
 import { api } from '../../../../convex/_generated/api'
 
 type Tab = 'info' | 'notifications' | 'security' | 'billing'
 
+const NOTIF_KEY = 'clinic-notif-prefs'
+
+function loadNotifPrefs() {
+  if (typeof window === 'undefined') return null
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY) ?? 'null') } catch { return null }
+}
+
 export default function ClinicSettingsClient() {
   // ── All hooks at top ──────────────────────────────────────────────────────
+  const clerk            = useClerk()
   const clinic           = useQuery(api.clinics.getMyClinic)
   const updateVisibility = useMutation(api.clinics.updateClinicVisibility)
+  const updateInfo       = useMutation(api.clinics.updateClinicInfo)
 
   const [tab,            setTab]            = useState<Tab>('info')
   const [showToPatients, setShowToPatients] = useState<boolean | null>(null)
   const [saving,         setSaving]         = useState(false)
   const [saved,          setSaved]          = useState(false)
   const [infoSaved,      setInfoSaved]      = useState(false)
+  const [infoSaving,     setInfoSaving]     = useState(false)
+  const [infoError,      setInfoError]      = useState('')
   const [notifSaved,     setNotifSaved]     = useState(false)
 
-  const [recalls,        setRecalls]        = useState(true)
-  const [expiry,         setExpiry]         = useState(true)
-  const [accessResp,     setAccessResp]     = useState(true)
-  const [digest,         setDigest]         = useState(false)
+  // Controlled info fields
+  const [infoName,    setInfoName]    = useState('')
+  const [infoEmail,   setInfoEmail]   = useState('')
+  const [infoPhone,   setInfoPhone]   = useState('')
+  const [infoAddress, setInfoAddress] = useState('')
+  const [infoInit,    setInfoInit]    = useState(false)
+
+  const [recalls,    setRecalls]    = useState(true)
+  const [expiry,     setExpiry]     = useState(true)
+  const [accessResp, setAccessResp] = useState(true)
+  const [digest,     setDigest]     = useState(false)
 
   useEffect(() => {
     if (clinic && showToPatients === null) {
       setShowToPatients(clinic.showToPatients !== false)
     }
   }, [clinic, showToPatients])
+
+  // Initialise controlled info fields from Convex once
+  useEffect(() => {
+    if (clinic && !infoInit) {
+      setInfoName(clinic.name ?? '')
+      setInfoEmail(clinic.email ?? '')
+      setInfoPhone(clinic.phone ?? '')
+      setInfoAddress(clinic.address ?? '')
+      setInfoInit(true)
+    }
+  }, [clinic, infoInit])
+
+  // Load notification prefs from localStorage on mount
+  useEffect(() => {
+    const prefs = loadNotifPrefs()
+    if (prefs) {
+      if (typeof prefs.recalls    === 'boolean') setRecalls(prefs.recalls)
+      if (typeof prefs.expiry     === 'boolean') setExpiry(prefs.expiry)
+      if (typeof prefs.accessResp === 'boolean') setAccessResp(prefs.accessResp)
+      if (typeof prefs.digest     === 'boolean') setDigest(prefs.digest)
+    }
+  }, [])
 
   async function handleVisibilityToggle() {
     const newVal = !showToPatients
@@ -40,6 +81,27 @@ export default function ClinicSettingsClient() {
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleInfoSave() {
+    if (!infoName.trim()) { setInfoError('Clinic name is required.'); return }
+    setInfoError('')
+    setInfoSaving(true)
+    try {
+      await updateInfo({ name: infoName, email: infoEmail, phone: infoPhone, address: infoAddress })
+      setInfoSaved(true)
+      setTimeout(() => setInfoSaved(false), 3000)
+    } catch (e: unknown) {
+      setInfoError(e instanceof Error ? e.message : 'Save failed.')
+    } finally {
+      setInfoSaving(false)
+    }
+  }
+
+  function handleNotifSave() {
+    localStorage.setItem(NOTIF_KEY, JSON.stringify({ recalls, expiry, accessResp, digest }))
+    setNotifSaved(true)
+    setTimeout(() => setNotifSaved(false), 3000)
   }
 
   function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
@@ -124,32 +186,60 @@ export default function ClinicSettingsClient() {
             <div className="ey" style={{ marginBottom: 14 }}>Clinic information</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div className="field">
-                <label>Clinic name</label>
-                <input className="input" defaultValue={clinic?.name ?? ''} />
+                <label>Clinic name <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+                <input
+                  className="input"
+                  value={infoName}
+                  onChange={e => setInfoName(e.target.value)}
+                  placeholder="e.g. St. Mary's Radiology"
+                />
               </div>
               <div className="field">
                 <label>Clinic type</label>
-                <input className="input" defaultValue="" placeholder="e.g. Radiology & MRI" />
+                <input className="input" defaultValue="" placeholder="e.g. Radiology & MRI" readOnly />
               </div>
               <div className="field">
                 <label>Primary contact email</label>
-                <input className="input" type="email" defaultValue={clinic?.email ?? ''} />
+                <input
+                  className="input"
+                  type="email"
+                  value={infoEmail}
+                  onChange={e => setInfoEmail(e.target.value)}
+                  placeholder="clinic@example.com"
+                />
               </div>
               <div className="field">
                 <label>Phone</label>
-                <input className="input" defaultValue={clinic?.phone ?? ''} placeholder="+44 20 xxxx xxxx" />
+                <input
+                  className="input"
+                  value={infoPhone}
+                  onChange={e => setInfoPhone(e.target.value)}
+                  placeholder="+44 20 xxxx xxxx"
+                />
               </div>
               <div className="field" style={{ gridColumn: 'span 2' }}>
                 <label>Address</label>
-                <input className="input" defaultValue={clinic?.address ?? ''} />
+                <input
+                  className="input"
+                  value={infoAddress}
+                  onChange={e => setInfoAddress(e.target.value)}
+                  placeholder="123 Hospital Road, London"
+                />
               </div>
             </div>
+            {infoError && (
+              <div style={{ marginTop: 12, padding: '10px 14px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, fontSize: 13, color: 'var(--err)' }}>
+                {infoError}
+              </div>
+            )}
             <div style={{ marginTop: 18 }}>
               <button
                 className="btn btn-s"
-                onClick={() => { setInfoSaved(true); setTimeout(() => setInfoSaved(false), 2000) }}
+                onClick={handleInfoSave}
+                disabled={infoSaving}
+                aria-label="Save clinic information"
               >
-                {infoSaved ? 'Saved ✓' : 'Save changes'}
+                {infoSaving ? 'Saving…' : infoSaved ? 'Saved ✓' : 'Save changes'}
               </button>
             </div>
           </div>
@@ -220,7 +310,8 @@ export default function ClinicSettingsClient() {
             <div style={{ marginTop: 20 }}>
               <button
                 className="btn btn-s"
-                onClick={() => { setNotifSaved(true); setTimeout(() => setNotifSaved(false), 2000) }}
+                onClick={handleNotifSave}
+                aria-label="Save notification preferences"
               >
                 {notifSaved ? 'Saved ✓' : 'Save preferences'}
               </button>
@@ -261,7 +352,14 @@ export default function ClinicSettingsClient() {
                   <div className="set-row-label">Active sessions</div>
                   <div className="set-row-desc">View and revoke sessions for all staff members</div>
                 </div>
-                <button className="btn" style={{ fontSize: 13, flexShrink: 0 }}>View sessions</button>
+                <button
+                  className="btn"
+                  style={{ fontSize: 13, flexShrink: 0 }}
+                  onClick={() => clerk.openUserProfile()}
+                  aria-label="View active sessions in account settings"
+                >
+                  View sessions
+                </button>
               </div>
             </div>
           </div>

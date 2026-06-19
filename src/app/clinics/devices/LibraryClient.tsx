@@ -216,7 +216,17 @@ export default function LibraryClient({ devices, userName, userInitials }: Props
   const searchParams = useSearchParams()
   const [query,      setQuery]      = useState(searchParams?.get('q') ?? '')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [mfrFilter,  setMfrFilter]  = useState('all')
+  const [mfrFilter,  setMfrFilter]  = useState<string>(() => {
+    const slug = searchParams?.get('mfr')
+    if (!slug) return 'all'
+    // Match URL slug (e.g. 'medtronic', 'boston-scientific') to a manufacturer_id
+    // by slugifying the common name and comparing
+    const found = devices.find(d => {
+      const ns = d.manufacturer_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      return ns === slug || ns.startsWith(slug)
+    })
+    return found?.manufacturer_id ?? 'all'
+  })
   const [view,       setView]       = useState<'grid' | 'list'>('grid')
 
   const manufacturers = useMemo(() => {

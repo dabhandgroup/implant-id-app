@@ -76,9 +76,17 @@
 @media print{
   body * {visibility:hidden}
   .print-area, .print-area *{visibility:visible}
-  .print-area{position:absolute;inset:0;padding:40px;background:#fff;color:#000}
-  .print-area .pa-head{border-bottom:2px solid #000;padding-bottom:16px;margin-bottom:20px;display:flex;justify-content:space-between}
-  .sidebar, .app-top{display:none !important}
+  .print-area{position:fixed;inset:0;padding:40px 48px;background:#fff;color:#000;display:block!important;z-index:9999;font-family:Georgia,serif}
+  .print-area .pa-head{border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start}
+  .print-area .pa-section{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #e0e0e0}
+  .print-area .pa-section:last-of-type{border-bottom:none}
+  .print-area .pa-title{font-family:Arial,sans-serif;font-size:9.5px;letter-spacing:1.6px;text-transform:uppercase;font-weight:700;color:#666;margin-bottom:7px}
+  .print-area .pa-row{display:flex;justify-content:space-between;gap:16px;font-size:13px;line-height:1.5;padding:3px 0;border-bottom:1px solid #f2f2f2}
+  .print-area .pa-row:last-child{border-bottom:none}
+  .print-area .pa-row span:first-child{color:#555;font-family:Arial,sans-serif;font-size:12px;min-width:160px;flex-shrink:0}
+  .print-area .pa-row span:last-child{font-weight:500;text-align:right}
+  .print-area .pa-warn{background:#fef9c3;border-left:3px solid #ca8a04;padding:5px 8px!important;margin-top:4px;border-radius:0 4px 4px 0}
+  .sidebar,.app-top,.app-content > *:not(.print-area){display:none !important}
 }
 .print-area{display:none}
 

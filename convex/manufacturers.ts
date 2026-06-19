@@ -820,7 +820,19 @@ export const rejectDevice = mutation({
       status: 'draft',
     })
 
-    // TODO: Send rejection email to manufacturer
+    // Notify the submitting manufacturer by email
+    if (device.submittedByManufacturerId) {
+      const mfr = await ctx.db.get(device.submittedByManufacturerId)
+      if (mfr) {
+        await ctx.scheduler.runAfter(0, internal.email.sendDeviceRejectionEmail, {
+          contactName:  mfr.contactName,
+          contactEmail: mfr.contactEmail,
+          companyName:  mfr.companyName,
+          deviceModel:  device.model ?? 'your device submission',
+          reason:       args.reason,
+        })
+      }
+    }
 
     return { rejected: true }
   },

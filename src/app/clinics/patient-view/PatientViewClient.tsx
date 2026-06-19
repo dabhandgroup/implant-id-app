@@ -351,8 +351,8 @@ export default function PatientViewClient() {
           </div>
         </div>
         <div className="pt-acts">
-          {/* Save patient — only shown to clinic staff (isSaved is null for non-staff) */}
-          {isSaved !== null && (
+          {/* Save patient — only shown to clinic staff (isSaved is null for non-staff, undefined while loading) */}
+          {isSaved !== null && isSaved !== undefined && (
             <>
               {(isSaved || justSaved) ? (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -392,7 +392,13 @@ export default function PatientViewClient() {
               )}
             </>
           )}
-          <button type="button" className="btn" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <button
+            type="button"
+            className="btn"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            onClick={() => window.print()}
+            aria-label="Export patient record as PDF"
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
             Export PDF
           </button>
@@ -781,6 +787,79 @@ export default function PatientViewClient() {
             </span>
           </div>
 
+        </div>
+      </div>
+
+      {/* ── Print area — hidden on screen, visible on print/PDF export ─── */}
+      <div className="print-area">
+        <div className="pa-head">
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 18 }}>Implant ID — Clinical Patient Record</div>
+            <div style={{ color: '#666', fontSize: 12, marginTop: 3 }}>Printed {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: 13 }}>
+            <div style={{ fontWeight: 600 }}>{patient.firstName} {patient.lastName}</div>
+            <div style={{ fontFamily: 'SF Mono,Monaco,monospace', letterSpacing: '.04em', color: '#555', marginTop: 2 }}>{patient.implantIdCode}</div>
+          </div>
+        </div>
+
+        <div className="pa-section">
+          <div className="pa-title">Patient details</div>
+          <div className="pa-row"><span>Name</span><span>{patient.firstName} {patient.lastName}</span></div>
+          {dob && <div className="pa-row"><span>Date of birth</span><span>{dob}</span></div>}
+          <div className="pa-row"><span>Implant ID</span><span style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{patient.implantIdCode}</span></div>
+          <div className="pa-row"><span>MRI status</span><span>{isPending ? 'Pending verification' : mriMeta.label}</span></div>
+          <div className="pa-row"><span>Record status</span><span>{isPending ? 'Pending — not clinically verified' : 'Clinically verified'}</span></div>
+        </div>
+
+        {primaryDevice ? (
+          <div className="pa-section">
+            <div className="pa-title">Implant device</div>
+            <div className="pa-row"><span>Device</span><span>{primaryDevice.manufacturer} {primaryDevice.model}</span></div>
+            {primaryDevice.deviceType    && <div className="pa-row"><span>Type</span><span>{primaryDevice.deviceType}</span></div>}
+            {primaryDevice.serialNumber  && <div className="pa-row"><span>Serial number</span><span style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{primaryDevice.serialNumber}</span></div>}
+            {primaryDevice.implantDate   && <div className="pa-row"><span>Implanted</span><span>{primaryDevice.implantDate}{primaryDevice.hospital ? ` · ${primaryDevice.hospital}` : ''}</span></div>}
+            {primaryDevice.implantingSurgeon && <div className="pa-row"><span>Surgeon</span><span>{primaryDevice.implantingSurgeon}</span></div>}
+          </div>
+        ) : patient.selfReportedDevice ? (
+          <div className="pa-section">
+            <div className="pa-title">Implant device (self-reported — not verified)</div>
+            <div className="pa-row"><span>Device</span><span>{patient.selfReportedDevice}</span></div>
+            {(patient as any).selfReportedManufacturer && <div className="pa-row"><span>Manufacturer</span><span>{(patient as any).selfReportedManufacturer}</span></div>}
+            {(patient as any).selfReportedSurgeon      && <div className="pa-row"><span>Surgeon</span><span>{(patient as any).selfReportedSurgeon}</span></div>}
+            {(patient as any).selfReportedHospital     && <div className="pa-row"><span>Hospital</span><span>{(patient as any).selfReportedHospital}</span></div>}
+          </div>
+        ) : null}
+
+        {primaryDevice && (primaryDevice.fieldStrengths || primaryDevice.sarLimit || primaryDevice.b1RmsLimit) && (
+          <div className="pa-section">
+            <div className="pa-title">MRI safety conditions</div>
+            {primaryDevice.fieldStrengths && <div className="pa-row"><span>Approved field strengths</span><span>{primaryDevice.fieldStrengths}</span></div>}
+            {primaryDevice.sarLimit       && <div className="pa-row"><span>Max whole-body SAR</span><span>{primaryDevice.sarLimit}</span></div>}
+            {primaryDevice.b1RmsLimit     && <div className="pa-row"><span>B1+rms limit</span><span>{primaryDevice.b1RmsLimit}</span></div>}
+            {primaryDevice.slewRateLimit  && <div className="pa-row"><span>Slew rate limit</span><span>{primaryDevice.slewRateLimit}</span></div>}
+            {primaryDevice.gradientLimit  && <div className="pa-row"><span>Gradient limit</span><span>{primaryDevice.gradientLimit}</span></div>}
+            {primaryDevice.maxScanTime    && <div className="pa-row"><span>Max scan time</span><span>{primaryDevice.maxScanTime}</span></div>}
+            {primaryDevice.contraindications && (
+              <div className="pa-row pa-warn"><span>Contraindications</span><span>{primaryDevice.contraindications}</span></div>
+            )}
+          </div>
+        )}
+
+        {(patient.emergencyContactName || patient.emergencyContactPhone || patient.contrastAllergy !== undefined) && (
+          <div className="pa-section">
+            <div className="pa-title">Emergency contact &amp; medical alerts</div>
+            {patient.emergencyContactName  && <div className="pa-row"><span>Next of kin</span><span>{patient.emergencyContactName}{patient.emergencyContactRelation ? ` (${patient.emergencyContactRelation})` : ''}</span></div>}
+            {patient.emergencyContactPhone && <div className="pa-row"><span>Phone</span><span>{patient.emergencyContactPhone}</span></div>}
+            {patient.contrastAllergy !== undefined && patient.contrastAllergy !== null && (
+              <div className="pa-row"><span>Contrast allergy</span><span>{patient.contrastAllergy ? `Yes${patient.contrastAllergyNote ? ` — ${patient.contrastAllergyNote}` : ''}` : 'No'}</span></div>
+            )}
+          </div>
+        )}
+
+        <div style={{ marginTop: 32, paddingTop: 14, borderTop: '1px solid #ccc', fontSize: 11, color: '#777', lineHeight: 1.6 }}>
+          This document is for clinical reference only. Always consult the device IFU and your clinical protocols before performing any procedure.
+          Record generated by Implant ID — portal.implantid.io
         </div>
       </div>
 

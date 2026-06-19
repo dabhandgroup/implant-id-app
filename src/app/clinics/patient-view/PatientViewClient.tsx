@@ -66,7 +66,7 @@ export default function PatientViewClient() {
   )
   const isSaved       = useQuery(api.clinics.isPatientSaved, patient?._id ? { patientId: patient._id } : 'skip')
   const allDevices    = useQuery(api.devices.listDevices, {})
-  const recordLookup  = useMutation(api.patients.recordPatientLookup)
+  const recordLookup  = useMutation(api.clinics.logClinicPatientScan)
   const verifyPatient = useMutation(api.patients.verifyPatient)
   const linkDevice    = useMutation(api.patients.linkDeviceToPatient)
   const savePatient   = useMutation(api.clinics.savePatientToClinic)
@@ -75,7 +75,7 @@ export default function PatientViewClient() {
   useEffect(() => {
     if (patient?._id && !auditFiredRef.current) {
       auditFiredRef.current = true
-      recordLookup({ patientId: patient._id, clinicName: undefined }).catch(() => {})
+      recordLookup({ patientId: patient._id }).catch(() => {})
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient?._id])

@@ -1415,3 +1415,127 @@ export const updateClinicInfo = mutation({
     return { updated: true }
   },
 })
+
+/**
+ * Record a clinic staff member scanning / viewing a patient card.
+ * Writes to auditLog, records device lookups, and notifies the patient.
+ *
+ * Replaces the recordPatientLookup call on the clinic portal because that
+ * mutation silently exits when the staff row is missing. This version uses
+ * multiple fallback strategies to find (or create) the staff row, so it
+ * works even when the staff row was never created at approval time.
+ */
+export const logClinicPatientScan = mutation({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return
+
+    // ── 1. Find user row ────────────────────────────────────────────────────
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) return
+
+    // ── 2. Find or create staff row ─────────────────────────────────────────
+    let staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+
+    if (!staffRow) {
+      // Strategy A: find approved application by clerkUserId → match clinic by email
+      let clinicId: string | null = null
+
+      const appByClerk = await ctx.db
+        .query('clinicApplications')
+        .withIndex('by_clerk', (q) => q.eq('clerkUserId', identity.subject))
+        .first()
+
+      if (appByClerk?.status === 'approved') {
+        const c = await ctx.db
+          .query('clinics')
+          .filter((q) => q.eq(q.field('email'), appByClerk.contactEmail))
+          .first()
+        if (c) clinicId = c._id
+      }
+
+      // Strategy B: find approved application by user's email (case-insensitive)
+      if (!clinicId && user.email) {
+        const appByEmail = await ctx.db
+          .query('clinicApplications')
+          .withIndex('by_email', (q) => q.eq('contactEmail', user.email))
+          .first()
+        if (appByEmail?.status === 'approved') {
+          const c = await ctx.db
+            .query('clinics')
+            .filter((q) => q.eq(q.field('email'), appByEmail.contactEmail))
+            .first()
+          if (c) clinicId = c._id
+        }
+      }
+
+      // Strategy C: scan all active clinics and match email case-insensitively
+      if (!clinicId && user.email) {
+        const allActive = await ctx.db
+          .query('clinics')
+          .withIndex('by_status', (q) => q.eq('status', 'active'))
+          .collect()
+        const match = allActive.find(
+          (c) => c.email?.toLowerCase() === user.email.toLowerCase(),
+        )
+        if (match) clinicId = match._id
+      }
+
+      if (!clinicId) return
+
+      const staffId = await ctx.db.insert('staff', {
+        userId:      user._id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        clinicId:    clinicId as any,
+        jobType:     'admin',
+        accessLevel: 'admin',
+        allPatients: true,
+        status:      'active',
+      })
+      staffRow = await ctx.db.get(staffId)
+      if (!staffRow) return
+    }
+
+    // ── 3. Write audit log ───────────────────────────────────────────────────
+    await ctx.db.insert('auditLog', {
+      clinicId:  staffRow.clinicId,
+      staffId:   staffRow._id,
+      action:    'patient_lookup',
+      target:    args.patientId,
+      detail:    'Patient record viewed via scan',
+      createdAt: Date.now(),
+    })
+
+    // ── 4. Record device lookups ─────────────────────────────────────────────
+    const linkedDevices = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_patient', (q) => q.eq('patientId', args.patientId))
+      .collect()
+    const now = Date.now()
+    for (const link of linkedDevices) {
+      await ctx.db.insert('deviceLookups', { deviceId: link.deviceId, createdAt: now })
+    }
+
+    // ── 5. Notify patient ────────────────────────────────────────────────────
+    const clinic = await ctx.db.get(staffRow.clinicId)
+    const patient = await ctx.db.get(args.patientId)
+    if (patient?.userId) {
+      await ctx.db.insert('notifications', {
+        userId:    patient.userId,
+        type:      'record_viewed',
+        title:     'Your record was accessed',
+        body:      `Your implant record was viewed by ${clinic?.name ?? 'a clinic'}.`,
+        read:      false,
+        relatedId: args.patientId,
+        createdAt: Date.now(),
+      })
+    }
+  },
+})

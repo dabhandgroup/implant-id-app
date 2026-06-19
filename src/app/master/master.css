@@ -283,10 +283,6 @@ body{background:var(--bg);color:var(--text)}
   .form-grid-3{grid-template-columns:1fr}
 }
 
-/* Settings page: nav + content stack on mobile */
-@media(max-width:700px){
-  .m-settings-grid{grid-template-columns:1fr !important}
-}
 
 /* Patients: table on desktop, cards on mobile */
 .m-patients-mobile{display:none}

@@ -7,6 +7,8 @@ import { api as apiBase }    from '../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
+type MfrTab = 'company' | 'regulatory' | 'contact' | 'account'
+
 function Field({ label, value }: { label: string; value?: string | string[] | null }) {
   if (!value || (Array.isArray(value) && value.length === 0)) return null
   return (

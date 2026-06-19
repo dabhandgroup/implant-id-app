@@ -1572,11 +1572,38 @@ export const recordPatientLookup = mutation({
       .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
       .first()
     if (!user) return
-    const staffRow = await ctx.db
+    let staffRow = await ctx.db
       .query('staff')
       .withIndex('by_user', (q) => q.eq('userId', user._id))
       .first()
-    if (!staffRow) return
+
+    if (!staffRow) {
+      // Auto-heal: approved clinic contacts may not have a staff row if the
+      // approval happened before their users row existed. Find their approved
+      // application and create the missing staff row now.
+      const app = await ctx.db
+        .query('clinicApplications')
+        .withIndex('by_clerk', (q) => q.eq('clerkUserId', identity.subject))
+        .first()
+      if (app?.status === 'approved') {
+        const clinic = await ctx.db
+          .query('clinics')
+          .filter((q) => q.eq(q.field('email'), app.contactEmail))
+          .first()
+        if (clinic) {
+          const staffId = await ctx.db.insert('staff', {
+            userId:      user._id,
+            clinicId:    clinic._id,
+            jobType:     'admin',
+            accessLevel: 'admin',
+            allPatients: true,
+            status:      'active',
+          })
+          staffRow = await ctx.db.get(staffId)
+        }
+      }
+      if (!staffRow) return
+    }
 
     const clinic = args.clinicName
       ? null

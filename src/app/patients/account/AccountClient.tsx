@@ -4,6 +4,7 @@ import { useUser, useClerk }           from '@clerk/nextjs'
 import { useQuery, useMutation }       from 'convex/react'
 import { api }                         from '../../../../convex/_generated/api'
 import { useRouter }                   from 'next/navigation'
+import Link                            from 'next/link'
 import { CustomSelect }                from '@/components/ui/CustomSelect'
 import QRCode                          from 'qrcode'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -126,7 +127,24 @@ export default function AccountClient() {
 
   // ── Guards ────────────────────────────────────────────────────────────────
   if (!isLoaded || patient === undefined) {
-    return <div style={{ minHeight: '100vh', background: 'var(--bg)' }} />
+    return (
+      <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'var(--bg)', fontFamily:'var(--ff)', gap:32 }}>
+        <Link href="/" style={{ textDecoration:'none' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:11, color:'var(--text)', fontSize:19, fontWeight:600, letterSpacing:'-.02em' }}>
+            <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px color-mix(in srgb,var(--accent) 35%,transparent)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            Implant ID
+          </div>
+        </Link>
+        <svg width="38" height="38" viewBox="0 0 38 38" aria-label="Loading" role="status">
+          <circle cx="19" cy="19" r="15" fill="none" stroke="color-mix(in srgb,var(--accent) 15%,transparent)" strokeWidth="2.5"/>
+          <circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="24 70">
+            <animateTransform attributeName="transform" type="rotate" from="0 19 19" to="360 19 19" dur="0.85s" repeatCount="indefinite"/>
+          </circle>
+        </svg>
+      </div>
+    )
   }
   if (patient === null) return null // redirecting
 

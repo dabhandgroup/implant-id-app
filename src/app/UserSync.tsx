@@ -26,7 +26,7 @@ export default function UserSync() {
 
     upsertUser({
       email: user.primaryEmailAddress?.emailAddress ?? '',
-      name:  user.fullName ?? user.username ?? user.id,
+      name:  user.fullName ?? user.username ?? user.primaryEmailAddress?.emailAddress?.split('@')[0] ?? 'User',
       role:  clerkRole, // upsertUser promotes existing 'patient' rows if role is higher
     }).catch(console.error)
   }, [isLoaded, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps

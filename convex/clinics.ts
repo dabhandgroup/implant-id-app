@@ -1429,7 +1429,13 @@ export const getClinicAuditLog = query({
           const sr = await ctx.db.get(e.staffId)
           if (sr) {
             const u = await ctx.db.get(sr.userId)
-            if (u) staffName = u.name || staffName
+            if (u) {
+              const n = u.name ?? ''
+              // Fallback: if name is a raw Clerk ID (user_xxx), use email prefix instead
+              staffName = (n && !n.startsWith('user_'))
+                ? n
+                : (u.email ? u.email.split('@')[0] : 'Unknown')
+            }
           }
         } catch { /* ignore */ }
 

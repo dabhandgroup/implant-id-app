@@ -249,7 +249,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .app.collapsed .sidebar:not(:hover) .sb-logo .sb-toggle{display:none}
 .app.collapsed .sidebar:not(:hover) .sb-identity{padding:10px 7px;gap:0;justify-content:center}
 .app.collapsed .sidebar:not(:hover) .sb-identity .chev{opacity:0;pointer-events:none}
-.app.collapsed .sidebar:not(:hover) .sb-profile-links{display:none}
+.app.collapsed .sidebar:not(:hover) .sb-profile-links{grid-template-rows:0fr!important;opacity:0!important;pointer-events:none}
 .app.collapsed .sidebar:hover .sb-identity{padding:10px 12px}
 /* When the collapsed rail is hovered, push the grid column to make room (content shrinks). */
 .app.collapsed:has(.sidebar:hover){grid-template-columns:236px 1fr}
@@ -280,7 +280,9 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-identity .chev{margin-left:auto;flex-shrink:0;color:var(--muted2);opacity:.5;transition:transform .2s,opacity .15s}
 .sb-identity:hover .chev{opacity:1}
 .sb-identity.open .chev{transform:rotate(180deg)}
-.sb-profile-links{padding-bottom:6px}
+.sb-profile-links{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .25s cubic-bezier(.4,0,.2,1),opacity .2s}
+.sb-profile-links.open{grid-template-rows:1fr;opacity:1}
+.sb-profile-links-inner{min-height:0;overflow:hidden;padding-bottom:4px}
 .sb-signout{color:var(--err)!important}
 .sb-signout:hover{color:var(--err)!important;background:color-mix(in srgb,var(--err) 8%,transparent)!important}
 

@@ -536,7 +536,7 @@ export default function AiChatClient() {
   const groups = groupChats(chatHistory ?? [])
 
   return (
-    <div className="m-content" style={{ display: 'flex', flexDirection: 'row', height: 'calc(100vh - 64px)', padding: 0, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'row', height: 'calc(100vh - 64px)', width: '100%', overflow: 'hidden' }}>
 
       {/* ── Chat history sidebar ─────────────────────────────── */}
       <div style={{ width: 240, flexShrink: 0, borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', background: 'var(--bg2)', overflow: 'hidden' }}>

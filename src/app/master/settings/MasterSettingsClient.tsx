@@ -780,8 +780,10 @@ export default function MasterSettingsClient() {
                   Anthropic API Key
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-                  Stored securely in your account — synced across all your devices.
-                  Get a key at <strong>console.anthropic.com</strong>.
+                  Stored securely in your account — synced across all your devices.{' '}
+                  <a href="https://platform.claude.com/settings/workspaces/default/keys" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-deep)', fontWeight: 500 }}>
+                    Get a key at console.anthropic.com →
+                  </a>
                 </div>
               </div>
               <div style={{ padding: '20px 22px' }}>

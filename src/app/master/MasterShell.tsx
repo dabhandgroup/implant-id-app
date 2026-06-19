@@ -458,7 +458,7 @@ export default function MasterShell({ children }: MasterShellProps) {
             {children}
           </main>
 
-          <LegalFooter />
+          {!isActive('/master/devices/ai') && <LegalFooter />}
 
         </div>
       </div>

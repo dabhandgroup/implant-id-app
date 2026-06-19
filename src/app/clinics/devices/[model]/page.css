@@ -471,6 +471,18 @@
 }
 
 /* Quick action buttons */
+.qa-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.qa-row .qa-btn {
+  flex: 1;
+  width: auto;
+  margin-bottom: 0;
+  justify-content: center;
+}
+
 .qa-btn {
   display: flex;
   align-items: center;

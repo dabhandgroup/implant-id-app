@@ -804,8 +804,8 @@ export default function DashboardClient() {
             <div className="mob-hdr-profile">
               <button
                 className="mob-hdr-av"
-                aria-label="Open navigation"
-                onClick={() => setSbOpen(v => !v)}
+                aria-label="Open profile menu"
+                onClick={() => setMobProfileOpen(v => !v)}
               >
                 {initials}
               </button>

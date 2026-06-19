@@ -90,9 +90,10 @@ export async function GET() {
   const convexToken = await clerkAuth.getToken({ template: 'convex' })
 
   // ── Patient data ──────────────────────────────────────────────────────────
-  const [patient, safety] = await Promise.all([
-    fetchQuery(api.patients.getMyPatient,       {}, { token: convexToken ?? undefined }),
-    fetchQuery(api.patients.getMyImplantSafety, {}, { token: convexToken ?? undefined }),
+  const [patient, safety, linkedDevices] = await Promise.all([
+    fetchQuery(api.patients.getMyPatient,        {}, { token: convexToken ?? undefined }),
+    fetchQuery(api.patients.getMyImplantSafety,  {}, { token: convexToken ?? undefined }),
+    fetchQuery(api.patients.getMyLinkedDevices,  {}, { token: convexToken ?? undefined }),
   ])
   if (!patient) return new Response('Patient not found', { status: 404 })
 
@@ -116,18 +117,30 @@ export async function GET() {
   }
 
   // ── Build pass content ────────────────────────────────────────────────────
-  const isPending  = patient.verificationStatus !== 'active'
-  const mriLabel   = safety ? (MRI_LABEL[safety] ?? 'MRI status unknown') : (isPending ? 'Pending verification' : 'Not assessed')
-  const bgColor    = isPending ? PENDING_BG : (safety ? (MRI_BG[safety] ?? DEFAULT_BG) : DEFAULT_BG)
-  const fullName   = `${patient.firstName} ${patient.lastName}`
-  const deviceName = patient.selfReportedDevice ?? 'Not recorded'
+  const isPending = patient.verificationStatus !== 'active'
+  const mriLabel  = safety ? (MRI_LABEL[safety] ?? 'MRI status unknown') : (isPending ? 'Pending verification' : 'Not assessed')
+  const bgColor   = isPending ? PENDING_BG : (safety ? (MRI_BG[safety] ?? DEFAULT_BG) : DEFAULT_BG)
+  const fullName  = `${patient.firstName} ${patient.lastName}`
 
-  // Truncate long values so they don't push fields to next line on the pass
-  const truncate = (s: string, max: number) => s.length > max ? s.slice(0, max - 1) + '…' : s
-  const patientNameShort = truncate(fullName, 22)          // primary field — large text
-  const deviceNameShort  = truncate(deviceName, 20)        // secondary field
-  const surgeonShort     = patient.selfReportedSurgeon
-    ? truncate(patient.selfReportedSurgeon, 16) : undefined
+  // Prefer verified catalogue devices; fall back to self-reported free text
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const verified = (linkedDevices ?? []) as any[]
+  const deviceLabel = verified.length > 1 ? 'IMPLANTS' : 'DEVICE'
+  const deviceValue = verified.length > 1
+    ? `${verified.length} implants`
+    : verified.length === 1
+      ? `${verified[0].manufacturer} ${verified[0].name}`.trim()
+      : (patient.selfReportedDevice ?? 'Not recorded')
+
+  // Implanted date — use verified first device if available, else self-reported
+  const implantedValue = verified[0]?.implantDate
+    ?? (patient.selfReportedImplantYear
+        ? (patient.selfReportedImplantMonth
+            ? `${patient.selfReportedImplantMonth}/${patient.selfReportedImplantYear}`
+            : String(patient.selfReportedImplantYear))
+        : null)
+
+  const surgeonValue = verified[0]?.implantingSurgeon ?? patient.selfReportedSurgeon ?? null
 
   const passJson = {
     formatVersion:      1,
@@ -136,7 +149,6 @@ export async function GET() {
     teamIdentifier:     teamId,
     organizationName:   'Implant ID',
     description:        'Implant ID Patient Pass',
-    // No logoText — logo image is the brand
     foregroundColor:    WHITE,
     backgroundColor:    bgColor,
     labelColor:         'rgb(255,220,180)',
@@ -149,39 +161,19 @@ export async function GET() {
       },
     ],
     generic: {
-      // No headerFields — the MRI badge thumbnail (top-right) replaces text
       // primaryField: largest text — patient name
       primaryFields: [
-        { key: 'patientName', label: 'PATIENT', value: patientNameShort },
+        { key: 'patientName', label: 'PATIENT', value: fullName },
       ],
-      // secondaryFields: MRI status + device
+      // secondaryField: MRI status alone — gets full row width, no truncation risk
       secondaryFields: [
         { key: 'mriStatus', label: 'MRI STATUS', value: mriLabel },
-        { key: 'device',    label: 'DEVICE',     value: deviceNameShort },
       ],
-      // auxiliaryFields: date + surgeon + implant ID
+      // auxiliaryField: device alone — gets full row width so long model names never truncate
       auxiliaryFields: [
-        ...(patient.selfReportedImplantYear ? [{
-          key:   'implantDate',
-          label: 'IMPLANTED',
-          value: patient.selfReportedImplantMonth
-            ? `${patient.selfReportedImplantMonth}/${patient.selfReportedImplantYear}`
-            : patient.selfReportedImplantYear,
-        }] : []),
-        ...(surgeonShort ? [{
-          key:   'surgeon',
-          label: 'SURGEON',
-          value: surgeonShort,
-        }] : []),
-        { key: 'implantId', label: 'IMPLANT ID', value: patient.implantIdCode },
-        ...(patient.contrastAllergy ? [{
-          key:   'allergyFront',
-          label: 'CONTRAST ALLERGY',
-          value: patient.contrastAllergyNote
-            ? patient.contrastAllergyNote.slice(0, 30)
-            : 'Documented — notify radiology',
-        }] : []),
+        { key: 'device', label: deviceLabel, value: deviceValue },
       ],
+      // Back: detailed info — unlimited length, accessible by tapping the pass
       backFields: [
         {
           key:   'instructions',
@@ -189,6 +181,44 @@ export async function GET() {
           value: isPending
             ? 'This record has NOT been verified. Do not use to make clinical MRI decisions until verification is complete.'
             : 'Always show this card to MRI staff before any scan. Your radiographer will review conditions with you.',
+          textAlignment: 'PKTextAlignmentLeft',
+        },
+        // Per-device details on back
+        ...verified.map((d, i) => ({
+          key:   `device_${i}`,
+          label: verified.length > 1 ? `IMPLANT ${i + 1}` : 'DEVICE',
+          value: [
+            `${d.manufacturer} ${d.name}`.trim(),
+            d.deviceType  ? `Type: ${d.deviceType}`   : '',
+            d.serialNumber ? `S/N: ${d.serialNumber}`  : '',
+            d.implantDate  ? `Implanted: ${d.implantDate}` : '',
+            d.mriStatus    ? `MRI: ${MRI_LABEL[d.mriStatus] ?? d.mriStatus}` : '',
+          ].filter(Boolean).join('\n'),
+          textAlignment: 'PKTextAlignmentLeft' as const,
+        })),
+        // Self-reported device if no verified devices
+        ...(verified.length === 0 && patient.selfReportedDevice ? [{
+          key:   'self_reported_device',
+          label: 'DEVICE (SELF-REPORTED)',
+          value: patient.selfReportedDevice,
+          textAlignment: 'PKTextAlignmentLeft' as const,
+        }] : []),
+        ...(implantedValue ? [{
+          key:   'implantDate',
+          label: 'IMPLANTED',
+          value: implantedValue,
+          textAlignment: 'PKTextAlignmentLeft' as const,
+        }] : []),
+        ...(surgeonValue ? [{
+          key:   'surgeon',
+          label: 'SURGEON',
+          value: surgeonValue,
+          textAlignment: 'PKTextAlignmentLeft' as const,
+        }] : []),
+        {
+          key:   'implantId',
+          label: 'IMPLANT ID',
+          value: patient.implantIdCode,
           textAlignment: 'PKTextAlignmentLeft',
         },
         {

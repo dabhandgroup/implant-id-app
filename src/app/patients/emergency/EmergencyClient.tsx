@@ -1,6 +1,6 @@
 'use client'
 
-import { useState }   from 'react'
+import { useState, useEffect, useRef }   from 'react'
 import { useQuery, useMutation }   from 'convex/react'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { useRouter }  from 'next/navigation'
@@ -45,6 +45,17 @@ export default function EmergencyClient() {
   const [profileOpen,  setProfileOpen]  = useState(false)
   const [notifOpen,    setNotifOpen]    = useState(false)
   const [linkCopied,   setLinkCopied]   = useState(false)
+
+  const sbBotRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!profileOpen) return
+    function onOutside(e: MouseEvent) {
+      if (sbBotRef.current && !sbBotRef.current.contains(e.target as Node)) setProfileOpen(false)
+    }
+    document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
+  }, [profileOpen])
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'P'
@@ -127,51 +138,33 @@ export default function EmergencyClient() {
             <span className="count">{notifications?.filter((n: {read: boolean}) => !n.read).length || 0}</span>
           </button>
 
-          <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
-            <a href="/patients/account" className="sb-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
-              <span>My account</span>
-            </a>
-            <a href="/patients/notifications" className="sb-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <span>Notifications</span>
-            </a>
-            <a href="mailto:hello@implantid.io" className="sb-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
-              <span>Help &amp; docs</span>
-            </a>
-            <span className="sb-section">Legal</span>
-            <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>Privacy Policy</span>
-            </a>
-            <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              <span>Terms of Service</span>
-            </a>
-            <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-              <span>GDPR</span>
-            </a>
-            <button className="sb-link pm-signout" onClick={() => { setProfileOpen(false); setLogoutOpen(true) }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              <span>Sign out</span>
-            </button>
-          </div>
           </div>{/* /sb-scroll */}
 
           <div className="sb-profile-wrap">
-            <div className={`sb-bot${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)}>
-              <div className="av" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>{initials}</div>
-              <div>
-                <div className="name">{fullNameUser}</div>
-                <div className="role">Patient</div>
+            <div className="sb-bot" ref={sbBotRef}>
+              <div className={`sb-profile-popup${profileOpen ? ' open' : ''}`} role="menu" aria-hidden={!profileOpen}>
+                <div className="sb-pp-head">
+                  <div className="sb-pp-name">{fullNameUser}</div>
+                  <div className="sb-pp-sub">Patient</div>
+                </div>
+                <a href="/patients/account" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>My account</a>
+                <a href="/patients/notifications" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Notifications</a>
+                <a href="mailto:hello@implantid.io" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Help &amp; docs</a>
+                <div className="sb-pp-divider" />
+                <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Privacy Policy</a>
+                <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Terms of Service</a>
+                <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>GDPR</a>
+                <div className="sb-pp-divider" />
+                <button className="sb-pp-item sb-pp-signout" onClick={() => { setProfileOpen(false); setLogoutOpen(true) }} tabIndex={profileOpen ? 0 : -1}>Sign out</button>
               </div>
-              <span className="chev">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="18 15 12 9 6 15"/>
-                </svg>
-              </span>
+              <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
+                <div className="av">{initials}</div>
+                <div>
+                  <div className="name">{fullNameUser}</div>
+                  <div className="role">Patient</div>
+                </div>
+                <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
             </div>
           </div>
         </aside>

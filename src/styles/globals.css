@@ -270,11 +270,14 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 /* Hide the lock badge when rail is collapsed (icon only) — reappears on hover */
 .app.collapsed .sidebar:not(:hover) .sb-lock{max-width:0;opacity:0;margin-left:-4px}
 /* Profile trigger is pinned below the scroll zone — always visible */
-.sb-profile-wrap{border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.sb-profile-wrap{border-top:1px solid var(--border);flex-shrink:0;padding:6px 6px 4px}
 .sb-spacer{flex:1;min-height:0}
 .sb-push{flex:1;min-height:0}
 .sb-bot{padding:10px;display:flex;align-items:center;gap:10px;cursor:pointer;border-radius:10px;transition:background .15s, padding .3s cubic-bezier(.4,0,.2,1), gap .3s cubic-bezier(.4,0,.2,1);border:1px solid transparent;position:relative}
 .sb-bot:hover{background:color-mix(in srgb,var(--text) 4%,transparent);border-color:var(--border)}
+/* When sb-bot is a popup container (contains sb-identity), strip its own visual styling */
+.sb-bot:has(> .sb-identity){padding:0;display:block;border:none;background:none!important;cursor:default;border-radius:0;transition:none}
+.sb-bot:has(> .sb-identity):hover{background:none!important;border-color:transparent!important}
 .sb-bot .av{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-family:var(--ff);font-weight:600;font-size:13px;flex-shrink:0}
 .sb-bot .chev{margin-left:auto;opacity:.5;transition:transform .2s ease,opacity .15s}
 .sb-bot.open .chev{transform:rotate(180deg)}

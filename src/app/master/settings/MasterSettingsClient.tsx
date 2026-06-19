@@ -316,10 +316,10 @@ export default function MasterSettingsClient() {
   return (
     <>
     <div className="m-content">
-      <div className="m-h" style={{ marginBottom: 28 }}>
+      <div className="m-h" style={{ marginBottom: 22 }}>
         <div>
-          <h2>Settings</h2>
-          <div className="sub">Manage your master account, security, and authentication.</div>
+          <div className="ey">Master admin</div>
+          <h2 style={{ fontSize: 'clamp(20px,2vw,26px)', letterSpacing: '-.025em', marginTop: 6 }}>Settings</h2>
         </div>
         <button className="btn btn-danger btn-s" onClick={() => setSignOutConfirm(true)}
           style={{ background: 'color-mix(in srgb,var(--err) 12%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', color: 'var(--err)', borderRadius: 999 }}>
@@ -327,34 +327,29 @@ export default function MasterSettingsClient() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'min(200px, 100%) 1fr', gap: 24, alignItems: 'start' }}
-        className="m-settings-grid">
-        {/* Settings nav */}
-        <nav style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          {(['security', 'profile', 'notifications', 'admins', 'ai'] as const).map(s => (
-            <button key={s} onClick={() => setActiveSection(s)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px',
-                background: activeSection === s ? 'color-mix(in srgb,var(--accent) 8%,transparent)' : 'transparent',
-                border: 0, borderLeft: activeSection === s ? '2px solid var(--accent)' : '2px solid transparent',
-                color: activeSection === s ? 'var(--accent-deep)' : 'var(--muted)',
-                fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: activeSection === s ? 600 : 400,
-                cursor: 'pointer', textAlign: 'left', transition: 'all .15s',
-              }}>
-              {s === 'security'
-                ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                : s === 'admins'
-                  ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  : s === 'notifications'
-                    ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                    : s === 'ai'
-                      ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 2a9 9 0 0 1 9 9c0 4.97-4.03 9-9 9s-9-4.03-9-9a9 9 0 0 1 9-9z"/><path d="M9 9h.01M15 9h.01M9.5 14.5s1 1.5 2.5 1.5 2.5-1.5 2.5-1.5"/></svg>
-                      : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              }
-              {s === 'security' ? 'Security' : s === 'admins' ? 'Admin Users' : s === 'notifications' ? 'Notifications' : s === 'ai' ? 'AI Assistant' : 'Profile'}
-            </button>
-          ))}
-        </nav>
+      {/* Horizontal tab bar */}
+      <div className="stab-bar">
+        <button className={`stab-btn${activeSection === 'security' ? ' active' : ''}`} onClick={() => setActiveSection('security')} aria-selected={activeSection === 'security'}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Security
+        </button>
+        <button className={`stab-btn${activeSection === 'profile' ? ' active' : ''}`} onClick={() => setActiveSection('profile')} aria-selected={activeSection === 'profile'}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profile
+        </button>
+        <button className={`stab-btn${activeSection === 'notifications' ? ' active' : ''}`} onClick={() => setActiveSection('notifications')} aria-selected={activeSection === 'notifications'}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Notifications
+        </button>
+        <button className={`stab-btn${activeSection === 'admins' ? ' active' : ''}`} onClick={() => setActiveSection('admins')} aria-selected={activeSection === 'admins'}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Admin Users
+        </button>
+        <button className={`stab-btn${activeSection === 'ai' ? ' active' : ''}`} onClick={() => setActiveSection('ai')} aria-selected={activeSection === 'ai'}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M12 2a9 9 0 0 1 9 9c0 4.97-4.03 9-9 9s-9-4.03-9-9a9 9 0 0 1 9-9z"/><path d="M9 9h.01M15 9h.01M9.5 14.5s1 1.5 2.5 1.5 2.5-1.5 2.5-1.5"/></svg>
+          AI Assistant
+        </button>
+      </div>
 
         {/* Content panel */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -842,7 +837,6 @@ export default function MasterSettingsClient() {
           )}
 
         </div>
-      </div>
     </div>
 
     {/* ── Sign-out confirmation modal ── */}

@@ -30,11 +30,19 @@ export default function SurgeonSettingsClient() {
     <div className="m-content">
 
       {/* Header */}
-      <div className="m-h" style={{ marginBottom: 32 }}>
+      <div className="m-h" style={{ marginBottom: 22 }}>
         <div>
-          <h2>Settings</h2>
-          <div className="sub">Your account and profile information.</div>
+          <div className="ey">Surgeon portal</div>
+          <h2 style={{ fontSize: 'clamp(20px,2vw,26px)', letterSpacing: '-.025em', marginTop: 6 }}>Settings</h2>
         </div>
+      </div>
+
+      {/* Tab bar */}
+      <div className="stab-bar">
+        <button className="stab-btn active" aria-selected={true}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Profile
+        </button>
       </div>
 
       {/* Profile card */}

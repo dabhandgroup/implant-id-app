@@ -34,6 +34,7 @@ export default function AccountClient() {
   const respondToAccessRequest  = useMutation(apiAny.patients.respondToAccessRequest)
 
   // ── UI state ──────────────────────────────────────────────────────────────
+  const [activeTab,      setActiveTab]      = useState<'profile' | 'clinical' | 'security' | 'preferences'>('profile')
   const [sbCollapsed,    setSbCollapsed]    = useState(false)
   const [sbOpen,         setSbOpen]         = useState(false)
   const [profileOpen,    setProfileOpen]    = useState(false)
@@ -537,6 +538,29 @@ export default function AccountClient() {
               <p>Manage your profile, preferences, and privacy.</p>
             </div>
 
+            {/* Tab bar */}
+            <div className="stab-bar">
+              <button className={`stab-btn${activeTab === 'profile' ? ' active' : ''}`} onClick={() => setActiveTab('profile')} aria-selected={activeTab === 'profile'}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Profile
+              </button>
+              <button className={`stab-btn${activeTab === 'clinical' ? ' active' : ''}`} onClick={() => setActiveTab('clinical')} aria-selected={activeTab === 'clinical'}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                Clinical
+              </button>
+              <button className={`stab-btn${activeTab === 'security' ? ' active' : ''}`} onClick={() => setActiveTab('security')} aria-selected={activeTab === 'security'}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Security
+              </button>
+              <button className={`stab-btn${activeTab === 'preferences' ? ' active' : ''}`} onClick={() => setActiveTab('preferences')} aria-selected={activeTab === 'preferences'}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Preferences
+              </button>
+            </div>
+
+            {/* ── Profile tab ───────────────────────────────────────────── */}
+            {activeTab === 'profile' && (<>
+
             {/* ── Profile photo ─────────────────────────────────────────── */}
             <div className="acc-card">
               <h2>Profile photo</h2>
@@ -657,6 +681,11 @@ export default function AccountClient() {
               </div>
             </div>
 
+            </>)}
+
+            {/* ── Clinical tab ──────────────────────────────────────────── */}
+            {activeTab === 'clinical' && (<>
+
             {/* ── Clinical details ──────────────────────────────────────── */}
             <div className="acc-card">
               <h2>Clinical details</h2>
@@ -733,6 +762,11 @@ export default function AccountClient() {
                 </button>
               </div>
             </div>
+
+            </>)}
+
+            {/* ── Security tab ──────────────────────────────────────────── */}
+            {activeTab === 'security' && (<>
 
             {/* ── Security ──────────────────────────────────────────────── */}
             <div className="acc-card">
@@ -913,6 +947,11 @@ export default function AccountClient() {
               </div>
             </div>
 
+            </>)}
+
+            {/* ── Preferences tab ───────────────────────────────────────── */}
+            {activeTab === 'preferences' && (<>
+
             {/* ── Notification preferences ──────────────────────────────── */}
             <div className="acc-card">
               <h2>Notification preferences</h2>
@@ -1079,6 +1118,8 @@ export default function AccountClient() {
               </div>
               <a href="/patients/offboard" className="danger-btn">Delete my account →</a>
             </div>
+
+            </>)}
 
           </div>{/* /acc-wrap */}
 

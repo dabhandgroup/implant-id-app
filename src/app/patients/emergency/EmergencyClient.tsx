@@ -84,6 +84,7 @@ export default function EmergencyClient() {
             </button>
           </div>
 
+          <div className="sb-scroll">
           <span className="sb-section">My record</span>
           <a className="sb-link" href="/patients/dashboard" title="My record">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
@@ -126,23 +127,53 @@ export default function EmergencyClient() {
             <span className="count">{notifications?.filter((n: {read: boolean}) => !n.read).length || 0}</span>
           </button>
 
-          <div className="sb-bot" onClick={() => setProfileOpen(v => !v)}>
-            <div className="av" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>{initials}</div>
-            <div>
-              <div className="name">{fullNameUser}</div>
-              <div className="role">Patient</div>
+          <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
+            <a href="/patients/account" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+              <span>My account</span>
+            </a>
+            <a href="/patients/notifications" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span>Notifications</span>
+            </a>
+            <a href="mailto:hello@implantid.io" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+              <span>Help &amp; docs</span>
+            </a>
+            <span className="sb-section">Legal</span>
+            <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Privacy Policy</span>
+            </a>
+            <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>Terms of Service</span>
+            </a>
+            <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              <span>GDPR</span>
+            </a>
+            <button className="sb-link pm-signout" onClick={() => { setProfileOpen(false); setLogoutOpen(true) }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <span>Sign out</span>
+            </button>
+          </div>
+          </div>{/* /sb-scroll */}
+
+          <div className="sb-profile-wrap">
+            <div className={`sb-bot${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)}>
+              <div className="av" style={{ background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>{initials}</div>
+              <div>
+                <div className="name">{fullNameUser}</div>
+                <div className="role">Patient</div>
+              </div>
+              <span className="chev">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="18 15 12 9 6 15"/>
+                </svg>
+              </span>
             </div>
           </div>
-          {profileOpen && (
-            <div className="profile-menu open">
-              <a href="/patients/account"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>My account</a>
-              <hr />
-              <button className="danger" onClick={() => { setProfileOpen(false); setLogoutOpen(true) }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                Sign out
-              </button>
-            </div>
-          )}
         </aside>
 
         {/* ── Main content ── */}

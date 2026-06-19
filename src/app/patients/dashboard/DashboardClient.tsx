@@ -80,6 +80,7 @@ export default function DashboardClient() {
   const [notifOpen,     setNotifOpen]     = useState(false)
   const [logoutOpen,    setLogoutOpen]    = useState(false)
   const [profileOpen,   setProfileOpen]   = useState(false)
+  const [mobProfileOpen, setMobProfileOpen] = useState(false)
   const [wallOpen,      setWallOpen]      = useState(false)
   const [wallMode,      setWallMode]      = useState<'wallet' | 'email'>('wallet')
   const [emailSent,     setEmailSent]     = useState(false)
@@ -113,6 +114,7 @@ export default function DashboardClient() {
   const wCodeRefs       = useRef<(HTMLInputElement | null)[]>([])
   // Prevents the welcome init effect from re-running when Clerk updates the user object mid-flow
   const welcomeShownRef = useRef(false)
+  const sidebarRef      = useRef<HTMLDivElement>(null)
 
   // Generate QR code data URL for the pass card
   useEffect(() => {
@@ -132,6 +134,19 @@ export default function DashboardClient() {
     }
   }, [searchParams])
 
+  useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    if (profileOpen) {
+      const t = setTimeout(() => {
+        const last = el.querySelector('.pm-signout')
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 330)
+      return () => clearTimeout(t)
+    } else {
+      el.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [profileOpen])
   // Escape key closes modals/drawers
   useEffect(() => {
     function handle(e: KeyboardEvent) {
@@ -638,7 +653,7 @@ export default function DashboardClient() {
             </button>
           </div>
 
-          <div className="sb-scroll">
+          <div ref={sidebarRef} className="sb-scroll">
 
           {/* Nav */}
           <span className="sb-section">My record</span>
@@ -732,49 +747,50 @@ export default function DashboardClient() {
             <span className="count">{notifications?.filter((n: {read: boolean}) => !n.read).length || 0}</span>
           </button>
 
+          <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
+              <a href="/patients/account" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+                <span>My account</span>
+              </a>
+              <a href="/patients/notifications" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <span>Notifications</span>
+              </a>
+              <a href="mailto:hello@implantid.io" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+                <span>Help &amp; docs</span>
+              </a>
+              <span className="sb-section">Legal</span>
+              <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Privacy Policy</span>
+              </a>
+              <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span>Terms of Service</span>
+              </a>
+              <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                <span>GDPR</span>
+              </a>
+              <button className="sb-link pm-signout" onClick={() => { setProfileOpen(false); setLogoutOpen(true) }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Sign out</span>
+              </button>
           </div>
-          <div className="sb-bot">
-          {profileOpen && (
-          <div className="sb-profile-links">
-          <a href="/patients/account" className="sb-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
-            <span>My account</span>
-          </a>
-          <a href="/patients/notifications" className="sb-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span>Notifications</span>
-          </a>
-          <a href="mailto:hello@implantid.io" className="sb-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
-            <span>Help &amp; docs</span>
-          </a>
-          <span className="sb-section">Legal</span>
-          <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            <span>Privacy Policy</span>
-          </a>
-          <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            <span>Terms of Service</span>
-          </a>
-          <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-            <span>GDPR</span>
-          </a>
-          <button className="sb-link sb-signout" onClick={() => setLogoutOpen(true)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            <span>Sign out</span>
-          </button>
-          </div>
-          )}
-          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
-            <div className="av">{initials}</div>
-            <div>
-              <div className="name">{fullName}</div>
-              <div className="role">Patient</div>
+          </div>{/* /sb-scroll */}
+
+          <div className="sb-profile-wrap">
+            <div className={`sb-bot${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
+              <div className="av">{initials}</div>
+              <div>
+                <div className="name">{fullName}</div>
+                <div className="role">Patient</div>
+              </div>
+              <span className="chev">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg>
+              </span>
             </div>
-            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
-          </div>
           </div>
 
         </aside>{/* /sidebar */}
@@ -1762,6 +1778,58 @@ export default function DashboardClient() {
         .pending-badge-wrap:hover .pending-tooltip{display:block}
       `}</style>
 
+      {/* Mobile profile bottom sheet */}
+      <div
+        className={`mob-sheet-backdrop${mobProfileOpen ? ' open' : ''}`}
+        onClick={() => setMobProfileOpen(false)}
+        aria-hidden="true"
+      />
+      <div
+        className={`mob-sheet${mobProfileOpen ? ' open' : ''}`}
+        role="dialog"
+        aria-modal={mobProfileOpen}
+        aria-label="Profile menu"
+      >
+        <div className="mob-sheet-handle" aria-hidden="true" />
+        <div className="mob-sheet-info">
+          <strong>{fullName}</strong>
+          <span>Patient · {iidCode}</span>
+        </div>
+        <a href="/patients/account" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+          My account
+        </a>
+        <a href="/patients/notifications" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Notifications
+        </a>
+        <a href="mailto:hello@implantid.io" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+          Help &amp; docs
+        </a>
+        <div className="mob-sheet-divider" />
+        <span className="mob-sheet-section">Legal</span>
+        <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Privacy Policy
+        </a>
+        <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Terms of Service
+        </a>
+        <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          GDPR
+        </a>
+        <div className="mob-sheet-divider" />
+        <button
+          className="mob-sheet-item mob-sheet-danger"
+          onClick={() => { setMobProfileOpen(false); setLogoutOpen(true) }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </button>
+      </div>
     </>
   )
 }

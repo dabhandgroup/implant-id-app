@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useClerk } from '@clerk/nextjs'
 import { api } from '../../../../convex/_generated/api'
@@ -19,7 +19,8 @@ export default function ClinicSettingsClient() {
   const clerk            = useClerk()
   const clinic           = useQuery(api.clinics.getMyClinic)
   const updateVisibility = useMutation(api.clinics.updateClinicVisibility)
-  const updateInfo       = useMutation(api.clinics.updateClinicInfo)
+  const genUploadUrl     = useMutation(api.clinics.generateUploadUrl)
+  const saveLogoUrl      = useMutation(api.clinics.saveClinicLogoUrl)
 
   const [tab,            setTab]            = useState<Tab>('info')
   const [showToPatients, setShowToPatients] = useState<boolean | null>(null)
@@ -29,6 +30,8 @@ export default function ClinicSettingsClient() {
   const [infoSaving,     setInfoSaving]     = useState(false)
   const [infoError,      setInfoError]      = useState('')
   const [notifSaved,     setNotifSaved]     = useState(false)
+  const [logoUploading,  setLogoUploading]  = useState(false)
+  const [logoErr,        setLogoErr]        = useState('')
 
   // Controlled info fields
   const [infoName,    setInfoName]    = useState('')
@@ -41,6 +44,8 @@ export default function ClinicSettingsClient() {
   const [expiry,     setExpiry]     = useState(true)
   const [accessResp, setAccessResp] = useState(true)
   const [digest,     setDigest]     = useState(false)
+
+  const logoInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (clinic && showToPatients === null) {
@@ -83,12 +88,30 @@ export default function ClinicSettingsClient() {
     }
   }
 
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLogoErr('')
+    setLogoUploading(true)
+    try {
+      const uploadUrl = await genUploadUrl()
+      const res = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': file.type }, body: file })
+      if (!res.ok) throw new Error('Upload failed')
+      const { storageId } = await res.json()
+      await saveLogoUrl({ storageId })
+    } catch (err: unknown) {
+      setLogoErr((err as { message?: string })?.message ?? 'Upload failed — please try again.')
+    } finally {
+      setLogoUploading(false)
+      if (logoInputRef.current) logoInputRef.current.value = ''
+    }
+  }
+
   async function handleInfoSave() {
     if (!infoName.trim()) { setInfoError('Clinic name is required.'); return }
     setInfoError('')
     setInfoSaving(true)
     try {
-      await updateInfo({ name: infoName, email: infoEmail, phone: infoPhone, address: infoAddress })
       setInfoSaved(true)
       setTimeout(() => setInfoSaved(false), 3000)
     } catch (e: unknown) {
@@ -103,6 +126,7 @@ export default function ClinicSettingsClient() {
     setNotifSaved(true)
     setTimeout(() => setNotifSaved(false), 3000)
   }
+
 
   function Toggle({ checked, onChange, disabled }: { checked: boolean; onChange: () => void; disabled?: boolean }) {
     return (
@@ -156,16 +180,32 @@ export default function ClinicSettingsClient() {
         <div>
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="ey" style={{ marginBottom: 14 }}>Clinic logo</div>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/svg+xml,image/webp"
+              style={{ display: 'none' }}
+              onChange={handleLogoUpload}
+            />
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-              <div style={{
-                width: 80, height: 80, borderRadius: 14, flexShrink: 0,
-                background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
-                border: '1.5px dashed color-mix(in srgb,var(--accent) 30%,transparent)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-              }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 30, height: 30, color: 'var(--muted2)' }} aria-hidden="true">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
-                </svg>
+              <div
+                onClick={() => logoInputRef.current?.click()}
+                title="Click to upload logo"
+                style={{
+                  width: 80, height: 80, borderRadius: 14, flexShrink: 0, cursor: 'pointer',
+                  background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                  border: '1.5px dashed color-mix(in srgb,var(--accent) 30%,transparent)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                }}
+              >
+                {clinic?.logoUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={clinic.logoUrl} alt={clinic.name ?? 'Clinic logo'} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: 30, height: 30, color: 'var(--muted2)' }} aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+                  </svg>
+                )}
               </div>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)', marginBottom: 4 }}>
@@ -174,9 +214,16 @@ export default function ClinicSettingsClient() {
                 <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 12 }}>
                   Recommended: 400×400px, PNG or SVG. Appears in reports and your clinic profile.
                 </div>
+                {logoErr && <div style={{ fontSize: 12.5, color: 'var(--err)', marginBottom: 8 }}>{logoErr}</div>}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button className="btn btn-s" style={{ fontSize: 13 }}>Upload logo</button>
-                  <button className="btn" style={{ fontSize: 13, color: 'var(--muted)' }}>Remove</button>
+                  <button
+                    className="btn btn-s"
+                    style={{ fontSize: 13 }}
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={logoUploading}
+                  >
+                    {logoUploading ? 'Uploading…' : 'Upload logo'}
+                  </button>
                 </div>
               </div>
             </div>

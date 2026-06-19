@@ -165,12 +165,36 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const [signOutConfirm, setSignOutConfirm] = useState(false)
   const [profileOpen,    setProfileOpen]    = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
-  const sbBotRef = useRef<HTMLDivElement>(null)
+  const [mobProfileOpen, setMobProfileOpen] = useState(false)
+  const sidebarRef      = useRef<HTMLDivElement>(null)
   const unreadCount  = notifications?.filter((n: any) => !n.read).length ?? 0
   const userName     = user?.fullName ?? user?.firstName ?? 'Clinic User'
   const userInitials = initials(userName)
   const clinicName   = myClinic?.facilityName ?? 'Clinic Portal'
   const pageTitle    = pageTitleFromPathname(pathname)
+
+  useEffect(() => {
+    function handleOutside() {
+      setProfileOpen(false)
+      setMobProfileOpen(false)
+    }
+    document.addEventListener('click', handleOutside)
+    return () => document.removeEventListener('click', handleOutside)
+  }, [])
+
+  useEffect(() => {
+    const el = sidebarRef.current
+    if (!el) return
+    if (profileOpen) {
+      const t = setTimeout(() => {
+        const last = el.querySelector('.pm-signout')
+        if (last) last.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      }, 330)
+      return () => clearTimeout(t)
+    } else {
+      el.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [profileOpen])
 
   useEffect(() => { setMobOpen(false) }, [pathname])
 
@@ -180,15 +204,6 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [notifOpen])
-
-  useEffect(() => {
-    if (!profileOpen) return
-    function onOutside(e: MouseEvent) {
-      if (sbBotRef.current && !sbBotRef.current.contains(e.target as Node)) setProfileOpen(false)
-    }
-    document.addEventListener('mousedown', onOutside)
-    return () => document.removeEventListener('mousedown', onOutside)
-  }, [profileOpen])
 
   function isActive(href: string) {
     if (href === '/clinics/dashboard') return pathname === '/clinics/dashboard'
@@ -236,7 +251,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             </button>
           </div>
 
-          <div className="sb-scroll">
+          <div ref={sidebarRef} className="sb-scroll">
 
           {/* ── Lookup ── */}
           <div className="sb-section">Lookup</div>
@@ -294,31 +309,57 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <span className="count">{unreadCount}</span>
           </button>
 
+          <div className={`profile-menu${profileOpen ? ' open' : ''}`}>
+              <a href="/clinics/settings" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+                <span>My account</span>
+              </a>
+              <a href="/clinics/settings" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51"/></svg>
+                <span>Settings</span>
+              </a>
+              <a href="/clinics/settings" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13"/></svg>
+                <span>Clinic settings</span>
+              </a>
+              <a href="/clinics/staff" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                <span>Invite a colleague</span>
+              </a>
+              <a href="mailto:hello@implantid.io" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+                <span>Help &amp; docs</span>
+              </a>
+              <span className="sb-section">Legal</span>
+              <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Privacy Policy</span>
+              </a>
+              <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span>Terms of Service</span>
+              </a>
+              <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                <span>GDPR</span>
+              </a>
+              <button className="sb-link pm-signout" onClick={requestSignOut}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Sign out</span>
+              </button>
           </div>
-          <div className="sb-bot" ref={sbBotRef}>
-            <div className={`sb-profile-popup${profileOpen ? ' open' : ''}`} role="menu" aria-hidden={!profileOpen}>
-              <div className="sb-pp-head">
-                <div className="sb-pp-name">{userName}</div>
-                <div className="sb-pp-sub">{clinicName}</div>
-              </div>
-              <a href="/clinics/settings" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>My account</a>
-              <a href="/clinics/settings" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Settings</a>
-              <a href="/clinics/staff" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Invite a colleague</a>
-              <a href="mailto:hello@implantid.io" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Help &amp; docs</a>
-              <div className="sb-pp-divider" />
-              <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Privacy Policy</a>
-              <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Terms of Service</a>
-              <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>GDPR</a>
-              <div className="sb-pp-divider" />
-              <button className="sb-pp-item sb-pp-signout" onClick={requestSignOut} tabIndex={profileOpen ? 0 : -1}>Sign out</button>
-            </div>
-            <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
+          </div>{/* /sb-scroll */}
+
+          <div className="sb-profile-wrap">
+            <div className={`sb-bot${profileOpen ? ' open' : ''}`} onClick={(e) => { e.stopPropagation(); setProfileOpen(v => !v) }} role="button" tabIndex={0} aria-expanded={profileOpen}>
               <div className="av">{userInitials}</div>
               <div>
                 <div className="name">{userName}</div>
                 <div className="role">{clinicName}</div>
               </div>
-              <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
+              <span className="chev">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg>
+              </span>
             </div>
           </div>
 
@@ -455,6 +496,59 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
+      {/* Mobile profile bottom sheet */}
+      <div
+        className={`mob-sheet-backdrop${mobProfileOpen ? ' open' : ''}`}
+        onClick={(e) => { e.stopPropagation(); setMobProfileOpen(false) }}
+        aria-hidden="true"
+      />
+      <div
+        className={`mob-sheet${mobProfileOpen ? ' open' : ''}`}
+        role="dialog"
+        aria-modal={mobProfileOpen}
+        aria-label="Profile menu"
+      >
+        <div className="mob-sheet-handle" aria-hidden="true" />
+        <div className="mob-sheet-info">
+          <strong>{userName}</strong>
+          <span>{clinicName}</span>
+        </div>
+        <a href="/clinics/settings" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+          My account
+        </a>
+        <a href="/clinics/settings" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4"/></svg>
+          Settings
+        </a>
+        <a href="/clinics/staff" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Invite a colleague
+        </a>
+        <a href="mailto:hello@implantid.io" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+          Help &amp; docs
+        </a>
+        <div className="mob-sheet-divider" />
+        <span className="mob-sheet-section">Legal</span>
+        <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Privacy Policy
+        </a>
+        <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Terms of Service
+        </a>
+        <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          GDPR
+        </a>
+        <div className="mob-sheet-divider" />
+        <button className="mob-sheet-item mob-sheet-danger" onClick={requestSignOut}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign out
+        </button>
+      </div>
     </>
   )
 }

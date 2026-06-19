@@ -12,6 +12,22 @@ export const generateUploadUrl = mutation({
   },
 })
 
+/** Save a clinic logo after upload — gets URL from storage and patches the clinic record. */
+export const saveClinicLogoUrl = mutation({
+  args: { storageId: v.id('_storage') },
+  handler: async (ctx, { storageId }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user) throw new Error('User not found')
+    const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!staffRow) throw new Error('Not a clinic staff member')
+    const url = await ctx.storage.getUrl(storageId)
+    if (!url) throw new Error('Failed to get URL for uploaded file')
+    await ctx.db.patch(staffRow.clinicId, { logoUrl: url })
+  },
+})
+
 // ── Applications ──────────────────────────────────────────────────────────────
 
 /** Submit a new clinic onboarding application. */

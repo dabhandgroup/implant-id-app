@@ -283,7 +283,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-bot .chev svg{width:14px;height:14px}
 /* Profile menu — inline accordion within the sidebar */
 .profile-menu{overflow:hidden;max-height:0;opacity:0;transition:max-height .28s cubic-bezier(.4,0,.2,1),opacity .18s ease}
-.profile-menu.open{max-height:600px;opacity:1;padding-bottom:6px}
+.profile-menu.open{max-height:600px;opacity:1;padding-bottom:6px;flex-shrink:0}
 .app.collapsed .profile-menu.open{max-height:0!important;opacity:0!important;pointer-events:none}
 .pm-signout{color:var(--err)!important}
 .pm-signout:hover{color:var(--err)!important;background:color-mix(in srgb,var(--err) 8%,transparent)!important}

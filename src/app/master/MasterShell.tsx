@@ -303,9 +303,7 @@ export default function MasterShell({ children }: MasterShellProps) {
           >
             <IconSearch /><span>All Devices</span>
           </a>
-          <a href="/master/devices/add" className={`sb-link${isActive('/master/devices/add') ? ' active' : ''}`}>
-            <IconAdd /><span>Add Device</span>
-          </a>
+
           <a href="/master/devices/bulk" className={`sb-link${isActive('/master/devices/bulk') ? ' active' : ''}`}>
             <IconUpload /><span>Bulk Upload</span>
           </a>

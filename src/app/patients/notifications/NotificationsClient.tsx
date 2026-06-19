@@ -87,6 +87,7 @@ export default function NotificationsClient() {
   const [sbCollapsed,    setSbCollapsed]    = useState(false)
   const [sbOpen,         setSbOpen]         = useState(false)
   const [logoutOpen,     setLogoutOpen]     = useState(false)
+  const [profileOpen,    setProfileOpen]    = useState(false)
   const [markingAll,     setMarkingAll]     = useState(false)
   const [markingOne,     setMarkingOne]     = useState<string | null>(null)
 
@@ -248,13 +249,16 @@ export default function NotificationsClient() {
           </a>
 
           <div className="sb-divider" />
-          <div className="sb-identity">
+          <div className={`sb-identity${profileOpen ? ' open' : ''}`} onClick={() => setProfileOpen(v => !v)} role="button" tabIndex={0} aria-expanded={profileOpen}>
             <div className="av">{initials}</div>
             <div>
               <div className="name">{fullName}</div>
               <div className="role">Patient</div>
             </div>
+            <svg className="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
+          {profileOpen && (
+          <div className="sb-profile-links">
           <a href="/patients/account" className="sb-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
             <span>My account</span>
@@ -284,6 +288,8 @@ export default function NotificationsClient() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             <span>Sign out</span>
           </button>
+          </div>
+          )}
 
           </div>
 

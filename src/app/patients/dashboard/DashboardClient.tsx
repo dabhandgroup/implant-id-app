@@ -1465,10 +1465,11 @@ export default function DashboardClient() {
 
       {/* ── Share with clinic modal ───────────────────────────────────────────── */}
       <div
-        className={`wall-back${wallOpen ? ' open' : ''}`}
+        className={`wall-back wall-share${wallOpen ? ' open' : ''}`}
         onClick={e => { if (e.target === e.currentTarget) { setWallOpen(false); setEmailSent(false); setClinicEmail(''); setClinicSearch(''); setShareError('') } }}
       >
         <div className="wall-modal">
+          <div className="wall-share-handle" aria-hidden="true" />
           <div className="wall-h">
             <div>
               <h3 style={{ margin: 0 }}>Share with clinic</h3>
@@ -1476,7 +1477,7 @@ export default function DashboardClient() {
                 Your record + QR code will be sent to the clinic
               </p>
             </div>
-            <button onClick={() => { setWallOpen(false); setEmailSent(false); setClinicEmail(''); setClinicSearch(''); setShareError('') }} aria-label="Close">✕</button>
+            <button className="wall-x" onClick={() => { setWallOpen(false); setEmailSent(false); setClinicEmail(''); setClinicSearch(''); setShareError('') }} aria-label="Close">✕</button>
           </div>
           <div className="wall-body">
 

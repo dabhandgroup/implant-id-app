@@ -38,9 +38,17 @@ export default clerkMiddleware(async (auth, req) => {
   const path = req.nextUrl.pathname
 
   if (role) {
-    // Clinic routes — clinic_staff, surgeon, and admin (except the public onboarding form)
+    // clinic_pending gets a dedicated holding page — handle before generic checks to avoid redirect loop
+    if (role === 'clinic_pending') {
+      if (!path.startsWith('/clinics/pending') && !path.startsWith('/clinics/onboarding')) {
+        return NextResponse.redirect(new URL('/clinics/pending', req.url))
+      }
+      // /clinics/pending is allowed — fall through to serve the page
+    }
+
+    // Clinic routes — clinic_staff, surgeon, and admin (except onboarding and pending)
     // Surgeons can access clinic routes so they can reach the shared implant library, etc.
-    if (path.startsWith('/clinics') && !path.startsWith('/clinics/onboarding')
+    if (path.startsWith('/clinics') && !path.startsWith('/clinics/onboarding') && !path.startsWith('/clinics/pending')
         && role !== 'clinic_staff' && role !== 'surgeon' && role !== 'admin') {
       return NextResponse.redirect(new URL('/patients/dashboard', req.url))
     }

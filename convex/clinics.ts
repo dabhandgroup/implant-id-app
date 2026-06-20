@@ -8,6 +8,12 @@ import { internal }                        from './_generated/api'
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user) throw new Error('User not found')
+    const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!staffRow) throw new Error('Not a clinic staff member')
     return await ctx.storage.generateUploadUrl()
   },
 })

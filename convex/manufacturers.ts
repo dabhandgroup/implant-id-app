@@ -692,6 +692,11 @@ export const approveChangeRequest = mutation({
     requestId: v.id('deviceChangeRequests'),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+
     const request = await ctx.db.get(args.requestId)
     if (!request) throw new Error('Request not found')
     if (request.status !== 'pending') throw new Error('Only pending requests can be approved')
@@ -733,6 +738,11 @@ export const rejectChangeRequest = mutation({
     adminNotes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+
     const request = await ctx.db.get(args.requestId)
     if (!request) throw new Error('Request not found')
     if (request.status !== 'pending') throw new Error('Only pending requests can be rejected')

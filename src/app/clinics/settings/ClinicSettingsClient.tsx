@@ -19,6 +19,7 @@ export default function ClinicSettingsClient() {
   const clerk            = useClerk()
   const clinic           = useQuery(api.clinics.getMyClinic)
   const updateVisibility = useMutation(api.clinics.updateClinicVisibility)
+  const updateInfo       = useMutation(api.clinics.updateClinicInfo)
   const genUploadUrl     = useMutation(api.clinics.generateUploadUrl)
   const saveLogoUrl      = useMutation(api.clinics.saveClinicLogoUrl)
 
@@ -112,6 +113,12 @@ export default function ClinicSettingsClient() {
     setInfoError('')
     setInfoSaving(true)
     try {
+      await updateInfo({
+        name:    infoName.trim(),
+        email:   infoEmail.trim() || undefined,
+        phone:   infoPhone.trim() || undefined,
+        address: infoAddress.trim(),
+      })
       setInfoSaved(true)
       setTimeout(() => setInfoSaved(false), 3000)
     } catch (e: unknown) {

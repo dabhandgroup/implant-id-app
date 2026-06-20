@@ -264,7 +264,7 @@ export default function DashboardClient() {
   const initials    = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
   const iidCode     = patient.implantIdCode
   const isPending   = !patient.verificationStatus || patient.verificationStatus === 'pending'
-  const passUrl     = `${typeof window !== 'undefined' ? window.location.origin : 'https://implantid.io'}/pass/${iidCode}`
+  const passUrl     = `${typeof window !== 'undefined' ? window.location.origin : 'https://implantid.io'}/scan/${iidCode}`
 
   function doSignOut() {
     setLogoutOpen(false)

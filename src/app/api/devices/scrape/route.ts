@@ -8,6 +8,8 @@
  * Returns: Structured JSON with device fields + provenance + confidence
  */
 
+import { auth } from '@clerk/nextjs/server'
+
 export const runtime = 'nodejs'
 
 // ── Field schema per device type (mirrors the intake tool) ──────────────────
@@ -116,6 +118,11 @@ function mapToDeviceSchema(parsed: Record<string, unknown>, deviceType: string, 
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
+  const { userId } = await auth()
+  if (!userId) {
+    return Response.json({ error: 'Not authenticated' }, { status: 401 })
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     return Response.json({ error: 'ANTHROPIC_API_KEY not configured in Vercel environment' }, { status: 503 })

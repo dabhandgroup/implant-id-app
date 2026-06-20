@@ -92,7 +92,7 @@ export default function ShareClient() {
   const fullName  = `${firstName} ${lastName}`
   const initials  = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase()
   const iidCode   = patient.implantIdCode
-  const passUrl   = `${typeof window !== 'undefined' ? window.location.origin : 'https://implantid.io'}/pass/${iidCode}`
+  const passUrl   = `${typeof window !== 'undefined' ? window.location.origin : 'https://implantid.io'}/scan/${iidCode}`
 
   function doSignOut() {
     setLogoutOpen(false)
@@ -250,13 +250,13 @@ export default function ShareClient() {
                   </div>
                 </div>
                 <div className="sh-wallet-btns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-                  <a href={`${passUrl}.pkpass`} className="btn btn-s btn-lg">
+                  <a href="/api/wallet/pass" className="btn btn-s btn-lg">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M17.05 12.04c-.02-1.92 1.57-2.85 1.64-2.9-.9-1.3-2.29-1.49-2.78-1.5-1.17-.12-2.3.7-2.9.7-.6 0-1.53-.68-2.52-.66-1.28.02-2.47.75-3.14 1.9-1.36 2.34-.34 5.8.97 7.7.65.94 1.41 1.98 2.4 1.94.97-.04 1.33-.62 2.5-.62s1.5.62 2.53.6c1.04-.02 1.7-.94 2.34-1.88.74-1.08 1.04-2.13 1.05-2.18-.02-.01-2.02-.77-2.05-3.07zM15.1 5.43c.53-.64.88-1.54.78-2.43-.76.03-1.68.5-2.23 1.14-.49.56-.92 1.48-.8 2.35.85.07 1.72-.43 2.25-1.06z"/>
                     </svg>
                     Apple Wallet
                   </a>
-                  <a href="#" className="btn btn-s btn-lg">
+                  <span title="Google Wallet coming soon" className="btn btn-s btn-lg" style={{ opacity: 0.45, cursor: 'not-allowed', userSelect: 'none' }}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                       <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.15-4.53H2.18v2.84A10.99 10.99 0 0 0 12 23z"/>
@@ -264,7 +264,7 @@ export default function ShareClient() {
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.2 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A10.99 10.99 0 0 0 2.18 7.07l3.67 2.83C6.71 7.31 9.14 5.38 12 5.38z"/>
                     </svg>
                     Google Wallet
-                  </a>
+                  </span>
                 </div>
                 <div style={{ background: 'color-mix(in srgb, var(--accent) 4%, transparent)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 10 }}>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>Your share link</div>

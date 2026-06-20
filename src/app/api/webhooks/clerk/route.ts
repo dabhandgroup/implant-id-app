@@ -79,7 +79,13 @@ function subjectFor(slug: string, clerkSubject: string): string {
 export async function POST(req: Request) {
   const secret = process.env.CLERK_WEBHOOK_SECRET
   if (!secret) {
-    console.error('CLERK_WEBHOOK_SECRET is not set')
+    console.error('CLERK_WEBHOOK_SECRET is not set — Clerk emails will not be delivered')
+    return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
+  }
+
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) {
+    console.error('RESEND_API_KEY is not set — Clerk emails will not be delivered')
     return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 })
   }
 
@@ -151,7 +157,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email delivery failed' }, { status: 500 })
     }
 
-    console.log(`Email sent via Resend: ${slug} → ${to_email_address}`)
     return NextResponse.json({ sent: true })
   } catch (e) {
     console.error('Unexpected Resend error:', e)

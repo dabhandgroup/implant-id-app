@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useMutation } from 'convex/react'
 import { api } from '../../../../../convex/_generated/api'
 import Papa from 'papaparse'
@@ -454,14 +455,12 @@ export default function BulkUploadClient({ returnUrl = '/master/devices' }: Prop
                       <td><span className="bulk-col-name">{col}</span></td>
                       <td style={{ color: 'var(--muted2)', fontFamily: 'var(--ff)', fontSize: 16 }}>→</td>
                       <td style={{ minWidth: 220 }}>
-                        <select
-                          className="input"
-                          style={{ padding: '6px 10px', fontSize: 13 }}
+                        <CustomSelect
                           value={mappings[col] ?? ''}
-                          onChange={e => setMappings(prev => ({ ...prev, [col]: e.target.value as SchemaKey | '' }))}
-                        >
-                          {fieldOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
+                          onChange={(v: string) => setMappings(prev => ({ ...prev, [col]: v as SchemaKey | '' }))}
+                          options={fieldOptions}
+                          placeholder="— map field —"
+                        />
                       </td>
                       <td style={{ color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 12.5, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {sample ? sample.slice(0, 60) : <span style={{ color: 'var(--muted2)', fontStyle: 'italic' }}>empty</span>}

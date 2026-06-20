@@ -26,7 +26,7 @@ export default async function LibraryPage() {
 
   return (
     <Suspense fallback={null}>
-      <LibraryClient devices={devices} userName="" userInitials="" />
+      <LibraryClient devices={devices} />
     </Suspense>
   )
 }

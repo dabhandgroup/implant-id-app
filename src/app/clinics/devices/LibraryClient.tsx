@@ -21,8 +21,6 @@ export interface LibDevice {
 
 interface Props {
   devices: LibDevice[]
-  userName: string
-  userInitials: string
 }
 
 // ── Filter definitions ────────────────────────────────────────────────────
@@ -212,7 +210,7 @@ function DeviceRowIcon({ type }: { type: string }) {
 
 // ── Main component ────────────────────────────────────────────────────────
 
-export default function LibraryClient({ devices, userName, userInitials }: Props) {
+export default function LibraryClient({ devices }: Props) {
   const searchParams = useSearchParams()
   const [query,      setQuery]      = useState(searchParams?.get('q') ?? '')
   const [typeFilter, setTypeFilter] = useState('all')

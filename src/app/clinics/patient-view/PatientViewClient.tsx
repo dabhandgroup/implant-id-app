@@ -258,41 +258,11 @@ export default function PatientViewClient() {
     }
   }
 
-  // ── Mock notes (UI prototype — replace with clinicalNotes from Convex when wiring up) ──
-  const now = Date.now()
-  const MOCK_NOTES = [
-    {
-      id: 'n1',
-      authorName: 'Dr Sarah Mitchell',
-      authorRole: 'surgeon' as const,
-      clinicName: 'St James\'s Hospital',
-      createdAt: now - 2 * 3_600_000,
-      content: 'Post-operative review completed. Lead impedance within normal parameters. Patient reports mild discomfort at the pocket site — monitoring. No immediate intervention required. Follow-up scheduled in 6 weeks.',
-      visibleToPatient: false,
-    },
-    {
-      id: 'n2',
-      authorName: 'Mark Thompson',
-      authorRole: 'radiographer' as const,
-      clinicName: 'City Imaging Centre',
-      createdAt: now - 18 * 3_600_000,
-      content: 'MRI screening completed. Confirmed MR Conditional parameters observed throughout. Max field 1.5T applied. Patient tolerated the procedure well with no complications. No artefact interference noted on final images.',
-      visibleToPatient: true,
-    },
-    {
-      id: 'n3',
-      authorName: 'Admin',
-      authorRole: 'admin' as const,
-      clinicName: undefined,
-      createdAt: now - 5 * 86_400_000,
-      content: 'Device registration verified against manufacturer records. IFU cross-referenced with submitted serial number. Record marked active — patient notified via email.',
-      visibleToPatient: false,
-    },
-  ]
-
-  const filteredMockNotes = noteFilterTab === 'all'      ? MOCK_NOTES
-    : noteFilterTab === 'internal' ? MOCK_NOTES.filter(n => !n.visibleToPatient)
-    : MOCK_NOTES.filter(n => n.visibleToPatient)
+  // ── Clinical notes (live Convex data) ────────────────────────────────────
+  const allNotes: any[] = clinicalNotes ?? []
+  const filteredNotes = noteFilterTab === 'all'      ? allNotes
+    : noteFilterTab === 'internal' ? allNotes.filter((n: any) => !n.visibleToPatient)
+    : allNotes.filter((n: any) => n.visibleToPatient)
 
   return (
     <div className="m-content">
@@ -495,7 +465,7 @@ export default function PatientViewClient() {
         <div className="cn2-head">
           <div className="cn2-hl">
             <div className="ey cn2-title" style={{ margin: 0 }}>Clinical notes</div>
-            <span className="cn2-count">{MOCK_NOTES.length}</span>
+            <span className="cn2-count">{allNotes.length}</span>
           </div>
           <div className="cn2-tabs">
             {(['all', 'internal', 'patient'] as const).map(tab => (
@@ -514,7 +484,14 @@ export default function PatientViewClient() {
         <div className="cn2-body">
           {/* ── Stream ── */}
           <div className="cn2-stream">
-            {filteredMockNotes.length === 0 ? (
+            {clinicalNotes === undefined ? (
+              <div className="cn2-empty">
+                <div className="cn2-empty-ic">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+                </div>
+                <p>Loading notes…</p>
+              </div>
+            ) : filteredNotes.length === 0 ? (
               <div className="cn2-empty">
                 <div className="cn2-empty-ic">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
@@ -523,14 +500,14 @@ export default function PatientViewClient() {
                 </div>
                 <p>No {noteFilterTab === 'internal' ? 'internal' : noteFilterTab === 'patient' ? 'patient-visible' : ''} notes on this record yet.</p>
               </div>
-            ) : filteredMockNotes.map(note => {
-              const av = note.authorName.split(' ').map((w: string) => w[0] ?? '').join('').slice(0, 2).toUpperCase()
+            ) : filteredNotes.map((note: any) => {
+              const av = `${note.authorName?.split(' ')[0]?.[0] ?? ''}${note.authorName?.split(' ')[1]?.[0] ?? ''}`.toUpperCase()
               const roleLabel = note.authorRole === 'surgeon' ? 'Surgeon'
                 : note.authorRole === 'radiographer' ? 'Radiographer'
                 : note.authorRole === 'admin' ? 'Admin'
                 : 'Clinic staff'
               return (
-                <div key={note.id} className="cn2-item">
+                <div key={note._id} className="cn2-item">
                   <div className="cn2-irow">
                     <div className={`cn2-av ${note.authorRole}`}>{av}</div>
                     <div className="cn2-imeta">
@@ -547,6 +524,7 @@ export default function PatientViewClient() {
                     <button
                       type="button"
                       className={`cn2-ivis ${note.visibleToPatient ? 'patient' : 'internal'}`}
+                      onClick={() => toggleNoteVis({ noteId: note._id, visibleToPatient: !note.visibleToPatient }).catch(() => {})}
                       title={note.visibleToPatient ? 'Visible to patient — click to make internal' : 'Internal only — click to share with patient'}
                     >
                       {note.visibleToPatient ? (
@@ -561,7 +539,14 @@ export default function PatientViewClient() {
                         </>
                       )}
                     </button>
-                    <button type="button" className="cn2-idel" aria-label="Delete note">Delete</button>
+                    <button
+                      type="button"
+                      className="cn2-idel"
+                      onClick={() => deleteNote({ noteId: note._id }).catch(() => {})}
+                      aria-label="Delete note"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               )

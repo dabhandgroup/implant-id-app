@@ -938,7 +938,7 @@ export default function DashboardClient() {
                 style={{ color: isPending ? '#64748b' : undefined }}
               >
                 {linkedDevices && linkedDevices.length > 1
-                  ? `${linkedDevices.length} implants`
+                  ? 'Multiple implants'
                   : linkedDevices && linkedDevices.length === 1
                     ? (linkedDevices[0] as any).deviceType
                     : patient.selfReportedDeviceType ?? 'No device type recorded'}
@@ -946,20 +946,22 @@ export default function DashboardClient() {
 
               {/* Device name(s) */}
               {linkedDevices && linkedDevices.length > 0 ? (
-                <div style={{ marginBottom: 4 }}>
-                  {(linkedDevices as any[]).map((d, i) => (
-                    <div key={String(d._id)} className="pb-name" style={{ fontSize: 22, color: isPending ? '#334155' : undefined, marginBottom: i < linkedDevices.length - 1 ? 4 : 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {linkedDevices.length > 1 && (
-                        <img src={d.mriStatus === 'safe' ? '/mr-safe.svg' : d.mriStatus === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'} alt={d.mriStatus} style={{ width: 18, height: 18, flexShrink: 0 }} />
-                      )}
-                      {d.manufacturer} {d.name}
+                <div style={{ marginBottom: 10 }}>
+                  {linkedDevices.length > 1 ? (
+                    <div className="pb-name" style={{ fontSize: 22, color: isPending ? '#334155' : undefined }}>
+                      Multiple implants
                     </div>
-                  ))}
+                  ) : (
+                    <div className="pb-name" style={{ fontSize: 22, color: isPending ? '#334155' : undefined, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      {(linkedDevices[0] as any).manufacturer} {(linkedDevices[0] as any).name}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="pb-name" style={{
                   fontSize: patient.selfReportedDevice ? 26 : 20,
                   color: isPending ? '#334155' : undefined,
+                  marginBottom: 10,
                 }}>
                   {patient.selfReportedDevice ?? 'Awaiting verification'}
                 </div>
@@ -973,7 +975,7 @@ export default function DashboardClient() {
                 </p>
               )}
 
-              {/* Data grid — Name + Implanted inline; Implant ID moves below QR */}
+              {/* Data grid — Name, Implanted, Clinic, Surgeon */}
               <div className="pb-grid" style={{ gridTemplateColumns: 'auto auto', gap: '8px 24px', width: 'fit-content', marginBottom: 0 }}>
                 <div>
                   <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Name</div>
@@ -989,10 +991,22 @@ export default function DashboardClient() {
                     </div>
                   </div>
                 )}
+                {(patient as any).selfReportedHospital && (
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Clinic</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{(patient as any).selfReportedHospital}</div>
+                  </div>
+                )}
+                {(patient as any).selfReportedSurgeon && (
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Surgeon</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{(patient as any).selfReportedSurgeon}</div>
+                  </div>
+                )}
               </div>
 
               {/* Actions + QR — buttons left, QR pinned to far right */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 16 }}>
               <div className="pb-actions" style={{ marginTop: 0, flex: 'none' }}>
 
                 {/* Add to Apple Wallet */}

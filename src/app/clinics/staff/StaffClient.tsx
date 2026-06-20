@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
@@ -130,6 +130,13 @@ export default function StaffClient() {
   const [searchError,  setSearchError]  = useState('')
   const [success,      setSuccess]      = useState('')
 
+  useEffect(() => {
+    if (!revokeConfirm) return
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setRevokeConfirm(false) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [revokeConfirm])
+
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   function openAdd() {
@@ -208,6 +215,7 @@ export default function StaffClient() {
     const isOwnSelf  = false // can't easily check here but revoke mutation guards against self-revoke
 
     return (
+      <>
       <div className="m-content">
         <button
           type="button"
@@ -280,55 +288,24 @@ export default function StaffClient() {
         </div>
 
         {/* Revoke access */}
-        {detailStaff.jobType !== 'admin' || true ? (
-          <div className="table" style={{ borderRadius: 16 }}>
-            <div style={{ padding: '20px 24px 18px' }}>
-              <div className="ey" style={{ marginBottom: 6 }}>Revoke access</div>
-              <p style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.55, margin: '0 0 16px' }}>
-                Removing {detailStaff.userName || detailStaff.userEmail || 'this staff member'}{' '}will immediately
-                revoke their access to your clinic&apos;s Implant ID account. This cannot be undone — you would need
-                to re-invite them to restore access.
-              </p>
-              {revokeErr && (
-                <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, fontFamily: 'var(--ff)', marginBottom: 14 }}>
-                  {revokeErr}
-                </div>
-              )}
-              {!revokeConfirm ? (
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  onClick={() => setRevokeConfirm(true)}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                  Revoke access
-                </button>
-              ) : (
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => setRevokeConfirm(false)}
-                    disabled={revokeLoading}
-                    style={{ minWidth: 80 }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={handleRevoke}
-                    disabled={revokeLoading}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 160 }}
-                  >
-                    {revokeLoading ? 'Revoking…' : `Yes, revoke ${detailStaff.userName?.split(' ')[0] || 'access'}`}
-                  </button>
-                </div>
-              )}
-            </div>
+        <div className="table" style={{ borderRadius: 16 }}>
+          <div style={{ padding: '20px 24px 18px' }}>
+            <div className="ey" style={{ marginBottom: 6 }}>Revoke access</div>
+            <p style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.55, margin: '0 0 16px' }}>
+              Removing {detailStaff.userName || detailStaff.userEmail || 'this staff member'} will immediately
+              revoke their access to your clinic&apos;s Implant ID account.
+            </p>
+            <button
+              type="button"
+              className="btn btn-danger"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              onClick={() => { setRevokeErr(''); setRevokeConfirm(true) }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              Revoke access
+            </button>
           </div>
-        ) : null}
+        </div>
 
         {isOwnSelf && (
           <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', marginTop: 14 }}>
@@ -336,6 +313,58 @@ export default function StaffClient() {
           </p>
         )}
       </div>
+
+      {/* Revoke confirmation modal */}
+      {revokeConfirm && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(10,20,30,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => { if (!revokeLoading) setRevokeConfirm(false) }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="revoke-modal-title"
+        >
+          <div
+            style={{ background: 'var(--bg2)', borderRadius: 18, padding: '32px 28px 28px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', fontFamily: 'var(--ff)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </div>
+            <h2 id="revoke-modal-title" style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-.01em' }}>
+              Revoke {detailStaff.userName || detailStaff.userEmail || 'this staff member'}&apos;s access?
+            </h2>
+            <p style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 20px' }}>
+              This will immediately remove their access to the clinic portal. This cannot be undone — you would need to re-invite them to restore access.
+            </p>
+            {revokeErr && (
+              <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 16 }}>
+                {revokeErr}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setRevokeConfirm(false)}
+                disabled={revokeLoading}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={handleRevoke}
+                disabled={revokeLoading}
+                style={{ flex: 2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              >
+                {revokeLoading ? 'Revoking…' : `Yes, revoke access`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </>
     )
   }
 

@@ -5,6 +5,7 @@ import { useQuery, useMutation }   from 'convex/react'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { useRouter }  from 'next/navigation'
 import { api }        from '../../../../convex/_generated/api'
+import QRCode         from 'qrcode'
 
 const MRI_COLOUR: Record<string, string> = {
   safe:        '#166534',
@@ -39,12 +40,14 @@ export default function EmergencyClient() {
   const implantSafety    = useQuery(api.patients.getMyImplantSafety)
   const notifications    = useQuery(api.patients.getMyNotifications)
   const markRead         = useMutation(api.patients.markAllNotificationsRead)
+  const visibleNotes     = useQuery((api as any).clinicalNotes.getMyVisibleClinicalNotes)
 
   const [sbCollapsed,  setSbCollapsed]  = useState(false)
   const [logoutOpen,   setLogoutOpen]   = useState(false)
   const [profileOpen,  setProfileOpen]  = useState(false)
   const [notifOpen,    setNotifOpen]    = useState(false)
   const [linkCopied,   setLinkCopied]   = useState(false)
+  const [qrDataUrl,    setQrDataUrl]    = useState('')
 
   const sbBotRef = useRef<HTMLDivElement>(null)
 
@@ -56,6 +59,14 @@ export default function EmergencyClient() {
     document.addEventListener('mousedown', onOutside)
     return () => document.removeEventListener('mousedown', onOutside)
   }, [profileOpen])
+
+  useEffect(() => {
+    if (!patient?.implantIdCode) return
+    QRCode.toDataURL(
+      `https://portal.implantid.io/scan/${patient.implantIdCode}`,
+      { width: 200, margin: 1, color: { dark: '#0e2a33', light: '#ffffff' } }
+    ).then(setQrDataUrl).catch(() => {})
+  }, [patient?.implantIdCode])
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || 'P'
@@ -260,8 +271,76 @@ export default function EmergencyClient() {
               </div>
             )}
 
-            {/* Patient identity */}
-            <div className="em-card" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+            {/* Patient identity — dark gradient card matching the dashboard pass */}
+            <div className="em-id-card em-print-hide">
+              <div className="em-id-top">
+                <div className="em-id-brand">
+                  <img src="/icon.svg" alt="" />
+                  <span><b>Implant</b> ID</span>
+                </div>
+                <div className="em-id-badge">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  Emergency
+                </div>
+              </div>
+
+              <div className="em-id-name">{fullName}</div>
+              <div className="em-id-code">
+                {patient.implantIdCode}
+              </div>
+
+              {(patient.dob || patient.heightCm || patient.weightKg) && (
+                <div className="em-id-meta">
+                  {patient.dob && (
+                    <div>
+                      <div className="k">Date of birth</div>
+                      <div className="v">{patient.dob}</div>
+                    </div>
+                  )}
+                  {patient.heightCm && (
+                    <div>
+                      <div className="k">Height</div>
+                      <div className="v">{patient.heightCm} cm</div>
+                    </div>
+                  )}
+                  {patient.weightKg && (
+                    <div>
+                      <div className="k">Weight</div>
+                      <div className="v">{patient.weightKg} kg</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="em-id-bottom">
+                {/* MRI status bottom-left */}
+                <div className="em-id-mri">
+                  <img
+                    src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
+                    alt={MRI_LABEL[status]}
+                    style={{ width: 32, height: 32, flexShrink: 0 }}
+                  />
+                  <span>{MRI_LABEL[status]}</span>
+                </div>
+                {/* QR code bottom-right */}
+                <div className="em-id-qr">
+                  <span>Scan for full record</span>
+                  {qrDataUrl ? (
+                    <img src={qrDataUrl} alt="Scan to view full patient record" />
+                  ) : (
+                    <div className="em-id-qr-ph">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2z"/>
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Patient identity — print-only plain version */}
+            <div className="em-card em-print-show" style={{ display: 'none', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Patient</div>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{fullName}</div>
               <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 14, color: 'var(--accent-deep)', letterSpacing: '.04em', marginBottom: patient.dob ? 10 : 0 }}>{patient.implantIdCode}</div>
@@ -290,11 +369,42 @@ export default function EmergencyClient() {
               </div>
             )}
 
-            {/* Additional notes */}
+            {/* Self-reported notes */}
             {patient.additionalNotes && (
               <div className="em-card" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
-                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 8 }}>Clinical Notes</div>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 8 }}>Patient notes</div>
                 <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>{patient.additionalNotes}</div>
+              </div>
+            )}
+
+            {/* Clinical notes from care team — only notes shared with the patient */}
+            {visibleNotes && visibleNotes.length > 0 && (
+              <div className="em-card" style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 14 }}>Clinical notes</div>
+                <div className="em-notes">
+                  {(visibleNotes as any[]).map((note: any) => {
+                    const initNote = `${note.authorName?.split(' ')[0]?.[0] ?? ''}${note.authorName?.split(' ')[1]?.[0] ?? ''}`.toUpperCase()
+                    const roleLabel = note.authorRole === 'radiographer' ? 'Radiographer'
+                      : note.authorRole === 'surgeon' ? 'Surgeon'
+                      : note.authorRole === 'admin' ? 'Clinical admin'
+                      : 'Clinic staff'
+                    return (
+                      <div key={note._id} className="em-note">
+                        <div className="em-note-hd">
+                          <div className="em-note-av">{initNote}</div>
+                          <div className="em-note-info">
+                            <div className="nm">{note.authorName}</div>
+                            <div className="org">{roleLabel}{note.clinicName ? ` · ${note.clinicName}` : ''}</div>
+                          </div>
+                          <div className="em-note-date">
+                            {new Date(note.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </div>
+                        </div>
+                        <div className="em-note-body">{note.content}</div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
 

@@ -64,13 +64,17 @@ export default function PatientViewClient() {
     api.clinics.getPatientAuditEntries,
     patient?._id ? { patientId: patient._id } : 'skip',
   )
-  const isSaved       = useQuery(api.clinics.isPatientSaved, patient?._id ? { patientId: patient._id } : 'skip')
-  const allDevices    = useQuery(api.devices.listDevices, {})
-  const recordLookup  = useMutation(api.clinics.logClinicPatientScan)
-  const verifyPatient = useMutation(api.patients.verifyPatient)
-  const linkDevice    = useMutation(api.patients.linkDeviceToPatient)
-  const savePatient   = useMutation(api.clinics.savePatientToClinic)
-  const unsavePatient = useMutation(api.clinics.unsavePatientFromClinic)
+  const isSaved        = useQuery(api.clinics.isPatientSaved, patient?._id ? { patientId: patient._id } : 'skip')
+  const allDevices     = useQuery(api.devices.listDevices, {})
+  const clinicalNotes  = useQuery((api as any).clinicalNotes.getPatientClinicalNotes, patient?._id ? { patientId: patient._id } : 'skip')
+  const recordLookup   = useMutation(api.clinics.logClinicPatientScan)
+  const verifyPatient  = useMutation(api.patients.verifyPatient)
+  const linkDevice     = useMutation(api.patients.linkDeviceToPatient)
+  const savePatient    = useMutation(api.clinics.savePatientToClinic)
+  const unsavePatient  = useMutation(api.clinics.unsavePatientFromClinic)
+  const addNote        = useMutation((api as any).clinicalNotes.addClinicalNote)
+  const deleteNote     = useMutation((api as any).clinicalNotes.deleteClinicalNote)
+  const toggleNoteVis  = useMutation((api as any).clinicalNotes.toggleNoteVisibility)
 
   useEffect(() => {
     if (patient?._id && !auditFiredRef.current) {
@@ -79,6 +83,13 @@ export default function PatientViewClient() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient?._id])
+
+  // Clinical notes
+  const [noteContent,  setNoteContent]  = useState('')
+  const [noteVisible,  setNoteVisible]  = useState(false)
+  const [noteLoading,  setNoteLoading]  = useState(false)
+  const [noteErr,      setNoteErr]      = useState('')
+  const [noteSent,     setNoteSent]     = useState(false)
 
   // ── No-code state ──────────────────────────────────────────────────────────
 
@@ -162,6 +173,23 @@ export default function PatientViewClient() {
                d.deviceType?.toLowerCase().includes(q)
       }).slice(0, 8)
     : []
+
+  async function doAddNote() {
+    if (!noteContent.trim()) return
+    setNoteLoading(true)
+    setNoteErr('')
+    try {
+      await addNote({ patientId: patient._id, content: noteContent, visibleToPatient: noteVisible })
+      setNoteContent('')
+      setNoteVisible(false)
+      setNoteSent(true)
+      setTimeout(() => setNoteSent(false), 3000)
+    } catch (err: unknown) {
+      setNoteErr(err instanceof Error ? err.message : 'Failed to add note')
+    } finally {
+      setNoteLoading(false)
+    }
+  }
 
   async function doAddDevice() {
     if (!selDevice) return
@@ -722,6 +750,119 @@ export default function PatientViewClient() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Clinical notes */}
+          <div className="card">
+            <div className="ey" style={{ marginBottom: 14 }}>Clinical notes</div>
+
+            {/* Notes stream */}
+            {clinicalNotes && clinicalNotes.length > 0 ? (
+              <div className="cn-stream">
+                {(clinicalNotes as any[]).map((note: any) => {
+                  const initNote = `${note.authorName?.split(' ')[0]?.[0] ?? ''}${note.authorName?.split(' ')[1]?.[0] ?? ''}`.toUpperCase()
+                  const roleLabel = note.authorRole === 'radiographer' ? 'Radiographer'
+                    : note.authorRole === 'surgeon' ? 'Surgeon'
+                    : note.authorRole === 'admin' ? 'Admin'
+                    : 'Clinic staff'
+                  return (
+                    <div key={note._id} className="cn-note">
+                      <div className="cn-note-hd">
+                        <div className="cn-av">{initNote}</div>
+                        <div className="cn-meta">
+                          <div className="nm">{note.authorName}</div>
+                          <div className="org">{roleLabel}{note.clinicName ? ` · ${note.clinicName}` : ''}</div>
+                        </div>
+                        <div className="cn-date">
+                          {new Date(note.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                      </div>
+                      <div className="cn-body">{note.content}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                        <button
+                          type="button"
+                          className={`cn-vis${note.visibleToPatient ? ' visible' : ' hidden'}`}
+                          onClick={() => toggleNoteVis({ noteId: note._id, visibleToPatient: !note.visibleToPatient }).catch(() => {})}
+                          title={note.visibleToPatient ? 'Click to hide from patient' : 'Click to share with patient'}
+                          style={{ cursor: 'pointer', border: 'none', background: 'none', padding: 0, fontFamily: 'inherit' }}
+                        >
+                          {note.visibleToPatient ? (
+                            <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Visible to patient</>
+                          ) : (
+                            <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Internal only</>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteNote({ noteId: note._id }).catch(() => {})}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', fontSize: 11, fontFamily: 'var(--ff)', padding: '2px 6px', borderRadius: 6, transition: 'color .12s' }}
+                          onMouseEnter={e => (e.currentTarget.style.color = 'var(--err)')}
+                          onMouseLeave={e => (e.currentTarget.style.color = 'var(--muted2)')}
+                          aria-label="Delete note"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div style={{ color: 'var(--muted)', fontSize: 13.5, fontFamily: 'var(--ff)', padding: '12px 0', marginBottom: 14 }}>
+                No notes on this record yet. Add one below.
+              </div>
+            )}
+
+            {/* Add note form */}
+            <div className="cn-form">
+              <textarea
+                className="input"
+                rows={3}
+                value={noteContent}
+                onChange={e => setNoteContent(e.target.value)}
+                placeholder="Add a clinical note…"
+                style={{ resize: 'vertical', fontFamily: 'var(--fb)', fontSize: 13.5 }}
+                disabled={noteLoading}
+              />
+
+              <label className="cn-vis-toggle">
+                <input
+                  type="checkbox"
+                  checked={noteVisible}
+                  onChange={e => setNoteVisible(e.target.checked)}
+                  disabled={noteLoading}
+                />
+                <div className="lbl">
+                  <b>Visible to patient</b>
+                  <span>{noteVisible ? 'Patient will see this note on their emergency info page.' : 'Internal only — patient cannot see this note.'}</span>
+                </div>
+              </label>
+
+              {noteErr && (
+                <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13 }}>
+                  {noteErr}
+                </div>
+              )}
+
+              {noteSent && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px', background: 'color-mix(in srgb,var(--ok) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--ok)' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                  Note added
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-s"
+                onClick={doAddNote}
+                disabled={noteLoading || !noteContent.trim()}
+                style={{ alignSelf: 'flex-start' }}
+              >
+                {noteLoading ? 'Adding…' : (
+                  <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add note</>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Verify this record — shown to admin/surgeon while pending */}

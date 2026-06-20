@@ -217,6 +217,21 @@ export default defineSchema({
   })
     .index('by_patient', ['patientId']),
 
+  // Clinical notes — left by clinic staff / surgeons / radiographers on a patient's record
+  clinicalNotes: defineTable({
+    patientId:        v.id('patients'),
+    authorId:         v.id('users'),
+    authorName:       v.string(),
+    authorRole:       v.string(),   // 'radiographer' | 'surgeon' | 'admin' | 'clinic_staff'
+    clinicId:         v.optional(v.id('clinics')),
+    clinicName:       v.optional(v.string()),
+    content:          v.string(),
+    visibleToPatient: v.boolean(),  // default false — hidden from patient unless explicitly shown
+    createdAt:        v.number(),
+  })
+    .index('by_patient',         ['patientId'])
+    .index('by_patient_visible', ['patientId', 'visibleToPatient']),
+
   // Per-user notification feed
   notifications: defineTable({
     userId: v.id('users'),

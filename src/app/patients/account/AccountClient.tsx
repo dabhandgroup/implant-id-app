@@ -760,7 +760,7 @@ export default function AccountClient() {
                   <div>
                     <b style={{ fontFamily: 'var(--ff)', fontSize: 14.5, display: 'block', marginBottom: 3 }}>Passkeys</b>
                     <span style={{ fontSize: 13, color: 'var(--muted)' }}>
-                      Sign in with Face ID, Touch ID, or Windows Hello instead of a password.
+                      Sign in with Face ID, Touch ID, or Windows Hello. You can add a passkey for each device you use.
                     </span>
                   </div>
                   <button

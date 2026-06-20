@@ -1,3 +1,34 @@
+/* ── Emergency ID card (mirrors dashboard pass-big) ──────────────────────── */
+.em-id-card{background:linear-gradient(155deg,var(--accent-deep) 0%,var(--accent) 55%,var(--accent2) 100%);border-radius:22px;padding:22px 24px;color:#fff;position:relative;overflow:hidden;box-shadow:0 40px 80px -30px rgba(14,42,51,.4);margin-bottom:16px}
+.em-id-card::before{content:"";position:absolute;top:-40%;right:-30%;width:180%;height:160%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 55%);pointer-events:none}
+.em-id-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;position:relative;z-index:2}
+.em-id-brand{display:flex;align-items:center;gap:9px;font-family:var(--ff);font-weight:600;font-size:14px}
+.em-id-brand img{width:26px;height:26px;filter:brightness(0) invert(1)}
+.em-id-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--ff);font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:5px 12px;color:rgba(255,255,255,.92)}
+.em-id-name{font-family:var(--ff);font-size:28px;font-weight:700;letter-spacing:-.025em;margin-bottom:6px;position:relative;z-index:2;line-height:1.2}
+.em-id-code{font-family:SF Mono,Monaco,monospace;font-size:13.5px;font-weight:600;letter-spacing:.06em;opacity:.88;position:relative;z-index:2;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.em-id-meta{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:18px;position:relative;z-index:2}
+.em-id-meta .k{font-family:var(--ff);font-size:10px;letter-spacing:1.1px;text-transform:uppercase;opacity:.72;margin-bottom:3px}
+.em-id-meta .v{font-family:var(--ff);font-size:14px;font-weight:500}
+.em-id-bottom{display:flex;align-items:flex-end;justify-content:space-between;position:relative;z-index:2;padding-top:12px;border-top:1px solid rgba(255,255,255,.18)}
+.em-id-mri{display:flex;align-items:center;gap:7px}
+.em-id-mri span{font-family:var(--ff);font-size:12px;font-weight:700;letter-spacing:.3px}
+.em-id-qr{display:flex;flex-direction:column;align-items:center;gap:5px}
+.em-id-qr span{font-family:var(--ff);font-size:9px;letter-spacing:.8px;text-transform:uppercase;color:rgba(255,255,255,.72);font-weight:600}
+.em-id-qr img{width:90px;height:90px;border-radius:8px;background:rgba(255,255,255,.92);padding:4px;display:block}
+.em-id-qr-ph{width:90px;height:90px;border-radius:8px;background:rgba(255,255,255,.12);display:grid;place-items:center}
+
+/* ── Clinical notes stream (patient-visible only) ─────────────────────────── */
+.em-notes{display:flex;flex-direction:column;gap:10px}
+.em-note{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 18px}
+.em-note-hd{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.em-note-av{width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);font-family:var(--ff);font-size:11px;font-weight:700;display:grid;place-items:center;flex-shrink:0}
+.em-note-info{flex:1;min-width:0}
+.em-note-info .nm{font-family:var(--ff);font-size:13px;font-weight:600;color:var(--text)}
+.em-note-info .org{font-size:12px;color:var(--muted2);margin-top:1px}
+.em-note-date{font-size:11.5px;color:var(--muted2);white-space:nowrap}
+.em-note-body{font-family:var(--fb);font-size:14px;color:var(--text);line-height:1.6}
+
 /* ── Print / Save as PDF ──────────────────────────────────────────────────── */
 @media print {
   /* Hide all app chrome */
@@ -36,6 +67,13 @@
     padding-bottom: 10px;
     margin-bottom: 18px;
   }
+
+  /* ID card — hide on print (QR is in the print header instead) */
+  .em-id-card { display: none !important; }
+  .em-print-show { display: block !important; }
+
+  /* Clinical notes */
+  .em-note { break-inside: avoid; }
 
   /* MRI hero — keep colour on print */
   .em-mri-hero {

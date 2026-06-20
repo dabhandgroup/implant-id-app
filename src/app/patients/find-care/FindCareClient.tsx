@@ -14,6 +14,7 @@ export default function FindCareClient() {
 
   const [searchQuery,    setSearchQuery]    = useState('')
   const [activeFilter,   setActiveFilter]   = useState('all')
+  const [filtersOpen,    setFiltersOpen]    = useState(false)
   const [sbCollapsed,    setSbCollapsed]    = useState(false)
   const [logoutOpen,     setLogoutOpen]     = useState(false)
   const [profileOpen,    setProfileOpen]    = useState(false)
@@ -216,17 +217,48 @@ export default function FindCareClient() {
                 />
               </div>
 
-              <div className="fc-filters">
-                {FILTERS.map(f => (
+              {/* Collapsible specialism filter */}
+              <div className={`fc-filters${filtersOpen ? ' open' : ''}`}>
+                <button
+                  className={`fc-chip fc-filter-trigger${activeFilter !== 'all' ? ' on' : ''}`}
+                  onClick={() => setFiltersOpen(o => !o)}
+                  aria-expanded={filtersOpen}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                  {activeFilter !== 'all'
+                    ? (FILTERS.find(f => f.key === activeFilter)?.label ?? 'Filter')
+                    : 'Filter by specialism'}
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transform: filtersOpen ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }} aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                {activeFilter !== 'all' && (
                   <button
-                    key={f.key}
-                    className={`fc-chip${activeFilter === f.key ? ' on' : ''}`}
-                    onClick={() => setActiveFilter(f.key)}
+                    className="fc-chip on fc-filter-clear"
+                    onClick={() => setActiveFilter('all')}
+                    aria-label="Clear filter"
                   >
-                    {f.label}
+                    {FILTERS.find(f => f.key === activeFilter)?.label}
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                   </button>
-                ))}
+                )}
               </div>
+              {filtersOpen && (
+                <div className="fc-filter-expand">
+                  {FILTERS.filter(f => f.key !== 'all').map(f => (
+                    <button
+                      key={f.key}
+                      className={`fc-chip${activeFilter === f.key ? ' on' : ''}`}
+                      onClick={() => { setActiveFilter(f.key); setFiltersOpen(false) }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                  {activeFilter !== 'all' && (
+                    <button className="fc-chip" onClick={() => { setActiveFilter('all'); setFiltersOpen(false) }}>
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div className="fc-count">
                 Showing {filtered.length} clinic{filtered.length !== 1 ? 's' : ''} on the network
@@ -288,73 +320,120 @@ export default function FindCareClient() {
               </div>
             </div>
 
-            {/* Right panel — map */}
+            {/* Right panel — clinic detail or map */}
             <div className="fc-map">
-              <iframe
-                src={mapSrc(selectedClinic)}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-
-              {/* Clinic info card — overlaid on the map when a clinic is selected */}
-              {selectedClinic && (
-                <div className="fc-map-card">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
-                    <div className="fc-map-card-name">{selectedClinic.name}</div>
-                    <button
-                      onClick={() => setSelectedClinic(null)}
-                      aria-label="Close clinic info"
-                      style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--muted2)', padding: 2, lineHeight: 1, flexShrink: 0, marginTop: 1 }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              {selectedClinic ? (
+                <div className="fc-detail">
+                  <div className="fc-mini-map">
+                    <iframe
+                      src={mapSrc(selectedClinic)}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </div>
+                  <div className="fc-detail-body">
+                    <button className="fc-detail-back" onClick={() => setSelectedClinic(null)}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                      Back to list
                     </button>
+
+                    <div className="fc-detail-name">{selectedClinic.name}</div>
+                    {(selectedClinic.address || selectedClinic.city) && (
+                      <div className="fc-detail-addr">
+                        {selectedClinic.address}
+                        {selectedClinic.city && selectedClinic.city !== selectedClinic.address ? `, ${selectedClinic.city}` : ''}
+                        {selectedClinic.country ? `, ${selectedClinic.country}` : ''}
+                      </div>
+                    )}
+
+                    {(selectedClinic.phone || selectedClinic.mriBookingsPhone || selectedClinic.email || selectedClinic.website) && (
+                      <div className="fc-detail-contacts">
+                        {selectedClinic.phone && (
+                          <a href={`tel:${selectedClinic.phone}`} className="fc-detail-contact">
+                            <div className="fc-detail-contact-ic">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="16" height="16"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            </div>
+                            <div>
+                              <div className="fc-detail-contact-label">Phone</div>
+                              <div className="fc-detail-contact-val">{selectedClinic.phone}</div>
+                            </div>
+                          </a>
+                        )}
+                        {selectedClinic.mriBookingsPhone && selectedClinic.mriBookingsPhone !== selectedClinic.phone && (
+                          <a href={`tel:${selectedClinic.mriBookingsPhone}`} className="fc-detail-contact">
+                            <div className="fc-detail-contact-ic">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="16" height="16"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            </div>
+                            <div>
+                              <div className="fc-detail-contact-label">MRI bookings</div>
+                              <div className="fc-detail-contact-val">{selectedClinic.mriBookingsPhone}</div>
+                            </div>
+                          </a>
+                        )}
+                        {selectedClinic.email && (
+                          <a href={`mailto:${selectedClinic.email}`} className="fc-detail-contact">
+                            <div className="fc-detail-contact-ic">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                            </div>
+                            <div>
+                              <div className="fc-detail-contact-label">Email</div>
+                              <div className="fc-detail-contact-val">{selectedClinic.email}</div>
+                            </div>
+                          </a>
+                        )}
+                        {selectedClinic.website && (
+                          <a href={selectedClinic.website} target="_blank" rel="noopener noreferrer" className="fc-detail-contact">
+                            <div className="fc-detail-contact-ic">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            </div>
+                            <div>
+                              <div className="fc-detail-contact-label">Website</div>
+                              <div className="fc-detail-contact-val">{selectedClinic.website.replace(/^https?:\/\//, '')}</div>
+                            </div>
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {selectedClinic.capabilities && selectedClinic.capabilities.length > 0 && (
+                      <div style={{ marginBottom: 22 }}>
+                        <div className="fc-detail-section-label">Specialisms</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          {selectedClinic.capabilities.map((cap: any) => {
+                            const capKey = cap.toLowerCase().replace(/[\s/\- ]/g, '')
+                            return <span key={cap} className={`fc-tag cap-${capKey}`}>{cap}</span>
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <a
+                      href={directionsUrl(selectedClinic)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-s"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                      Get directions
+                    </a>
                   </div>
-
-                  {(selectedClinic.address || selectedClinic.city) && (
-                    <div className="fc-map-card-addr">
-                      {selectedClinic.address}{selectedClinic.city && selectedClinic.city !== selectedClinic.address ? `, ${selectedClinic.city}` : ''}
-                      {selectedClinic.country ? `, ${selectedClinic.country}` : ''}
-                    </div>
-                  )}
-
-                  <div className="fc-map-card-contacts">
-                    {selectedClinic.phone && (
-                      <a href={`tel:${selectedClinic.phone}`} className="fc-map-card-contact">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                        {selectedClinic.phone}
-                      </a>
-                    )}
-                    {selectedClinic.mriBookingsPhone && selectedClinic.mriBookingsPhone !== selectedClinic.phone && (
-                      <a href={`tel:${selectedClinic.mriBookingsPhone}`} className="fc-map-card-contact">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                        <span><span className="fc-map-card-label">MRI bookings</span> {selectedClinic.mriBookingsPhone}</span>
-                      </a>
-                    )}
-                    {selectedClinic.email && (
-                      <a href={`mailto:${selectedClinic.email}`} className="fc-map-card-contact">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                        {selectedClinic.email}
-                      </a>
-                    )}
-                    {selectedClinic.website && (
-                      <a href={selectedClinic.website} target="_blank" rel="noopener noreferrer" className="fc-map-card-contact">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                        {selectedClinic.website.replace(/^https?:\/\//, '')}
-                      </a>
-                    )}
-                  </div>
-
-                  <a
-                    href={directionsUrl(selectedClinic)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="fc-map-card-dir"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-                    Get directions
-                  </a>
                 </div>
+              ) : (
+                <>
+                  <iframe
+                    src={mapSrc(null)}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                  <div className="fc-map-placeholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>Select a clinic to see its details</span>
+                  </div>
+                </>
               )}
             </div>
           </div>

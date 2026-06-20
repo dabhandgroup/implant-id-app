@@ -274,7 +274,7 @@ export default function StaffClient() {
             <div style={{ padding: '20px 24px 18px' }}>
               <div className="ey" style={{ marginBottom: 6 }}>Revoke access</div>
               <p style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.55, margin: '0 0 16px' }}>
-                Removing {detailStaff.userName || detailStaff.userEmail || 'this staff member'} will immediately
+                Removing {detailStaff.userName || detailStaff.userEmail || 'this staff member'}{' '}will immediately
                 revoke their access to your clinic&apos;s Implant ID account. This cannot be undone — you would need
                 to re-invite them to restore access.
               </p>

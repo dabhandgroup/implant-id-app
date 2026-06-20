@@ -229,10 +229,10 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
         <aside className={`sidebar${mobOpen ? ' open' : ''}`}>
 
           <div className="sb-logo">
-            <a href="/clinics/scan-patient" className="logo">
+            <Link href="/clinics/scan-patient" className="logo">
               <img src="/icon.svg" alt="" />
               <span className="logo-text"><b>Implant</b><span>ID</span></span>
-            </a>
+            </Link>
             <button className="sb-toggle" aria-label="Collapse sidebar" onClick={() => setSbCollapsed(c => !c)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
@@ -242,44 +242,44 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
 
           {/* ── Lookup ── */}
           <div className="sb-section">Lookup</div>
-          <a className={`sb-link${isActive('/clinics/scan-patient') ? ' active' : ''}`} href="/clinics/scan-patient" title="Scan patient card">
+          <Link className={`sb-link${isActive('/clinics/scan-patient') ? ' active' : ''}`} href="/clinics/scan-patient" title="Scan patient card">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="5" y="5" width="3" height="3"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="16" y="5" width="3" height="3"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="5" y="16" width="3" height="3"/><rect x="14" y="14" width="2.5" height="2.5" rx=".5"/><rect x="18" y="14" width="3" height="3" rx=".5"/><rect x="14" y="18" width="3" height="3" rx=".5"/><rect x="19" y="19" width="2" height="2" rx=".5"/></svg>
             <span>Scan card</span>
-          </a>
-          <a className={`sb-link${isActive('/clinics/devices') ? ' active' : ''}`} href="/clinics/devices" title="Devices">
+          </Link>
+          <Link className={`sb-link${isActive('/clinics/devices') ? ' active' : ''}`} href="/clinics/devices" title="Devices">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
             <span>Devices</span>
-          </a>
-          <a className={`sb-link${isActive('/clinics/manufacturers') ? ' active' : ''}`} href="/clinics/manufacturers" title="Manufacturers">
+          </Link>
+          <Link className={`sb-link${isActive('/clinics/manufacturers') ? ' active' : ''}`} href="/clinics/manufacturers" title="Manufacturers">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 9h6M9 13h6M9 17h6"/></svg>
             <span>Manufacturers</span>
-          </a>
+          </Link>
 
           {/* ── Patients ── */}
           <div className="sb-section">Patients</div>
-          <a className={`sb-link${isActive('/clinics/all-patients') || isActive('/clinics/patient-view') || isActive('/clinics/patient/') ? ' active' : ''}`} href="/clinics/all-patients" title="All patients">
+          <Link className={`sb-link${isActive('/clinics/all-patients') || isActive('/clinics/patient-view') || isActive('/clinics/patient/') ? ' active' : ''}`} href="/clinics/all-patients" title="All patients">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span>All patients</span>
-          </a>
-          <a className={`sb-link${isActive('/clinics/add-patient') ? ' active' : ''}`} href="/clinics/add-patient" title="Add patient">
+          </Link>
+          <Link className={`sb-link${isActive('/clinics/add-patient') ? ' active' : ''}`} href="/clinics/add-patient" title="Add patient">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4M19 8v6M16 11h6"/></svg>
             <span>Add patient</span>
-          </a>
+          </Link>
 
           {/* ── Clinic ── */}
           <div className="sb-section">Clinic</div>
-          <a className={`sb-link${isActive('/clinics/staff') ? ' active' : ''}`} href="/clinics/staff" title="Staff">
+          <Link className={`sb-link${isActive('/clinics/staff') ? ' active' : ''}`} href="/clinics/staff" title="Staff">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
             <span>Staff</span>
-          </a>
-          <a className={`sb-link${isActive('/clinics/audit') ? ' active' : ''}`} href="/clinics/audit" title="Audit log">
+          </Link>
+          <Link className={`sb-link${isActive('/clinics/audit') ? ' active' : ''}`} href="/clinics/audit" title="Audit log">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             <span>Audit log</span>
-          </a>
-          <a className={`sb-link${isActive('/clinics/settings') ? ' active' : ''}`} href="/clinics/settings" title="Settings">
+          </Link>
+          <Link className={`sb-link${isActive('/clinics/settings') ? ' active' : ''}`} href="/clinics/settings" title="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             <span>Settings</span>
-          </a>
+          </Link>
 
           {/* Notifications */}
           <button
@@ -305,9 +305,9 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
                   <div className="sb-pp-name">{userName}</div>
                   <div className="sb-pp-sub">{clinicName}</div>
                 </div>
-                <a href="/clinics/settings" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>My account</a>
-                <a href="/clinics/settings" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Clinic settings</a>
-                <a href="/clinics/staff" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Invite a colleague</a>
+                <Link href="/clinics/settings" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>My account</Link>
+                <Link href="/clinics/settings" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Clinic settings</Link>
+                <Link href="/clinics/staff" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Invite a colleague</Link>
                 <a href="mailto:hello@implantid.io" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Help &amp; docs</a>
                 <div className="sb-pp-divider" />
                 <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="sb-pp-item" tabIndex={profileOpen ? 0 : -1}>Privacy Policy</a>
@@ -334,10 +334,10 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
 
           {/* Mobile top header */}
           <div className="mob-header">
-            <a href="/clinics/scan-patient" className="mob-header-logo">
+            <Link href="/clinics/scan-patient" className="mob-header-logo">
               <img src="/icon.svg" alt="" />
               <span className="logo-text"><b>Implant</b><span>ID</span></span>
-            </a>
+            </Link>
             <div className="mob-hdr-profile">
               <button
                 className="mob-hdr-av"
@@ -378,18 +378,18 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
       {/* Mobile bottom nav */}
       <nav className="mob-nav" aria-label="Mobile navigation">
         <div className="mob-nav-tabs">
-          <a href="/clinics/scan-patient" className={`mob-nav-tab${isActive('/clinics/scan-patient') ? ' active' : ''}`} aria-label="Scan card">
+          <Link href="/clinics/scan-patient" className={`mob-nav-tab${isActive('/clinics/scan-patient') ? ' active' : ''}`} aria-label="Scan card">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="5" y="5" width="3" height="3"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="16" y="5" width="3" height="3"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="5" y="16" width="3" height="3"/><rect x="14" y="14" width="2.5" height="2.5" rx=".5"/><rect x="18" y="14" width="3" height="3" rx=".5"/><rect x="14" y="18" width="3" height="3" rx=".5"/><rect x="19" y="19" width="2" height="2" rx=".5"/></svg>
             <span className="t">Scan</span>
-          </a>
-          <a href="/clinics/all-patients" className={`mob-nav-tab${isActive('/clinics/all-patients') ? ' active' : ''}`} aria-label="Patients">
+          </Link>
+          <Link href="/clinics/all-patients" className={`mob-nav-tab${isActive('/clinics/all-patients') ? ' active' : ''}`} aria-label="Patients">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span className="t">Patients</span>
-          </a>
-          <a href="/clinics/devices" className={`mob-nav-tab${isActive('/clinics/devices') ? ' active' : ''}`} aria-label="Library">
+          </Link>
+          <Link href="/clinics/devices" className={`mob-nav-tab${isActive('/clinics/devices') ? ' active' : ''}`} aria-label="Library">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
             <span className="t">Library</span>
-          </a>
+          </Link>
           <button
             className="mob-nav-tab mob-nav-menu-btn"
             onClick={() => setMobOpen(o => !o)}

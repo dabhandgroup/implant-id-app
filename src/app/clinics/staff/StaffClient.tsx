@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
@@ -260,6 +261,16 @@ export default function StaffClient() {
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500 }}>{entry.action}</div>
                     {entry.detail && <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{entry.detail}</div>}
+                    {entry.patientName && entry.patientCode && (
+                      <Link
+                        href={`/clinics/patient-view?code=${encodeURIComponent(entry.patientCode)}`}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 12, color: 'var(--accent-deep)', textDecoration: 'none', fontWeight: 500 }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        {entry.patientName}
+                        <span style={{ color: 'var(--muted2)', fontWeight: 400 }}>{entry.patientCode}</span>
+                      </Link>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--muted2)', flexShrink: 0, marginTop: 1 }}>{timeAgo(entry.createdAt)}</div>
                 </div>

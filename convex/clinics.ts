@@ -1527,14 +1527,35 @@ export const getStaffAuditLog = query({
     if (!user) return []
     const myStaff = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
     if (!myStaff || myStaff.jobType !== 'admin') return []
-    // Confirm the target staff is in the same clinic
     const targetStaff = await ctx.db.get(args.staffId)
     if (!targetStaff || targetStaff.clinicId.toString() !== myStaff.clinicId.toString()) return []
-    return await ctx.db
+    const entries = await ctx.db
       .query('auditLog')
       .withIndex('by_staff', q => q.eq('staffId', args.staffId))
       .order('desc')
       .take(30)
+    return await Promise.all(entries.map(async (e) => {
+      let patientName = ''
+      let patientCode = ''
+      if (e.target) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const p = await ctx.db.get(e.target as any) as any
+          if (p) {
+            patientName = [p.firstName, p.lastName].filter(Boolean).join(' ')
+            patientCode = p.implantIdCode ?? ''
+          }
+        } catch { /* invalid id */ }
+      }
+      return {
+        _id:         e._id,
+        action:      e.action,
+        detail:      e.detail ?? '',
+        patientName,
+        patientCode,
+        createdAt:   e.createdAt,
+      }
+    }))
   },
 })
 

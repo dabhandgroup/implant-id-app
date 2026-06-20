@@ -222,7 +222,6 @@ export const setupNewPatient = internalAction({
           headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
           body:    JSON.stringify({ public_metadata: { role: 'patient' } }),
         })
-        console.log('[patient] Existing Clerk account found for', args.email, '— sending login email')
         await ctx.runAction(internal.email.sendClinicPatientInviteEmail, {
           firstName:     args.firstName,
           email:         args.email,
@@ -273,7 +272,6 @@ export const setupNewPatient = internalAction({
     }
 
     const inv = await invRes.json() as { id: string; url?: string }
-    console.log('[patient] Clerk invitation created for', args.email, ':', JSON.stringify(inv))
 
     // 4. Extract ticket from the invitation URL
     let activationUrl: string | undefined

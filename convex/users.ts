@@ -206,7 +206,6 @@ export const createAdminClerkAccount = internalAction({
         })
         // Link the clerkId back to the Convex placeholder in case it's not set
         await ctx.runMutation(internal.users.linkAdminClerkId, { email: args.email, clerkId: found[0].id })
-        console.log('[admin invite] Updated existing Clerk user to admin:', args.email)
         // Send sign-in instructions email (no invitation URL needed — account already exists)
         await ctx.runAction(internal.email.sendAdminInviteEmail, { email: args.email, name: args.name })
         return
@@ -242,7 +241,6 @@ export const createAdminClerkAccount = internalAction({
     })
     if (res.ok) {
       const inv = await res.json() as { id: string; url: string }
-      console.log('[admin invite] Created Clerk invitation', inv.id, 'for', args.email)
       // Send invite email with the one-time activation link
       await ctx.runAction(internal.email.sendAdminInviteEmail, {
         email:     args.email,

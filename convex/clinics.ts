@@ -317,7 +317,6 @@ export const createPendingClinicAccount = internalAction({
     if (searchRes.ok) {
       const found = (await searchRes.json()) as { id: string }[]
       if (found.length > 0) {
-        console.log('[clinics] Clerk account already exists for', args.contactEmail, '— skipping creation')
         return
       }
     }
@@ -339,10 +338,7 @@ export const createPendingClinicAccount = internalAction({
       }),
     })
 
-    if (createRes.ok) {
-      const u = (await createRes.json()) as { id: string }
-      console.log('[clinics] Pre-created Clerk account', u.id, 'for', args.contactEmail)
-    } else {
+    if (!createRes.ok) {
       const body = await createRes.text()
       console.error('[clinics] Clerk pre-creation failed:', createRes.status, body)
     }
@@ -423,9 +419,6 @@ export const activateClinicAccount = internalAction({
       }
       const inv = await invRes.json() as { id: string; url?: string }
 
-      // Log the full invitation object so we can see exactly what Clerk returns
-      console.log('[clinics] Clerk invitation response for', args.contactEmail, ':', JSON.stringify(inv))
-
       if (inv.url) {
         try {
           const parsed = new URL(inv.url)
@@ -449,7 +442,6 @@ export const activateClinicAccount = internalAction({
       } else {
         console.error('[clinics] Clerk invitation had no URL field. Full response:', JSON.stringify(inv))
       }
-      console.log('[clinics] Final activate URL for', args.contactEmail, ':', inviteUrl)
     } else {
       // 3. Existing account — stamp the clinic_staff role
       await fetch(`https://api.clerk.com/v1/users/${resolvedId}/metadata`, {
@@ -534,7 +526,6 @@ export const createStaffAccount = internalAction({
           headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
           body:    JSON.stringify({ public_metadata: { role } }),
         })
-        console.log('[staff] Updated Clerk role for existing user', args.contactEmail)
         await ctx.runAction(internal.email.sendStaffInviteEmail, {
           contactName:  args.contactName,
           contactEmail: args.contactEmail,
@@ -565,7 +556,6 @@ export const createStaffAccount = internalAction({
     if (inviteRes.ok) {
       const inv = (await inviteRes.json()) as { url?: string }
       inviteUrl = inv.url
-      console.log('[staff] Created Clerk invitation for', args.contactEmail)
     } else {
       console.error('[staff] Clerk invitation failed:', inviteRes.status, await inviteRes.text())
     }
@@ -1240,7 +1230,7 @@ export const listClinicPatients = query({
       .query('accessRequests')
       .withIndex('by_clinic', (q) => q.eq('clinicId', staffRow.clinicId))
       .filter((q) => q.eq(q.field('status'), 'approved'))
-      .collect()
+      .take(200)
 
     const seen = new Set<string>()
     const results = []
@@ -1483,7 +1473,7 @@ export const getClinicAuditLog = query({
                 : (u.email ? u.email.split('@')[0] : 'Unknown')
             }
           }
-        } catch { /* ignore */ }
+        } catch (err) { console.error('[audit] Failed to resolve staff name for entry', e._id, err) }
 
         let patientName = ''
         let patientCode = ''
@@ -1495,7 +1485,7 @@ export const getClinicAuditLog = query({
               patientName = [p.firstName, p.lastName].filter(Boolean).join(' ')
               patientCode = p.implantIdCode ?? ''
             }
-          } catch { /* invalid id */ }
+          } catch (err) { console.error('[audit] Failed to resolve patient for entry', e._id, err) }
         }
 
         return {
@@ -1593,6 +1583,7 @@ export const updateClinicInfo = mutation({
       .withIndex('by_user', (q) => q.eq('userId', user._id))
       .first()
     if (!staffRow) throw new Error('Not a clinic staff member')
+    if (staffRow.jobType !== 'admin') throw new Error('Admin access required')
 
     await ctx.db.patch(staffRow.clinicId, {
       name:    args.name.trim(),
@@ -1605,7 +1596,7 @@ export const updateClinicInfo = mutation({
   },
 })
 
-/** Update clinic capability tags (clinic staff). */
+/** Update clinic capability tags (admin staff only). */
 export const updateClinicCapabilities = mutation({
   args: { capabilities: v.array(v.string()) },
   handler: async (ctx, args) => {
@@ -1623,6 +1614,7 @@ export const updateClinicCapabilities = mutation({
       .withIndex('by_user', (q) => q.eq('userId', user._id))
       .first()
     if (!staffRow) throw new Error('Not a clinic staff member')
+    if (staffRow.jobType !== 'admin') throw new Error('Admin access required')
 
     await ctx.db.patch(staffRow.clinicId, { capabilities: args.capabilities })
     return { updated: true }

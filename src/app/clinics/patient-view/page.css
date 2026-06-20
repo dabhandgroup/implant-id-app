@@ -193,3 +193,7 @@
   .cn2-body{grid-template-columns:1fr}
   .cn2-stream{border-right:0;border-bottom:1px solid var(--border);max-height:420px}
 }
+
+@media(max-width:600px){
+  .cn2-stream{max-height:240px}
+}

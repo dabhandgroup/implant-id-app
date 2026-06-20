@@ -227,7 +227,6 @@ export const createPendingManufacturerAccount = internalAction({
     if (searchRes.ok) {
       const found = (await searchRes.json()) as { id: string }[]
       if (found.length > 0) {
-        console.log('[manufacturers] Clerk account already exists for', args.contactEmail)
         return
       }
     }
@@ -249,10 +248,7 @@ export const createPendingManufacturerAccount = internalAction({
       }),
     })
 
-    if (createRes.ok) {
-      const u = (await createRes.json()) as { id: string }
-      console.log('[manufacturers] Pre-created Clerk account', u.id, 'for', args.contactEmail)
-    } else {
+    if (!createRes.ok) {
       const body = await createRes.text()
       console.error('[manufacturers] Clerk pre-creation failed:', createRes.status, body)
     }
@@ -529,7 +525,7 @@ export const publishDevice = internalMutation({
   handler: async (ctx, args) => {
     const device = await ctx.db.get(args.deviceId)
     if (!device) {
-      console.log('[manufacturers] Device not found:', args.deviceId)
+      console.error('[manufacturers] publishDevice: device not found (may have been deleted):', args.deviceId)
       return
     }
 

@@ -299,6 +299,66 @@ export default function FindCareClient() {
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
+
+              {/* Clinic info card — overlaid on the map when a clinic is selected */}
+              {selectedClinic && (
+                <div className="fc-map-card">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 5 }}>
+                    <div className="fc-map-card-name">{selectedClinic.name}</div>
+                    <button
+                      onClick={() => setSelectedClinic(null)}
+                      aria-label="Close clinic info"
+                      style={{ background: 'none', border: 0, cursor: 'pointer', color: 'var(--muted2)', padding: 2, lineHeight: 1, flexShrink: 0, marginTop: 1 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+
+                  {(selectedClinic.address || selectedClinic.city) && (
+                    <div className="fc-map-card-addr">
+                      {selectedClinic.address}{selectedClinic.city && selectedClinic.city !== selectedClinic.address ? `, ${selectedClinic.city}` : ''}
+                      {selectedClinic.country ? `, ${selectedClinic.country}` : ''}
+                    </div>
+                  )}
+
+                  <div className="fc-map-card-contacts">
+                    {selectedClinic.phone && (
+                      <a href={`tel:${selectedClinic.phone}`} className="fc-map-card-contact">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        {selectedClinic.phone}
+                      </a>
+                    )}
+                    {selectedClinic.mriBookingsPhone && selectedClinic.mriBookingsPhone !== selectedClinic.phone && (
+                      <a href={`tel:${selectedClinic.mriBookingsPhone}`} className="fc-map-card-contact">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        <span><span className="fc-map-card-label">MRI bookings</span> {selectedClinic.mriBookingsPhone}</span>
+                      </a>
+                    )}
+                    {selectedClinic.email && (
+                      <a href={`mailto:${selectedClinic.email}`} className="fc-map-card-contact">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        {selectedClinic.email}
+                      </a>
+                    )}
+                    {selectedClinic.website && (
+                      <a href={selectedClinic.website} target="_blank" rel="noopener noreferrer" className="fc-map-card-contact">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        {selectedClinic.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    )}
+                  </div>
+
+                  <a
+                    href={directionsUrl(selectedClinic)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="fc-map-card-dir"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                    Get directions
+                  </a>
+                </div>
+              )}
             </div>
           </div>
         </div>

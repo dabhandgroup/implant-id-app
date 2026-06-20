@@ -978,3 +978,7 @@ textarea.input:-webkit-autofill:focus {
 .stab-btn:hover{color:var(--text)}
 .stab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
 @media(max-width:680px){.stab-btn{padding:9px 13px;font-size:13px}}
+
+/* Capability chip selector — used in clinic settings and onboarding */
+.cap-chip{font-family:var(--ff);font-size:13px;font-weight:500;padding:7px 16px;border-radius:99px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.cap-chip.on,.cap-chip:hover{background:var(--accent);color:#fff;border-color:var(--accent)}

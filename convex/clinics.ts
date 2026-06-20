@@ -188,7 +188,17 @@ export const getApplicationById = query({
     // Resolve a short-lived download URL for the accreditation document
     const fileUrl = app.storageId ? await ctx.storage.getUrl(app.storageId) : null
 
-    return { ...app, fileUrl }
+    // For approved applications, find the associated clinic (admin can then edit capabilities)
+    let clinic: { _id: string; name: string; capabilities: string[] } | null = null
+    if (app.status === 'approved') {
+      const found = await ctx.db
+        .query('clinics')
+        .filter((q) => q.eq(q.field('name'), app.facilityName))
+        .first()
+      if (found) clinic = { _id: found._id, name: found.name, capabilities: found.capabilities ?? [] }
+    }
+
+    return { ...app, fileUrl, clinic }
   },
 })
 
@@ -1519,6 +1529,48 @@ export const updateClinicInfo = mutation({
       address: args.address.trim(),
     })
 
+    return { updated: true }
+  },
+})
+
+/** Update clinic capability tags (clinic staff). */
+export const updateClinicCapabilities = mutation({
+  args: { capabilities: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user) throw new Error('User not found')
+
+    const staffRow = await ctx.db
+      .query('staff')
+      .withIndex('by_user', (q) => q.eq('userId', user._id))
+      .first()
+    if (!staffRow) throw new Error('Not a clinic staff member')
+
+    await ctx.db.patch(staffRow.clinicId, { capabilities: args.capabilities })
+    return { updated: true }
+  },
+})
+
+/** Update clinic capability tags (master admin — accepts explicit clinicId). */
+export const adminUpdateClinicCapabilities = mutation({
+  args: { clinicId: v.id('clinics'), capabilities: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk', (q) => q.eq('clerkId', identity.subject))
+      .first()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+
+    await ctx.db.patch(args.clinicId, { capabilities: args.capabilities })
     return { updated: true }
   },
 })

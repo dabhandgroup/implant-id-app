@@ -6,6 +6,15 @@ import { useRouter } from 'next/navigation'
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 
+const CAPABILITY_OPTIONS = [
+  { value: 'Pacemaker / ICD',  label: 'Pacemaker / ICD' },
+  { value: 'Cochlear',         label: 'Cochlear' },
+  { value: 'DBS / Neurostim',  label: 'DBS / Neurostim' },
+  { value: 'Spinal Cord',      label: 'Spinal Cord' },
+  { value: 'MRI Centre',       label: 'MRI Centre' },
+  { value: 'Orthopaedic',      label: 'Orthopaedic' },
+]
+
 type ActionType = 'approve' | 'reject' | 'unapprove'
 
 function formatDate(ts: number) {
@@ -50,9 +59,17 @@ export default function ApplicationClient({ id }: { id: string }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const retriggerClinicActivation   = useAction((api.clinics as any).retriggerClinicActivation)
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adminUpdateCapabilities = useMutation((api.clinics as any).adminUpdateClinicCapabilities)
+
   const [resending,    setResending]    = useState(false)
   const [resendDone,   setResendDone]   = useState(false)
   const [resendError,  setResendError]  = useState('')
+
+  const [adminCaps,       setAdminCaps]       = useState<string[] | null>(null)
+  const [adminCapsSaving, setAdminCapsSaving] = useState(false)
+  const [adminCapsSaved,  setAdminCapsSaved]  = useState(false)
+  const [adminCapsError,  setAdminCapsError]  = useState('')
 
   async function handleResend() {
     if (!app) return
@@ -360,6 +377,66 @@ export default function ApplicationClient({ id }: { id: string }) {
           </div>
         </div>
       </div>
+
+      {/* ── Capabilities (admin can set after approval) ── */}
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      {(app as any).clinic && (
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>
+            Services &amp; specialisms
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 14, lineHeight: 1.55 }}>
+            These appear as filter tags on the patient &ldquo;Find a clinic&rdquo; page.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+            {CAPABILITY_OPTIONS.map(opt => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const current: string[] = adminCaps ?? (app as any).clinic.capabilities ?? []
+              const isOn = current.includes(opt.value)
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`cap-chip${isOn ? ' on' : ''}`}
+                  style={{ fontSize: 12.5 }}
+                  onClick={() => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const base: string[] = adminCaps ?? (app as any).clinic.capabilities ?? []
+                    setAdminCaps(isOn ? base.filter((c: string) => c !== opt.value) : [...base, opt.value])
+                  }}
+                  aria-pressed={isOn}
+                >
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+          {adminCapsError && (
+            <div style={{ marginBottom: 10, fontSize: 12.5, color: 'var(--err)' }}>{adminCapsError}</div>
+          )}
+          <button
+            className="btn btn-s"
+            style={{ fontSize: 13 }}
+            disabled={adminCapsSaving || adminCaps === null}
+            onClick={async () => {
+              if (adminCaps === null) return
+              setAdminCapsSaving(true); setAdminCapsError('')
+              try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                await adminUpdateCapabilities({ clinicId: (app as any).clinic._id, capabilities: adminCaps })
+                setAdminCapsSaved(true)
+                setTimeout(() => setAdminCapsSaved(false), 3000)
+              } catch (e) {
+                setAdminCapsError((e as { message?: string })?.message ?? 'Save failed')
+              } finally {
+                setAdminCapsSaving(false)
+              }
+            }}
+          >
+            {adminCapsSaving ? 'Saving…' : adminCapsSaved ? 'Saved ✓' : 'Save capabilities'}
+          </button>
+        </div>
+      )}
 
       {/* ── Registration & Compliance ── */}
       {(app.regulatoryBody || app.registrationNum) && (

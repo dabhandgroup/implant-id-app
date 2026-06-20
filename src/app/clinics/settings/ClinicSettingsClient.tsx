@@ -9,6 +9,15 @@ type Tab = 'info' | 'notifications' | 'security' | 'billing'
 
 const NOTIF_KEY = 'clinic-notif-prefs'
 
+const CAPABILITY_OPTIONS = [
+  { value: 'Pacemaker / ICD',  label: 'Pacemaker / ICD' },
+  { value: 'Cochlear',         label: 'Cochlear' },
+  { value: 'DBS / Neurostim',  label: 'DBS / Neurostim' },
+  { value: 'Spinal Cord',      label: 'Spinal Cord' },
+  { value: 'MRI Centre',       label: 'MRI Centre' },
+  { value: 'Orthopaedic',      label: 'Orthopaedic' },
+]
+
 function loadNotifPrefs() {
   if (typeof window === 'undefined') return null
   try { return JSON.parse(localStorage.getItem(NOTIF_KEY) ?? 'null') } catch { return null }
@@ -17,11 +26,13 @@ function loadNotifPrefs() {
 export default function ClinicSettingsClient() {
   // ── All hooks at top ──────────────────────────────────────────────────────
   const clerk            = useClerk()
-  const clinic           = useQuery(api.clinics.getMyClinic)
-  const updateVisibility = useMutation(api.clinics.updateClinicVisibility)
-  const updateInfo       = useMutation(api.clinics.updateClinicInfo)
-  const genUploadUrl     = useMutation(api.clinics.generateUploadUrl)
-  const saveLogoUrl      = useMutation(api.clinics.saveClinicLogoUrl)
+  const clinic              = useQuery(api.clinics.getMyClinic)
+  const updateVisibility    = useMutation(api.clinics.updateClinicVisibility)
+  const updateInfo          = useMutation(api.clinics.updateClinicInfo)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateCapabilities  = useMutation((api.clinics as any).updateClinicCapabilities)
+  const genUploadUrl        = useMutation(api.clinics.generateUploadUrl)
+  const saveLogoUrl         = useMutation(api.clinics.saveClinicLogoUrl)
 
   const [tab,            setTab]            = useState<Tab>('info')
   const [showToPatients, setShowToPatients] = useState<boolean | null>(null)
@@ -40,6 +51,11 @@ export default function ClinicSettingsClient() {
   const [infoPhone,   setInfoPhone]   = useState('')
   const [infoAddress, setInfoAddress] = useState('')
   const [infoInit,    setInfoInit]    = useState(false)
+
+  const [caps,       setCaps]       = useState<string[]>([])
+  const [capsSaving, setCapsSaving] = useState(false)
+  const [capsSaved,  setCapsSaved]  = useState(false)
+  const [capsError,  setCapsError]  = useState('')
 
   const [recalls,    setRecalls]    = useState(true)
   const [expiry,     setExpiry]     = useState(true)
@@ -61,6 +77,7 @@ export default function ClinicSettingsClient() {
       setInfoEmail(clinic.email ?? '')
       setInfoPhone(clinic.phone ?? '')
       setInfoAddress(clinic.address ?? '')
+      setCaps(clinic.capabilities ?? [])
       setInfoInit(true)
     }
   }, [clinic, infoInit])
@@ -125,6 +142,20 @@ export default function ClinicSettingsClient() {
       setInfoError(e instanceof Error ? e.message : 'Save failed.')
     } finally {
       setInfoSaving(false)
+    }
+  }
+
+  async function handleCapsSave() {
+    setCapsError('')
+    setCapsSaving(true)
+    try {
+      await updateCapabilities({ capabilities: caps })
+      setCapsSaved(true)
+      setTimeout(() => setCapsSaved(false), 3000)
+    } catch (e: unknown) {
+      setCapsError(e instanceof Error ? e.message : 'Save failed.')
+    } finally {
+      setCapsSaving(false)
     }
   }
 
@@ -296,6 +327,43 @@ export default function ClinicSettingsClient() {
                 {infoSaving ? 'Saving…' : infoSaved ? 'Saved ✓' : 'Save changes'}
               </button>
             </div>
+          </div>
+
+          {/* Services & specialisms */}
+          <div className="card" style={{ marginBottom: 20 }}>
+            <div className="ey" style={{ marginBottom: 14 }}>Services &amp; specialisms</div>
+            <p style={{ fontSize: 13.5, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.6 }}>
+              Select the implant types and services your clinic handles. These appear as filters on the patient-facing &ldquo;Find a clinic&rdquo; page.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18 }}>
+              {CAPABILITY_OPTIONS.map(opt => {
+                const isOn = caps.includes(opt.value)
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`cap-chip${isOn ? ' on' : ''}`}
+                    onClick={() => setCaps(prev => isOn ? prev.filter(c => c !== opt.value) : [...prev, opt.value])}
+                    aria-pressed={isOn}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+            {capsError && (
+              <div style={{ marginBottom: 12, padding: '10px 14px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, fontSize: 13, color: 'var(--err)' }}>
+                {capsError}
+              </div>
+            )}
+            <button
+              className="btn btn-s"
+              onClick={handleCapsSave}
+              disabled={capsSaving}
+              aria-label="Save capabilities"
+            >
+              {capsSaving ? 'Saving…' : capsSaved ? 'Saved ✓' : 'Save capabilities'}
+            </button>
           </div>
 
           {/* Patient discovery toggle */}

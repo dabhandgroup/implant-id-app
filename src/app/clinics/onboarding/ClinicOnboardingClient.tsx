@@ -122,7 +122,10 @@ export default function ClinicOnboardingClient() {
   const [regulatoryBody,  setRegulatoryBody]  = useState('')
   const [registrationNum, setRegistrationNum] = useState('')
 
-  // Section 5 — Additional information
+  // Section 5 — Services / capabilities
+  const [services, setServices] = useState<string[]>([])
+
+  // Section 6 — Additional information
   const [additionalInfo, setAdditionalInfo] = useState('')
 
   // UI
@@ -192,7 +195,7 @@ export default function ClinicOnboardingClient() {
         facilityCountry,
         regulatoryBody:  regulatoryBody         || undefined,
         registrationNum: registrationNum.trim() || undefined,
-        services:        [],
+        services:        services,
         additionalInfo:  additionalInfo.trim()  || undefined,
         mriScannerCount:     mriCount    ? Number(mriCount)    : undefined,
         staffUsingImplantId: staffCount  ? Number(staffCount)  : undefined,
@@ -528,10 +531,38 @@ export default function ClinicOnboardingClient() {
               </div>
             </div>
 
-            {/* ── Section 5: Additional information ───────────────────────── */}
+            {/* ── Section 5: Services & specialisms ───────────────────────── */}
             <div className="form-section">
               <h3>
                 <span className="num">5</span>
+                Services &amp; specialisms <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
+              </h3>
+              <p className="desc">Select the implant types and services your clinic handles. These appear as filters patients use on the &ldquo;Find a clinic&rdquo; page.</p>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
+                {[
+                  'Pacemaker / ICD', 'Cochlear', 'DBS / Neurostim',
+                  'Spinal Cord', 'MRI Centre', 'Orthopaedic',
+                ].map(opt => {
+                  const isOn = services.includes(opt)
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      className={`cap-chip${isOn ? ' on' : ''}`}
+                      onClick={() => setServices(prev => isOn ? prev.filter(s => s !== opt) : [...prev, opt])}
+                      aria-pressed={isOn}
+                    >
+                      {opt}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* ── Section 6: Additional information ───────────────────────── */}
+            <div className="form-section">
+              <h3>
+                <span className="num">6</span>
                 Additional information <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
               </h3>
               <p className="desc">Anything else we should know about your facility or the services you offer?</p>

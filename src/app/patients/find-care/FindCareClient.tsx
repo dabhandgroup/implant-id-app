@@ -48,7 +48,7 @@ export default function FindCareClient() {
     { key: 'pacemaker',   label: 'Pacemaker / ICD' },
     { key: 'cochlear',    label: 'Cochlear' },
     { key: 'dbs',         label: 'DBS / Neurostim' },
-    { key: 'scs',         label: 'Spinal Cord' },
+    { key: 'spinal',      label: 'Spinal Cord' },
     { key: 'mri',         label: 'MRI Centre' },
     { key: 'orthopaedic', label: 'Orthopaedic' },
   ]
@@ -273,17 +273,14 @@ export default function FindCareClient() {
                           MRI Bookings: {c.mriBookingsPhone}
                         </div>
                       )}
-                      <div className="tags">
-                        {c.capabilities && c.capabilities.some((cap: string) => cap.toLowerCase().includes('mri')) && <span className="fc-tag mri">MRI centre</span>}
-                        {c.capabilities && c.capabilities.length > 0 && (
-                          <>
-                            {c.capabilities.map((cap: string) => {
-                              const capKey = cap.toLowerCase().replace(/[\s/-]/g, '')
-                              return <span key={cap} className={`fc-tag cap-${capKey}`}>{cap}</span>
-                            })}
-                          </>
-                        )}
-                      </div>
+                      {c.capabilities && c.capabilities.length > 0 && (
+                        <div className="tags">
+                          {c.capabilities.map((cap: string) => {
+                            const capKey = cap.toLowerCase().replace(/[\s/\- ]/g, '')
+                            return <span key={cap} className={`fc-tag cap-${capKey}`}>{cap}</span>
+                          })}
+                        </div>
+                      )}
                     </div>
                     <div className="dist">0.8 mi</div>
                   </div>

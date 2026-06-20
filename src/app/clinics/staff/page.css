@@ -5,12 +5,13 @@
 .staff-list { display: flex; flex-direction: column; }
 .staff-row {
   display: grid;
-  grid-template-columns: 44px 1fr 90px 120px auto;
+  grid-template-columns: 44px 1fr 110px 120px auto;
   align-items: center;
   gap: 14px;
   padding: 14px 20px;
   border-bottom: 1px solid var(--border);
   transition: background .1s;
+  cursor: pointer;
 }
 .staff-row:last-child { border-bottom: 0; }
 .staff-row:hover { background: var(--hover); }
@@ -120,7 +121,7 @@
 /* Staff table header row */
 .staff-head {
   display: grid;
-  grid-template-columns: 44px 1fr 90px 120px auto;
+  grid-template-columns: 44px 1fr 110px 120px auto;
   gap: 14px;
   padding: 10px 20px;
   font-family: var(--ff);

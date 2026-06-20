@@ -5,13 +5,25 @@ import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
 
+function timeAgo(ts: number) {
+  const diff  = Date.now() - ts
+  const mins  = Math.floor(diff / 60_000)
+  const hours = Math.floor(diff / 3_600_000)
+  const days  = Math.floor(diff / 86_400_000)
+  if (mins  < 2)  return 'just now'
+  if (mins  < 60) return `${mins}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days  < 7)  return `${days}d ago`
+  return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
 const JOB_LABELS: Record<string, string> = {
   admin:        'Admin',
   surgeon:      'Surgeon',
   radiographer: 'Radiographer',
 }
 
-type Screen = 'list' | 'add'
+type Screen = 'list' | 'add' | 'detail'
 
 // ── Role capability data ───────────────────────────────────────────────────
 
@@ -84,8 +96,19 @@ export default function StaffClient() {
   const staff       = useQuery(api.clinics.listClinicStaff)
   const inviteStaff = useMutation(api.clinics.inviteClinicStaff)
   const addExisting = useMutation(api.clinics.addExistingStaffToClinic)
+  const revokeStaff = useMutation(api.clinics.revokeClinicStaff)
 
   const [screen, setScreen] = useState<Screen>('list')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [detailStaff, setDetailStaff] = useState<any | null>(null)
+  const [revokeLoading, setRevokeLoading] = useState(false)
+  const [revokeConfirm, setRevokeConfirm] = useState(false)
+  const [revokeErr,     setRevokeErr]     = useState('')
+
+  const staffAuditLog = useQuery(
+    api.clinics.getStaffAuditLog,
+    screen === 'detail' && detailStaff?._id ? { staffId: detailStaff._id } : 'skip',
+  )
 
   const [inviteName,  setInviteName]  = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
@@ -115,7 +138,35 @@ export default function StaffClient() {
     setScreen('add')
   }
 
-  function backToList() { setScreen('list') }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function openDetail(s: any) {
+    setDetailStaff(s)
+    setRevokeConfirm(false)
+    setRevokeErr('')
+    setScreen('detail')
+  }
+
+  function backToList() {
+    setScreen('list')
+    setDetailStaff(null)
+    setRevokeConfirm(false)
+    setRevokeErr('')
+  }
+
+  async function handleRevoke() {
+    if (!detailStaff?._id) return
+    setRevokeLoading(true)
+    setRevokeErr('')
+    try {
+      await revokeStaff({ staffId: detailStaff._id })
+      setSuccess(`${detailStaff.userName || detailStaff.userEmail || 'Staff member'}'s access has been revoked.`)
+      backToList()
+    } catch (err) {
+      setRevokeErr((err as { message?: string })?.message ?? 'Could not revoke access')
+    } finally {
+      setRevokeLoading(false)
+    }
+  }
 
   async function handleInviteNew(e: React.FormEvent) {
     e.preventDefault()
@@ -145,6 +196,136 @@ export default function StaffClient() {
     } finally {
       setSubmittingSearch(false)
     }
+  }
+
+  // ── Staff detail screen ─────────────────────────────────────────────────────
+
+  if (screen === 'detail' && detailStaff) {
+    const initials   = (detailStaff.userName ?? '??').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+    const badgeCls   = detailStaff.jobType === 'admin' ? 'admin' : detailStaff.jobType === 'surgeon' ? 'specialist' : 'clinician'
+    const roleLabel  = JOB_LABELS[detailStaff.jobType] ?? detailStaff.jobType
+    const isOwnSelf  = false // can't easily check here but revoke mutation guards against self-revoke
+
+    return (
+      <div className="m-content">
+        <button
+          type="button"
+          onClick={backToList}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginBottom: 22, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', padding: 0 }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Back to staff
+        </button>
+
+        {/* Staff profile card */}
+        <div className="table" style={{ borderRadius: 16, marginBottom: 20 }}>
+          <div style={{ padding: '24px 26px', display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div className="staff-av" style={{ width: 52, height: 52, fontSize: 16, flexShrink: 0 }}>{initials}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 18, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                {detailStaff.userName || '—'}
+              </div>
+              <div style={{ fontSize: 13.5, color: 'var(--muted)', marginBottom: 8 }}>{detailStaff.userEmail || '—'}</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div className={`staff-role-badge ${badgeCls}`}>{roleLabel}</div>
+                <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', textTransform: 'capitalize' }}>
+                  {detailStaff.status} · {detailStaff.accessLevel}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Audit log */}
+        <div className="table" style={{ borderRadius: 16, marginBottom: 20 }}>
+          <div className="table-h"><h3>Recent activity</h3></div>
+          {staffAuditLog === undefined ? (
+            <div style={{ padding: '20px 24px', color: 'var(--muted)', fontSize: 13.5 }}>Loading…</div>
+          ) : staffAuditLog.length === 0 ? (
+            <div style={{ padding: '28px 24px', textAlign: 'center', color: 'var(--muted)', fontSize: 13.5 }}>
+              No activity recorded for this staff member.
+            </div>
+          ) : (
+            <div>
+              {staffAuditLog.map((entry: any) => (
+                <div key={entry._id} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 14, padding: '13px 24px',
+                  borderBottom: '1px solid var(--border)', fontFamily: 'var(--ff)',
+                }}>
+                  <div style={{ flexShrink: 0, marginTop: 1 }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.7" aria-hidden="true">
+                      <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500 }}>{entry.action}</div>
+                    {entry.detail && <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{entry.detail}</div>}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted2)', flexShrink: 0, marginTop: 1 }}>{timeAgo(entry.createdAt)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Revoke access */}
+        {detailStaff.jobType !== 'admin' || true ? (
+          <div className="table" style={{ borderRadius: 16 }}>
+            <div style={{ padding: '20px 24px 18px' }}>
+              <div className="ey" style={{ marginBottom: 6 }}>Revoke access</div>
+              <p style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.55, margin: '0 0 16px' }}>
+                Removing {detailStaff.userName || detailStaff.userEmail || 'this staff member'} will immediately
+                revoke their access to your clinic&apos;s Implant ID account. This cannot be undone — you would need
+                to re-invite them to restore access.
+              </p>
+              {revokeErr && (
+                <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, fontFamily: 'var(--ff)', marginBottom: 14 }}>
+                  {revokeErr}
+                </div>
+              )}
+              {!revokeConfirm ? (
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => setRevokeConfirm(true)}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  Revoke access
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setRevokeConfirm(false)}
+                    disabled={revokeLoading}
+                    style={{ minWidth: 80 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={handleRevoke}
+                    disabled={revokeLoading}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 160 }}
+                  >
+                    {revokeLoading ? 'Revoking…' : `Yes, revoke ${detailStaff.userName?.split(' ')[0] || 'access'}`}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {isOwnSelf && (
+          <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', marginTop: 14 }}>
+            You cannot revoke your own access.
+          </p>
+        )}
+      </div>
+    )
   }
 
   // ── Add member screen ───────────────────────────────────────────────────────
@@ -418,7 +599,7 @@ export default function StaffClient() {
                     const initials = (s.userName ?? '??').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
                     const badgeCls = s.jobType === 'admin' ? 'admin' : s.jobType === 'surgeon' ? 'specialist' : 'clinician'
                     return (
-                      <div key={s._id} className="staff-row">
+                      <div key={s._id} className="staff-row" onClick={() => openDetail(s)} role="button" tabIndex={0} aria-label={`View ${s.userName || s.userEmail || 'staff member'} details`} onKeyDown={e => e.key === 'Enter' && openDetail(s)}>
                         <div className="staff-av">{initials}</div>
                         <div className="staff-info">
                           <div className="staff-name">{s.userName || '—'}</div>
@@ -426,7 +607,7 @@ export default function StaffClient() {
                         </div>
                         <div className={`staff-role-badge ${badgeCls}`}>{JOB_LABELS[s.jobType] ?? s.jobType}</div>
                         <div style={{ textTransform: 'capitalize', color: 'var(--muted)', fontSize: 13 }}>{s.accessLevel}</div>
-                        <div />
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.8" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
                       </div>
                     )
                   })}

@@ -184,6 +184,16 @@
 .field label { font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); display: block; margin-bottom: 6px; }
 .field { display: flex; flex-direction: column; margin-bottom: 0; }
 
+@media (min-width: 1024px) {
+  .stab-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg);
+    overflow-x: visible;
+  }
+}
+
 @media (max-width: 680px) {
   .invoice-row { grid-template-columns: 1fr auto; }
   .invoice-row > *:nth-child(2),

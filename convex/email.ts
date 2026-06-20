@@ -266,6 +266,7 @@ export const sendStaffInviteEmail = internalAction({
     contactEmail: v.string(),
     clinicName:   v.string(),
     jobType:      v.string(),   // 'radiographer' | 'surgeon' | 'admin'
+    inviteUrl:    v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
     const r         = resend()
@@ -274,8 +275,10 @@ export const sendStaffInviteEmail = internalAction({
                     : args.jobType === 'admin'    ? 'Admin'
                     : 'Radiographer'
     const isSurgeon  = args.jobType === 'surgeon'
+    const isNewUser  = !!args.inviteUrl
     const portalName = isSurgeon ? 'Surgeon Portal' : 'Clinic Portal'
-    const portalUrl  = `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`
+    const ctaUrl     = args.inviteUrl
+      ?? `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`
     const bodyExtra  = isSurgeon
       ? `<p style="margin:12px 0 0;color:#64748b;font-size:14px;line-height:1.6;">
            As a Surgeon, you have your own dedicated <strong style="color:#0e2a33;">Surgeon Portal</strong>
@@ -292,7 +295,18 @@ export const sendStaffInviteEmail = internalAction({
       html: buildEmail({
         title:   'Platform Invitation',
         heading: `You've been added, ${firstName}!`,
-        body: `
+        body: isNewUser ? `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            <strong style="color:#0e2a33;">${args.clinicName}</strong> has added you to
+            the Implant ID platform as a <strong style="color:#0e2a33;">${roleLabel}</strong>.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Click the button below to activate your account and access your
+            <strong style="color:#0e2a33;">${portalName}</strong>. This is a one-time
+            activation link — once activated, you sign in with a code sent to your email.
+          </p>
+          ${bodyExtra}
+        ` : `
           <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
             <strong style="color:#0e2a33;">${args.clinicName}</strong> has added you to
             the Implant ID platform as a <strong style="color:#0e2a33;">${roleLabel}</strong>.
@@ -307,14 +321,14 @@ export const sendStaffInviteEmail = internalAction({
         highlightBox: {
           content: `
             <p style="margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:1.4px;
-                       text-transform:uppercase;color:#29869F;">Sign in with</p>
+                       text-transform:uppercase;color:#29869F;">${isNewUser ? 'Activate with' : 'Sign in with'}</p>
             <p style="margin:0;font-size:20px;font-weight:600;color:#1a6a80;
                        letter-spacing:0.2px;">${args.contactEmail}</p>
           `,
         },
         cta: {
-          label: `Sign in to your ${portalName} →`,
-          url:   portalUrl,
+          label: isNewUser ? `Activate your ${portalName} →` : `Sign in to your ${portalName} →`,
+          url:   ctaUrl,
         },
         footerNote: `If you weren&rsquo;t expecting this invitation, contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,

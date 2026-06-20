@@ -1096,11 +1096,13 @@ export const searchSurgeonsForRegistration = query({
 /** Link a device catalogue entry to a patient record (adds a verified device). */
 export const linkDeviceToPatient = mutation({
   args: {
-    patientId:    v.id('patients'),
-    deviceId:     v.id('devices'),
-    serialNumber: v.optional(v.string()),
-    implantDate:  v.optional(v.string()),
-    clinicNotes:  v.optional(v.string()),
+    patientId:         v.id('patients'),
+    deviceId:          v.id('devices'),
+    serialNumber:      v.optional(v.string()),
+    implantDate:       v.optional(v.string()),
+    clinicNotes:       v.optional(v.string()),
+    hospital:          v.optional(v.string()),
+    implantingSurgeon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -1122,12 +1124,14 @@ export const linkDeviceToPatient = mutation({
     if (existing) throw new Error('This device is already linked to this patient')
 
     return ctx.db.insert('patientDevices', {
-      patientId:    args.patientId,
-      deviceId:     args.deviceId,
-      serialNumber: args.serialNumber,
-      implantDate:  args.implantDate,
-      clinicNotes:  args.clinicNotes,
-      status:       'active',
+      patientId:         args.patientId,
+      deviceId:          args.deviceId,
+      serialNumber:      args.serialNumber,
+      implantDate:       args.implantDate,
+      clinicNotes:       args.clinicNotes,
+      hospital:          args.hospital,
+      implantingSurgeon: args.implantingSurgeon,
+      status:            'active',
     })
   },
 })

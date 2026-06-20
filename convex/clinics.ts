@@ -509,9 +509,10 @@ export const createStaffAccount = internalAction({
   args: {
     contactEmail: v.string(),
     contactName:  v.string(),
+    clinicName:   v.string(),
     jobType:      v.union(v.literal('radiographer'), v.literal('surgeon'), v.literal('admin')),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
     const secretKey = process.env.CLERK_SECRET_KEY
     if (!secretKey) {
       console.error('[staff] CLERK_SECRET_KEY not set')
@@ -519,7 +520,7 @@ export const createStaffAccount = internalAction({
     }
     const role = args.jobType === 'surgeon' ? 'surgeon' : 'clinic_staff'
 
-    // Check if account already exists
+    // Check if account already exists in Clerk
     const searchRes = await fetch(
       `https://api.clerk.com/v1/users?email_address=${encodeURIComponent(args.contactEmail)}&limit=1`,
       { headers: { Authorization: `Bearer ${secretKey}` } },
@@ -527,35 +528,55 @@ export const createStaffAccount = internalAction({
     if (searchRes.ok) {
       const found = (await searchRes.json()) as { id: string }[]
       if (found.length > 0) {
+        // Existing user — patch their role and send a standard login-link email
         await fetch(`https://api.clerk.com/v1/users/${found[0].id}/metadata`, {
           method:  'PATCH',
           headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
           body:    JSON.stringify({ public_metadata: { role } }),
         })
         console.log('[staff] Updated Clerk role for existing user', args.contactEmail)
+        await ctx.runAction(internal.email.sendStaffInviteEmail, {
+          contactName:  args.contactName,
+          contactEmail: args.contactEmail,
+          clinicName:   args.clinicName,
+          jobType:      args.jobType,
+        })
         return
       }
     }
 
-    // Create new passwordless account
-    const nameParts = args.contactName.trim().split(/\s+/)
-    const createRes = await fetch('https://api.clerk.com/v1/users', {
+    // New user — create a Clerk invitation so they receive a one-time activation URL
+    const portalUrl = args.jobType === 'surgeon'
+      ? 'https://portal.implantid.io/surgeons/dashboard'
+      : 'https://portal.implantid.io/clinics/dashboard'
+
+    const inviteRes = await fetch('https://api.clerk.com/v1/invitations', {
       method:  'POST',
       headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email_addresses:           [args.contactEmail],
-        first_name:                nameParts[0],
-        last_name:                 nameParts.slice(1).join(' ') || undefined,
-        skip_password_requirement: true,
-        public_metadata:           { role },
+        email_address:   args.contactEmail,
+        redirect_url:    portalUrl,
+        public_metadata: { role },
+        ignore_existing: true,
       }),
     })
-    if (createRes.ok) {
-      const u = (await createRes.json()) as { id: string }
-      console.log('[staff] Created Clerk account', u.id, 'for', args.contactEmail, 'role:', role)
+
+    let inviteUrl: string | undefined
+    if (inviteRes.ok) {
+      const inv = (await inviteRes.json()) as { url?: string }
+      inviteUrl = inv.url
+      console.log('[staff] Created Clerk invitation for', args.contactEmail)
     } else {
-      console.error('[staff] Clerk creation failed:', createRes.status, await createRes.text())
+      console.error('[staff] Clerk invitation failed:', inviteRes.status, await inviteRes.text())
     }
+
+    await ctx.runAction(internal.email.sendStaffInviteEmail, {
+      contactName:  args.contactName,
+      contactEmail: args.contactEmail,
+      clinicName:   args.clinicName,
+      jobType:      args.jobType,
+      inviteUrl,
+    })
   },
 })
 
@@ -605,16 +626,9 @@ export const inviteClinicStaff = mutation({
       status:      'active',
     })
 
-    // Create / update their Clerk account asynchronously
-    await ctx.scheduler.runAfter(0, internal.clinics.createStaffAccount, {
-      contactEmail: args.contactEmail,
-      contactName:  args.contactName,
-      jobType:      args.jobType,
-    })
-
-    // Send invite email so they know to sign in
+    // Create / update their Clerk account and send invitation email
     const clinic = await ctx.db.get(staffRow.clinicId)
-    await ctx.scheduler.runAfter(0, internal.email.sendStaffInviteEmail, {
+    await ctx.scheduler.runAfter(0, internal.clinics.createStaffAccount, {
       contactEmail: args.contactEmail,
       contactName:  args.contactName,
       clinicName:   clinic?.name ?? 'your clinic',
@@ -1495,6 +1509,64 @@ export const getClinicAuditLog = query({
         }
       })
     )
+  },
+})
+
+/** Logged-in staff user's own clinic info (name + id) — used to pre-fill forms. */
+export const getMyClinicInfo = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user) return null
+    const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!staffRow) return null
+    const clinic = await ctx.db.get(staffRow.clinicId)
+    return clinic ? { _id: clinic._id, name: clinic.name } : null
+  },
+})
+
+/** Audit entries for a specific staff member (clinic admin only). */
+export const getStaffAuditLog = query({
+  args: { staffId: v.id('staff') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user) return []
+    const myStaff = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!myStaff || myStaff.jobType !== 'admin') return []
+    // Confirm the target staff is in the same clinic
+    const targetStaff = await ctx.db.get(args.staffId)
+    if (!targetStaff || targetStaff.clinicId.toString() !== myStaff.clinicId.toString()) return []
+    return await ctx.db
+      .query('auditLog')
+      .withIndex('by_staff', q => q.eq('staffId', args.staffId))
+      .order('desc')
+      .take(30)
+  },
+})
+
+/** Remove a staff member from the clinic (admin only). Deletes their staff row. */
+export const revokeClinicStaff = mutation({
+  args: { staffId: v.id('staff') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user) throw new Error('User not found')
+    const myStaff = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!myStaff || myStaff.jobType !== 'admin') throw new Error('Only admins can revoke staff access')
+    const targetStaff = await ctx.db.get(args.staffId)
+    if (!targetStaff || targetStaff.clinicId.toString() !== myStaff.clinicId.toString()) {
+      throw new Error('Staff member not found in your clinic')
+    }
+    if (targetStaff._id.toString() === myStaff._id.toString()) {
+      throw new Error('You cannot revoke your own access')
+    }
+    await ctx.db.delete(args.staffId)
+    return { revoked: true }
   },
 })
 

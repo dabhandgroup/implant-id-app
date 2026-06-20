@@ -8,14 +8,14 @@ body{background:var(--bg)}
 .pt-header h1{font-size:32px;letter-spacing:-.03em;margin:0}
 .pt-header .sub{color:var(--muted);font-size:14px;margin-top:4px}
 
-.pass-big{background:linear-gradient(155deg,var(--accent-deep) 0%,var(--accent) 55%,var(--accent2) 100%);border-radius:22px;padding:28px;color:#fff;position:relative;overflow:hidden;box-shadow:0 40px 80px -30px rgba(14,42,51,.4);margin-bottom:32px}
+.pass-big{background:linear-gradient(155deg,var(--accent-deep) 0%,var(--accent) 55%,var(--accent2) 100%);border-radius:22px;padding:22px 24px;color:#fff;position:relative;overflow:hidden;box-shadow:0 40px 80px -30px rgba(14,42,51,.4);margin-bottom:32px}
 .pass-big::before{content:"";position:absolute;top:-40%;right:-30%;width:180%;height:160%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 55%);pointer-events:none}
-.pb-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;position:relative;z-index:2}
+.pb-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;position:relative;z-index:2}
 .pb-brand{display:flex;align-items:center;gap:10px;font-family:var(--ff);font-weight:600;font-size:15px}
 .pb-brand img{width:28px;height:28px;filter:brightness(0) invert(1)}
 .pb-mri{display:flex;align-items:center;gap:7px;flex-shrink:0}
-.pb-name{font-family:var(--ff);font-size:32px;font-weight:600;letter-spacing:-.025em;margin-bottom:14px;position:relative;z-index:2}
-.pb-status{font-family:var(--ff);font-size:13px;letter-spacing:.4px;opacity:.85;margin-bottom:22px;position:relative;z-index:2;display:inline-flex;align-items:center;gap:8px}
+.pb-name{font-family:var(--ff);font-size:24px;font-weight:600;letter-spacing:-.02em;margin-bottom:20px;position:relative;z-index:2}
+.pb-status{font-family:var(--ff);font-size:13px;letter-spacing:.4px;opacity:.85;margin-bottom:14px;position:relative;z-index:2;display:inline-flex;align-items:center;gap:8px}
 .pb-status::before{content:"";width:8px;height:8px;border-radius:50%;background:#7dffcb;box-shadow:0 0 12px #7dffcb}
 .pb-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;position:relative;z-index:2}
 .pb-grid .k{font-family:var(--ff);font-size:10px;letter-spacing:1.3px;text-transform:uppercase;opacity:.72;margin-bottom:3px}
@@ -49,7 +49,7 @@ body{background:var(--bg)}
   .pt-header h1{font-size:24px}
   .pt-header .sub{font-size:13px}
   /* Compact card */
-  .pb-name{font-size:26px;margin-bottom:10px}
+  .pb-name{font-size:20px;margin-bottom:14px}
   .pb-grid{grid-template-columns:1fr 1fr;gap:12px}
   .pb-grid .v{font-size:14px}
   .q-grid{grid-template-columns:1fr}

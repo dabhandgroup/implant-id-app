@@ -992,7 +992,7 @@ export default function DashboardClient() {
               </div>
 
               {/* Actions + QR — buttons left, QR pinned to far right */}
-              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 24 }}>
               <div className="pb-actions" style={{ marginTop: 0, flex: 'none' }}>
 
                 {/* Add to Apple Wallet */}

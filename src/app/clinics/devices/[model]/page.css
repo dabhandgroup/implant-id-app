@@ -657,8 +657,14 @@
   line-height: 1.3;
 }
 
+.qa-model-copy + .qa-model-copy {
+  margin-top: 8px;
+}
+
 .qa-model-copy-ic {
   flex-shrink: 0;
+  width: 18px;
+  height: 18px;
   color: var(--muted2);
   transition: color .15s;
 }

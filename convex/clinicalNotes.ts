@@ -1,5 +1,6 @@
 import { mutation, query } from './_generated/server'
 import { v } from 'convex/values'
+import type { Id } from './_generated/dataModel'
 
 // Clinic staff / surgeon / admin: all notes for a patient
 export const getPatientClinicalNotes = query({
@@ -54,8 +55,8 @@ export const addClinicalNote = mutation({
     const isAdmin = user.role === 'admin'
     if (!isClinicStaff && !isAdmin) throw new Error('Only clinic staff can add clinical notes')
 
-    let authorRole = user.role
-    let clinicId: ReturnType<typeof v.id<'clinics'>> | undefined
+    let authorRole: string = user.role
+    let clinicId: Id<'clinics'> | undefined
     let clinicName: string | undefined
 
     if (isClinicStaff) {

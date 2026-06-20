@@ -175,15 +175,6 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const pageTitle    = pageTitleFromPathname(pathname)
 
   useEffect(() => {
-    function handleOutside() {
-      setProfileOpen(false)
-      setMobProfileOpen(false)
-    }
-    document.addEventListener('click', handleOutside)
-    return () => document.removeEventListener('click', handleOutside)
-  }, [])
-
-  useEffect(() => {
     if (!profileOpen) return
     function onOutside(e: MouseEvent) {
       if (sbBotRef.current && !sbBotRef.current.contains(e.target as Node)) setProfileOpen(false)
@@ -350,7 +341,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <div className="mob-hdr-profile">
               <button
                 className="mob-hdr-av"
-                onClick={() => setMobProfileOpen(v => !v)}
+                onClick={(e) => { e.stopPropagation(); setMobProfileOpen(v => !v) }}
                 aria-label="Open profile menu"
               >
                 {userInitials}

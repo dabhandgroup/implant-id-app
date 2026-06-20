@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getDeviceByModel, getManufacturer, getDocuments } from '@/data/devices'
 import CopyModelButton from './CopyModelButton'
+import CopyMriSafetyButton from './CopyMriSafetyButton'
 
 // ── Metadata ──────────────────────────────────────────────────────────────
 
@@ -366,6 +367,30 @@ export default async function DeviceDetailPage(
               </a>
             </div>
             <CopyModelButton modelNumbers={modelNumbers.length > 0 ? modelNumbers : [device.model_number]} />
+            <CopyMriSafetyButton
+              deviceName={device.device_name}
+              modelNumbers={modelNumbers.length > 0 ? modelNumbers : [device.model_number]}
+              mriClassification={device.mri_classification}
+              fieldStrength1t5={!!device.field_strength_1t5}
+              fieldStrength3t={!!device.field_strength_3t}
+              fieldStrength7t={!!device.field_strength_7t}
+              fieldStrengthNotes={device.field_strength_notes}
+              rfTransmitMode={device.rf_transmit_mode}
+              rfReceiveCoil={device.rf_receive_coil}
+              scannerConfiguration={device.scanner_configuration}
+              isocentreRestriction={device.isocentre_restriction}
+              scanRegionPermitted={device.scan_region_permitted}
+              orientationRestriction={device.orientation_restriction}
+              boreContactRestriction={device.bore_contact_restriction}
+              maxScanTimeMins={device.max_scan_time_mins}
+              cooloffPeriodMins={device.cooloff_period_mins}
+              scanRegionNotes={device.scan_region_notes}
+              regionAMaxSarWb={device.regionA_max_sar_wb}
+              regionAMaxSarHead={device.regionA_max_sar_head}
+              regionAMaxB1Rms={device.regionA_max_b1_rms}
+              maxSlewRate={device.max_slew_rate}
+              repRequired={device.rep_required}
+            />
           </div>
 
           {/* Manufacturer */}

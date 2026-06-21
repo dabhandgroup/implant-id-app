@@ -817,6 +817,8 @@ export const reviewApplication = mutation({
           capabilities:   app.services,
           status:         'active',
           showToPatients: true,
+          billingStatus:  'trialing',
+          trialEndsAt:    Date.now() + 14 * 24 * 60 * 60 * 1000,
         })
       }
 
@@ -1074,6 +1076,8 @@ export const adminAddClinic = mutation({
       capabilities:   [],
       status:         'active',
       showToPatients: true,
+      billingStatus:  'trialing',
+      trialEndsAt:    Date.now() + 14 * 24 * 60 * 60 * 1000,
     })
 
     await ctx.scheduler.runAfter(0, internal.clinics.activateClinicAccount, {
@@ -1781,5 +1785,129 @@ export const logClinicPatientScan = mutation({
         createdAt: Date.now(),
       })
     }
+  },
+})
+
+// ── Billing ───────────────────────────────────────────────────────────────────
+
+/** Return billing status for the current clinic staff member's clinic. */
+export const getBillingStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user) return null
+    const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', user._id)).first()
+    if (!staffRow) return null
+    const clinic = await ctx.db.get(staffRow.clinicId)
+    if (!clinic) return null
+    return {
+      foreverFree:          clinic.foreverFree ?? false,
+      billingPlan:          clinic.billingPlan ?? null,
+      billingStatus:        clinic.billingStatus ?? null,
+      trialEndsAt:          clinic.trialEndsAt ?? null,
+      currentPeriodEnd:     clinic.currentPeriodEnd ?? null,
+      gracePeriodEndsAt:    clinic.gracePeriodEndsAt ?? null,
+      stripeCustomerId:     clinic.stripeCustomerId ?? null,
+      stripeSubscriptionId: clinic.stripeSubscriptionId ?? null,
+      clinicId:             staffRow.clinicId,
+    }
+  },
+})
+
+/** Internal: update billing fields on a clinic from Stripe webhook data. */
+export const updateBillingFromStripe = mutation({
+  args: {
+    serviceKey:           v.string(),
+    clinicId:             v.id('clinics'),
+    billingPlan:          v.optional(v.union(v.literal('per_user'), v.literal('clinics'), v.literal('large_team'))),
+    billingStatus:        v.union(v.literal('trialing'), v.literal('active'), v.literal('past_due'), v.literal('canceled')),
+    stripeCustomerId:     v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+    currentPeriodEnd:     v.optional(v.number()),
+    gracePeriodEndsAt:    v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    if (!process.env.STRIPE_CONVEX_SERVICE_KEY || args.serviceKey !== process.env.STRIPE_CONVEX_SERVICE_KEY) {
+      throw new Error('Unauthorized')
+    }
+    const { clinicId, serviceKey: _sk, ...patch } = args
+    await ctx.db.patch(clinicId, patch)
+  },
+})
+
+/** Look up a clinic by its Stripe customer ID — protected by service key. */
+export const getClinicByStripeCustomer = query({
+  args: { serviceKey: v.string(), stripeCustomerId: v.string() },
+  handler: async (ctx, { serviceKey, stripeCustomerId }) => {
+    if (!process.env.STRIPE_CONVEX_SERVICE_KEY || serviceKey !== process.env.STRIPE_CONVEX_SERVICE_KEY) {
+      throw new Error('Unauthorized')
+    }
+    return await ctx.db
+      .query('clinics')
+      .withIndex('by_stripe_customer', q => q.eq('stripeCustomerId', stripeCustomerId))
+      .first()
+  },
+})
+
+/** Admin: set or clear the forever-free flag on a clinic. */
+export const setForeverFree = mutation({
+  args: {
+    clinicId:   v.id('clinics'),
+    foreverFree: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+    await ctx.db.patch(args.clinicId, { foreverFree: args.foreverFree })
+  },
+})
+
+/** DEV/TEST ONLY — set billing state directly on a clinic for UI testing. */
+export const devSetBillingState = mutation({
+  args: {
+    clinicId: v.id('clinics'),
+    preset:   v.string(),
+  },
+  handler: async (ctx, { clinicId, preset }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+    const now = Date.now()
+    const DAY = 24 * 60 * 60 * 1000
+    const patches: Record<string, unknown> = {
+      trialing_14d:    { billingStatus: 'trialing',  trialEndsAt: now + 14 * DAY, billingPlan: undefined, gracePeriodEndsAt: undefined, stripeSubscriptionId: undefined },
+      trialing_2d:     { billingStatus: 'trialing',  trialEndsAt: now + 2 * DAY,  billingPlan: undefined, gracePeriodEndsAt: undefined, stripeSubscriptionId: undefined },
+      trial_expired:   { billingStatus: 'trialing',  trialEndsAt: now - 1 * DAY,  billingPlan: undefined, gracePeriodEndsAt: undefined, stripeSubscriptionId: undefined },
+      active_per_user: { billingStatus: 'active',    billingPlan: 'per_user', trialEndsAt: undefined, gracePeriodEndsAt: undefined, currentPeriodEnd: now + 30 * DAY, stripeSubscriptionId: 'sub_test' },
+      active_clinics:  { billingStatus: 'active',    billingPlan: 'clinics',  trialEndsAt: undefined, gracePeriodEndsAt: undefined, currentPeriodEnd: now + 30 * DAY, stripeSubscriptionId: 'sub_test' },
+      past_due_grace:  { billingStatus: 'past_due',  gracePeriodEndsAt: now + 5 * DAY, billingPlan: 'clinics', stripeSubscriptionId: 'sub_test' },
+      past_due_expired:{ billingStatus: 'past_due',  gracePeriodEndsAt: now - 1 * DAY, billingPlan: 'clinics', stripeSubscriptionId: 'sub_test' },
+      canceled:        { billingStatus: 'canceled',  billingPlan: undefined, gracePeriodEndsAt: undefined, stripeSubscriptionId: undefined },
+      forever_free:    { foreverFree: true, billingStatus: undefined, billingPlan: undefined },
+      reset:           { billingStatus: 'trialing', trialEndsAt: now + 14 * DAY, billingPlan: undefined, foreverFree: false, gracePeriodEndsAt: undefined, stripeSubscriptionId: undefined },
+    }
+    const patch = patches[preset]
+    if (!patch) throw new Error(`Unknown preset: ${preset}`)
+    await ctx.db.patch(clinicId, patch as any)
+  },
+})
+
+/** How many "paying seats" does this clinic currently have? (surgeons + admins, not radiographers) */
+export const countPayingSeats = query({
+  args: { clinicId: v.id('clinics') },
+  handler: async (ctx, { clinicId }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return 0
+    const allStaff = await ctx.db
+      .query('staff')
+      .withIndex('by_clinic', q => q.eq('clinicId', clinicId))
+      .filter(q => q.eq(q.field('status'), 'active'))
+      .collect()
+    return allStaff.filter(s => s.jobType === 'surgeon' || s.jobType === 'admin').length
   },
 })

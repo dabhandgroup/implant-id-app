@@ -7,6 +7,7 @@ import LegalFooter from '@/components/LegalFooter'
 import { useQuery, useMutation }     from 'convex/react'
 import { api as apiBase }            from '../../../convex/_generated/api'
 import Link                          from 'next/link'
+import { PlanPicker, TrialBanner, PastDueBanner } from '@/components/ui/BillingGate'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
@@ -157,6 +158,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const myApplication = useQuery(api.clinics.getMyApplication) as Application | null | undefined
   const myClinic      = useQuery(api.clinics.getMyClinic)
   const notifications = useQuery(api.patients.getMyNotifications)
+  const billing       = useQuery(api.clinics.getBillingStatus)
   const markRead      = useMutation(api.patients.markAllNotificationsRead)
 
   const [mobOpen,        setMobOpen]        = useState(false)
@@ -218,6 +220,21 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   if (myApplication === undefined) return <LoadingScreen />
   if (myApplication?.status === 'pending')  return <PendingScreen  app={myApplication} onSignOut={() => signOut({ redirectUrl: '/' })} />
   if (myApplication?.status === 'rejected') return <RejectedScreen app={myApplication} onSignOut={() => signOut({ redirectUrl: '/' })} />
+
+  // Billing gate — only after billing data has loaded and the clinic is not forever-free
+  if (billing !== undefined && billing !== null && !billing.foreverFree) {
+    const now = Date.now()
+    const trialActive   = billing.billingStatus === 'trialing' && !!billing.trialEndsAt && billing.trialEndsAt > now
+    const subActive     = billing.billingStatus === 'active'
+    const pastDueGrace  = billing.billingStatus === 'past_due' && !!billing.gracePeriodEndsAt && billing.gracePeriodEndsAt > now
+    const blocked       = !trialActive && !subActive && !pastDueGrace
+    if (blocked) {
+      const reason: 'trial_expired' | 'canceled' | 'unpaid' =
+        billing.billingStatus === 'canceled' ? 'canceled' :
+        billing.billingStatus === 'past_due'  ? 'unpaid'  : 'trial_expired'
+      return <PlanPicker reason={reason} />
+    }
+  }
 
   return (
     <>
@@ -367,6 +384,12 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
 
           {/* Page content */}
           <section className="app-content">
+            {billing && !billing.foreverFree && billing.billingStatus === 'trialing' && !!billing.trialEndsAt && billing.trialEndsAt > Date.now() && (
+              <TrialBanner trialEndsAt={billing.trialEndsAt} />
+            )}
+            {billing && !billing.foreverFree && billing.billingStatus === 'past_due' && !!billing.gracePeriodEndsAt && billing.gracePeriodEndsAt > Date.now() && (
+              <PastDueBanner gracePeriodEndsAt={billing.gracePeriodEndsAt} />
+            )}
             {children}
           </section>
 

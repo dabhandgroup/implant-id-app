@@ -98,6 +98,8 @@ export default function StaffClient() {
   const inviteStaff = useMutation(api.clinics.inviteClinicStaff)
   const addExisting = useMutation(api.clinics.addExistingStaffToClinic)
   const revokeStaff = useMutation(api.clinics.revokeClinicStaff)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const billing     = useQuery((api.clinics as any).getBillingStatus)
 
   const [screen, setScreen] = useState<Screen>('list')
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -176,10 +178,27 @@ export default function StaffClient() {
     }
   }
 
+  function checkSeatLimit(addingPaidRole: boolean): string | null {
+    if (!addingPaidRole) return null  // radiographers are always free
+    if (!billing || billing.foreverFree) return null
+    const plan = billing.billingPlan
+    const limit = plan === 'per_user' ? 1 : plan === 'clinics' ? 10 : null
+    if (limit === null) return null
+    const payingSeats = (staff ?? []).filter((s: any) => s.status === 'active' && (s.jobType === 'surgeon' || s.jobType === 'admin')).length
+    if (payingSeats >= limit) {
+      return plan === 'per_user'
+        ? 'Your Per User plan only allows 1 surgeon or admin. Upgrade to the Clinics plan to add more.'
+        : `Your Clinics plan allows up to 10 surgeons and admins. Contact us to upgrade to Large Team.`
+    }
+    return null
+  }
+
   async function handleInviteNew(e: React.FormEvent) {
     e.preventDefault()
     if (!inviteName.trim())  { setInviteError("Enter the staff member's name"); return }
     if (!inviteEmail.trim()) { setInviteError('Enter their email address'); return }
+    const seatError = checkSeatLimit(inviteRole === 'surgeon' || inviteRole === 'admin')
+    if (seatError) { setInviteError(seatError); return }
     setSubmittingInvite(true); setInviteError('')
     try {
       await inviteStaff({ contactName: inviteName.trim(), contactEmail: inviteEmail.trim().toLowerCase(), jobType: inviteRole })
@@ -194,6 +213,8 @@ export default function StaffClient() {
 
   async function handleAddExisting() {
     if (!selectedUserId) { setSearchError('Select a person from the list'); return }
+    const seatError = checkSeatLimit(true)  // surgeons are always a paid role
+    if (seatError) { setSearchError(seatError); return }
     setSubmittingSearch(true); setSearchError('')
     try {
       await addExisting({ userId: selectedUserId, jobType: 'surgeon' })

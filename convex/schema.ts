@@ -169,8 +169,18 @@ export default defineSchema({
     logoUrl: v.optional(v.string()),
     status: v.union(v.literal('active'), v.literal('pending'), v.literal('suspended')),
     showToPatients: v.optional(v.boolean()),  // appears on patient Find a Clinic page
+    // Billing
+    foreverFree:          v.optional(v.boolean()),
+    billingPlan:          v.optional(v.union(v.literal('per_user'), v.literal('clinics'), v.literal('large_team'))),
+    billingStatus:        v.optional(v.union(v.literal('trialing'), v.literal('active'), v.literal('past_due'), v.literal('canceled'))),
+    stripeCustomerId:     v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+    trialEndsAt:          v.optional(v.number()),
+    currentPeriodEnd:     v.optional(v.number()),
+    gracePeriodEndsAt:    v.optional(v.number()),
   })
-    .index('by_status', ['status']),
+    .index('by_status', ['status'])
+    .index('by_stripe_customer', ['stripeCustomerId']),
 
   // Clinic staff members
   staff: defineTable({

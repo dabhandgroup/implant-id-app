@@ -1,8 +1,9 @@
 /* Grid: fixed left panel, scrollable right */
 .onb{min-height:100vh;display:grid;grid-template-columns:1fr 1.4fr;align-items:start}
 .onb-side{background:linear-gradient(160deg,var(--accent-deep),var(--accent) 60%,var(--accent2));color:#fff;padding:36px 40px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden;box-sizing:border-box}
-.onb-side .logo img{height:40px}
+.onb-side .logo img{height:40px;filter:brightness(0) invert(1)}
 .onb-side .logo-text{color:#fff;font-size:18px}
+.onb-side .logo-text span{background:linear-gradient(90deg,#fff,#cdeef6);-webkit-background-clip:text;background-clip:text;color:transparent}
 .onb-side h1{font-size:clamp(22px,2.5vw,32px);font-weight:500;letter-spacing:-.025em;line-height:1.15;margin:20px 0 10px;color:#fff}
 .onb-side>p{color:rgba(255,255,255,.8);font-size:13.5px;line-height:1.55;max-width:360px}
 .onb-side .steps{margin-top:24px;display:flex;flex-direction:column;gap:0;flex:1}

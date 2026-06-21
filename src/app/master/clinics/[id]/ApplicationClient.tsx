@@ -61,6 +61,10 @@ export default function ApplicationClient({ id }: { id: string }) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const adminUpdateCapabilities = useMutation((api.clinics as any).adminUpdateClinicCapabilities)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const setForeverFree          = useMutation((api.clinics as any).setForeverFree)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const devSetBillingState      = useMutation((api.clinics as any).devSetBillingState)
 
   const [resending,    setResending]    = useState(false)
   const [resendDone,   setResendDone]   = useState(false)
@@ -70,6 +74,10 @@ export default function ApplicationClient({ id }: { id: string }) {
   const [adminCapsSaving, setAdminCapsSaving] = useState(false)
   const [adminCapsSaved,  setAdminCapsSaved]  = useState(false)
   const [adminCapsError,  setAdminCapsError]  = useState('')
+  const [freeToggling,    setFreeToggling]    = useState(false)
+  const [freeErr,         setFreeErr]         = useState('')
+  const [testPreset,      setTestPreset]      = useState('')
+  const [testLoading,     setTestLoading]     = useState(false)
 
   async function handleResend() {
     if (!app) return
@@ -546,6 +554,88 @@ export default function ApplicationClient({ id }: { id: string }) {
       )}
 
       {/* ── Unapprove link (approved clinics only) ── */}
+      {/* ── Billing / Forever free ── */}
+      {app.status === 'approved' && (app as any).clinic && (
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginTop: 16 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 14 }}>
+            Billing
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>
+                {(app as any).clinic.foreverFree ? 'Forever free ✓' : 'Standard billing'}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                {(app as any).clinic.foreverFree
+                  ? 'This clinic has complimentary access — no payment required.'
+                  : `Status: ${(app as any).clinic.billingStatus ?? 'trialing'} · Plan: ${(app as any).clinic.billingPlan ?? 'none'}`}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+              <button
+                className={(app as any).clinic.foreverFree ? 'btn btn-danger' : 'btn btn-s'}
+                style={{ fontSize: 13 }}
+                disabled={freeToggling}
+                onClick={async () => {
+                  setFreeToggling(true); setFreeErr('')
+                  try {
+                    await setForeverFree({ clinicId: (app as any).clinic._id, foreverFree: !(app as any).clinic.foreverFree })
+                  } catch (e: any) {
+                    setFreeErr(e.message)
+                  } finally {
+                    setFreeToggling(false)
+                  }
+                }}
+              >
+                {freeToggling ? 'Saving…' : (app as any).clinic.foreverFree ? 'Remove forever free' : 'Grant forever free'}
+              </button>
+              {freeErr && <div style={{ fontSize: 12, color: 'var(--err)' }}>{freeErr}</div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Billing test panel (dev only) ── */}
+      {app.status === 'approved' && (app as any).clinic && (
+        <div style={{ background: 'rgba(255,200,0,.06)', border: '1.5px dashed rgba(255,200,0,.4)', borderRadius: 14, padding: '18px 20px', marginTop: 16 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'rgba(160,120,0,.8)', marginBottom: 12 }}>
+            🧪 Billing test controls (dev only)
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {[
+              { preset: 'trialing_14d',    label: 'Trial · 14 days' },
+              { preset: 'trialing_2d',     label: 'Trial · 2 days left' },
+              { preset: 'trial_expired',   label: 'Trial expired' },
+              { preset: 'active_per_user', label: 'Active · Per User' },
+              { preset: 'active_clinics',  label: 'Active · Clinics' },
+              { preset: 'past_due_grace',  label: 'Past due · 5 days grace' },
+              { preset: 'past_due_expired',label: 'Past due · suspended' },
+              { preset: 'canceled',        label: 'Canceled' },
+              { preset: 'forever_free',    label: 'Forever free' },
+              { preset: 'reset',           label: '↺ Reset' },
+            ].map(({ preset, label }) => (
+              <button
+                key={preset}
+                className="btn"
+                style={{ fontSize: 12, padding: '5px 12px', opacity: testLoading ? 0.5 : 1 }}
+                disabled={testLoading}
+                onClick={async () => {
+                  setTestPreset(preset); setTestLoading(true)
+                  try { await devSetBillingState({ clinicId: (app as any).clinic._id, preset }) }
+                  catch (e: any) { alert(e.message) }
+                  finally { setTestLoading(false); setTestPreset('') }
+                }}
+              >
+                {testLoading && testPreset === preset ? 'Setting…' : label}
+              </button>
+            ))}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'rgba(160,120,0,.7)' }}>
+            After setting a state, open the clinic portal in another tab to see the result.
+          </div>
+        </div>
+      )}
+
       {app.status === 'approved' && (
         <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px solid var(--border)', textAlign: 'center' }}>
           <button

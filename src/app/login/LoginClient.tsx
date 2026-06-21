@@ -44,6 +44,11 @@ function OtpInputs({ otp, setOtp, onComplete }: OtpInputsProps) {
   }
 
   function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      const code = otp.join('')
+      if (code.length === 6) onComplete(code)
+      return
+    }
     if (e.key === 'Backspace' && !otp[i] && i > 0) {
       const next = [...otp]; next[i - 1] = ''; setOtp(next)
       const inputs = document.querySelectorAll<HTMLInputElement>('.code-input')
@@ -510,7 +515,7 @@ export default function LoginClient() {
                         <span className="dial">{country.dial}</span>
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="6 9 12 15 18 9" /></svg>
                       </button>
-                      <input className="input" type="tel" placeholder={country.placeholder} value={phone} onChange={e => setPhone(e.target.value)} style={{ flex: 1 }} />
+                      <input className="input" type="tel" placeholder={country.placeholder} value={phone} onChange={e => setPhone(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !countryOpen) sendPhoneOtp() }} style={{ flex: 1 }} />
                       {countryOpen && (
                         <div className="phone-dd open" style={{ display: 'flex' }}>
                           <div className="phone-dd-search">
@@ -570,7 +575,7 @@ export default function LoginClient() {
                     <label>Email address</label>
                     <div className="i-wrap">
                       <svg className="i-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" /><path d="m22 6-10 7L2 6" /></svg>
-                      <input className="input" type="email" placeholder="you@email.com" value={ptEmail} onChange={e => setPtEmail(e.target.value)} />
+                      <input className="input" type="email" placeholder="you@email.com" value={ptEmail} onChange={e => setPtEmail(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') sendPatientEmailOtp() }} />
                     </div>
                   </div>
                   <button type="button" className="btn btn-s btn-lg btn-block" onClick={sendPatientEmailOtp} disabled={loading}>
@@ -674,7 +679,7 @@ export default function LoginClient() {
                     <label>Clinic email</label>
                     <div className="i-wrap">
                       <svg className="i-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" /><path d="m22 6-10 7L2 6" /></svg>
-                      <input className="input" type="email" placeholder="you@clinic.com" value={clEmail} onChange={e => setClEmail(e.target.value)} />
+                      <input className="input" type="email" placeholder="you@clinic.com" value={clEmail} onChange={e => setClEmail(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') sendClinicOtp() }} />
                     </div>
                   </div>
                   <button type="button" className="btn btn-s btn-lg btn-block" style={{ marginTop: 16 }} onClick={sendClinicOtp} disabled={loading}>

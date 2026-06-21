@@ -9,7 +9,7 @@ export default function LegalFooter() {
           <span><b>Implant</b>ID</span>
         </a>
         <p className="legal-footer-copy">
-          © 2026 Implant ID Ltd · All rights reserved
+          © {new Date().getFullYear()} Implant ID Ltd · All rights reserved
         </p>
         <nav className="legal-footer-links" aria-label="Legal">
           <a href="https://implantid.io/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>

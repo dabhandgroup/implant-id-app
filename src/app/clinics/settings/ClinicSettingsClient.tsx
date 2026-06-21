@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
-import { useClerk } from '@clerk/nextjs'
+import { useClerk, useAuth } from '@clerk/nextjs'
 import { api } from '../../../../convex/_generated/api'
+import { PlanPicker } from '@/components/ui/BillingGate'
 
 type Tab = 'info' | 'notifications' | 'security' | 'billing'
 
@@ -26,7 +27,10 @@ function loadNotifPrefs() {
 export default function ClinicSettingsClient() {
   // ── All hooks at top ──────────────────────────────────────────────────────
   const clerk            = useClerk()
+  const { getToken }        = useAuth()
   const clinic              = useQuery(api.clinics.getMyClinic)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const billing             = useQuery((api.clinics as any).getBillingStatus)
   const updateVisibility    = useMutation(api.clinics.updateClinicVisibility)
   const updateInfo          = useMutation(api.clinics.updateClinicInfo)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,6 +67,15 @@ export default function ClinicSettingsClient() {
   const [digest,     setDigest]     = useState(false)
 
   const logoInputRef = useRef<HTMLInputElement>(null)
+
+  // Billing state
+  const [billLoading,   setBillLoading]   = useState<'portal' | null>(null)
+  const [billErr,       setBillErr]       = useState('')
+  const [showUpgrade,   setShowUpgrade]   = useState(false)
+
+  function openPortal() {
+    window.location.href = 'https://buy.stripe.com/eVqdR80wae9xbHSeS293y0s'
+  }
 
   useEffect(() => {
     if (clinic && showToPatients === null) {
@@ -505,61 +518,104 @@ export default function ClinicSettingsClient() {
       {/* ── Plan & billing ──────────────────────────────────────────────────── */}
       {tab === 'billing' && (
         <div>
-          {/* Current plan */}
-          <div className="card" style={{ marginBottom: 20 }}>
-            <div className="ey" style={{ marginBottom: 14 }}>Current plan</div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-              <div>
-                <div style={{ fontFamily: 'var(--ff)', fontSize: 22, fontWeight: 600, letterSpacing: '-.02em', color: 'var(--text)', marginBottom: 4 }}>
-                  Professional
-                </div>
-                <div style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.5 }}>
-                  Up to 10 staff · Unlimited lookups · Priority support
-                </div>
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontFamily: 'var(--ff)', fontSize: 26, fontWeight: 700, color: 'var(--text)' }}>£149<span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)' }}>/mo</span></div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Next invoice: 1 Jul 2026</div>
-              </div>
+          {showUpgrade ? (
+            <div>
+              <button className="btn" style={{ marginBottom: 20, fontSize: 13 }} onClick={() => setShowUpgrade(false)}>← Back</button>
+              <PlanPicker reason="trial_expired" />
             </div>
-            <div style={{ marginTop: 18, display: 'flex', gap: 10 }}>
-              <button className="btn btn-s" style={{ fontSize: 13 }}>Upgrade plan</button>
-              <button className="btn" style={{ fontSize: 13 }}>Manage subscription</button>
+          ) : billing?.foreverFree ? (
+            <div className="card">
+              <div className="ey" style={{ marginBottom: 14 }}>Current plan</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>Complimentary access</div>
+              <div style={{ fontSize: 13.5, color: 'var(--muted)' }}>This account has been granted free access by Implant ID. No payment required.</div>
             </div>
-          </div>
-
-          {/* Invoices */}
-          <div className="card">
-            <div className="ey" style={{ marginBottom: 14 }}>Invoice history</div>
-            <div className="invoice-list">
-              <div className="invoice-row invoice-head">
-                <div>Period</div>
-                <div>Amount</div>
-                <div>Status</div>
-                <div />
-              </div>
-              {[
-                { period: 'Jun 2026', amount: '£149.00', status: 'Paid' },
-                { period: 'May 2026', amount: '£149.00', status: 'Paid' },
-                { period: 'Apr 2026', amount: '£149.00', status: 'Paid' },
-                { period: 'Mar 2026', amount: '£149.00', status: 'Paid' },
-              ].map(inv => (
-                <div key={inv.period} className="invoice-row">
-                  <div className="invoice-period">{inv.period}</div>
-                  <div className="invoice-amount">{inv.amount}</div>
-                  <div>
-                    <span className="pill pill-ok" style={{ fontSize: 11, padding: '2px 8px' }}>{inv.status}</span>
+          ) : (
+            <>
+              {/* Current plan card */}
+              <div className="card" style={{ marginBottom: 20 }}>
+                <div className="ey" style={{ marginBottom: 14 }}>Current plan</div>
+                {billing === undefined ? (
+                  <div style={{ color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontFamily: 'var(--ff)', fontSize: 22, fontWeight: 600, letterSpacing: '-.02em', color: 'var(--text)', marginBottom: 4 }}>
+                        {billing?.billingPlan === 'per_user' ? 'Per User'
+                          : billing?.billingPlan === 'clinics' ? 'Clinics'
+                          : billing?.billingPlan === 'large_team' ? 'Large Team'
+                          : billing?.billingStatus === 'trialing' ? 'Free Trial'
+                          : 'No active plan'}
+                      </div>
+                      <div style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.5 }}>
+                        {billing?.billingPlan === 'per_user' ? 'Single user · Full platform access'
+                          : billing?.billingPlan === 'clinics' ? 'Up to 10 users · Role-based access · Priority support'
+                          : billing?.billingPlan === 'large_team' ? 'Unlimited users · Multi-site · Dedicated account manager'
+                          : billing?.billingStatus === 'trialing' && billing.trialEndsAt
+                          ? `Trial ends ${new Date(billing.trialEndsAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                          : 'Subscribe to access all features'}
+                      </div>
+                    </div>
+                    {billing?.billingStatus === 'past_due' && (
+                      <span className="pill" style={{ background: 'rgba(220,53,69,.1)', color: 'var(--err)', fontSize: 12, padding: '4px 10px' }}>Payment overdue</span>
+                    )}
+                    {billing?.billingStatus === 'trialing' && (
+                      <span className="pill pill-ok" style={{ fontSize: 12, padding: '4px 10px' }}>Trial active</span>
+                    )}
+                    {billing?.billingStatus === 'active' && (
+                      <span className="pill pill-ok" style={{ fontSize: 12, padding: '4px 10px' }}>Active</span>
+                    )}
                   </div>
-                  <div>
-                    <button className="invoice-pdf-btn" aria-label={`Download invoice for ${inv.period}`}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
-                      PDF
+                )}
+
+                {billErr && <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(220,53,69,.08)', border: '1px solid var(--err)', borderRadius: 8, color: 'var(--err)', fontSize: 13 }}>{billErr}</div>}
+
+                <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {/* Upgrade: show when on per_user plan, or trialing with no plan */}
+                  {(billing?.billingPlan === 'per_user' || (!billing?.billingPlan && billing?.billingStatus === 'trialing')) && (
+                    <button className="btn btn-s" style={{ fontSize: 13 }} onClick={() => setShowUpgrade(true)}>
+                      Upgrade plan
+                    </button>
+                  )}
+                  {/* Manage subscription via Stripe portal */}
+                  {billing?.stripeSubscriptionId && (
+                    <button className="btn" style={{ fontSize: 13 }} onClick={openPortal} disabled={!!billLoading}>
+                      {billLoading === 'portal' ? 'Opening…' : 'Manage subscription & invoices →'}
+                    </button>
+                  )}
+                  {/* No subscription yet — take them to checkout */}
+                  {!billing?.stripeSubscriptionId && billing?.billingStatus !== 'trialing' && (
+                    <button className="btn btn-s" style={{ fontSize: 13 }} onClick={() => setShowUpgrade(true)}>
+                      Choose a plan
+                    </button>
+                  )}
+                  {/* Downgrade (subtle) — only on clinics plan */}
+                  {billing?.billingPlan === 'clinics' && billing.stripeSubscriptionId && (
+                    <button className="btn" style={{ fontSize: 12, color: 'var(--muted)' }} onClick={openPortal} disabled={!!billLoading}>
+                      Downgrade plan
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Invoice history — only if they have a Stripe customer */}
+              {billing?.stripeCustomerId ? (
+                <div className="card">
+                  <div className="ey" style={{ marginBottom: 14 }}>Invoice history</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--muted)' }}>
+                    View and download all invoices in the{' '}
+                    <button className="link-btn" style={{ fontSize: 13.5 }} onClick={openPortal} disabled={!!billLoading}>
+                      billing portal →
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              ) : (
+                <div className="card">
+                  <div className="ey" style={{ marginBottom: 14 }}>Invoice history</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--muted2)' }}>No invoices yet — invoices will appear here after your first payment.</div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
 

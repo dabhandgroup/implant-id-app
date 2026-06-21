@@ -93,7 +93,7 @@ export default function GlobalError({
         </div>
 
         <p style={{ fontSize: 11, color: '#6b7280', marginTop: 40 }}>
-          © 2026 Implant ID Ltd
+          © {new Date().getFullYear()} Implant ID Ltd
         </p>
       </body>
     </html>

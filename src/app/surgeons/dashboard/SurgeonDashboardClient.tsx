@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery }  from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { useUser }   from '@clerk/nextjs'
 import { api as apiBase } from '../../../../convex/_generated/api'
 
@@ -10,8 +10,10 @@ export default function SurgeonDashboardClient() {
   const { user } = useUser()
 
   // All hooks unconditionally at top
-  const patients = useQuery(api.patients.getSurgeonPatients)
-  const counts   = useQuery(api.patients.getSurgeonPatientCounts)
+  const patients          = useQuery(api.patients.getSurgeonPatients)
+  const counts            = useQuery(api.patients.getSurgeonPatientCounts)
+  const notifications     = useQuery(api.patients.getMyNotifications)
+  const markAllRead       = useMutation(api.patients.markAllNotificationsRead)
 
   // Derived stats
   const total    = counts?.total    ?? (patients === undefined ? '—' : patients.length)
@@ -236,6 +238,56 @@ export default function SurgeonDashboardClient() {
           </table>
         )}
       </div>
+
+      {/* Recall alerts */}
+      {(() => {
+        const recalls = (notifications ?? []).filter((n: any) => n.type === 'device_recall' && !n.read)
+        if (!recalls.length) return null
+        return (
+          <div style={{
+            background: 'color-mix(in srgb,var(--err) 6%,transparent)',
+            border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
+            borderRadius: 14,
+            padding: '18px 22px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2" aria-hidden="true">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span style={{ fontFamily: 'var(--ff)', fontWeight: 600, fontSize: 14, color: 'var(--err)', flex: 1 }}>
+                Device Recall Alerts — {recalls.length} unread
+              </span>
+              <button
+                className="btn"
+                onClick={() => markAllRead()}
+                style={{ fontSize: 12, padding: '4px 10px' }}
+                aria-label="Mark all recall notifications as read"
+              >
+                Dismiss all
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {recalls.map((n: any) => (
+                <div key={n._id} style={{
+                  background: 'var(--bg2)',
+                  border: '1px solid color-mix(in srgb,var(--err) 15%,transparent)',
+                  borderRadius: 10,
+                  padding: '12px 16px',
+                }}>
+                  <div style={{ fontFamily: 'var(--ff)', fontWeight: 600, fontSize: 13.5, color: 'var(--text)', marginBottom: 4 }}>
+                    {n.title}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.4 }}>
+                    {n.body}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
     </div>
   )

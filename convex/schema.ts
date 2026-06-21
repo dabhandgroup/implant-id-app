@@ -59,6 +59,25 @@ export default defineSchema({
       storageId: v.id('_storage'),
       label:     v.optional(v.string()),
     }))),
+
+    // v13 fields (Tom's schema — populated on import from the authoritative database)
+    deviceName:               v.optional(v.string()),  // human-readable name distinct from model number
+    modelNumber:              v.optional(v.string()),  // normalised model number (verbatim from source)
+    mriClassification:        v.optional(v.string()),  // 'MR Conditional' | 'MR Safe' | 'MR Unsafe' | 'Risk-Benefit'
+    componentRole:            v.optional(v.string()),  // 'Generator' | 'Lead' | 'System' | etc.
+    fieldStrength1t5:         v.optional(v.boolean()),
+    fieldStrength3t:          v.optional(v.boolean()),
+    fieldStrength7t:          v.optional(v.boolean()),
+    zoneCount:                v.optional(v.number()),  // 1 = inline conditions; >1 = see deviceConditions table
+    jurisdiction:             v.optional(v.string()),  // CSV of ISO-3166-alpha-2 codes, e.g. "AU; GB; US"
+    predecessorBrand:         v.optional(v.string()),
+    searchAliases:            v.optional(v.string()),  // comma-separated alternative search terms
+    rfTemperatureRise:        v.optional(v.string()),  // verbatim test observation — NOT a scan-time limit
+    maxSarWb:                 v.optional(v.string()),
+    maxB1Rms:                 v.optional(v.string()),
+    radiographerInstructions: v.optional(v.string()),
+    representativeInstructions: v.optional(v.string()),
+    patientInstructions:      v.optional(v.string()),
   })
     .index('by_manufacturer', ['manufacturer'])
     .index('by_mri_status', ['mriStatus'])
@@ -151,9 +170,45 @@ export default defineSchema({
     patientNotes: v.optional(v.string()),
     clinicNotes: v.optional(v.string()),
     status: v.union(v.literal('active'), v.literal('explanted'), v.literal('replaced')),
+    // System grouping — links an IPG to its leads (shared UUID per system)
+    systemGroupId: v.optional(v.string()),
+    // For lead rows: physical lead length in cm
+    leadLengthCm: v.optional(v.number()),
   })
     .index('by_patient', ['patientId'])
     .index('by_device', ['deviceId']),
+
+  // Self-reported / unverified implant entries submitted by patients
+  suspectedImplants: defineTable({
+    patientId: v.id('patients'),
+    description: v.string(),
+    suspectedLocation: v.optional(v.string()),
+    suspectedDate: v.optional(v.string()),
+    submittedAt: v.number(),
+    reviewedAt: v.optional(v.number()),
+    reviewedBy: v.optional(v.id('users')),
+    status: v.union(v.literal('pending'), v.literal('confirmed'), v.literal('dismissed')),
+  })
+    .index('by_patient', ['patientId'])
+    .index('by_status', ['status']),
+
+  // Surgeon-uploaded clinical documents (surgical notes, implant card scans, consent)
+  surgeonDocuments: defineTable({
+    patientId: v.id('patients'),
+    uploadedByUserId: v.id('users'),
+    storageId: v.id('_storage'),
+    docType: v.union(
+      v.literal('surgical_notes'),
+      v.literal('implant_card'),
+      v.literal('consent'),
+      v.literal('other'),
+    ),
+    fileName: v.string(),
+    uploadedAt: v.number(),
+    notes: v.optional(v.string()),
+  })
+    .index('by_patient', ['patientId'])
+    .index('by_uploader', ['uploadedByUserId']),
 
   // Clinic profiles
   clinics: defineTable({
@@ -450,4 +505,34 @@ export default defineSchema({
     .index('by_device', ['deviceId'])
     .index('by_manufacturer', ['manufacturerId'])
     .index('by_status', ['status']),
+
+  // Device scan conditions — one row per condition-context when zoneCount > 1
+  // A device row with zoneCount = 1 stores conditions inline; >1 means all conditions live here.
+  deviceConditions: defineTable({
+    parentId:           v.string(),  // devices._id or systemParameters.systemId
+    zoneLabel:          v.optional(v.string()),   // e.g. "Zone A", "Thorax"
+    landmark:           v.optional(v.string()),   // anatomical scan-centre landmark
+    fieldStrength:      v.optional(v.string()),   // e.g. "1.5T" | "3T"
+    maxSarWb:           v.optional(v.string()),
+    maxB1Rms:           v.optional(v.string()),
+    qualifierText:      v.optional(v.string()),   // verbatim IFU qualifier e.g. "With DB-2201 lead"
+    qualifierDeviceIds: v.optional(v.array(v.string())),  // structured resolution of the qualifier
+    mriClassification:  v.optional(v.string()),
+    notes:              v.optional(v.string()),
+  })
+    .index('by_parent', ['parentId']),
+
+  // OEM-stated system parameter records (generator + specific leads the manufacturer tested)
+  systemParameters: defineTable({
+    systemId:             v.string(),             // unique identifier for this system combination
+    componentDeviceIds:   v.array(v.string()),    // the exact devices._id values in this system
+    isMixedManufacturer:  v.optional(v.boolean()),
+    mriClassification:    v.optional(v.string()),
+    zoneCount:            v.optional(v.number()),
+    fieldStrength:        v.optional(v.string()),
+    maxSarWb:             v.optional(v.string()),
+    maxB1Rms:             v.optional(v.string()),
+    notes:                v.optional(v.string()),
+  })
+    .index('by_system_id', ['systemId']),
 })

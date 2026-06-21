@@ -1,11 +1,25 @@
 import Stripe from 'stripe'
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set')
+// Lazy singleton — defer initialization to first access so the build succeeds
+// even when STRIPE_SECRET_KEY is not in the build environment.
+let _instance: Stripe | null = null
+
+function getInstance(): Stripe {
+  if (!_instance) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not set')
+    }
+    _instance = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2026-05-27.dahlia',
+    })
+  }
+  return _instance
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2026-05-27.dahlia',
+export const stripe = new Proxy({} as Stripe, {
+  get(_, prop: string | symbol) {
+    return getInstance()[prop as keyof Stripe]
+  },
 })
 
 // Plan → Stripe price ID mapping (set these after creating products in Stripe dashboard)

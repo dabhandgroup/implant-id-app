@@ -1,6 +1,7 @@
-import { mutation, query } from './_generated/server'
-import { v }              from 'convex/values'
-import type { Id }        from './_generated/dataModel'
+import { mutation, query, internalMutation } from './_generated/server'
+import { internal }         from './_generated/api'
+import { v }                from 'convex/values'
+import type { Id }          from './_generated/dataModel'
 
 // ── Device code generator ──────────────────────────────────────────────────
 // Format: DID-[3 MFR][3 MODEL]-[4 ID tail]
@@ -27,11 +28,12 @@ export const generateDeviceDocUploadUrl = mutation({
 export const listDevices = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    return ctx.db
+    const rows = await ctx.db
       .query('devices')
       .withIndex('by_status', (q) => q.eq('status', 'live'))
       .order('asc')
-      .take(args.limit ?? 200)
+      .take(args.limit ?? 500)
+    return rows.filter((d) => d.verified === true)
   },
 })
 
@@ -242,6 +244,12 @@ export const updateDeviceMriStatus = mutation({
       recalled:    args.recalled,
       recallNotes: args.recallNotes,
     })
+    if (args.recalled === true) {
+      await ctx.scheduler.runAfter(0, internal.devices.sendRecallNotifications, {
+        deviceId:    args.id,
+        recallNotes: args.recallNotes ?? '',
+      })
+    }
   },
 })
 
@@ -388,5 +396,112 @@ export const getDeviceCount = query({
       .filter((q) => q.neq(q.field('status'), 'draft'))
       .collect()
     return devices.length
+  },
+})
+
+/** Maps Convex devices to the LibDevice shape expected by LibraryClient. */
+export const listVerifiedLibraryDevices = query({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db
+      .query('devices')
+      .withIndex('by_status', (q) => q.eq('status', 'live'))
+      .order('asc')
+      .take(500)
+
+    const live = rows.filter((d) => d.verified === true && !d.recalled)
+
+    function mriClassFromStatus(status: string): 'MR Conditional' | 'MR Safe' | 'MR Unsafe' {
+      if (status === 'safe') return 'MR Safe'
+      if (status === 'unsafe') return 'MR Unsafe'
+      return 'MR Conditional'
+    }
+
+    function parseFieldStrength(fieldStrengths: string | undefined, target: '1.5' | '3'): boolean {
+      if (!fieldStrengths) return false
+      const lower = fieldStrengths.toLowerCase()
+      return lower.includes(`${target}t`) || lower.includes(`${target}.0t`)
+    }
+
+    return live.map((d) => ({
+      device_id:          d.deviceCode ?? (d._id as string),
+      device_name:        d.deviceName ?? d.model,
+      model_number:       d.modelNumber ?? d.model,
+      device_type:        d.deviceType,
+      component_role:     d.componentRole,
+      mri_classification: (d.mriClassification as 'MR Conditional' | 'MR Safe' | 'MR Unsafe' | undefined)
+                          ?? mriClassFromStatus(d.mriStatus),
+      field_strength_1t5: d.fieldStrength1t5 ?? parseFieldStrength(d.fieldStrengths, '1.5'),
+      field_strength_3t:  d.fieldStrength3t  ?? parseFieldStrength(d.fieldStrengths, '3'),
+      manufacturer_id:    d.manufacturer,
+      manufacturer_name:  d.manufacturer,
+      _category:          d.classification,
+    }))
+  },
+})
+
+/** Internal: fan out recall notifications to all surgeons associated with patients who have this device. */
+export const sendRecallNotifications = internalMutation({
+  args: {
+    deviceId:    v.id('devices'),
+    recallNotes: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const device = await ctx.db.get(args.deviceId)
+    if (!device) return
+
+    const title = `Device recall: ${device.deviceName ?? device.model}`
+    const body  = args.recallNotes
+      ? `${device.manufacturer} has recalled this device. ${args.recallNotes}`
+      : `${device.manufacturer} has recalled the ${device.deviceName ?? device.model}. Review affected patients immediately.`
+
+    const patientDeviceLinks = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_device', (q) => q.eq('deviceId', args.deviceId))
+      .collect()
+
+    const surgeonUserIds = new Set<string>()
+
+    for (const link of patientDeviceLinks) {
+      const patient = await ctx.db.get(link.patientId)
+      if (!patient) continue
+
+      // Self-reported surgeon on the patient record
+      if (patient.selfReportedSurgeonUserId) {
+        surgeonUserIds.add(patient.selfReportedSurgeonUserId as string)
+      }
+
+      // Surgeons at clinics with approved access to this patient
+      const approvedRequests = await ctx.db
+        .query('accessRequests')
+        .withIndex('by_patient', (q) => q.eq('patientId', link.patientId))
+        .filter((q) => q.eq(q.field('status'), 'approved'))
+        .collect()
+
+      for (const req of approvedRequests) {
+        const surgeonStaff = await ctx.db
+          .query('staff')
+          .withIndex('by_clinic', (q) => q.eq('clinicId', req.clinicId))
+          .filter((q) => q.eq(q.field('jobType'), 'surgeon'))
+          .filter((q) => q.eq(q.field('status'), 'active'))
+          .collect()
+
+        for (const s of surgeonStaff) {
+          surgeonUserIds.add(s.userId as string)
+        }
+      }
+    }
+
+    for (const userId of surgeonUserIds) {
+      await ctx.db.insert('notifications', {
+        userId:    userId as Id<'users'>,
+        type:      'device_recall',
+        title,
+        body,
+        read:      false,
+        relatedId: args.deviceId as string,
+        createdAt: Date.now(),
+      })
+    }
   },
 })

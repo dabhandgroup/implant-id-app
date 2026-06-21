@@ -1,9 +1,13 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useQuery } from 'convex/react'
+import { api as apiBase } from '../../../../convex/_generated/api'
 
-// ── Serialised device type passed from server ─────────────────────────────
+const api = apiBase as any
+
+// ── Device shape (mirrors what listVerifiedLibraryDevices returns) ─────────
 
 export interface LibDevice {
   device_id: string
@@ -17,10 +21,6 @@ export interface LibDevice {
   manufacturer_id: string
   manufacturer_name: string
   _category: 'active' | 'passive' | 'legacy'
-}
-
-interface Props {
-  devices: LibDevice[]
 }
 
 // ── Filter definitions ────────────────────────────────────────────────────
@@ -210,22 +210,27 @@ function DeviceRowIcon({ type }: { type: string }) {
 
 // ── Main component ────────────────────────────────────────────────────────
 
-export default function LibraryClient({ devices }: Props) {
-  const searchParams = useSearchParams()
+export default function LibraryClient() {
+  // All hooks unconditionally at top — rules require this
+  const devicesRaw    = useQuery(api.devices.listVerifiedLibraryDevices)
+  const searchParams  = useSearchParams()
   const [query,      setQuery]      = useState(searchParams?.get('q') ?? '')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [mfrFilter,  setMfrFilter]  = useState<string>(() => {
+  const [mfrFilter,  setMfrFilter]  = useState('all')
+  const [view,       setView]       = useState<'grid' | 'list'>('grid')
+
+  const devices: LibDevice[] = devicesRaw ?? []
+
+  // Resolve URL manufacturer slug → manufacturer_id once devices loads
+  useEffect(() => {
     const slug = searchParams?.get('mfr')
-    if (!slug) return 'all'
-    // Match URL slug (e.g. 'medtronic', 'boston-scientific') to a manufacturer_id
-    // by slugifying the common name and comparing
-    const found = devices.find(d => {
+    if (!slug || !devicesRaw?.length) return
+    const found = devicesRaw.find((d: LibDevice) => {
       const ns = d.manufacturer_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
       return ns === slug || ns.startsWith(slug)
     })
-    return found?.manufacturer_id ?? 'all'
-  })
-  const [view,       setView]       = useState<'grid' | 'list'>('grid')
+    if (found) setMfrFilter(found.manufacturer_id)
+  }, [devicesRaw, searchParams])
 
   const manufacturers = useMemo(() => {
     const seen = new Set<string>()
@@ -254,6 +259,14 @@ export default function LibraryClient({ devices }: Props) {
     setQuery('')
     setTypeFilter('all')
     setMfrFilter('all')
+  }
+
+  if (devicesRaw === undefined) {
+    return (
+      <div style={{ padding: '60px 40px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--ff)' }}>
+        Loading device library…
+      </div>
+    )
   }
 
   return (

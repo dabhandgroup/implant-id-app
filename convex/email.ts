@@ -7,7 +7,7 @@ import { buildEmail }      from './emailTemplate'
 import QRCode              from 'qrcode'
 const FROM        = 'Implant ID <noreply@implantid.io>'
 const SUPPORT     = 'support@implantid.io'
-const BOOK_URL    = 'https://calendly.com/implantid'   // ← update to your booking page URL
+const BOOK_URL    = 'https://implantid.io/book-a-call'
 
 function resend() {
   const key = process.env.RESEND_API_KEY

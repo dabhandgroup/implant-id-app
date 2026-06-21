@@ -7,6 +7,8 @@ import { useRouter }  from 'next/navigation'
 import { api }        from '../../../../convex/_generated/api'
 import QRCode         from 'qrcode'
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
 const MRI_COLOUR: Record<string, string> = {
   safe:        '#166534',
   conditional: '#b45309',
@@ -40,6 +42,7 @@ export default function EmergencyClient() {
   const implantSafety    = useQuery(api.patients.getMyImplantSafety)
   const notifications    = useQuery(api.patients.getMyNotifications)
   const markRead         = useMutation(api.patients.markAllNotificationsRead)
+  const linkedDevices    = useQuery((api as any).patients.getMyLinkedDevices)
   const visibleNotes     = useQuery((api as any).clinicalNotes.getMyVisibleClinicalNotes)
 
   const [sbCollapsed,  setSbCollapsed]  = useState(false)
@@ -79,6 +82,7 @@ export default function EmergencyClient() {
   if (patient === null) { router.replace('/patients/register'); return null }
 
   const status     = implantSafety ?? 'unknown'
+  const isPending  = patient.verificationStatus !== 'active'
   const fullName   = `${patient.firstName} ${patient.lastName}`
   const hasAllergy = !!patient.contrastAllergy
   const scanUrl    = `https://portal.implantid.io/scan/${patient.implantIdCode}`
@@ -240,8 +244,139 @@ export default function EmergencyClient() {
               </button>
             </div>
 
-            {/* MRI status hero */}
-            <div className="em-mri-hero" style={{ background: MRI_BG[status], borderRadius: 16, padding: '22px 22px', marginBottom: 16 }}>
+            {/* Pass card — full orange dashboard card (screen only) */}
+            <div
+              className="pass-big em-print-hide"
+              style={
+                isPending ? {
+                  background: 'linear-gradient(155deg,#e8edf2 0%,#d4dce6 55%,#eef1f5 100%)',
+                  color: '#1e293b',
+                  boxShadow: '0 20px 50px -20px rgba(0,0,0,.10)',
+                }
+                : status === 'unsafe' ? { background: 'linear-gradient(155deg,#991b1b 0%,#b91c1c 55%,#dc2626 100%)' }
+                : status === 'conditional' ? { background: 'linear-gradient(155deg,#c2410c 0%,#ea580c 55%,#f97316 100%)' }
+                : status === 'safe' ? { background: 'linear-gradient(155deg,#166534 0%,#15803d 55%,#16a34a 100%)' }
+                : undefined
+              }
+            >
+              {/* Brand top-left / MRI status top-right */}
+              <div className="pb-top">
+                <div className="pb-brand">
+                  <img src="/icon.svg" alt="" style={isPending ? { filter: 'brightness(0) opacity(0.4)' } : undefined} />
+                  <span style={isPending ? { color: '#475569' } : undefined}>Implant ID</span>
+                </div>
+                {!isPending && implantSafety ? (
+                  <div className="pb-mri">
+                    <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.92)', letterSpacing: '.3px', whiteSpace: 'nowrap' }}>
+                      {MRI_LABEL[status]}
+                    </span>
+                    <img
+                      src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
+                      alt={MRI_LABEL[status]}
+                      style={{ width: 42, height: 42, display: 'block', flexShrink: 0 }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Device type */}
+              <div className="pb-status" style={{ color: isPending ? '#64748b' : undefined }}>
+                {(linkedDevices as any[])?.length > 1
+                  ? 'Multiple implants'
+                  : (linkedDevices as any[])?.length === 1
+                    ? (linkedDevices as any[])[0].deviceType
+                    : (patient as any).selfReportedDeviceType ?? 'Implanted Device'}
+              </div>
+
+              {/* Device name */}
+              <div className="pb-name" style={{ color: isPending ? '#334155' : undefined }}>
+                {(linkedDevices as any[])?.length > 0
+                  ? (linkedDevices as any[]).length === 1
+                    ? `${(linkedDevices as any[])[0].manufacturer} ${(linkedDevices as any[])[0].name}`
+                    : 'Multiple implants'
+                  : (patient as any).selfReportedDevice ?? 'Awaiting verification'}
+              </div>
+
+              {/* Data grid — clinical detail for first responders */}
+              <div className="pb-grid" style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '8px 28px', width: 'fit-content', marginBottom: 16, position: 'relative', zIndex: 2 }}>
+                <div>
+                  <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Name</div>
+                  <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{fullName}</div>
+                </div>
+                {(patient as any).dob && (
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Date of birth</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{(patient as any).dob}</div>
+                  </div>
+                )}
+                {(patient as any).heightCm && (
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Height</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{(patient as any).heightCm} cm</div>
+                  </div>
+                )}
+                {(patient as any).weightKg && (
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Weight</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{(patient as any).weightKg} kg</div>
+                  </div>
+                )}
+                {(patient as any).selfReportedImplantYear && (
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Implanted</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>
+                      {(patient as any).selfReportedImplantMonth
+                        ? `${MONTHS[parseInt((patient as any).selfReportedImplantMonth) - 1]} ${(patient as any).selfReportedImplantYear}`
+                        : (patient as any).selfReportedImplantYear}
+                    </div>
+                  </div>
+                )}
+                {(patient as any).selfReportedHospital && (
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Clinic</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{(patient as any).selfReportedHospital}</div>
+                  </div>
+                )}
+                {(patient as any).selfReportedSurgeon && (
+                  <div>
+                    <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Surgeon</div>
+                    <div className="v" style={{ color: isPending ? '#334155' : undefined }}>{(patient as any).selfReportedSurgeon}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* MRI clinical guidance note */}
+              {!isPending && (
+                <div style={{ background: 'rgba(0,0,0,0.25)', borderRadius: 10, padding: '11px 14px', fontFamily: 'var(--fb)', fontSize: 13.5, color: 'rgba(255,255,255,0.9)', lineHeight: 1.55, marginBottom: 16, position: 'relative', zIndex: 2 }}>
+                  {MRI_NOTE[status]}
+                </div>
+              )}
+
+              {/* Bottom: implant code + QR */}
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', position: 'relative', zIndex: 2 }}>
+                <div style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 13, fontWeight: 600, letterSpacing: '.05em', opacity: isPending ? 0.45 : 0.85 }}>
+                  {patient.implantIdCode}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 9, letterSpacing: '.8px', textTransform: 'uppercase', color: isPending ? 'rgba(30,41,59,0.5)' : 'rgba(255,255,255,.72)', fontWeight: 600 }}>
+                    Scan at clinic
+                  </span>
+                  {qrDataUrl ? (
+                    <img src={qrDataUrl} alt="Scan to view full patient record" style={{ width: 90, height: 90, borderRadius: 8, background: 'rgba(255,255,255,.92)', padding: 4, display: 'block' }} />
+                  ) : (
+                    <div style={{ width: 90, height: 90, borderRadius: 8, background: isPending ? 'rgba(30,41,59,.08)' : 'rgba(255,255,255,.12)', display: 'grid', placeItems: 'center' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={isPending ? 'rgba(30,41,59,0.3)' : 'rgba(255,255,255,0.4)'} strokeWidth="1.4" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2z"/>
+                      </svg>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* MRI status hero — print-only; shown in place of pass card when printing */}
+            <div className="em-mri-hero em-print-only" style={{ background: MRI_BG[status], borderRadius: 16, padding: '22px 22px', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
                 <img
                   src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
@@ -270,74 +405,6 @@ export default function EmergencyClient() {
                 </div>
               </div>
             )}
-
-            {/* Patient identity — dark gradient card matching the dashboard pass */}
-            <div className="em-id-card em-print-hide">
-              <div className="em-id-top">
-                <div className="em-id-brand">
-                  <img src="/icon.svg" alt="" />
-                  <span><b>Implant</b> ID</span>
-                </div>
-                <div className="em-id-badge">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                  Emergency
-                </div>
-              </div>
-
-              <div className="em-id-name">{fullName}</div>
-              <div className="em-id-code">
-                {patient.implantIdCode}
-              </div>
-
-              {(patient.dob || patient.heightCm || patient.weightKg) && (
-                <div className="em-id-meta">
-                  {patient.dob && (
-                    <div>
-                      <div className="k">Date of birth</div>
-                      <div className="v">{patient.dob}</div>
-                    </div>
-                  )}
-                  {patient.heightCm && (
-                    <div>
-                      <div className="k">Height</div>
-                      <div className="v">{patient.heightCm} cm</div>
-                    </div>
-                  )}
-                  {patient.weightKg && (
-                    <div>
-                      <div className="k">Weight</div>
-                      <div className="v">{patient.weightKg} kg</div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="em-id-bottom">
-                {/* MRI status bottom-left */}
-                <div className="em-id-mri">
-                  <img
-                    src={status === 'safe' ? '/mr-safe.svg' : status === 'conditional' ? '/mr-conditional.svg' : '/mr-unsafe.svg'}
-                    alt={MRI_LABEL[status]}
-                    style={{ width: 32, height: 32, flexShrink: 0 }}
-                  />
-                  <span>{MRI_LABEL[status]}</span>
-                </div>
-                {/* QR code bottom-right */}
-                <div className="em-id-qr">
-                  <span>Scan for full record</span>
-                  {qrDataUrl ? (
-                    <img src={qrDataUrl} alt="Scan to view full patient record" />
-                  ) : (
-                    <div className="em-id-qr-ph">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="1.4" aria-hidden="true">
-                        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                        <rect x="3" y="14" width="7" height="7"/><path d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2z"/>
-                      </svg>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
 
             {/* Patient identity — print-only plain version */}
             <div className="em-card em-print-show" style={{ display: 'none', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px', marginBottom: 14 }}>

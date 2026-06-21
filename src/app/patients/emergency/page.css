@@ -1,4 +1,20 @@
-/* ── Emergency ID card (mirrors dashboard pass-big) ──────────────────────── */
+/* ── Pass card (matches dashboard pass-big exactly) ──────────────────────── */
+.pass-big{background:linear-gradient(155deg,var(--accent-deep) 0%,var(--accent) 55%,var(--accent2) 100%);border-radius:22px;padding:22px 24px;color:#fff;position:relative;overflow:hidden;box-shadow:0 40px 80px -30px rgba(14,42,51,.4);margin-bottom:20px}
+.pass-big::before{content:"";position:absolute;top:-40%;right:-30%;width:180%;height:160%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 55%);pointer-events:none}
+.pb-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;position:relative;z-index:2}
+.pb-brand{display:flex;align-items:center;gap:10px;font-family:var(--ff);font-weight:600;font-size:15px}
+.pb-brand img{width:28px;height:28px;filter:brightness(0) invert(1)}
+.pb-mri{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.pb-name{font-family:var(--ff);font-size:24px;font-weight:600;letter-spacing:-.02em;margin-bottom:18px;position:relative;z-index:2}
+.pb-status{font-family:var(--ff);font-size:13px;letter-spacing:.4px;opacity:.85;margin-bottom:10px;position:relative;z-index:2;display:inline-flex;align-items:center;gap:8px}
+.pb-status::before{content:"";width:8px;height:8px;border-radius:50%;background:#7dffcb;box-shadow:0 0 12px #7dffcb}
+.pb-grid .k{font-family:var(--ff);font-size:10px;letter-spacing:1.3px;text-transform:uppercase;opacity:.72;margin-bottom:3px}
+.pb-grid .v{font-family:var(--ff);font-size:14px;font-weight:500;letter-spacing:-.01em}
+
+/* ── Print-only utility ───────────────────────────────────────────────────── */
+.em-print-only{display:none!important}
+
+/* ── Emergency ID card (kept for CSS reference) ───────────────────────────── */
 .em-id-card{background:linear-gradient(155deg,var(--accent-deep) 0%,var(--accent) 55%,var(--accent2) 100%);border-radius:22px;padding:22px 24px;color:#fff;position:relative;overflow:hidden;box-shadow:0 40px 80px -30px rgba(14,42,51,.4);margin-bottom:16px}
 .em-id-card::before{content:"";position:absolute;top:-40%;right:-30%;width:180%;height:160%;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 55%);pointer-events:none}
 .em-id-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;position:relative;z-index:2}
@@ -68,9 +84,11 @@
     margin-bottom: 18px;
   }
 
-  /* ID card — hide on print (QR is in the print header instead) */
+  /* Pass card + ID card — hidden on print; print header + plain card used instead */
+  .pass-big { display: none !important; }
   .em-id-card { display: none !important; }
   .em-print-show { display: block !important; }
+  .em-print-only { display: block !important; }
 
   /* Clinical notes */
   .em-note { break-inside: avoid; }

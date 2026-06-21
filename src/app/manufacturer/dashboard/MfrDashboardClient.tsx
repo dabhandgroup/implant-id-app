@@ -300,12 +300,44 @@ export default function MfrDashboardClient() {
             {/* ── AUDIT tab ── */}
             {tab === 'audit' && (
               <div>
-                <div className="app-h"><div><h2>Audit log</h2><p className="sub">Every action on your manufacturer account. Read-only.</p></div></div>
+                <div className="app-h"><div><h2>Device submission history</h2><p className="sub">All devices submitted to the Implant ID platform. Read-only.</p></div></div>
                 <div className="dev-tbl">
                   <table>
-                    <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Device / file</th></tr></thead>
+                    <thead>
+                      <tr>
+                        <th>Date submitted</th>
+                        <th>Device name</th>
+                        <th>Model number</th>
+                        <th>MRI status</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
                     <tbody>
-                      <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px', fontSize: 13 }}>Audit logging coming soon.</td></tr>
+                      {devices.length === 0 ? (
+                        <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px', fontSize: 13 }}>No devices submitted yet.</td></tr>
+                      ) : [...devices].sort((a: any, b: any) => (b._creationTime ?? 0) - (a._creationTime ?? 0)).map((d: any) => (
+                        <tr key={d._id}>
+                          <td style={{ color: 'var(--muted)', whiteSpace: 'nowrap' }}>{d._creationTime ? formatDate(d._creationTime) : '—'}</td>
+                          <td style={{ fontWeight: 500 }}>{d.deviceName ?? d.modelName ?? '—'}</td>
+                          <td style={{ fontFamily: 'monospace', fontSize: 12.5 }}>{d.modelNumber ?? '—'}</td>
+                          <td>
+                            {d.mriSafetyStatus ? (
+                              <span style={{ color: MRI_COLOUR[d.mriSafetyStatus] ?? 'var(--muted)', fontWeight: 500, fontSize: 12.5 }}>
+                                {mriLabel(d.mriSafetyStatus)}
+                              </span>
+                            ) : <span style={{ color: 'var(--muted2)' }}>—</span>}
+                          </td>
+                          <td>
+                            <span style={{
+                              fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 5,
+                              background: d.status === 'live' ? 'color-mix(in srgb,var(--ok) 15%,transparent)' : d.status === 'pending' ? 'color-mix(in srgb,#d97706 12%,transparent)' : 'color-mix(in srgb,var(--muted) 15%,transparent)',
+                              color: d.status === 'live' ? 'var(--ok)' : d.status === 'pending' ? '#d97706' : 'var(--muted)',
+                            }}>
+                              {d.status === 'live' ? 'Live' : d.status === 'pending' ? 'Pending review' : d.status ?? '—'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

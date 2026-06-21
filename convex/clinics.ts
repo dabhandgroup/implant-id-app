@@ -1897,6 +1897,69 @@ export const devSetBillingState = mutation({
   },
 })
 
+/** Master admin — all audit log entries across every clinic. */
+export const listAllAuditLogs = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') return []
+
+    const entries = await ctx.db
+      .query('auditLog')
+      .order('desc')
+      .take(args.limit ?? 500)
+
+    return await Promise.all(
+      entries.map(async (e) => {
+        let staffName = 'Unknown'
+        let clinicName = 'Unknown'
+        let patientName = ''
+        let patientCode = ''
+
+        try {
+          const staffRow = await ctx.db.get(e.staffId)
+          if (staffRow) {
+            const u = await ctx.db.get(staffRow.userId)
+            if (u) {
+              const n = u.name ?? ''
+              staffName = (n && !n.startsWith('user_')) ? n : (u.email ? u.email.split('@')[0] : 'Unknown')
+            }
+          }
+        } catch { /* ignore */ }
+
+        try {
+          const clinic = await ctx.db.get(e.clinicId)
+          if (clinic) clinicName = (clinic as any).name ?? 'Unknown'
+        } catch { /* ignore */ }
+
+        if (e.target) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const p = await ctx.db.get(e.target as any) as any
+            if (p) {
+              patientName = [p.firstName, p.lastName].filter(Boolean).join(' ')
+              patientCode = p.implantIdCode ?? ''
+            }
+          } catch { /* ignore */ }
+        }
+
+        return {
+          _id:         e._id,
+          action:      e.action,
+          detail:      e.detail ?? '',
+          staffName,
+          clinicName,
+          patientName,
+          patientCode,
+          createdAt:   e.createdAt,
+        }
+      })
+    )
+  },
+})
+
 /** How many "paying seats" does this clinic currently have? (surgeons + admins, not radiographers) */
 export const countPayingSeats = query({
   args: { clinicId: v.id('clinics') },

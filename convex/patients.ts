@@ -412,6 +412,16 @@ export const createPatient = mutation({
       })
     }
 
+    // If patient listed a surgeon email, invite them to the platform
+    if (args.selfReportedSurgeonEmail) {
+      await ctx.scheduler.runAfter(0, internal.email.sendSurgeonPlatformInviteEmail, {
+        surgeonEmail:     args.selfReportedSurgeonEmail,
+        surgeonName:      args.selfReportedSurgeon ?? undefined,
+        patientName:      `${args.firstName} ${args.lastName}`,
+        patientImplantId: code,
+      })
+    }
+
     return { id: patientId, implantIdCode: code }
   },
 })

@@ -161,6 +161,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const billing       = useQuery(api.clinics.getBillingStatus)
   const markRead      = useMutation(api.patients.markAllNotificationsRead)
 
+  const [billingSkipped, setBillingSkipped] = useState(false)
   const [mobOpen,        setMobOpen]        = useState(false)
   const [sbCollapsed,    setSbCollapsed]    = useState(false)
   const [notifOpen,      setNotifOpen]      = useState(false)
@@ -229,10 +230,11 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
     const pastDueGrace  = billing.billingStatus === 'past_due' && !!billing.gracePeriodEndsAt && billing.gracePeriodEndsAt > now
     const blocked       = !trialActive && !subActive && !pastDueGrace
     if (blocked) {
+      if (billingSkipped) return null // fall through to portal below
       const reason: 'trial_expired' | 'canceled' | 'unpaid' =
         billing.billingStatus === 'canceled' ? 'canceled' :
         billing.billingStatus === 'past_due'  ? 'unpaid'  : 'trial_expired'
-      return <PlanPicker reason={reason} />
+      return <PlanPicker reason={reason} onSkip={() => setBillingSkipped(true)} />
     }
   }
 

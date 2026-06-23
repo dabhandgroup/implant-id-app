@@ -1,6 +1,6 @@
 'use client'
 import { useState }    from 'react'
-import { useQuery, useMutation } from 'convex/react'
+import { useQuery, useMutation, useAction } from 'convex/react'
 import { useRouter }   from 'next/navigation'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 import { Id }             from '../../../../../convex/_generated/dataModel'
@@ -72,6 +72,7 @@ export default function PatientDetailClient({ id }: Props) {
   const adminUpdatePatientEmail   = useMutation(api.patients.adminUpdatePatientEmail)
   const adminAssignPatientToClinic    = useMutation(api.patients.adminAssignPatientToClinic)
   const adminVerifyAndDeletePatient   = useMutation(api.patients.adminVerifyAndDeletePatient)
+  const requestDeleteCode             = useAction(api.adminDeleteActions.adminRequestDeleteCode)
   const router                        = useRouter()
 
   // Filter devices for search
@@ -664,9 +665,9 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* ── Delete patient — Step 1: warning + send code ─────────────────── */}
       {deleteStep === 'confirm' && (
-        <div className="logout-back open" onClick={() => setDeleteStep('idle')}>
-          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
-            <div className="logout-body">
+        <div className="confirm-back open" onClick={() => setDeleteStep('idle')}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div className="confirm-body">
               <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
@@ -684,23 +685,16 @@ export default function PatientDetailClient({ id }: Props) {
                 <div style={{ marginTop: 12, color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13 }}>{deleteError}</div>
               )}
             </div>
-            <div className="logout-actions">
-              <button className="btn" onClick={() => setDeleteStep('idle')}>Cancel</button>
+            <div className="confirm-actions">
+              <button type="button" className="btn" onClick={() => setDeleteStep('idle')}>Cancel</button>
               <button
+                type="button"
                 className="btn btn-danger"
                 disabled={deleteLoading}
                 onClick={async () => {
                   setDeleteLoading(true); setDeleteError('')
                   try {
-                    const res = await fetch('/api/admin/send-delete-code', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ patientId: id }),
-                    })
-                    if (!res.ok) {
-                      const data = await res.json()
-                      throw new Error(data.error ?? 'Failed to send code')
-                    }
+                    await requestDeleteCode({ patientId: id as Id<'patients'> })
                     setDeleteCode('')
                     setDeleteStep('entering')
                   } catch (err) {
@@ -719,9 +713,9 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* ── Delete patient — Step 2: enter 6-digit code ──────────────────── */}
       {deleteStep === 'entering' && (
-        <div className="logout-back open" onClick={() => setDeleteStep('idle')}>
-          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <div className="logout-body">
+        <div className="confirm-back open" onClick={() => setDeleteStep('idle')}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div className="confirm-body">
               <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
@@ -749,9 +743,10 @@ export default function PatientDetailClient({ id }: Props) {
                 <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginTop: 4 }}>{deleteError}</div>
               )}
             </div>
-            <div className="logout-actions">
-              <button className="btn" onClick={() => setDeleteStep('idle')}>Cancel</button>
+            <div className="confirm-actions">
+              <button type="button" className="btn" onClick={() => setDeleteStep('idle')}>Cancel</button>
               <button
+                type="button"
                 className="btn btn-danger"
                 disabled={deleteCode.length !== 6 || deleteLoading}
                 onClick={async () => {

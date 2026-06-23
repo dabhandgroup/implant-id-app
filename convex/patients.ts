@@ -1,4 +1,4 @@
-import { mutation, query, internalAction } from './_generated/server'
+import { mutation, query, internalAction, internalMutation } from './_generated/server'
 import { v }                              from 'convex/values'
 import { internal }                       from './_generated/api'
 
@@ -1840,7 +1840,7 @@ export const getFullPatientByCode = query({
 /** Admin: generate a one-time 6-digit code to confirm patient deletion.
  *  Called server-side only (via fetchMutation in the Next.js API route) so
  *  the plaintext code never reaches the browser. */
-export const adminGenerateDeleteCode = mutation({
+export const adminGenerateDeleteCode = internalMutation({
   args: { patientId: v.id('patients') },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()

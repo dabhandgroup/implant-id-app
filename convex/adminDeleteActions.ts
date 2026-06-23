@@ -1,46 +1,35 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { auth }          from '@clerk/nextjs/server'
-import { fetchMutation } from 'convex/nextjs'
-import { Resend }        from 'resend'
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-import { api } from '../../../../../convex/_generated/api'
+'use node'
+import { action }   from './_generated/server'
+import { internal } from './_generated/api'
+import { v }        from 'convex/values'
+import { Resend }   from 'resend'
 
-export const dynamic = 'force-dynamic'
-
-// Delete codes are always sent to the master admin email only
 const ADMIN_EMAIL = 'harry@dabhandmarketing.com'
+const FROM        = 'Implant ID <noreply@implantid.io>'
 
-export async function POST(req: NextRequest) {
-  try {
-    const { userId, getToken } = await auth()
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+/** Public action callable from the browser: generate a 6-digit delete-confirmation
+ *  code, store it in Convex, and email it to the admin. The code itself never
+ *  reaches the browser — only { ok: true } is returned. */
+export const adminRequestDeleteCode = action({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
 
-    const { patientId } = await req.json()
-    if (!patientId) return NextResponse.json({ error: 'patientId required' }, { status: 400 })
-
-    const convexToken = await getToken({ template: 'convex' })
-    if (!convexToken) return NextResponse.json({ error: 'No Convex token' }, { status: 401 })
-
-    // Generate and store the code in Convex (enforces admin role server-side)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await fetchMutation(
-      (api as any).patients.adminGenerateDeleteCode,
-      { patientId },
-      { token: convexToken }
+    const result = await ctx.runMutation(
+      internal.patients.adminGenerateDeleteCode,
+      { patientId: args.patientId },
     ) as { code: string; patientName: string }
 
     const { code, patientName } = result
 
-    const resendKey = process.env.RESEND_API_KEY
-    if (!resendKey) {
-      console.error('RESEND_API_KEY not set — cannot send delete code')
-      return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
-    }
+    const key = process.env.RESEND_API_KEY
+    if (!key) throw new Error('Email service not configured')
 
-    const resend = new Resend(resendKey)
+    const resend = new Resend(key)
     const { error } = await resend.emails.send({
-      from: 'Implant ID <noreply@implantid.io>',
-      to:   [ADMIN_EMAIL],
+      from:    FROM,
+      to:      [ADMIN_EMAIL],
       subject: `Patient deletion code — ${patientName}`,
       html: `<!DOCTYPE html>
 <html lang="en">
@@ -85,14 +74,6 @@ export async function POST(req: NextRequest) {
 </html>`,
     })
 
-    if (error) {
-      console.error('Resend error sending delete code:', error)
-      return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
-    }
-
-    return NextResponse.json({ ok: true })
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
-  }
-}
+    if (error) throw new Error('Failed to send verification email')
+  },
+})

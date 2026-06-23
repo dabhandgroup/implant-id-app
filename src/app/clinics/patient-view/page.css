@@ -74,9 +74,10 @@
   .app-content{padding:16px 14px 100px!important}
 }
 @media print{
+  html,body{height:auto!important;min-height:0!important;overflow:visible!important}
   body * {visibility:hidden}
   .print-area, .print-area *{visibility:visible}
-  .print-area{position:fixed;inset:0;padding:40px 48px;background:#fff;color:#000;display:block!important;z-index:9999;font-family:Georgia,serif}
+  .print-area{position:absolute!important;top:0!important;left:0!important;right:0!important;padding:14mm 18mm;background:#fff;color:#000;display:block!important;z-index:9999;font-family:Georgia,serif}
   .print-area .pa-head{border-bottom:2px solid #111;padding-bottom:14px;margin-bottom:22px;display:flex;justify-content:space-between;align-items:flex-start}
   .print-area .pa-section{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #e0e0e0}
   .print-area .pa-section:last-of-type{border-bottom:none}
@@ -87,6 +88,7 @@
   .print-area .pa-row span:last-child{font-weight:500;text-align:right}
   .print-area .pa-warn{background:#fef9c3;border-left:3px solid #ca8a04;padding:5px 8px!important;margin-top:4px;border-radius:0 4px 4px 0}
 }
+@page{size:A4 portrait;margin:0}
 .print-area{display:none}
 
 /* ── Clinical notes stream ────────────────────────────────────────────────── */
@@ -127,7 +129,8 @@
   .pt-hero{grid-template-columns:1fr;gap:16px;padding:20px;text-align:center}
   .pt-photo{width:72px;height:72px;margin:0 auto}
   .pt-info h1{font-size:24px}
-  .pt-acts{flex-direction:row;flex-wrap:wrap;justify-content:center}
+  .pt-info .meta{justify-content:center}
+  .pt-acts{flex-direction:column;align-items:center}
   .safety{grid-template-columns:1fr}
   .tl-item{grid-template-columns:1fr;gap:4px}
 }

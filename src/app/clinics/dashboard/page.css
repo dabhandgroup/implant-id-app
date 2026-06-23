@@ -74,6 +74,8 @@
   .impl-row:not(.impl-thead)>div:nth-child(3),
   .impl-row:not(.impl-thead)>div:nth-child(4){display:none}
   .impl-thead{display:none!important}
+  .qa-btn{flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:18px 10px}
+  .qa-btn svg{width:22px;height:22px}
 }
 @media(max-width:780px){
   .cat-tiles{grid-template-columns:1fr 1fr}

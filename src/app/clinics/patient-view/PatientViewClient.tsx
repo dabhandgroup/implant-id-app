@@ -894,8 +894,8 @@ export default function PatientViewClient() {
           {/* Link device from catalogue — admin and surgeon */}
           {(role === 'admin' || role === 'surgeon') && (
             <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div className="ey">Link device from catalogue</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                <div className="ey" style={{ margin: 0 }}>Link device from catalogue</div>
                 {!addSaved && (
                   <button
                     type="button"

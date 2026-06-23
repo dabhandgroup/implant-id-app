@@ -536,28 +536,26 @@ export const createStaffAccount = internalAction({
       }
     }
 
-    // New user — create a Clerk invitation so they receive a one-time activation URL
-    const portalUrl = args.jobType === 'surgeon'
-      ? 'https://portal.implantid.io/surgeons/dashboard'
-      : 'https://portal.implantid.io/clinics/dashboard'
+    // New user — create their Clerk account directly so the login link works immediately
+    const nameParts = args.contactName.trim().split(/\s+/)
+    const firstName = nameParts[0] ?? ''
+    const lastName  = nameParts.slice(1).join(' ') || undefined
 
-    const inviteRes = await fetch('https://api.clerk.com/v1/invitations', {
+    const createRes = await fetch('https://api.clerk.com/v1/users', {
       method:  'POST',
       headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email_address:   args.contactEmail,
-        redirect_url:    portalUrl,
-        public_metadata: { role },
-        ignore_existing: true,
+        email_address:    [args.contactEmail],
+        first_name:       firstName,
+        last_name:        lastName,
+        public_metadata:  { role },
+        skip_password_requirement: true,
+        skip_password_checks:      true,
       }),
     })
 
-    let inviteUrl: string | undefined
-    if (inviteRes.ok) {
-      const inv = (await inviteRes.json()) as { url?: string }
-      inviteUrl = inv.url
-    } else {
-      console.error('[staff] Clerk invitation failed:', inviteRes.status, await inviteRes.text())
+    if (!createRes.ok) {
+      console.error('[staff] Clerk user creation failed:', createRes.status, await createRes.text())
     }
 
     await ctx.runAction(internal.email.sendStaffInviteEmail, {
@@ -565,7 +563,6 @@ export const createStaffAccount = internalAction({
       contactEmail: args.contactEmail,
       clinicName:   args.clinicName,
       jobType:      args.jobType,
-      inviteUrl,
     })
   },
 })

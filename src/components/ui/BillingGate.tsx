@@ -121,9 +121,7 @@ export function PlanPicker({ reason, onSkip }: { reason: 'trial_expired' | 'canc
 
   const currencySymbol = { AUD: 'A$', GBP: '£', USD: '$' }[currency]
 
-  // TODO: remove onSkip bypass before launch — Stripe link: STRIPE_PAYMENT_LINK
   function startCheckout() {
-    if (onSkip) { onSkip(); return }
     window.location.href = STRIPE_PAYMENT_LINK
   }
 

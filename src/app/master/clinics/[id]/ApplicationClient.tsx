@@ -572,18 +572,20 @@ export default function ApplicationClient({ id }: { id: string }) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 3 }}>
-                {(app as any).clinic.foreverFree ? 'Forever free ✓' : 'Standard billing'}
+                Free plan
               </div>
               <div style={{ fontSize: 13, color: 'var(--muted)' }}>
                 {(app as any).clinic.foreverFree
-                  ? 'This clinic has complimentary access — no payment required.'
-                  : `Status: ${(app as any).clinic.billingStatus ?? 'trialing'} · Plan: ${(app as any).clinic.billingPlan ?? 'none'}`}
+                  ? 'Active — complimentary access, no payment required.'
+                  : `Off — ${(app as any).clinic.billingStatus ?? 'trialing'} · ${(app as any).clinic.billingPlan ?? 'no plan'}`}
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+              {/* Toggle switch */}
               <button
-                className={(app as any).clinic.foreverFree ? 'btn btn-danger' : 'btn btn-s'}
-                style={{ fontSize: 13 }}
+                role="switch"
+                aria-checked={(app as any).clinic.foreverFree}
+                aria-label="Free plan"
                 disabled={freeToggling}
                 onClick={async () => {
                   setFreeToggling(true); setFreeErr('')
@@ -595,8 +597,18 @@ export default function ApplicationClient({ id }: { id: string }) {
                     setFreeToggling(false)
                   }
                 }}
+                style={{
+                  position: 'relative', display: 'inline-flex', alignItems: 'center',
+                  width: 44, height: 24, borderRadius: 12, border: 'none', cursor: freeToggling ? 'wait' : 'pointer',
+                  background: (app as any).clinic.foreverFree ? 'var(--accent)' : 'var(--border)',
+                  transition: 'background .2s', flexShrink: 0, padding: 0,
+                }}
               >
-                {freeToggling ? 'Saving…' : (app as any).clinic.foreverFree ? 'Remove forever free' : 'Grant forever free'}
+                <span style={{
+                  position: 'absolute', top: 3, left: (app as any).clinic.foreverFree ? 23 : 3,
+                  width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                  boxShadow: '0 1px 3px rgba(0,0,0,.2)', transition: 'left .2s',
+                }} />
               </button>
               {freeErr && <div style={{ fontSize: 12, color: 'var(--err)' }}>{freeErr}</div>}
             </div>

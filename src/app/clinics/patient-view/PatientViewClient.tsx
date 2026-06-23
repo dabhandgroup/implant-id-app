@@ -1091,72 +1091,94 @@ export default function PatientViewClient() {
 
       {/* ── Print area — hidden on screen, visible on print/PDF export ─── */}
       <div className="print-area">
-        <div className="pa-head">
+
+        {/* Brand header */}
+        <div className="pa-brand">
           <div>
-            <div style={{ fontWeight: 700, fontSize: 18 }}>Implant ID — Clinical Patient Record</div>
-            <div style={{ color: '#666', fontSize: 12, marginTop: 3 }}>Printed {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+            <div className="pa-brand-logo">
+              <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.15)"/>
+                <path d="M9 10h14M9 16h14M9 22h8" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/>
+              </svg>
+              IMPLANT ID
+            </div>
+            <div className="pa-brand-sub">Clinical Patient Record</div>
           </div>
-          <div style={{ textAlign: 'right', fontSize: 13 }}>
-            <div style={{ fontWeight: 600 }}>{patient.firstName} {patient.lastName}</div>
-            <div style={{ fontFamily: 'SF Mono,Monaco,monospace', letterSpacing: '.04em', color: '#555', marginTop: 2 }}>{patient.implantIdCode}</div>
+          <div className="pa-brand-r">
+            <div className="nm">{patient.firstName} {patient.lastName}</div>
+            <div className="iid">{patient.implantIdCode}</div>
           </div>
         </div>
 
-        <div className="pa-section">
-          <div className="pa-title">Patient details</div>
-          <div className="pa-row"><span>Name</span><span>{patient.firstName} {patient.lastName}</span></div>
-          {dob && <div className="pa-row"><span>Date of birth</span><span>{dob}</span></div>}
-          <div className="pa-row"><span>Implant ID</span><span style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{patient.implantIdCode}</span></div>
-          <div className="pa-row"><span>MRI status</span><span>{isPending ? 'Pending verification' : mriMeta.label}</span></div>
-          <div className="pa-row"><span>Record status</span><span>{isPending ? 'Pending — not clinically verified' : 'Clinically verified'}</span></div>
+        {/* Date + MRI status strip */}
+        <div className="pa-meta">
+          <span>Printed {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          <span className={`pa-mri ${isPending ? 'pending' : (patient.mriStatus ?? 'unknown')}`}>
+            {isPending ? 'Pending verification' : mriMeta.label}
+          </span>
         </div>
 
-        {primaryDevice ? (
+        {/* Sections */}
+        <div className="pa-body">
           <div className="pa-section">
-            <div className="pa-title">Implant device</div>
-            <div className="pa-row"><span>Device</span><span>{primaryDevice.manufacturer} {primaryDevice.model}</span></div>
-            {primaryDevice.deviceType    && <div className="pa-row"><span>Type</span><span>{primaryDevice.deviceType}</span></div>}
-            {primaryDevice.serialNumber  && <div className="pa-row"><span>Serial number</span><span style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{primaryDevice.serialNumber}</span></div>}
-            {primaryDevice.implantDate   && <div className="pa-row"><span>Implanted</span><span>{primaryDevice.implantDate}{primaryDevice.hospital ? ` · ${primaryDevice.hospital}` : ''}</span></div>}
-            {primaryDevice.implantingSurgeon && <div className="pa-row"><span>Surgeon</span><span>{primaryDevice.implantingSurgeon}</span></div>}
+            <div className="pa-title">Patient details</div>
+            <div className="pa-row"><span>Name</span><span>{patient.firstName} {patient.lastName}</span></div>
+            {dob && <div className="pa-row"><span>Date of birth</span><span>{dob}</span></div>}
+            <div className="pa-row"><span>Implant ID</span><span style={{ fontFamily: 'SF Mono,Monaco,monospace', letterSpacing: '.06em' }}>{patient.implantIdCode}</span></div>
+            <div className="pa-row"><span>Record status</span><span>{isPending ? 'Pending — not clinically verified' : 'Clinically verified'}</span></div>
           </div>
-        ) : patient.selfReportedDevice ? (
-          <div className="pa-section">
-            <div className="pa-title">Implant device (self-reported — not verified)</div>
-            <div className="pa-row"><span>Device</span><span>{patient.selfReportedDevice}</span></div>
-            {(patient as any).selfReportedManufacturer && <div className="pa-row"><span>Manufacturer</span><span>{(patient as any).selfReportedManufacturer}</span></div>}
-            {(patient as any).selfReportedSurgeon      && <div className="pa-row"><span>Surgeon</span><span>{(patient as any).selfReportedSurgeon}</span></div>}
-            {(patient as any).selfReportedHospital     && <div className="pa-row"><span>Hospital</span><span>{(patient as any).selfReportedHospital}</span></div>}
-          </div>
-        ) : null}
 
-        {primaryDevice && (primaryDevice.fieldStrengths || primaryDevice.sarLimit || primaryDevice.b1RmsLimit) && (
-          <div className="pa-section">
-            <div className="pa-title">MRI safety conditions</div>
-            {primaryDevice.fieldStrengths && <div className="pa-row"><span>Approved field strengths</span><span>{primaryDevice.fieldStrengths}</span></div>}
-            {primaryDevice.sarLimit       && <div className="pa-row"><span>Max whole-body SAR</span><span>{primaryDevice.sarLimit}</span></div>}
-            {primaryDevice.b1RmsLimit     && <div className="pa-row"><span>B1+rms limit</span><span>{primaryDevice.b1RmsLimit}</span></div>}
-            {primaryDevice.slewRateLimit  && <div className="pa-row"><span>Slew rate limit</span><span>{primaryDevice.slewRateLimit}</span></div>}
-            {primaryDevice.gradientLimit  && <div className="pa-row"><span>Gradient limit</span><span>{primaryDevice.gradientLimit}</span></div>}
-            {primaryDevice.maxScanTime    && <div className="pa-row"><span>Max scan time</span><span>{primaryDevice.maxScanTime}</span></div>}
-            {primaryDevice.contraindications && (
-              <div className="pa-row pa-warn"><span>Contraindications</span><span>{primaryDevice.contraindications}</span></div>
-            )}
-          </div>
-        )}
+          {primaryDevice ? (
+            <div className="pa-section">
+              <div className="pa-title">Implant device</div>
+              <div className="pa-row"><span>Device</span><span>{primaryDevice.manufacturer} {primaryDevice.model}</span></div>
+              {primaryDevice.deviceType    && <div className="pa-row"><span>Type</span><span>{primaryDevice.deviceType}</span></div>}
+              {primaryDevice.serialNumber  && <div className="pa-row"><span>Serial number</span><span style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{primaryDevice.serialNumber}</span></div>}
+              {primaryDevice.implantDate   && <div className="pa-row"><span>Implanted</span><span>{primaryDevice.implantDate}{primaryDevice.hospital ? ` · ${primaryDevice.hospital}` : ''}</span></div>}
+              {primaryDevice.implantingSurgeon && <div className="pa-row"><span>Surgeon</span><span>{primaryDevice.implantingSurgeon}</span></div>}
+            </div>
+          ) : patient.selfReportedDevice ? (
+            <div className="pa-section">
+              <div className="pa-title">Implant device (self-reported — not verified)</div>
+              <div className="pa-row"><span>Device</span><span>{patient.selfReportedDevice}</span></div>
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(patient as any).selfReportedManufacturer && <div className="pa-row"><span>Manufacturer</span><span>{(patient as any).selfReportedManufacturer}</span></div>}
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(patient as any).selfReportedSurgeon      && <div className="pa-row"><span>Surgeon</span><span>{(patient as any).selfReportedSurgeon}</span></div>}
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(patient as any).selfReportedHospital     && <div className="pa-row"><span>Hospital</span><span>{(patient as any).selfReportedHospital}</span></div>}
+            </div>
+          ) : null}
 
-        {(patient.emergencyContactName || patient.emergencyContactPhone || patient.contrastAllergy !== undefined) && (
-          <div className="pa-section">
-            <div className="pa-title">Emergency contact &amp; medical alerts</div>
-            {patient.emergencyContactName  && <div className="pa-row"><span>Next of kin</span><span>{patient.emergencyContactName}{patient.emergencyContactRelation ? ` (${patient.emergencyContactRelation})` : ''}</span></div>}
-            {patient.emergencyContactPhone && <div className="pa-row"><span>Phone</span><span>{patient.emergencyContactPhone}</span></div>}
-            {patient.contrastAllergy !== undefined && patient.contrastAllergy !== null && (
-              <div className="pa-row"><span>Contrast allergy</span><span>{patient.contrastAllergy ? `Yes${patient.contrastAllergyNote ? ` — ${patient.contrastAllergyNote}` : ''}` : 'No'}</span></div>
-            )}
-          </div>
-        )}
+          {primaryDevice && (primaryDevice.fieldStrengths || primaryDevice.sarLimit || primaryDevice.b1RmsLimit) && (
+            <div className="pa-section">
+              <div className="pa-title">MRI safety conditions</div>
+              {primaryDevice.fieldStrengths && <div className="pa-row"><span>Approved field strengths</span><span>{primaryDevice.fieldStrengths}</span></div>}
+              {primaryDevice.sarLimit       && <div className="pa-row"><span>Max whole-body SAR</span><span>{primaryDevice.sarLimit}</span></div>}
+              {primaryDevice.b1RmsLimit     && <div className="pa-row"><span>B1+rms limit</span><span>{primaryDevice.b1RmsLimit}</span></div>}
+              {primaryDevice.slewRateLimit  && <div className="pa-row"><span>Slew rate limit</span><span>{primaryDevice.slewRateLimit}</span></div>}
+              {primaryDevice.gradientLimit  && <div className="pa-row"><span>Gradient limit</span><span>{primaryDevice.gradientLimit}</span></div>}
+              {primaryDevice.maxScanTime    && <div className="pa-row"><span>Max scan time</span><span>{primaryDevice.maxScanTime}</span></div>}
+              {primaryDevice.contraindications && (
+                <div className="pa-row pa-warn"><span>Contraindications</span><span>{primaryDevice.contraindications}</span></div>
+              )}
+            </div>
+          )}
 
-        <div style={{ marginTop: 32, paddingTop: 14, borderTop: '1px solid #ccc', fontSize: 11, color: '#777', lineHeight: 1.6 }}>
+          {(patient.emergencyContactName || patient.emergencyContactPhone || patient.contrastAllergy !== undefined) && (
+            <div className="pa-section">
+              <div className="pa-title">Emergency contact &amp; medical alerts</div>
+              {patient.emergencyContactName  && <div className="pa-row"><span>Next of kin</span><span>{patient.emergencyContactName}{patient.emergencyContactRelation ? ` (${patient.emergencyContactRelation})` : ''}</span></div>}
+              {patient.emergencyContactPhone && <div className="pa-row"><span>Phone</span><span>{patient.emergencyContactPhone}</span></div>}
+              {patient.contrastAllergy !== undefined && patient.contrastAllergy !== null && (
+                <div className="pa-row"><span>Contrast allergy</span><span>{patient.contrastAllergy ? `Yes${patient.contrastAllergyNote ? ` — ${patient.contrastAllergyNote}` : ''}` : 'No'}</span></div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="pa-foot">
           This document is for clinical reference only. Always consult the device IFU and your clinical protocols before performing any procedure.
           Record generated by Implant ID — portal.implantid.io
         </div>

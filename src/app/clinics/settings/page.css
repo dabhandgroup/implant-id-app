@@ -1,5 +1,13 @@
 @import '../dashboard/page.css';
 
+/* ── Clinic info form grid ─────────────────────────────────────────────────── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.info-grid-full{grid-column:span 2}
+@media(max-width:600px){
+  .info-grid{grid-template-columns:1fr}
+  .info-grid-full{grid-column:auto}
+}
+
 /* ── Custom select dropdown (csd) ──────────────────────────────────────────── */
 .csd { position: relative; display: inline-block; }
 .csd-btn {

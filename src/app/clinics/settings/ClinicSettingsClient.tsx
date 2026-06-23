@@ -282,7 +282,7 @@ export default function ClinicSettingsClient() {
 
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="ey" style={{ marginBottom: 14 }}>Clinic information</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="info-grid">
               <div className="field">
                 <label>Clinic name <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
                 <input
@@ -315,7 +315,7 @@ export default function ClinicSettingsClient() {
                   placeholder="+44 20 xxxx xxxx"
                 />
               </div>
-              <div className="field" style={{ gridColumn: 'span 2' }}>
+              <div className="field info-grid-full">
                 <label>Address</label>
                 <input
                   className="input"

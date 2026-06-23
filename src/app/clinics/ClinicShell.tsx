@@ -171,6 +171,10 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
   const sidebarRef      = useRef<HTMLDivElement>(null)
   const sbBotRef        = useRef<HTMLDivElement>(null)
+  const sheetElRef      = useRef<HTMLDivElement>(null)
+  const sheetDragRef    = useRef<{ startY: number }>({ startY: 0 })
+  const notifElRef      = useRef<HTMLElement>(null)
+  const notifDragRef    = useRef<{ startX: number }>({ startX: 0 })
   const unreadCount  = notifications?.filter((n: any) => !n.read).length ?? 0
   const userName     = user?.fullName ?? user?.firstName ?? 'Clinic User'
   const userInitials = initials(userName)
@@ -212,6 +216,34 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   function cancelSignOut() {
     setSignOutConfirm(false)
     setSigningOut(false)
+  }
+
+  function onSheetHandleTouchStart(e: React.TouchEvent) {
+    sheetDragRef.current.startY = e.touches[0].clientY
+    if (sheetElRef.current) sheetElRef.current.style.transition = 'none'
+  }
+  function onSheetHandleTouchMove(e: React.TouchEvent) {
+    const delta = e.touches[0].clientY - sheetDragRef.current.startY
+    if (delta > 0 && sheetElRef.current) sheetElRef.current.style.transform = `translateY(${delta}px)`
+  }
+  function onSheetHandleTouchEnd(e: React.TouchEvent) {
+    const delta = e.changedTouches[0].clientY - sheetDragRef.current.startY
+    if (sheetElRef.current) { sheetElRef.current.style.transition = ''; sheetElRef.current.style.transform = '' }
+    if (delta > 100) setMobProfileOpen(false)
+  }
+
+  function onNotifTouchStart(e: React.TouchEvent<HTMLElement>) {
+    notifDragRef.current.startX = e.touches[0].clientX
+    if (notifElRef.current) notifElRef.current.style.transition = 'none'
+  }
+  function onNotifTouchMove(e: React.TouchEvent<HTMLElement>) {
+    const delta = e.touches[0].clientX - notifDragRef.current.startX
+    if (delta > 0 && notifElRef.current) notifElRef.current.style.transform = `translateX(${delta}px)`
+  }
+  function onNotifTouchEnd(e: React.TouchEvent<HTMLElement>) {
+    const delta = e.changedTouches[0].clientX - notifDragRef.current.startX
+    if (notifElRef.current) { notifElRef.current.style.transition = ''; notifElRef.current.style.transform = '' }
+    if (delta > 80) setNotifOpen(false)
   }
 
   async function handleMarkAllRead() {
@@ -448,7 +480,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
 
       {/* Notifications drawer */}
       <div className={`notif-back${notifOpen ? ' open' : ''}`} onClick={() => setNotifOpen(false)} />
-      <aside className={`notif-drawer${notifOpen ? ' open' : ''}`} aria-label="Notifications">
+      <aside ref={notifElRef} className={`notif-drawer${notifOpen ? ' open' : ''}`} aria-label="Notifications" onTouchStart={onNotifTouchStart} onTouchMove={onNotifTouchMove} onTouchEnd={onNotifTouchEnd}>
         <div className="notif-h">
           <h3>Notifications</h3>
           <button className="x" onClick={() => setNotifOpen(false)}>✕</button>
@@ -491,43 +523,50 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
         aria-hidden="true"
       />
       <div
+        ref={sheetElRef}
         className={`mob-sheet${mobProfileOpen ? ' open' : ''}`}
         role="dialog"
         aria-modal={mobProfileOpen}
         aria-label="Profile menu"
       >
-        <div className="mob-sheet-handle" aria-hidden="true" />
+        <div
+          className="mob-sheet-handle"
+          aria-hidden="true"
+          onTouchStart={onSheetHandleTouchStart}
+          onTouchMove={onSheetHandleTouchMove}
+          onTouchEnd={onSheetHandleTouchEnd}
+        />
         <div className="mob-sheet-info">
           <strong>{userName}</strong>
           <span>{clinicName}</span>
         </div>
-        <a href="/clinics/settings" className="mob-sheet-item">
+        <Link href="/clinics/settings" className="mob-sheet-item" onClick={() => setMobProfileOpen(false)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
           My account
-        </a>
-        <a href="/clinics/settings" className="mob-sheet-item">
+        </Link>
+        <Link href="/clinics/settings" className="mob-sheet-item" onClick={() => setMobProfileOpen(false)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4"/></svg>
           Settings
-        </a>
-        <a href="/clinics/staff" className="mob-sheet-item">
+        </Link>
+        <Link href="/clinics/staff" className="mob-sheet-item" onClick={() => setMobProfileOpen(false)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           Invite a colleague
-        </a>
+        </Link>
         <a href="mailto:hello@implantid.io" className="mob-sheet-item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="9"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
           Help &amp; docs
         </a>
         <div className="mob-sheet-divider" />
         <span className="mob-sheet-section">Legal</span>
-        <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+        <a href="https://implantid.io/legal/privacy" target="_blank" rel="noopener noreferrer" className="mob-sheet-item" onClick={() => setMobProfileOpen(false)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Privacy Policy
         </a>
-        <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+        <a href="https://implantid.io/legal/terms" target="_blank" rel="noopener noreferrer" className="mob-sheet-item" onClick={() => setMobProfileOpen(false)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           Terms of Service
         </a>
-        <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="mob-sheet-item">
+        <a href="https://implantid.io/legal/gdpr" target="_blank" rel="noopener noreferrer" className="mob-sheet-item" onClick={() => setMobProfileOpen(false)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
           GDPR
         </a>

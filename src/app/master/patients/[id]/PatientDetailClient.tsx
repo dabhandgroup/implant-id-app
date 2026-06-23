@@ -55,9 +55,10 @@ export default function PatientDetailClient({ id }: Props) {
   const [assigningClinic, setAssigningClinic] = useState(false)
   const [assignClinicErr, setAssignClinicErr] = useState('')
 
-  // Delete patient (2-step: send code → enter code)
+  // Delete patient (2-step: warning → type name/ID + "DELETE PATIENT")
   const [deleteStep,      setDeleteStep]      = useState<'idle' | 'confirm' | 'entering'>('idle')
-  const [deleteCode,      setDeleteCode]      = useState('')
+  const [deleteNameInput, setDeleteNameInput] = useState('')
+  const [deleteConfirm,   setDeleteConfirm]   = useState('')
   const [deleteError,     setDeleteError]     = useState('')
   const [deleteLoading,   setDeleteLoading]   = useState(false)
 
@@ -71,7 +72,7 @@ export default function PatientDetailClient({ id }: Props) {
   const adminSetStatus            = useMutation(api.patients.adminSetPatientStatus)
   const adminUpdatePatientEmail   = useMutation(api.patients.adminUpdatePatientEmail)
   const adminAssignPatientToClinic    = useMutation(api.patients.adminAssignPatientToClinic)
-  const adminVerifyAndDeletePatient   = useMutation(api.patients.adminVerifyAndDeletePatient)
+  const adminDeletePatient            = useMutation(api.patients.adminDeletePatient)
   const router                        = useRouter()
 
   // Filter devices for search
@@ -461,7 +462,7 @@ export default function PatientDetailClient({ id }: Props) {
           <button
             className="btn btn-danger"
             style={{ flexShrink: 0 }}
-            onClick={() => { setDeleteCode(''); setDeleteError(''); setDeleteStep('confirm') }}
+            onClick={() => { setDeleteNameInput(''); setDeleteConfirm(''); setDeleteError(''); setDeleteStep('confirm') }}
             aria-label="Delete patient record"
           >
             Delete patient
@@ -662,7 +663,7 @@ export default function PatientDetailClient({ id }: Props) {
         </div>
       )}
 
-      {/* ── Delete patient — Step 1: warning + send code ─────────────────── */}
+      {/* ── Delete patient — Step 1: warning ────────────────────────────── */}
       {deleteStep === 'confirm' && (
         <div className="logout-back open" onClick={() => setDeleteStep('idle')}>
           <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
@@ -673,15 +674,70 @@ export default function PatientDetailClient({ id }: Props) {
                 </svg>
               </div>
               <h3 style={{ color: 'var(--err)' }}>Delete patient record?</h3>
-              <p style={{ marginBottom: 6 }}><strong>{fullName}</strong> — {patient.implantIdCode}</p>
-              <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', lineHeight: 1.6, marginBottom: 8 }}>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+                <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontFamily: 'var(--ff)', fontSize: 14 }}>
+                  <span style={{ color: 'var(--muted)', fontSize: 11, letterSpacing: '.5px', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>Name</span>
+                  <strong>{fullName}</strong>
+                </div>
+                <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 14px', fontFamily: 'var(--ff)', fontSize: 14 }}>
+                  <span style={{ color: 'var(--muted)', fontSize: 11, letterSpacing: '.5px', textTransform: 'uppercase', display: 'block', marginBottom: 2 }}>ID</span>
+                  <strong style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{patient.implantIdCode}</strong>
+                </div>
+              </div>
+              <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', lineHeight: 1.6 }}>
                 <strong>This permanently deletes:</strong> the patient record, all linked devices, clinical notes, care team access, and clinic connections. This cannot be undone.
               </div>
-              <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', margin: 0 }}>
-                A 6-digit verification code will be sent to <strong>harry@dabhandmarketing.com</strong> to confirm.
-              </p>
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setDeleteStep('idle')}>Cancel</button>
+              <button className="btn btn-danger" onClick={() => { setDeleteNameInput(''); setDeleteConfirm(''); setDeleteError(''); setDeleteStep('entering') }}>
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete patient — Step 2: type name/ID + DELETE PATIENT ───────── */}
+      {deleteStep === 'entering' && (
+        <div className="logout-back open" onClick={() => setDeleteStep('idle')}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <div className="logout-body">
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </div>
+              <h3>Confirm deletion</h3>
+              <div className="field" style={{ marginBottom: 14 }}>
+                <label>
+                  Type the patient&apos;s full name or ID
+                  <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
+                </label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder={`${fullName} or ${patient.implantIdCode}`}
+                  value={deleteNameInput}
+                  onChange={e => { setDeleteNameInput(e.target.value); setDeleteError('') }}
+                  autoFocus
+                />
+              </div>
+              <div className="field" style={{ marginBottom: 6 }}>
+                <label>
+                  Type <strong style={{ fontFamily: 'SF Mono,Monaco,monospace', color: 'var(--err)' }}>DELETE PATIENT</strong> to confirm
+                  <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
+                </label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="DELETE PATIENT"
+                  value={deleteConfirm}
+                  onChange={e => { setDeleteConfirm(e.target.value); setDeleteError('') }}
+                />
+              </div>
               {deleteError && (
-                <div style={{ marginTop: 12, color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13 }}>{deleteError}</div>
+                <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginTop: 8 }}>{deleteError}</div>
               )}
             </div>
             <div className="logout-actions">
@@ -690,81 +746,28 @@ export default function PatientDetailClient({ id }: Props) {
                 className="btn btn-danger"
                 disabled={deleteLoading}
                 onClick={async () => {
-                  setDeleteLoading(true); setDeleteError('')
-                  try {
-                    const res = await fetch('/api/admin/send-delete-code', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ patientId: id }),
-                    })
-                    if (!res.ok) {
-                      const data = await res.json()
-                      throw new Error(data.error ?? 'Failed to send code')
-                    }
-                    setDeleteStep('entering')
-                  } catch (err) {
-                    setDeleteError((err as Error).message)
-                  } finally {
-                    setDeleteLoading(false)
+                  const nameMatch  = deleteNameInput.trim().toLowerCase() === fullName.toLowerCase()
+                  const idMatch    = deleteNameInput.trim() === patient.implantIdCode
+                  const phraseMatch = deleteConfirm.trim() === 'DELETE PATIENT'
+                  if (!nameMatch && !idMatch) {
+                    setDeleteError(`Name or ID doesn't match. Enter "${fullName}" or "${patient.implantIdCode}".`)
+                    return
                   }
-                }}
-              >
-                {deleteLoading ? 'Sending…' : 'Send verification code'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Delete patient — Step 2: enter code ──────────────────────────── */}
-      {deleteStep === 'entering' && (
-        <div className="logout-back open" onClick={() => setDeleteStep('idle')}>
-          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
-            <div className="logout-body">
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-              </div>
-              <h3>Enter verification code</h3>
-              <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
-                Check your email at <strong>harry@dabhandmarketing.com</strong> for a 6-digit code. It expires in 10 minutes.
-              </p>
-              <div className="field">
-                <label>6-digit code</label>
-                <input
-                  className="input"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="000000"
-                  value={deleteCode}
-                  onChange={e => setDeleteCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  style={{ fontSize: 24, letterSpacing: '0.3em', textAlign: 'center', fontFamily: 'SF Mono,Monaco,monospace' }}
-                  autoFocus
-                />
-              </div>
-              {deleteError && (
-                <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginTop: 4 }}>{deleteError}</div>
-              )}
-            </div>
-            <div className="logout-actions">
-              <button className="btn" onClick={() => setDeleteStep('idle')}>Cancel</button>
-              <button
-                className="btn btn-danger"
-                disabled={deleteCode.length !== 6 || deleteLoading}
-                onClick={async () => {
+                  if (!phraseMatch) {
+                    setDeleteError('Type DELETE PATIENT exactly (all caps) to confirm.')
+                    return
+                  }
                   setDeleteLoading(true); setDeleteError('')
                   try {
-                    await adminVerifyAndDeletePatient({ patientId: id as Id<'patients'>, code: deleteCode })
-                    router.push('/master/patients?deleted=1')
+                    await adminDeletePatient({ patientId: id as Id<'patients'> })
+                    router.push('/master/patients')
                   } catch (err) {
                     setDeleteError((err as Error).message ?? 'Deletion failed — try again.')
                     setDeleteLoading(false)
                   }
                 }}
               >
-                {deleteLoading ? 'Deleting…' : 'Confirm permanent deletion'}
+                {deleteLoading ? 'Deleting…' : 'Permanently delete'}
               </button>
             </div>
           </div>

@@ -1937,3 +1937,47 @@ export const adminVerifyAndDeletePatient = mutation({
     return { deleted: true }
   },
 })
+
+/** Admin: permanently cascade-delete a patient record.
+ *  Confirmation is handled entirely in the UI (name/ID + "DELETE PATIENT" typed by the admin). */
+export const adminDeletePatient = mutation({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const admin = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin only')
+
+    const patient = await ctx.db.get(args.patientId)
+    if (!patient) throw new Error('Patient not found')
+
+    async function deleteByPatient(table: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows = await (ctx.db.query(table as any) as any)
+        .withIndex('by_patient', (q: any) => q.eq('patientId', args.patientId))
+        .collect()
+      for (const row of rows) await ctx.db.delete(row._id)
+    }
+
+    await deleteByPatient('patientDevices')
+    await deleteByPatient('suspectedImplants')
+    await deleteByPatient('surgeonDocuments')
+    await deleteByPatient('staffPatients')
+    await deleteByPatient('accessRequests')
+    await deleteByPatient('careTeam')
+    await deleteByPatient('clinicalNotes')
+    await deleteByPatient('adminDeleteCodes')
+
+    if (patient.userId) {
+      const notifs = await ctx.db
+        .query('notifications')
+        .withIndex('by_user', q => q.eq('userId', patient.userId!))
+        .collect()
+      for (const n of notifs) await ctx.db.delete(n._id)
+      await ctx.db.delete(patient.userId)
+    }
+
+    await ctx.db.delete(args.patientId)
+    return { deleted: true }
+  },
+})

@@ -6,6 +6,15 @@ import { useRouter } from 'next/navigation'
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 
+// Strips the "[CONVEX M(...)] Server Error Uncaught Error: " prefix from thrown errors
+// so only the human-readable message reaches the UI.
+function convexMsg(e: unknown, fallback = 'Something went wrong'): string {
+  const raw = (e as { message?: string })?.message ?? fallback
+  // Extract the text after "Uncaught Error: " and before " at handler"
+  const m = raw.match(/Uncaught Error:\s*([\s\S]*?)(?:\s+at handler\s|\s+Called by)/i)
+  return (m ? m[1] : raw).trim() || fallback
+}
+
 const CAPABILITY_OPTIONS = [
   { value: 'Pacemaker / ICD',  label: 'Pacemaker / ICD' },
   { value: 'Cochlear',         label: 'Cochlear' },
@@ -86,7 +95,7 @@ export default function ApplicationClient({ id }: { id: string }) {
       await retriggerClinicActivation({ applicationId: app._id })
       setResendDone(true)
     } catch (e) {
-      setResendError((e as { message?: string })?.message ?? 'Failed to resend')
+      setResendError(convexMsg(e, 'Failed to resend'))
     } finally {
       setResending(false)
     }
@@ -112,7 +121,7 @@ export default function ApplicationClient({ id }: { id: string }) {
       setEmailDone(result.wasApproved ? 'resent' : 'saved')
       setTimeout(() => setEmailDone(null), 5000)
     } catch (e) {
-      setEmailError((e as { message?: string })?.message ?? 'Failed to update email')
+      setEmailError(convexMsg(e, 'Failed to update email'))
     } finally {
       setEmailSaving(false)
     }
@@ -150,7 +159,7 @@ export default function ApplicationClient({ id }: { id: string }) {
       // Immediate navigation can redirect to /login before the session processes.
       setTimeout(() => router.push('/master/clinics'), 350)
     } catch (e) {
-      setSubmitError((e as { message?: string })?.message ?? 'Something went wrong')
+      setSubmitError(convexMsg(e, 'Something went wrong'))
     } finally {
       setSubmitting(false)
     }
@@ -435,7 +444,7 @@ export default function ApplicationClient({ id }: { id: string }) {
                 setAdminCapsSaved(true)
                 setTimeout(() => setAdminCapsSaved(false), 3000)
               } catch (e) {
-                setAdminCapsError((e as { message?: string })?.message ?? 'Save failed')
+                setAdminCapsError(convexMsg(e, 'Save failed'))
               } finally {
                 setAdminCapsSaving(false)
               }
@@ -580,8 +589,8 @@ export default function ApplicationClient({ id }: { id: string }) {
                   setFreeToggling(true); setFreeErr('')
                   try {
                     await setForeverFree({ clinicId: (app as any).clinic._id, foreverFree: !(app as any).clinic.foreverFree })
-                  } catch (e: any) {
-                    setFreeErr(e.message)
+                  } catch (e) {
+                    setFreeErr(convexMsg(e, 'Failed to update'))
                   } finally {
                     setFreeToggling(false)
                   }

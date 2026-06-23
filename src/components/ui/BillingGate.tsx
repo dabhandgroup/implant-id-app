@@ -2,7 +2,7 @@
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { useState, useEffect } from 'react'
-import { useAuth } from '@clerk/nextjs'
+import { useAuth, useClerk } from '@clerk/nextjs'
 
 const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/eVqdR80wae9xbHSeS293y0s'
 
@@ -117,6 +117,7 @@ const PLANS = [
 export function PlanPicker({ reason, onSkip }: { reason: 'trial_expired' | 'canceled' | 'unpaid'; onSkip?: () => void }) {
   const [currency, setCurrency] = useState<'AUD' | 'GBP' | 'USD'>('AUD')
   const [interval, setInterval] = useState<'monthly' | 'annual'>('monthly')
+  const { signOut } = useClerk()
 
   const currencySymbol = { AUD: 'A$', GBP: '£', USD: '$' }[currency]
 
@@ -138,6 +139,25 @@ export function PlanPicker({ reason, onSkip }: { reason: 'trial_expired' | 'canc
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: '32px 16px', position: 'relative' }}>
+      {/* Log out — always visible top-left */}
+      <button
+        onClick={() => signOut({ redirectUrl: '/sign-in' })}
+        aria-label="Log out"
+        style={{
+          position: 'fixed', top: 16, left: 16,
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'var(--bg2)', border: '1px solid var(--border)',
+          borderRadius: 8, padding: '6px 12px',
+          cursor: 'pointer', color: 'var(--muted)', fontSize: 13, fontFamily: 'var(--ff)',
+          zIndex: 50,
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Log out
+      </button>
+
       {/* Always-visible dismiss button — fixed top-right */}
       {onSkip && (
         <button

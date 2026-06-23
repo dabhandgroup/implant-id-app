@@ -55,6 +55,12 @@ export default function PatientDetailClient({ id }: Props) {
   const [assigningClinic, setAssigningClinic] = useState(false)
   const [assignClinicErr, setAssignClinicErr] = useState('')
 
+  // Delete patient (2-step: send code → enter code)
+  const [deleteStep,      setDeleteStep]      = useState<'idle' | 'confirm' | 'entering'>('idle')
+  const [deleteCode,      setDeleteCode]      = useState('')
+  const [deleteError,     setDeleteError]     = useState('')
+  const [deleteLoading,   setDeleteLoading]   = useState(false)
+
   const patient                   = useQuery(api.patients.getPatientById, { patientId: id as Id<'patients'> })
   const allDevices                = useQuery(api.devices.listDevices)
   const patientClinics            = useQuery(api.patients.getPatientClinics, { patientId: id as Id<'patients'> })
@@ -64,8 +70,9 @@ export default function PatientDetailClient({ id }: Props) {
   const removeDevice              = useMutation(api.patients.removePatientDevice)
   const adminSetStatus            = useMutation(api.patients.adminSetPatientStatus)
   const adminUpdatePatientEmail   = useMutation(api.patients.adminUpdatePatientEmail)
-  const adminAssignPatientToClinic = useMutation(api.patients.adminAssignPatientToClinic)
-  const router                    = useRouter()
+  const adminAssignPatientToClinic    = useMutation(api.patients.adminAssignPatientToClinic)
+  const adminVerifyAndDeletePatient   = useMutation(api.patients.adminVerifyAndDeletePatient)
+  const router                        = useRouter()
 
   // Filter devices for search
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -435,6 +442,33 @@ export default function PatientDetailClient({ id }: Props) {
         </div>
       </div>
 
+      {/* Danger zone */}
+      <div style={{ marginTop: 32, border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', background: 'color-mix(in srgb,var(--err) 5%,transparent)', borderBottom: '1px solid color-mix(in srgb,var(--err) 15%,transparent)' }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--err)' }}>
+            Danger zone
+          </div>
+        </div>
+        <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+          <div>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+              Delete patient record
+            </div>
+            <div style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+              Permanently removes the patient, all linked devices, clinical notes, and clinic access. A verification code will be sent to your email to confirm.
+            </div>
+          </div>
+          <button
+            className="btn btn-danger"
+            style={{ flexShrink: 0 }}
+            onClick={() => { setDeleteCode(''); setDeleteError(''); setDeleteStep('confirm') }}
+            aria-label="Delete patient record"
+          >
+            Delete patient
+          </button>
+        </div>
+      </div>
+
       {/* Assign to clinic modal */}
       {clinicModalOpen && (
         <div className="logout-back open" onClick={() => setClinicModalOpen(false)}>
@@ -622,6 +656,115 @@ export default function PatientDetailClient({ id }: Props) {
                 }}
               >
                 {addingDevice ? 'Adding…' : 'Add to record'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete patient — Step 1: warning + send code ─────────────────── */}
+      {deleteStep === 'confirm' && (
+        <div className="logout-back open" onClick={() => setDeleteStep('idle')}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div className="logout-body">
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </div>
+              <h3 style={{ color: 'var(--err)' }}>Delete patient record?</h3>
+              <p style={{ marginBottom: 6 }}><strong>{fullName}</strong> — {patient.implantIdCode}</p>
+              <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', lineHeight: 1.6, marginBottom: 8 }}>
+                <strong>This permanently deletes:</strong> the patient record, all linked devices, clinical notes, care team access, and clinic connections. This cannot be undone.
+              </div>
+              <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', margin: 0 }}>
+                A 6-digit verification code will be sent to <strong>harry@dabhandmarketing.com</strong> to confirm.
+              </p>
+              {deleteError && (
+                <div style={{ marginTop: 12, color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13 }}>{deleteError}</div>
+              )}
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setDeleteStep('idle')}>Cancel</button>
+              <button
+                className="btn btn-danger"
+                disabled={deleteLoading}
+                onClick={async () => {
+                  setDeleteLoading(true); setDeleteError('')
+                  try {
+                    const res = await fetch('/api/admin/send-delete-code', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ patientId: id }),
+                    })
+                    if (!res.ok) {
+                      const data = await res.json()
+                      throw new Error(data.error ?? 'Failed to send code')
+                    }
+                    setDeleteStep('entering')
+                  } catch (err) {
+                    setDeleteError((err as Error).message)
+                  } finally {
+                    setDeleteLoading(false)
+                  }
+                }}
+              >
+                {deleteLoading ? 'Sending…' : 'Send verification code'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete patient — Step 2: enter code ──────────────────────────── */}
+      {deleteStep === 'entering' && (
+        <div className="logout-back open" onClick={() => setDeleteStep('idle')}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div className="logout-body">
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <h3>Enter verification code</h3>
+              <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
+                Check your email at <strong>harry@dabhandmarketing.com</strong> for a 6-digit code. It expires in 10 minutes.
+              </p>
+              <div className="field">
+                <label>6-digit code</label>
+                <input
+                  className="input"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={deleteCode}
+                  onChange={e => setDeleteCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  style={{ fontSize: 24, letterSpacing: '0.3em', textAlign: 'center', fontFamily: 'SF Mono,Monaco,monospace' }}
+                  autoFocus
+                />
+              </div>
+              {deleteError && (
+                <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginTop: 4 }}>{deleteError}</div>
+              )}
+            </div>
+            <div className="logout-actions">
+              <button className="btn" onClick={() => setDeleteStep('idle')}>Cancel</button>
+              <button
+                className="btn btn-danger"
+                disabled={deleteCode.length !== 6 || deleteLoading}
+                onClick={async () => {
+                  setDeleteLoading(true); setDeleteError('')
+                  try {
+                    await adminVerifyAndDeletePatient({ patientId: id as Id<'patients'>, code: deleteCode })
+                    router.push('/master/patients?deleted=1')
+                  } catch (err) {
+                    setDeleteError((err as Error).message ?? 'Deletion failed — try again.')
+                    setDeleteLoading(false)
+                  }
+                }}
+              >
+                {deleteLoading ? 'Deleting…' : 'Confirm permanent deletion'}
               </button>
             </div>
           </div>

@@ -535,4 +535,12 @@ export default defineSchema({
     notes:                v.optional(v.string()),
   })
     .index('by_system_id', ['systemId']),
+
+  // One-time delete-confirmation codes for master admin patient deletion
+  adminDeleteCodes: defineTable({
+    patientId: v.id('patients'),
+    code:      v.string(),
+    expiresAt: v.number(),
+    used:      v.boolean(),
+  }).index('by_patient', ['patientId']),
 })

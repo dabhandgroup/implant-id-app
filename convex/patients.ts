@@ -1836,3 +1836,104 @@ export const getFullPatientByCode = query({
   },
 })
 
+
+/** Admin: generate a one-time 6-digit code to confirm patient deletion.
+ *  Called server-side only (via fetchMutation in the Next.js API route) so
+ *  the plaintext code never reaches the browser. */
+export const adminGenerateDeleteCode = mutation({
+  args: { patientId: v.id('patients') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const admin = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin only')
+
+    const patient = await ctx.db.get(args.patientId)
+    if (!patient) throw new Error('Patient not found')
+
+    // Invalidate any existing codes for this patient
+    const existing = await ctx.db
+      .query('adminDeleteCodes')
+      .withIndex('by_patient', q => q.eq('patientId', args.patientId))
+      .collect()
+    for (const doc of existing) await ctx.db.delete(doc._id)
+
+    // Generate a 6-digit numeric code
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+
+    await ctx.db.insert('adminDeleteCodes', {
+      patientId: args.patientId,
+      code,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      used:      false,
+    })
+
+    return { code, patientName: `${patient.firstName} ${patient.lastName}` }
+  },
+})
+
+/** Admin: verify the delete code then permanently cascade-delete the patient record. */
+export const adminVerifyAndDeletePatient = mutation({
+  args: {
+    patientId: v.id('patients'),
+    code:      v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const admin = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin only')
+
+    // Verify the code
+    const codeDoc = await ctx.db
+      .query('adminDeleteCodes')
+      .withIndex('by_patient', q => q.eq('patientId', args.patientId))
+      .first()
+
+    if (!codeDoc)              throw new Error('No verification code found — request a new code.')
+    if (codeDoc.used)          throw new Error('Code already used — request a new code.')
+    if (Date.now() > codeDoc.expiresAt) throw new Error('Code expired — request a new code.')
+    if (codeDoc.code !== args.code.trim()) throw new Error('Incorrect code.')
+
+    await ctx.db.patch(codeDoc._id, { used: true })
+
+    const patient = await ctx.db.get(args.patientId)
+    if (!patient) throw new Error('Patient not found')
+
+    // Helper: delete all rows in a table where patientId matches via by_patient index
+    async function deleteByPatient(table: string) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rows = await (ctx.db.query(table as any) as any)
+        .withIndex('by_patient', (q: any) => q.eq('patientId', args.patientId))
+        .collect()
+      for (const row of rows) await ctx.db.delete(row._id)
+    }
+
+    await deleteByPatient('patientDevices')
+    await deleteByPatient('suspectedImplants')
+    await deleteByPatient('surgeonDocuments')
+    await deleteByPatient('staffPatients')
+    await deleteByPatient('accessRequests')
+    await deleteByPatient('careTeam')
+    await deleteByPatient('clinicalNotes')
+
+    // Notifications are keyed by userId, not patientId
+    if (patient.userId) {
+      const notifs = await ctx.db
+        .query('notifications')
+        .withIndex('by_user', q => q.eq('userId', patient.userId!))
+        .collect()
+      for (const n of notifs) await ctx.db.delete(n._id)
+      // Remove the linked users record
+      await ctx.db.delete(patient.userId)
+    }
+
+    // Remove the delete-code document
+    await ctx.db.delete(codeDoc._id)
+
+    // Finally, delete the patient record itself
+    await ctx.db.delete(args.patientId)
+
+    return { deleted: true }
+  },
+})

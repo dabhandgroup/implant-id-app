@@ -40,7 +40,7 @@ const PLANS = [
   },
 ]
 
-export function PlanPicker({ reason }: { reason: 'trial_expired' | 'canceled' | 'unpaid' }) {
+export function PlanPicker({ reason, onSkip }: { reason: 'trial_expired' | 'canceled' | 'unpaid'; onSkip?: () => void }) {
   const [currency, setCurrency] = useState<'AUD' | 'GBP' | 'USD'>('AUD')
   const [interval, setInterval] = useState<'monthly' | 'annual'>('monthly')
 
@@ -123,6 +123,18 @@ export function PlanPicker({ reason }: { reason: 'trial_expired' | 'canceled' | 
           <a href="mailto:hello@implant-id.com" style={{ color: 'var(--accent-deep)', fontWeight: 500 }}>Talk to us about Large Team →</a>
         </div>
 
+        {/* Skip for now */}
+        {onSkip && (
+          <div style={{ textAlign: 'center', marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+            <button
+              onClick={onSkip}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', fontSize: 13, textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              Skip for now
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   )
@@ -171,7 +183,8 @@ export function TrialBanner({ trialEndsAt }: { trialEndsAt: number }) {
 // ── Main gate wrapper ─────────────────────────────────────────────────────────
 
 export function BillingGate({ children }: { children: React.ReactNode }) {
-  const billing = useQuery(api.clinics.getBillingStatus)
+  const billing  = useQuery(api.clinics.getBillingStatus)
+  const [skipped, setSkipped] = useState(false)
 
   // Still loading — don't block
   if (billing === undefined) return <>{children}</>
@@ -207,11 +220,13 @@ export function BillingGate({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Trial expired, past_due grace elapsed, or canceled — full block
+  // Trial expired, past_due grace elapsed, or canceled — full block (skippable for now)
+  if (skipped) return <>{children}</>
+
   const reason: 'trial_expired' | 'canceled' | 'unpaid' =
     billing.billingStatus === 'canceled' ? 'canceled' :
     billing.billingStatus === 'past_due' ? 'unpaid' :
     'trial_expired'
 
-  return <PlanPicker reason={reason} />
+  return <PlanPicker reason={reason} onSkip={() => setSkipped(true)} />
 }

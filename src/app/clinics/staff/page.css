@@ -43,6 +43,7 @@
 @media (max-width: 700px) {
   .staff-row { grid-template-columns: 38px 1fr; }
   .staff-row > *:nth-child(n+3) { display: none; }
+  .audit-entry { padding: 12px 16px; }
 }
 
 /* ── Add-staff two-column grid ─────────────────────────────────────────────── */

@@ -278,7 +278,7 @@ export default function StaffClient() {
           ) : (
             <div>
               {staffAuditLog.map((entry: any) => (
-                <div key={entry._id} style={{
+                <div key={entry._id} className="audit-entry" style={{
                   display: 'flex', alignItems: 'flex-start', gap: 14, padding: '13px 24px',
                   borderBottom: '1px solid var(--border)', fontFamily: 'var(--ff)',
                 }}>
@@ -287,17 +287,19 @@ export default function StaffClient() {
                       <circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>
                     </svg>
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500 }}>{entry.action}</div>
                     {entry.detail && <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{entry.detail}</div>}
                     {entry.patientName && entry.patientCode && (
                       <Link
                         href={`/clinics/patient-view?code=${encodeURIComponent(entry.patientCode)}`}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 4, fontSize: 12, color: 'var(--accent-deep)', textDecoration: 'none', fontWeight: 500 }}
+                        style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 5, marginTop: 4, fontSize: 12, color: 'var(--accent-deep)', textDecoration: 'none', fontWeight: 500, lineHeight: 1.4 }}
                       >
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        {entry.patientName}
-                        <span style={{ color: 'var(--muted2)', fontWeight: 400 }}>{entry.patientCode}</span>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span>
+                          <span style={{ display: 'block' }}>{entry.patientName}</span>
+                          <span style={{ display: 'block', color: 'var(--muted2)', fontWeight: 400, fontFamily: 'SF Mono,Monaco,monospace', fontSize: 11 }}>{entry.patientCode}</span>
+                        </span>
                       </Link>
                     )}
                   </div>

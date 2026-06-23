@@ -226,6 +226,7 @@ export default function AiChatClient() {
   const [hoveredChatId,    setHoveredChatId]    = useState<string | null>(null)
   const [renamingChatId,   setRenamingChatId]   = useState<string | null>(null)
   const [renameValue,      setRenameValue]      = useState('')
+  const [thinkingPhaseIdx, setThinkingPhaseIdx] = useState(0)
 
   // Derive dup pairs from last assistant message unconditionally
   const _lastMsg = messages.length > 0 ? messages[messages.length - 1] : null
@@ -252,6 +253,17 @@ export default function AiChatClient() {
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`
   }, [input])
+
+  const _isFileThinking = messages[messages.length - 1]?.isFileImport ?? false
+  const _thinkingMessages = _isFileThinking
+    ? ['Reading your file…', 'Extracting device data…', 'Building comparison tables…', 'Checking MRI specifications…', 'Compiling import data…']
+    : ['Thinking…', 'Looking up device data…', 'Preparing response…']
+
+  useEffect(() => {
+    if (!loading || streamingContent) { setThinkingPhaseIdx(0); return }
+    const timer = setInterval(() => setThinkingPhaseIdx(i => (i + 1) % _thinkingMessages.length), 2500)
+    return () => clearInterval(timer)
+  }, [loading, streamingContent, _thinkingMessages.length])
 
   function readFileAsBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -801,10 +813,15 @@ export default function AiChatClient() {
               <div style={{ maxWidth: '82%', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '4px 14px 14px 14px', padding: '12px 16px' }}>
                 {streamingContent
                   ? <MarkdownText text={stripImportBlock(streamingContent)} />
-                  : <div style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '2px 0' }}>
-                      {[0, 1, 2].map(i => (
-                        <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', animation: `ai-pulse 1.2s ease-in-out ${i * 0.2}s infinite`, opacity: 0.5 }} />
-                      ))}
+                  : <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '2px 0' }}>
+                      <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexShrink: 0 }}>
+                        {[0, 1, 2].map(i => (
+                          <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: `ai-pulse 1.2s ease-in-out ${i * 0.2}s infinite`, opacity: 0.5 }} />
+                        ))}
+                      </div>
+                      <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', animation: 'ai-fade-in .3s ease' }}>
+                        {_thinkingMessages[thinkingPhaseIdx]}
+                      </span>
                     </div>
                 }
               </div>
@@ -880,6 +897,10 @@ export default function AiChatClient() {
         @keyframes ai-pulse {
           0%, 100% { opacity: 0.3; transform: scale(0.85); }
           50%       { opacity: 1;   transform: scale(1.1); }
+        }
+        @keyframes ai-fade-in {
+          from { opacity: 0; transform: translateY(2px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>

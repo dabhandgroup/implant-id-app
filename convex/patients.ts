@@ -1917,8 +1917,8 @@ export const adminVerifyAndDeletePatient = mutation({
     await deleteByPatient('careTeam')
     await deleteByPatient('clinicalNotes')
 
-    // Notifications are keyed by userId, not patientId
-    if (patient.userId) {
+    // Notifications and user record — only remove if not the admin's own account
+    if (patient.userId && patient.userId !== admin._id) {
       const notifs = await ctx.db
         .query('notifications')
         .withIndex('by_user', q => q.eq('userId', patient.userId!))

@@ -709,33 +709,53 @@ export default function PatientDetailClient({ id }: Props) {
                 </svg>
               </div>
               <h3>Confirm deletion</h3>
-              <div className="field" style={{ marginBottom: 14 }}>
-                <label>
-                  Type the patient&apos;s full name or ID
-                  <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
+
+              {/* GitHub-style: show the value, then type it below */}
+              <div className="field" style={{ marginBottom: 16 }}>
+                <label style={{ marginBottom: 6 }}>
+                  To confirm, type the patient&apos;s full name below
                 </label>
+                <div style={{
+                  fontFamily: 'SF Mono,Monaco,monospace', fontSize: 13, fontWeight: 600,
+                  background: 'color-mix(in srgb,var(--err) 6%,transparent)',
+                  border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
+                  borderRadius: 7, padding: '7px 12px', marginBottom: 8,
+                  color: 'var(--text)', userSelect: 'all',
+                }}>
+                  {fullName}
+                </div>
                 <input
                   className="input"
                   type="text"
-                  placeholder={`${fullName} or ${patient.implantIdCode}`}
+                  placeholder="Type name here"
                   value={deleteNameInput}
                   onChange={e => { setDeleteNameInput(e.target.value); setDeleteError('') }}
                   autoFocus
                 />
               </div>
+
               <div className="field" style={{ marginBottom: 6 }}>
-                <label>
-                  Type <strong style={{ fontFamily: 'SF Mono,Monaco,monospace', color: 'var(--err)' }}>DELETE PATIENT</strong> to confirm
-                  <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span>
+                <label style={{ marginBottom: 6 }}>
+                  Then type the confirmation phrase
                 </label>
+                <div style={{
+                  fontFamily: 'SF Mono,Monaco,monospace', fontSize: 13, fontWeight: 600,
+                  background: 'color-mix(in srgb,var(--err) 6%,transparent)',
+                  border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
+                  borderRadius: 7, padding: '7px 12px', marginBottom: 8,
+                  color: 'var(--err)', userSelect: 'all',
+                }}>
+                  DELETE PATIENT
+                </div>
                 <input
                   className="input"
                   type="text"
-                  placeholder="DELETE PATIENT"
+                  placeholder="Type confirmation phrase"
                   value={deleteConfirm}
                   onChange={e => { setDeleteConfirm(e.target.value); setDeleteError('') }}
                 />
               </div>
+
               {deleteError && (
                 <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginTop: 8 }}>{deleteError}</div>
               )}

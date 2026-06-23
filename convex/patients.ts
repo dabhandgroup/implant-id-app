@@ -1968,7 +1968,7 @@ export const adminDeletePatient = mutation({
     await deleteByPatient('clinicalNotes')
     await deleteByPatient('adminDeleteCodes')
 
-    if (patient.userId) {
+    if (patient.userId && patient.userId !== admin._id) {
       const notifs = await ctx.db
         .query('notifications')
         .withIndex('by_user', q => q.eq('userId', patient.userId!))

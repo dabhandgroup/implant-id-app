@@ -1,7 +1,7 @@
 'use client'
 import { useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@clerk/nextjs'
 
 const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/eVqdR80wae9xbHSeS293y0s'
@@ -14,6 +14,80 @@ function daysUntil(ts: number): number {
 
 function dateStr(ts: number): string {
   return new Date(ts).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+// ── Odometer digit — rolls old digit out (up) and new digit in (from below) ──
+
+function OdometerDigit({ char }: { char: string }) {
+  const [{ prev, cur, gen }, setState] = useState({ prev: char, cur: char, gen: 0 })
+
+  useEffect(() => {
+    if (char !== cur) {
+      setState(s => ({ prev: s.cur, cur: char, gen: s.gen + 1 }))
+    }
+  }, [char, cur])
+
+  return (
+    <span style={{
+      display: 'inline-block',
+      overflow: 'hidden',
+      height: '1em',
+      lineHeight: 1,
+      position: 'relative',
+      verticalAlign: 'bottom',
+    }}>
+      <span
+        key={gen}
+        style={{
+          display: 'block',
+          lineHeight: 1,
+          animation: gen > 0 ? 'odoOut 230ms cubic-bezier(.4,0,.6,1) forwards' : undefined,
+        }}
+      >
+        {prev}
+      </span>
+      {gen > 0 && (
+        <span
+          key={`i${gen}`}
+          style={{
+            display: 'block',
+            position: 'absolute',
+            inset: 0,
+            lineHeight: 1,
+            animation: 'odoIn 230ms cubic-bezier(.4,0,.2,1) forwards',
+          }}
+        >
+          {cur}
+        </span>
+      )}
+    </span>
+  )
+}
+
+// Splits a number into stable-keyed chars (aligned from the right so digit
+// positions don't shift when the number gains/loses a digit).
+function AnimatedPrice({ value, symbol, period }: { value: number; symbol: string; period: string }) {
+  const reversed = String(value).split('').reverse()
+  const chars: Array<{ char: string; key: string; isDigit: boolean }> = []
+  reversed.forEach((d, i) => {
+    chars.push({ char: d, key: `d${i}`, isDigit: true })
+    if ((i + 1) % 3 === 0 && i < reversed.length - 1) {
+      chars.push({ char: ',', key: `c${Math.floor((i + 1) / 3)}`, isDigit: false })
+    }
+  })
+  chars.reverse()
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'flex-end', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+      <span style={{ lineHeight: 1 }}>{symbol}</span>
+      {chars.map(({ char, key, isDigit }) =>
+        isDigit
+          ? <OdometerDigit key={key} char={char} />
+          : <span key={key} style={{ lineHeight: 1 }}>{char}</span>
+      )}
+      <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)', marginLeft: 2 }}>/{period}</span>
+    </span>
+  )
 }
 
 // ── Plan picker (shown when trial expired or canceled) ────────────────────────
@@ -101,9 +175,30 @@ export function PlanPicker({ reason, onSkip }: { reason: 'trial_expired' | 'canc
                 {p.popular && <div style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 12px', borderRadius: '0 0 8px 8px', letterSpacing: '.04em' }}>MOST POPULAR</div>}
                 <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>{p.name}</div>
                 <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>{p.desc}</div>
-                <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.03em', marginBottom: 20 }}>
-                  {sym}{interval === 'annual' ? price.toLocaleString() : price}
-                  <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--muted)' }}>/{interval === 'annual' ? 'yr' : 'mo'}</span>
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text)', letterSpacing: '-.03em', lineHeight: 1, marginBottom: 6 }}>
+                    <AnimatedPrice
+                      value={price}
+                      symbol={sym}
+                      period={interval === 'annual' ? 'yr' : 'mo'}
+                    />
+                  </div>
+                  {interval === 'annual' && (
+                    <span style={{
+                      display: 'inline-block',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '3px 9px',
+                      background: 'color-mix(in srgb,var(--accent) 14%,transparent)',
+                      color: 'var(--accent-deep)',
+                      borderRadius: 20,
+                      letterSpacing: '.04em',
+                      textTransform: 'uppercase',
+                      animation: 'odoBadge 200ms cubic-bezier(.4,0,.2,1)',
+                    }}>
+                      2 months free
+                    </span>
+                  )}
                 </div>
                 <button
                   className="btn btn-s btn-block btn-lg"

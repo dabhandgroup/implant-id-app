@@ -137,7 +137,25 @@ export function PlanPicker({ reason, onSkip }: { reason: 'trial_expired' | 'canc
     : 'Subscribe to restore access to your clinic portal.'
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: '32px 16px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: '32px 16px', position: 'relative' }}>
+      {/* Always-visible dismiss button — fixed top-right */}
+      {onSkip && (
+        <button
+          onClick={onSkip}
+          aria-label="Skip for now"
+          style={{
+            position: 'fixed', top: 16, right: 16,
+            width: 36, height: 36, borderRadius: '50%',
+            background: 'var(--bg2)', border: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', color: 'var(--muted)', zIndex: 50,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      )}
       <div style={{ maxWidth: 680, width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: reason === 'unpaid' ? 'rgba(var(--err-rgb,220,53,69),.1)' : 'rgba(var(--accent-rgb,0,150,136),.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>

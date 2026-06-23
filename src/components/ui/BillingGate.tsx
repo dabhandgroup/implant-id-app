@@ -256,14 +256,21 @@ export function PlanPicker({ reason, onSkip }: { reason: 'trial_expired' | 'canc
           <a href="mailto:hello@implant-id.com" style={{ color: 'var(--accent-deep)', fontWeight: 500 }}>Talk to us about Large Team →</a>
         </div>
 
-        {/* Skip for now */}
+        {/* Skip payment — testing escape hatch */}
         {onSkip && (
-          <div style={{ textAlign: 'center', marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+          <div style={{ marginTop: 20, borderTop: '1px solid var(--border)', paddingTop: 20 }}>
             <button
               onClick={onSkip}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', fontSize: 13, textDecoration: 'underline', textUnderlineOffset: 3 }}
+              style={{
+                display: 'block', width: '100%',
+                background: 'none', border: '1px dashed var(--border2)',
+                borderRadius: 10, padding: '12px 20px', cursor: 'pointer',
+                color: 'var(--muted)', fontSize: 13, fontFamily: 'var(--ff)',
+                textAlign: 'center', lineHeight: 1.4,
+              }}
             >
-              Skip for now
+              <span style={{ display: 'block', fontWeight: 600, marginBottom: 2, color: 'var(--text)' }}>Skip payment method</span>
+              <span style={{ fontSize: 12, color: 'var(--muted2)' }}>For testing only — pricing not yet finalised</span>
             </button>
           </div>
         )}

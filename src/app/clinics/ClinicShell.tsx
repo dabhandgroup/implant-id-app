@@ -229,8 +229,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
     const subActive     = billing.billingStatus === 'active'
     const pastDueGrace  = billing.billingStatus === 'past_due' && !!billing.gracePeriodEndsAt && billing.gracePeriodEndsAt > now
     const blocked       = !trialActive && !subActive && !pastDueGrace
-    if (blocked) {
-      if (billingSkipped) return null // fall through to portal below
+    if (blocked && !billingSkipped) {
       const reason: 'trial_expired' | 'canceled' | 'unpaid' =
         billing.billingStatus === 'canceled' ? 'canceled' :
         billing.billingStatus === 'past_due'  ? 'unpaid'  : 'trial_expired'

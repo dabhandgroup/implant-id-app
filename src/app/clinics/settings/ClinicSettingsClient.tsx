@@ -521,7 +521,7 @@ export default function ClinicSettingsClient() {
           {showUpgrade ? (
             <div>
               <button className="btn" style={{ marginBottom: 20, fontSize: 13 }} onClick={() => setShowUpgrade(false)}>← Back</button>
-              <PlanPicker reason="trial_expired" />
+              <PlanPicker reason="trial_expired" onSkip={() => setShowUpgrade(false)} />
             </div>
           ) : billing?.foreverFree ? (
             <div className="card">

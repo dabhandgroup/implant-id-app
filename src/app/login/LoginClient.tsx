@@ -497,8 +497,8 @@ export default function LoginClient() {
 
           {/* ── Tabs ──────────────────────────────────────────────────────── */}
           <div className="auth-tabs">
-            <button className={tab === 'patient' ? 'active' : ''} onClick={() => { setTab('patient'); setError('') }}>Patient</button>
-            <button className={tab === 'clinic'  ? 'active' : ''} onClick={() => { setTab('clinic');  setError('') }}>Clinic</button>
+            <button type="button" className={tab === 'patient' ? 'active' : ''} onPointerDown={() => { setTab('patient'); setError('') }} onClick={() => { setTab('patient'); setError('') }}>Patient</button>
+            <button type="button" className={tab === 'clinic'  ? 'active' : ''} onPointerDown={() => { setTab('clinic');  setError('') }} onClick={() => { setTab('clinic');  setError('') }}>Clinic</button>
           </div>
 
           {/* ── PATIENT TAB ───────────────────────────────────────────────── */}

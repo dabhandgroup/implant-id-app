@@ -73,11 +73,12 @@ export default function MasterSettingsClient() {
   }
 
   // ── Admin user management ─────────────────────────────────────────────────
-  const admins           = useQuery(api.users.listAdmins)
-  const inviteAdmin      = useMutation(api.users.inviteAdmin)
-  const updateAdmin      = useMutation(api.users.updateAdmin)
-  const removeAdmin      = useMutation(api.users.removeAdmin)
-  const resendAdminInvite = useMutation(api.users.resendAdminInvite)
+  const admins             = useQuery(api.users.listAdmins)
+  const inviteAdmin        = useMutation(api.users.inviteAdmin)
+  const updateAdmin        = useMutation(api.users.updateAdmin)
+  const removeAdmin        = useMutation(api.users.removeAdmin)
+  const resendAdminInvite  = useMutation(api.users.resendAdminInvite)
+  const notifyRemoval      = useAction(api.adminDeleteActions.adminNotifyAdminRemoval)
   const [inviteName,  setInviteName]  = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting,    setInviting]    = useState(false)
@@ -123,8 +124,13 @@ export default function MasterSettingsClient() {
 
   async function handleRemoveAdmin(id: string) {
     setRemovingId(id)
+    const target = (admins ?? []).find((a: any) => a._id === id)
     try {
       await removeAdmin({ userId: id as never })
+      // Non-fatal — send notification email after successful removal
+      if (target?.email) {
+        notifyRemoval({ removedEmail: target.email, removedName: target.name ?? target.email }).catch(() => {/* non-fatal */})
+      }
     } catch (e) {
       alert((e as { message?: string })?.message ?? 'Failed to remove admin')
     } finally {

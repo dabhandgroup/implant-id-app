@@ -37,7 +37,7 @@ export const listDevices = query({
   },
 })
 
-/** List all devices regardless of status (master admin only). */
+/** List all devices regardless of status (master admin only), excluding trash. */
 export const listAllDevices = query({
   args: { limit: v.optional(v.number()), status: v.optional(v.union(v.literal('draft'), v.literal('pending_review'), v.literal('live'), v.literal('recalled'))) },
   handler: async (ctx, args) => {
@@ -48,10 +48,27 @@ export const listAllDevices = query({
         .order('desc')
         .take(args.limit ?? 200)
     }
-    return ctx.db
+    const all = await ctx.db
       .query('devices')
       .order('desc')
       .take(args.limit ?? 200)
+    return all.filter((d) => d.status !== 'trash')
+  },
+})
+
+/** List devices in trash (master admin only). */
+export const listTrashDevices = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') return []
+    return ctx.db
+      .query('devices')
+      .withIndex('by_status', (q) => q.eq('status', 'trash'))
+      .order('desc')
+      .take(200)
   },
 })
 
@@ -309,6 +326,52 @@ export const deleteDevice = mutation({
       throw new Error('Cannot delete: one or more patient records are linked to this device.')
     }
 
+    await ctx.db.delete(args.id)
+  },
+})
+
+/** Move a device to trash — removes from all public views. Safe even if patients are linked. */
+export const moveDeviceToTrash = mutation({
+  args: { id: v.id('devices') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+    await ctx.db.patch(args.id, { status: 'trash' })
+  },
+})
+
+/** Restore a trashed device back to its previous status (live). */
+export const restoreDevice = mutation({
+  args: { id: v.id('devices') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+    const device = await ctx.db.get(args.id)
+    if (!device || device.status !== 'trash') throw new Error('Device is not in trash')
+    await ctx.db.patch(args.id, { status: 'live' })
+  },
+})
+
+/** Permanently delete a trashed device. Cascades patientDevices links. */
+export const permanentlyDeleteDevice = mutation({
+  args: { id: v.id('devices') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+    const device = await ctx.db.get(args.id)
+    if (!device || device.status !== 'trash') throw new Error('Device must be in trash before permanent deletion')
+    // Cascade-delete all patient device links
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_device', (q) => q.eq('deviceId', args.id))
+      .collect()
+    await Promise.all(links.map((l) => ctx.db.delete(l._id)))
     await ctx.db.delete(args.id)
   },
 })

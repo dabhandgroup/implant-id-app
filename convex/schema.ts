@@ -35,7 +35,7 @@ export default defineSchema({
     submittedByManufacturer: v.optional(v.string()),
     // Manufacturer portal additions
     submittedByManufacturerId: v.optional(v.id('manufacturers')),
-    status: v.optional(v.union(v.literal('draft'), v.literal('pending_review'), v.literal('live'), v.literal('recalled'))),
+    status: v.optional(v.union(v.literal('draft'), v.literal('pending_review'), v.literal('live'), v.literal('recalled'), v.literal('trash'))),
     publishedAt: v.optional(v.number()),   // null = not yet published; set by scheduler after 24h
     lotNumber: v.optional(v.string()),     // required for recall matching
     regionalRep: v.optional(v.array(v.object({

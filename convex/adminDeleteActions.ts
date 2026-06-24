@@ -78,6 +78,53 @@ export const adminRequestDeleteCode = action({
   },
 })
 
+/** Notify a master admin that they have been removed from the admin role. */
+export const adminNotifyAdminRemoval = action({
+  args: { removedEmail: v.string(), removedName: v.string() },
+  handler: async (_ctx, args) => {
+    const key = process.env.RESEND_API_KEY
+    if (!key) throw new Error('Email service not configured')
+    const resend = new Resend(key)
+    await resend.emails.send({
+      from:    FROM,
+      to:      [args.removedEmail],
+      subject: 'Your master admin access has been removed — Implant ID',
+      html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Admin access removed</title>
+  <style>
+    body{margin:0;padding:40px 16px;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+    .wrap{max-width:480px;margin:0 auto}
+    .head{background:#fff;padding:20px 32px 16px;border-radius:16px 16px 0 0;border-bottom:1px solid #e2e8f0;text-align:center}
+    .head img{height:36px}
+    .body{background:#fff;padding:32px}
+    .body h2{margin:0 0 8px;color:#0e2a33;font-size:20px;font-weight:700}
+    .body p{color:#64748b;font-size:14px;line-height:1.6;margin:0 0 16px}
+    .footer{background:#f8fafc;padding:16px 32px;border-top:1px solid #e2e8f0;border-radius:0 0 16px 16px;font-size:12px;color:#94a3b8;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <img src="https://portal.implantid.io/images/email-logo.png" alt="Implant ID"/>
+    </div>
+    <div class="body">
+      <h2>Admin access removed</h2>
+      <p>Hi ${args.removedName},</p>
+      <p>Your master admin access to Implant ID has been removed by another administrator. You will no longer be able to access the admin portal at <strong>portal.implantid.io/master</strong>.</p>
+      <p>If you believe this was done in error, please contact the platform owner at <a href="mailto:${ADMIN_EMAIL}" style="color:#0e7e8a">${ADMIN_EMAIL}</a>.</p>
+    </div>
+    <div class="footer">Implant ID · This is an automated security notification.</div>
+  </div>
+</body>
+</html>`,
+    })
+  },
+})
+
 /** Generate a 6-digit clinic-delete code and email it to the admin. */
 export const adminRequestClinicDeleteCode = action({
   args: { applicationId: v.id('clinicApplications') },

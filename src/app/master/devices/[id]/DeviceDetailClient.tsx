@@ -56,9 +56,11 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
   // ── All hooks unconditionally at top ──────────────────────────────────────
   // id may be a DID- code or a Convex _id — the slug query handles both
-  const device            = useQuery(api.devices.getDeviceWithUsageBySlug, { slug: id })
-  const updateMriStatus   = useMutation(api.devices.updateDeviceMriStatus)
-  const deleteDevice      = useMutation(api.devices.deleteDevice)
+  const device              = useQuery(api.devices.getDeviceWithUsageBySlug, { slug: id })
+  const updateMriStatus     = useMutation(api.devices.updateDeviceMriStatus)
+  const moveToTrash         = useMutation(api.devices.moveDeviceToTrash)
+  const restoreDevice       = useMutation(api.devices.restoreDevice)
+  const permanentlyDelete   = useMutation(api.devices.permanentlyDeleteDevice)
 
   const linkedPatients = useQuery(api.devices.getPatientsForDevice, device ? { deviceId: device._id } : 'skip')
 
@@ -67,6 +69,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
   const [saving,           setSaving]          = useState(false)
   const [saveError,        setSaveError]       = useState('')
   const [justSaved,        setJustSaved]       = useState(false)
+  const [trashConfirm,     setTrashConfirm]    = useState(false)
   const [deleteConfirm,    setDeleteConfirm]   = useState(false)
   const [deleting,         setDeleting]        = useState(false)
   const [deleteError,      setDeleteError]     = useState('')
@@ -96,12 +99,33 @@ export default function DeviceDetailClient({ id }: { id: string }) {
   // Use deviceCode as the slug for internal links, fall back to the raw param
   const slug     = devCode ?? id
 
-  async function handleDelete() {
+  async function handleMoveToTrash() {
     setDeleting(true); setDeleteError('')
     try {
-      await deleteDevice({ id: device._id })
-      // Full page reload so Clerk re-authenticates cleanly — client-side
-      // router.push() can race with the auth middleware and redirect to /login.
+      await moveToTrash({ id: device._id })
+      setTrashConfirm(false)
+      setDeleting(false)
+    } catch (e) {
+      setDeleteError((e as { message?: string })?.message ?? 'Failed to move to trash')
+      setDeleting(false)
+    }
+  }
+
+  async function handleRestore() {
+    setDeleting(true); setDeleteError('')
+    try {
+      await restoreDevice({ id: device._id })
+      setDeleting(false)
+    } catch (e) {
+      setDeleteError((e as { message?: string })?.message ?? 'Failed to restore device')
+      setDeleting(false)
+    }
+  }
+
+  async function handlePermanentDelete() {
+    setDeleting(true); setDeleteError('')
+    try {
+      await permanentlyDelete({ id: device._id })
       window.location.assign('/master/devices')
     } catch (e) {
       setDeleteError((e as { message?: string })?.message ?? 'Failed to delete device')
@@ -145,6 +169,12 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           <div className="sub" style={{ margin: 0, marginTop: 4 }}>{device.deviceType} · {device.classification}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Trash badge */}
+          {(device as any).status === 'trash' && (
+            <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, color: 'var(--err)', background: 'color-mix(in srgb,var(--err) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', padding: '4px 10px', borderRadius: 6 }}>
+              In trash
+            </span>
+          )}
           {/* Patient count — clickable when > 0 */}
           {device.patientCount > 0 && (
             <button
@@ -155,18 +185,26 @@ export default function DeviceDetailClient({ id }: { id: string }) {
               {device.patientCount} patient{device.patientCount !== 1 ? 's' : ''} linked →
             </button>
           )}
-          <a href={`/master/devices/${slug}/edit`} className="btn">Edit device</a>
-          <button className="btn btn-s" onClick={() => { setNewStatus(status); setEditingStatus(true) }}>
-            Edit MRI status
-          </button>
-          <button
-            className="btn btn-danger"
-            onClick={() => setDeleteConfirm(true)}
-            disabled={device.patientCount > 0}
-            title={device.patientCount > 0 ? 'Cannot delete while patients are linked' : 'Delete this device'}
-          >
-            Delete
-          </button>
+          {(device as any).status !== 'trash' ? (
+            <>
+              <a href={`/master/devices/${slug}/edit`} className="btn">Edit device</a>
+              <button className="btn btn-s" onClick={() => { setNewStatus(status); setEditingStatus(true) }}>
+                Edit MRI status
+              </button>
+              <button className="btn btn-danger" onClick={() => setTrashConfirm(true)}>
+                Move to trash
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="btn" onClick={handleRestore} disabled={deleting}>
+                {deleting ? 'Restoring…' : 'Restore'}
+              </button>
+              <button className="btn btn-danger" onClick={() => setDeleteConfirm(true)} disabled={deleting}>
+                Delete permanently
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -296,12 +334,20 @@ export default function DeviceDetailClient({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Patient linkage warning */}
+      {/* Patient linkage info */}
       {device.patientCount > 0 && (
         <div style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', lineHeight: 1.6 }}>
           ℹ <strong>{device.patientCount} patient{device.patientCount !== 1 ? 's' : ''}</strong> currently have this device linked to their record.
           Changing the MRI status will immediately affect their wallet passes and dashboard card colour.
-          This device cannot be deleted while patients are linked.
+          You can move this device to trash at any time — patient links are preserved until permanent deletion.
+        </div>
+      )}
+
+      {/* Trash notice */}
+      {(device as any).status === 'trash' && (
+        <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', lineHeight: 1.6 }}>
+          This device is in the trash. It is hidden from all public views and the device catalogue.
+          You can restore it or permanently delete it — permanent deletion also removes all linked patient records.
         </div>
       )}
 
@@ -373,7 +419,34 @@ export default function DeviceDetailClient({ id }: { id: string }) {
         </div>
       )}
 
-      {/* Delete confirmation modal */}
+      {/* Move to trash confirmation modal */}
+      {trashConfirm && (
+        <div className="confirm-back open" onClick={() => !deleting && setTrashConfirm(false)}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="confirm-body">
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </div>
+              <h3>Move to trash?</h3>
+              <p style={{ color: 'var(--muted)', fontSize: 14 }}>
+                <strong style={{ color: 'var(--text)' }}>{device.manufacturer} {device.model}</strong><br/>
+                This device will be hidden from the catalogue and all public views. Patient records remain intact. You can restore it or permanently delete it from the trash.
+              </p>
+              {deleteError && <p style={{ color: 'var(--err)', fontSize: 13, marginTop: 8 }}>{deleteError}</p>}
+            </div>
+            <div className="confirm-actions">
+              <button className="btn" onClick={() => setTrashConfirm(false)} disabled={deleting}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleMoveToTrash} disabled={deleting}>
+                {deleting ? 'Moving…' : 'Move to trash'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Permanent delete confirmation modal */}
       {deleteConfirm && (
         <div className="confirm-back open" onClick={() => !deleting && setDeleteConfirm(false)}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()}>
@@ -383,17 +456,17 @@ export default function DeviceDetailClient({ id }: { id: string }) {
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                 </svg>
               </div>
-              <h3>Delete device?</h3>
+              <h3>Delete permanently?</h3>
               <p style={{ color: 'var(--muted)', fontSize: 14 }}>
                 <strong style={{ color: 'var(--text)' }}>{device.manufacturer} {device.model}</strong><br/>
-                This action is permanent and cannot be undone.
+                This will permanently remove the device and all linked patient records. This cannot be undone.
               </p>
               {deleteError && <p style={{ color: 'var(--err)', fontSize: 13, marginTop: 8 }}>{deleteError}</p>}
             </div>
             <div className="confirm-actions">
               <button className="btn" onClick={() => setDeleteConfirm(false)} disabled={deleting}>Cancel</button>
-              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
-                {deleting ? 'Deleting…' : 'Yes, delete device'}
+              <button className="btn btn-danger" onClick={handlePermanentDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Yes, delete permanently'}
               </button>
             </div>
           </div>

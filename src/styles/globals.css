@@ -136,7 +136,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 /* AUTH SHELL */
 .auth{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;background:var(--bg)}
 .auth-side{position:relative;background:linear-gradient(160deg,var(--accent-deep) 0%,var(--accent) 100%);color:#fff;padding:56px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
-.auth-side::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 80% 10%, rgba(255,255,255,.16), transparent 50%),radial-gradient(circle at 10% 90%, rgba(0,0,0,.25), transparent 55%);pointer-events:none}
+.auth-side::before{content:"";position:absolute;top:0;right:0;bottom:0;left:0;background:radial-gradient(circle at 80% 10%, rgba(255,255,255,.16), transparent 50%),radial-gradient(circle at 10% 90%, rgba(0,0,0,.25), transparent 55%);pointer-events:none}
 .auth-side .logo{color:#fff;position:relative;z-index:2}
 .auth-side .logo img{filter:brightness(0) invert(1)}
 .auth-side .logo-text span{background:linear-gradient(90deg,#fff,#cdeef6);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -149,8 +149,8 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .auth-box{width:100%;max-width:420px}
 .auth-box h1{font-size:32px;margin-bottom:8px;letter-spacing:-.03em}
 .auth-box .sub{color:var(--muted);margin-bottom:32px;font-size:15px}
-.auth-tabs{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:4px;margin-bottom:28px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
-.auth-tabs button{flex:1;background:transparent;border:0;padding:13px 14px;min-height:44px;font-family:var(--ff);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:999px;transition:background-color .2s,color .2s;-webkit-tap-highlight-color:transparent;touch-action:manipulation;position:relative;z-index:1}
+.auth-tabs{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:4px;margin-bottom:28px;touch-action:manipulation}
+.auth-tabs button{flex:1;background:transparent;border:0;padding:13px 14px;min-height:44px;font-family:var(--ff);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:999px;transition:background-color .2s,color .2s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .auth-tabs button.active{background:var(--text);color:var(--bg)}
 .auth-alt{text-align:center;font-size:14px;color:var(--muted);margin-top:24px}
 .auth-alt a{color:var(--accent);font-weight:500}

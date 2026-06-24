@@ -6,16 +6,20 @@ export default function CookieBanner() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    if (!localStorage.getItem('iid_cookies')) setVisible(true)
+    try {
+      if (!localStorage.getItem('iid_cookies')) setVisible(true)
+    } catch {
+      // localStorage blocked (private mode on old iOS) — skip banner
+    }
   }, [])
 
   function accept() {
-    localStorage.setItem('iid_cookies', '1')
+    try { localStorage.setItem('iid_cookies', '1') } catch { /* ignore */ }
     setVisible(false)
   }
 
   function dismiss() {
-    localStorage.setItem('iid_cookies', 'dismissed')
+    try { localStorage.setItem('iid_cookies', 'dismissed') } catch { /* ignore */ }
     setVisible(false)
   }
 

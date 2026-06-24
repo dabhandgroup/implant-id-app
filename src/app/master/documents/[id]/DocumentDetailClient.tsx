@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 
 // Cast to any — `documents` module added to _generated/api after `npx convex deploy`
@@ -1066,6 +1066,22 @@ export default function DocumentDetailClient({ id }: { id: string }) {
 // ── SourceDocView — renders a Convex source document (IFU, manual, spec sheet) ──
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function SourceDocView({ doc }: { doc: any }) {
+  const deleteDocument = useMutation(api.documents.deleteDocument)
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleting,      setDeleting]      = useState(false)
+  const [deleteErr,     setDeleteErr]     = useState('')
+
+  async function handleDelete() {
+    setDeleting(true); setDeleteErr('')
+    try {
+      await deleteDocument({ id: doc._id })
+      window.location.assign('/master/documents')
+    } catch (e) {
+      setDeleteErr((e as { message?: string })?.message ?? 'Deletion failed — try again.')
+      setDeleting(false)
+    }
+  }
+
   const tc = typeColour(doc.docType)
   const devices = (doc.deviceNames ?? []).join(', ')
 
@@ -1088,6 +1104,9 @@ function SourceDocView({ doc }: { doc: any }) {
           </h2>
           <div className="sub">{doc.manufacturer}{devices ? ` — ${devices}` : ''}</div>
         </div>
+        <button className="btn btn-danger" onClick={() => { setDeleteErr(''); setDeleteConfirm(true) }}>
+          Delete document
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18, alignItems: 'start' }}>
@@ -1183,6 +1202,33 @@ function SourceDocView({ doc }: { doc: any }) {
           </div>
         </div>
       </div>
+
+      {/* ── Delete confirmation modal ── */}
+      {deleteConfirm && (
+        <div className="confirm-back open" onClick={() => !deleting && setDeleteConfirm(false)}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="confirm-body">
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </div>
+              <h3>Delete document?</h3>
+              <p style={{ color:'var(--muted)', fontSize:14 }}>
+                <strong style={{ color:'var(--text)' }}>{doc.title}</strong><br/>
+                This action is permanent and cannot be undone.
+              </p>
+              {deleteErr && <p style={{ color:'var(--err)', fontSize:13, marginTop:8 }}>{deleteErr}</p>}
+            </div>
+            <div className="confirm-actions">
+              <button className="btn" onClick={() => setDeleteConfirm(false)} disabled={deleting}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Yes, delete document'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

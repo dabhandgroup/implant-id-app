@@ -85,13 +85,14 @@ export default function MasterSettingsClient() {
   const [inviteDone,  setInviteDone]  = useState(false)
 
   // Edit / remove state
-  const [editingId,   setEditingId]   = useState<string | null>(null)
-  const [editName,    setEditName]    = useState('')
-  const [editSaving,  setEditSaving]  = useState(false)
-  const [editErr,     setEditErr]     = useState('')
-  const [removingId,  setRemovingId]  = useState<string | null>(null)
-  const [resendingId, setResendingId] = useState<string | null>(null)
-  const [resendDone,  setResendDone]  = useState<string | null>(null)
+  const [editingId,        setEditingId]        = useState<string | null>(null)
+  const [editName,         setEditName]         = useState('')
+  const [editSaving,       setEditSaving]       = useState(false)
+  const [editErr,          setEditErr]          = useState('')
+  const [removingId,       setRemovingId]       = useState<string | null>(null)
+  const [resendingId,      setResendingId]      = useState<string | null>(null)
+  const [resendDone,       setResendDone]       = useState<string | null>(null)
+  const [confirmRemove,    setConfirmRemove]    = useState<{ id: string; name: string } | null>(null)
 
   async function handleInviteAdmin(e: React.FormEvent) {
     e.preventDefault()
@@ -715,7 +716,7 @@ export default function MasterSettingsClient() {
                                 <button
                                   className="btn btn-danger"
                                   style={{ padding: '4px 10px', fontSize: 12 }}
-                                  onClick={() => { if (confirm(`Remove ${a.name} as master admin?`)) handleRemoveAdmin(a._id) }}
+                                  onClick={() => setConfirmRemove({ id: a._id, name: a.name })}
                                   disabled={removingId === a._id}
                                   aria-label="Remove admin"
                                 >
@@ -840,6 +841,40 @@ export default function MasterSettingsClient() {
 
         </div>
     </div>
+
+    {/* ── Remove admin confirmation modal ── */}
+    {confirmRemove && (
+      <div className="confirm-back open" onClick={() => !removingId && setConfirmRemove(null)}>
+        <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+          <div className="confirm-body">
+            <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2" aria-hidden="true">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <line x1="23" y1="11" x2="17" y2="11"/>
+              </svg>
+            </div>
+            <h3>Remove admin?</h3>
+            <p style={{ color:'var(--muted)', fontSize:14 }}>
+              <strong style={{ color:'var(--text)' }}>{confirmRemove.name}</strong> will lose master admin access immediately. This cannot be undone.
+            </p>
+          </div>
+          <div className="confirm-actions">
+            <button className="btn" onClick={() => setConfirmRemove(null)} disabled={!!removingId}>Cancel</button>
+            <button
+              className="btn btn-danger"
+              disabled={!!removingId}
+              onClick={async () => {
+                await handleRemoveAdmin(confirmRemove.id)
+                setConfirmRemove(null)
+              }}
+            >
+              {removingId ? 'Removing…' : 'Remove admin'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* ── Sign-out confirmation modal ── */}
     {signOutConfirm && (

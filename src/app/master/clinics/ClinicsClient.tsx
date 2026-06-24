@@ -31,7 +31,7 @@ function formatDate(ts: number) {
 export default function ClinicsClient() {
   // ── All hooks unconditionally at top ─────────────────────────────────────────
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>('pending')
+  const [tab, setTab] = useState<Tab>('all')
 
   const pendingApps  = useQuery(api.clinics.listApplications, { status: 'pending'  }) as Application[] | undefined
   const approvedApps = useQuery(api.clinics.listApplications, { status: 'approved' }) as Application[] | undefined
@@ -113,6 +113,9 @@ export default function ClinicsClient() {
 
       {/* ── Tabs ── */}
       <div className="m-tabs">
+        <button className={`m-tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>
+          All Clinics
+        </button>
         <button className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
           Pending
           {pendingCount > 0 && (
@@ -120,9 +123,6 @@ export default function ClinicsClient() {
               {pendingCount}
             </span>
           )}
-        </button>
-        <button className={`m-tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>
-          All Clinics
         </button>
         <button className={`m-tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
           Rejected

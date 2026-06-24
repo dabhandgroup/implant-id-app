@@ -119,6 +119,9 @@ export default function ManufacturersClient() {
 
       {/* Tabs */}
       <div className="m-tabs">
+        <button className={`m-tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>
+          All Manufacturers
+        </button>
         <button className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
           Pending
           {(pendingApps?.length ?? 0) > 0 && (
@@ -126,9 +129,6 @@ export default function ManufacturersClient() {
               {pendingApps!.length}
             </span>
           )}
-        </button>
-        <button className={`m-tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>
-          All Manufacturers
         </button>
         <button className={`m-tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
           Rejected

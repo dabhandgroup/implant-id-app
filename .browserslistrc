@@ -1,0 +1,11 @@
+[production]
+ios_saf >= 15
+safari >= 15
+chrome >= 80
+firefox >= 80
+edge >= 80
+
+[development]
+last 1 chrome version
+last 1 firefox version
+last 1 safari version

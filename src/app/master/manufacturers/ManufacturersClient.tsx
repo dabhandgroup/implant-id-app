@@ -39,7 +39,8 @@ export default function ManufacturersClient() {
   const pendingApps = useQuery(api.manufacturers.listApplications, { status: 'pending' })
   const rejectedApps = useQuery(api.manufacturers.listApplications, { status: 'rejected' })
   const allMfrs = useQuery(api.manufacturers.listApprovedManufacturers)
-  const review = useMutation(api.manufacturers.reviewApplication)
+  const review  = useMutation(api.manufacturers.reviewApplication)
+  const addMfr  = useMutation(api.manufacturers.adminAddManufacturer)
 
   // Local state
   const [tab,          setTab]          = useState<Tab>('pending')
@@ -48,6 +49,46 @@ export default function ManufacturersClient() {
   const [confirmed,    setConfirmed]    = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [error,        setError]        = useState('')
+
+  // Add manufacturer manually state
+  const [addOpen,    setAddOpen]    = useState(false)
+  const [addForm,    setAddForm]    = useState({ companyName:'', contactName:'', contactEmail:'', country:'', regNumber:'', website:'' })
+  const [addSaving,  setAddSaving]  = useState(false)
+  const [addError,   setAddError]   = useState('')
+
+  function openAdd() {
+    setAddForm({ companyName:'', contactName:'', contactEmail:'', country:'', regNumber:'', website:'' })
+    setAddError('')
+    setAddOpen(true)
+  }
+  function closeAdd() { setAddOpen(false); setAddError('') }
+  function setAddField(k: keyof typeof addForm) {
+    return (e: React.ChangeEvent<HTMLInputElement>) => setAddForm(f => ({ ...f, [k]: e.target.value }))
+  }
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
+    if (!addForm.companyName.trim() || !addForm.contactName.trim() || !addForm.contactEmail.trim() || !addForm.country.trim()) {
+      setAddError('Company name, contact name, email and country are required.')
+      return
+    }
+    setAddSaving(true); setAddError('')
+    try {
+      await addMfr({
+        companyName:  addForm.companyName.trim(),
+        contactName:  addForm.contactName.trim(),
+        contactEmail: addForm.contactEmail.trim(),
+        country:      addForm.country.trim(),
+        regNumber:    addForm.regNumber.trim() || undefined,
+        website:      addForm.website.trim() || undefined,
+      })
+      closeAdd()
+      setTab('all')
+    } catch (e) {
+      setAddError((e as { message?: string })?.message ?? 'Failed to add manufacturer.')
+    } finally {
+      setAddSaving(false)
+    }
+  }
 
   function openConfirm(type: 'approve' | 'reject', id: string, name: string) {
     setConfirmModal({ type, id, name })
@@ -91,7 +132,10 @@ export default function ManufacturersClient() {
           <h2>Manufacturers</h2>
           <div className="sub">Device manufacturers with access to the Implant ID platform catalogue.</div>
         </div>
-        <button className="btn btn-s" onClick={() => router.push('/master/manufacturers/invite')}>+ Invite Manufacturer</button>
+        <div style={{ display:'flex', gap:8 }}>
+          <button className="btn" onClick={openAdd}>+ Add manually</button>
+          <button className="btn btn-s" onClick={() => router.push('/master/manufacturers/invite')}>+ Invite Manufacturer</button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -249,6 +293,59 @@ export default function ManufacturersClient() {
               ))}
             </div>
           </>)
+      )}
+
+      {/* ── Add manually modal ── */}
+      {addOpen && (
+        <div className="confirm-back open" onClick={closeAdd}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div className="confirm-body">
+              <h3 style={{ fontFamily:'var(--ff)', fontWeight:700, fontSize:18, color:'var(--text)', margin:'0 0 4px' }}>Add manufacturer</h3>
+              <p style={{ fontFamily:'var(--ff)', fontSize:13.5, color:'var(--muted)', margin:'0 0 20px', lineHeight:1.5 }}>Creates an approved manufacturer account. No invitation email is sent — you can share access with them separately.</p>
+              <form id="add-mfr-form" onSubmit={handleAdd} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                <div className="field" style={{ margin:0 }}>
+                  <label>Company name <span style={{ color:'var(--err)', marginLeft:2 }}>*</span></label>
+                  <input className="input" type="text" placeholder="e.g. Medtronic" value={addForm.companyName} onChange={setAddField('companyName')} autoFocus />
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                  <div className="field" style={{ margin:0 }}>
+                    <label>Contact name <span style={{ color:'var(--err)', marginLeft:2 }}>*</span></label>
+                    <input className="input" type="text" placeholder="Full name" value={addForm.contactName} onChange={setAddField('contactName')} />
+                  </div>
+                  <div className="field" style={{ margin:0 }}>
+                    <label>Country <span style={{ color:'var(--err)', marginLeft:2 }}>*</span></label>
+                    <input className="input" type="text" placeholder="e.g. United Kingdom" value={addForm.country} onChange={setAddField('country')} />
+                  </div>
+                </div>
+                <div className="field" style={{ margin:0 }}>
+                  <label>Contact email <span style={{ color:'var(--err)', marginLeft:2 }}>*</span></label>
+                  <input className="input" type="email" placeholder="contact@manufacturer.com" value={addForm.contactEmail} onChange={setAddField('contactEmail')} />
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                  <div className="field" style={{ margin:0 }}>
+                    <label>Reg. number <span style={{ color:'var(--muted)', fontWeight:400 }}>(optional)</span></label>
+                    <input className="input" type="text" placeholder="ISO / FDA number" value={addForm.regNumber} onChange={setAddField('regNumber')} />
+                  </div>
+                  <div className="field" style={{ margin:0 }}>
+                    <label>Website <span style={{ color:'var(--muted)', fontWeight:400 }}>(optional)</span></label>
+                    <input className="input" type="text" placeholder="https://…" value={addForm.website} onChange={setAddField('website')} />
+                  </div>
+                </div>
+                {addError && (
+                  <div style={{ color:'var(--err)', fontSize:13, background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:8, padding:'10px 14px' }}>
+                    {addError}
+                  </div>
+                )}
+              </form>
+            </div>
+            <div className="confirm-actions">
+              <button type="button" className="btn" onClick={closeAdd} disabled={addSaving}>Cancel</button>
+              <button type="submit" form="add-mfr-form" className="btn btn-s" disabled={addSaving}>
+                {addSaving ? 'Adding…' : 'Add manufacturer'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Approve modal ── */}

@@ -397,6 +397,39 @@ export const reviewApplication = mutation({
   },
 })
 
+/** Master admin: add a manufacturer directly without sending any invitation email.
+ *  Used to pre-populate the platform with known manufacturers. */
+export const adminAddManufacturer = mutation({
+  args: {
+    companyName:  v.string(),
+    contactName:  v.string(),
+    contactEmail: v.string(),
+    country:      v.string(),
+    regNumber:    v.optional(v.string()),
+    website:      v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin role required')
+
+    const existing = await ctx.db.query('manufacturers').withIndex('by_email', q => q.eq('contactEmail', args.contactEmail)).first()
+    if (existing) throw new Error('A manufacturer account already exists with this email address.')
+
+    const existingClinic = await ctx.db.query('clinicApplications').withIndex('by_email', q => q.eq('contactEmail', args.contactEmail)).first()
+    if (existingClinic && existingClinic.status !== 'rejected') throw new Error('This email is already registered as a clinic account.')
+
+    return ctx.db.insert('manufacturers', {
+      ...args,
+      clerkUserId: undefined,
+      status:      'approved',
+      submittedAt: Date.now(),
+      reviewedAt:  Date.now(),
+    })
+  },
+})
+
 /** Master admin: directly invite a manufacturer (skips application process). */
 export const inviteManufacturer = mutation({
   args: {

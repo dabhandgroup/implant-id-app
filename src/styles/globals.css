@@ -150,7 +150,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .auth-box h1{font-size:32px;margin-bottom:8px;letter-spacing:-.03em}
 .auth-box .sub{color:var(--muted);margin-bottom:32px;font-size:15px}
 .auth-tabs{display:flex;background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:4px;margin-bottom:28px}
-.auth-tabs button{flex:1;background:transparent;border:0;padding:10px 14px;font-family:var(--ff);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:999px;transition:all .2s}
+.auth-tabs button{flex:1;background:transparent;border:0;padding:13px 14px;min-height:44px;font-family:var(--ff);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:999px;transition:all .2s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 .auth-tabs button.active{background:var(--text);color:var(--bg)}
 .auth-alt{text-align:center;font-size:14px;color:var(--muted);margin-top:24px}
 .auth-alt a{color:var(--accent);font-weight:500}

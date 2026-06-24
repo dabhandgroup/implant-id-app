@@ -681,7 +681,11 @@ export default function RegisterClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  if (!isLoaded || existingPatient === undefined) return null
+  if (!isLoaded || existingPatient === undefined) return (
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100svh', background:'var(--bg)', fontFamily:'var(--ff)', fontSize:14, color:'var(--muted)' }}>
+      Loading…
+    </div>
+  )
   if (existingPatient) return null
 
   // ── Utilities ─────────────────────────────────────────────────────────────

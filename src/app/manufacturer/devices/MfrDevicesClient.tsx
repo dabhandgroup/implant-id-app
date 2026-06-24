@@ -1,7 +1,7 @@
 'use client'
 
 import { useState }       from 'react'
-import { useQuery }       from 'convex/react'
+import { useQuery, useMutation } from 'convex/react'
 import { useRouter }      from 'next/navigation'
 import { api as apiBase } from '../../../../convex/_generated/api'
 import { tint } from '@/lib/tint'
@@ -14,17 +14,19 @@ const MRI_COLOUR: Record<string, string> = {
 const MRI_ICON: Record<string, string> = {
   safe: '/mr-safe.svg', conditional: '/mr-conditional.svg', unsafe: '/mr-unsafe.svg',
 }
-const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
-  live:           { bg: 'rgba(var(--ok-rgb),0.10)',   color: 'var(--ok)',  label: 'Live' },
-  pending_review: { bg: 'rgba(var(--warn-rgb),0.10)', color: '#d97706',    label: 'Pending review' },
-  draft:          { bg: 'var(--bg)',                                       color: 'var(--muted)', label: 'Draft' },
-  recalled:       { bg: 'rgba(var(--err-rgb),0.10)',  color: 'var(--err)', label: 'Recalled' },
-}
 
 type Filter = 'all' | 'live' | 'pending_review' | 'recalled'
 
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function pendingCountdown(creationTime: number): string {
+  const remaining = (creationTime + 24 * 60 * 60 * 1000) - Date.now()
+  if (remaining <= 0) return 'Publishing soon…'
+  const h = Math.floor(remaining / (60 * 60 * 1000))
+  const m = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000))
+  return h > 0 ? `Auto-publishes in ${h}h ${m}m` : `Auto-publishes in ${m}m`
 }
 
 export default function MfrDevicesClient() {
@@ -34,8 +36,13 @@ export default function MfrDevicesClient() {
     api.devices.listMyDevices,
     mfr?.companyName ? { manufacturerName: mfr.companyName } : 'skip',
   )
-  const [filter, setFilter] = useState<Filter>('all')
-  const [search, setSearch] = useState('')
+  const cancelDevice = useMutation(api.devices.cancelPendingDevice)
+
+  const [filter,        setFilter]        = useState<Filter>('all')
+  const [search,        setSearch]        = useState('')
+  const [cancelTarget,  setCancelTarget]  = useState<{ id: string; name: string } | null>(null)
+  const [cancelWorking, setCancelWorking] = useState(false)
+  const [cancelError,   setCancelError]   = useState('')
 
   if (mfr === undefined || devices === undefined) {
     return <div style={{ padding: '60px 40px', color: 'var(--muted)', fontFamily: 'var(--ff)' }}>Loading…</div>
@@ -49,6 +56,19 @@ export default function MfrDevicesClient() {
     }
     return true
   })
+
+  async function handleCancelConfirm() {
+    if (!cancelTarget) return
+    setCancelWorking(true); setCancelError('')
+    try {
+      await cancelDevice({ id: cancelTarget.id as never })
+      setCancelTarget(null)
+    } catch (e) {
+      setCancelError((e as { message?: string })?.message ?? 'Failed — try again')
+    } finally {
+      setCancelWorking(false)
+    }
+  }
 
   return (
     <div style={{ padding: '36px 40px', maxWidth: 1100, margin: '0 auto' }}>
@@ -101,7 +121,7 @@ export default function MfrDevicesClient() {
             </thead>
             <tbody>
               {(filtered as any[]).map((d, i) => {
-                const st = STATUS_STYLE[d.status ?? 'draft'] ?? STATUS_STYLE.draft
+                const isPending = d.status === 'pending_review'
                 return (
                   <tr key={d._id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer' }}
                     onClick={() => router.push(`/manufacturer/devices/${d._id}`)}>
@@ -118,19 +138,86 @@ export default function MfrDevicesClient() {
                     </td>
                     <td style={{ padding: '14px 16px', color: 'var(--muted)', fontFamily: 'monospace', fontSize: 12 }}>{d.fieldStrengths || '—'}</td>
                     <td style={{ padding: '14px 16px' }}>
-                      <span style={{ display: 'inline-block', background: st.bg, color: st.color, fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, padding: '3px 10px', borderRadius: 6 }}>
-                        {st.label}
-                      </span>
+                      {isPending ? (
+                        <div>
+                          <span style={{ display:'inline-block', background:'rgba(217,119,6,0.10)', color:'#d97706', fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, padding:'3px 10px', borderRadius:6, marginBottom:4 }}>
+                            Pending review
+                          </span>
+                          <div style={{ fontFamily:'var(--ff)', fontSize:11, color:'#b45309', fontWeight:600 }}>
+                            {pendingCountdown(d._creationTime)}
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ display:'inline-block', background: d.status === 'live' ? 'rgba(var(--ok-rgb),0.10)' : d.status === 'recalled' ? 'rgba(var(--err-rgb),0.10)' : 'var(--bg)', color: d.status === 'live' ? 'var(--ok)' : d.status === 'recalled' ? 'var(--err)' : 'var(--muted)', fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, padding:'3px 10px', borderRadius:6 }}>
+                          {d.status === 'live' ? 'Live' : d.status === 'recalled' ? 'Recalled' : 'Draft'}
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '14px 16px', color: 'var(--muted)', fontSize: 12.5 }}>{formatDate(d.publishedAt)}</td>
                     <td style={{ padding: '14px 16px' }} onClick={e => e.stopPropagation()}>
-                      <a href={`/manufacturer/devices/${d._id}`} style={{ color: 'var(--accent)', fontSize: 12.5, textDecoration: 'none' }}>Edit</a>
+                      <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                        <a href={`/manufacturer/devices/${d._id}`} style={{ color: 'var(--accent)', fontSize: 12.5, textDecoration: 'none' }}>Edit</a>
+                        {isPending && (
+                          <button
+                            type="button"
+                            className="btn"
+                            style={{ fontSize:11.5, padding:'3px 10px', height:'auto', color:'var(--err)', borderColor:'rgba(var(--err-rgb),0.3)' }}
+                            onClick={() => setCancelTarget({ id: d._id, name: `${d.manufacturer} ${d.model}` })}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ── Cancel publication confirmation modal ── */}
+      {cancelTarget && (
+        <div
+          onClick={() => !cancelWorking && (setCancelTarget(null), setCancelError(''))}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', backdropFilter:'blur(2px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999, padding:24 }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:18, padding:'28px 28px 24px', width:'100%', maxWidth:400 }}>
+            <div style={{ width:48, height:48, borderRadius:'50%', background:'rgba(var(--err-rgb),0.10)', display:'grid', placeItems:'center', margin:'0 auto 16px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+              </svg>
+            </div>
+            <h3 style={{ fontFamily:'var(--ff)', fontSize:17, fontWeight:600, textAlign:'center', margin:'0 0 10px' }}>
+              Cancel scheduled publication?
+            </h3>
+            <p style={{ fontFamily:'var(--ff)', fontSize:13.5, color:'var(--muted)', textAlign:'center', lineHeight:1.6, margin:'0 0 8px' }}>
+              <strong style={{ color:'var(--text)' }}>{cancelTarget.name}</strong><br/>
+              This device will return to <strong>Draft</strong>. It won&apos;t publish automatically — you can edit it and resubmit.
+            </p>
+            {cancelError && <p style={{ color:'var(--err)', fontSize:13, textAlign:'center', marginTop:8 }}>{cancelError}</p>}
+            <div style={{ display:'flex', gap:10, marginTop:22 }}>
+              <button
+                className="btn"
+                type="button"
+                style={{ flex:1, justifyContent:'center' }}
+                onClick={() => { setCancelTarget(null); setCancelError('') }}
+                disabled={cancelWorking}
+              >
+                Keep pending
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                style={{ flex:1, justifyContent:'center' }}
+                onClick={handleCancelConfirm}
+                disabled={cancelWorking}
+              >
+                {cancelWorking ? 'Cancelling…' : 'Cancel publication'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -34,6 +34,7 @@ export default function MasterDevicesClient() {
   const restoreDevice      = useMutation(api.devices.restoreDevice)
   const permanentlyDelete  = useMutation(api.devices.permanentlyDeleteDevice)
   const approveDevice      = useMutation(api.devices.approvePendingDevice)
+  const cancelDevice       = useMutation(api.devices.cancelPendingDevice)
   const router = useRouter()
 
   const [view,           setView]           = useState<'catalogue' | 'trash'>('catalogue')
@@ -41,6 +42,9 @@ export default function MasterDevicesClient() {
   const [trashWorking,   setTrashWorking]   = useState(false)
   const [trashError,     setTrashError]     = useState('')
   const [approvingId,    setApprovingId]    = useState<string | null>(null)
+  const [cancelTarget,   setCancelTarget]   = useState<{ id: string; name: string } | null>(null)
+  const [cancelWorking,  setCancelWorking]  = useState(false)
+  const [cancelError,    setCancelError]    = useState('')
 
   async function handleTrashAction() {
     if (!trashAction) return
@@ -65,6 +69,19 @@ export default function MasterDevicesClient() {
       await approveDevice({ id: id as never })
     } finally {
       setApprovingId(null)
+    }
+  }
+
+  async function handleCancelConfirm() {
+    if (!cancelTarget) return
+    setCancelWorking(true); setCancelError('')
+    try {
+      await cancelDevice({ id: cancelTarget.id as never })
+      setCancelTarget(null)
+    } catch (e) {
+      setCancelError((e as { message?: string })?.message ?? 'Failed — try again')
+    } finally {
+      setCancelWorking(false)
     }
   }
 
@@ -164,19 +181,29 @@ export default function MasterDevicesClient() {
                         {hasPending && (
                           <td style={{ whiteSpace:'nowrap' }} onClick={e => e.stopPropagation()}>
                             {d.status === 'pending_review' && (
-                              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+                              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:5 }}>
                                 <span style={{ fontFamily:'var(--ff)', fontSize:10.5, fontWeight:600, color:'#b45309' }}>
                                   {pendingCountdown(d._creationTime)}
                                 </span>
-                                <button
-                                  type="button"
-                                  className="btn btn-s"
-                                  style={{ fontSize:11, padding:'3px 10px', height:'auto' }}
-                                  disabled={approvingId === d._id}
-                                  onClick={() => handleApprove(d._id)}
-                                >
-                                  {approvingId === d._id ? 'Publishing…' : 'Approve now'}
-                                </button>
+                                <div style={{ display:'flex', gap:5 }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-s"
+                                    style={{ fontSize:11, padding:'3px 10px', height:'auto' }}
+                                    disabled={approvingId === d._id}
+                                    onClick={() => handleApprove(d._id)}
+                                  >
+                                    {approvingId === d._id ? 'Publishing…' : 'Approve now'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn"
+                                    style={{ fontSize:11, padding:'3px 10px', height:'auto', color:'var(--err)', borderColor:'rgba(var(--err-rgb),0.3)' }}
+                                    onClick={() => setCancelTarget({ id: d._id, name: `${d.manufacturer} ${d.model}` })}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </td>
@@ -206,19 +233,29 @@ export default function MasterDevicesClient() {
                       <div style={{ fontFamily:'var(--fb)', fontSize:14, color:'var(--text)', fontWeight:500, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.model}</div>
                       <div style={{ fontSize:12, color:'var(--muted)', textTransform:'capitalize' }}>{d.deviceType} · {d.classification}</div>
                       {d.status === 'pending_review' && (
-                        <div style={{ marginTop:6, display:'flex', alignItems:'center', gap:8 }} onClick={e => e.stopPropagation()}>
-                          <span style={{ fontFamily:'var(--ff)', fontSize:10.5, fontWeight:600, color:'#b45309' }}>
+                        <div style={{ marginTop:6 }} onClick={e => e.stopPropagation()}>
+                          <span style={{ fontFamily:'var(--ff)', fontSize:10.5, fontWeight:600, color:'#b45309', display:'block', marginBottom:5 }}>
                             {pendingCountdown(d._creationTime)}
                           </span>
-                          <button
-                            type="button"
-                            className="btn btn-s"
-                            style={{ fontSize:11, padding:'3px 10px', height:'auto' }}
-                            disabled={approvingId === d._id}
-                            onClick={() => handleApprove(d._id)}
-                          >
-                            {approvingId === d._id ? 'Publishing…' : 'Approve now'}
-                          </button>
+                          <div style={{ display:'flex', gap:6 }}>
+                            <button
+                              type="button"
+                              className="btn btn-s"
+                              style={{ fontSize:11, padding:'3px 10px', height:'auto' }}
+                              disabled={approvingId === d._id}
+                              onClick={() => handleApprove(d._id)}
+                            >
+                              {approvingId === d._id ? 'Publishing…' : 'Approve now'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn"
+                              style={{ fontSize:11, padding:'3px 10px', height:'auto', color:'var(--err)', borderColor:'rgba(var(--err-rgb),0.3)' }}
+                              onClick={() => setCancelTarget({ id: d._id, name: `${d.manufacturer} ${d.model}` })}
+                            >
+                              Cancel
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -315,6 +352,35 @@ export default function MasterDevicesClient() {
                 {trashWorking
                   ? (trashAction.action === 'delete' ? 'Deleting…' : 'Restoring…')
                   : (trashAction.action === 'delete' ? 'Yes, delete permanently' : 'Yes, restore device')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cancel publication confirmation modal ── */}
+      {cancelTarget && (
+        <div className="confirm-back open" onClick={() => !cancelWorking && (setCancelTarget(null), setCancelError(''))}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="confirm-body">
+              <div style={{ width:48, height:48, borderRadius:'50%', background:tint('var(--err)', 12), display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                </svg>
+              </div>
+              <h3>Cancel scheduled publication?</h3>
+              <p style={{ color:'var(--muted)', fontSize:14 }}>
+                <strong style={{ color:'var(--text)' }}>{cancelTarget.name}</strong><br/>
+                This device will return to <strong>Draft</strong> and won&apos;t publish automatically. The manufacturer can edit and re-submit it for review.
+              </p>
+              {cancelError && <p style={{ color:'var(--err)', fontSize:13, marginTop:8 }}>{cancelError}</p>}
+            </div>
+            <div className="confirm-actions">
+              <button className="btn" type="button" onClick={() => { setCancelTarget(null); setCancelError('') }} disabled={cancelWorking}>
+                Keep pending
+              </button>
+              <button type="button" className="btn btn-danger" onClick={handleCancelConfirm} disabled={cancelWorking}>
+                {cancelWorking ? 'Cancelling…' : 'Cancel publication'}
               </button>
             </div>
           </div>

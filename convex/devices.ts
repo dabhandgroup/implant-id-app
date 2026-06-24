@@ -242,6 +242,31 @@ export const approvePendingDevice = mutation({
   },
 })
 
+/**
+ * Cancel a pending-review device: admin can cancel any, manufacturer can cancel only their own.
+ * Returns the device to draft so the submitter can edit and re-submit.
+ */
+export const cancelPendingDevice = mutation({
+  args: { id: v.id('devices') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || !['admin', 'manufacturer'].includes(user.role)) throw new Error('Insufficient permissions')
+
+    const device = await ctx.db.get(args.id)
+    if (!device) throw new Error('Device not found')
+    if (device.status !== 'pending_review') throw new Error('Device is not pending review')
+
+    if (user.role === 'manufacturer') {
+      const mfr = await ctx.db.query('manufacturers').filter(q => q.eq(q.field('contactEmail'), user.email ?? '')).first()
+      if (!mfr || device.manufacturer !== mfr.companyName) throw new Error('Not authorised to cancel this device')
+    }
+
+    await ctx.db.patch(args.id, { status: 'draft', verified: false })
+  },
+})
+
 /** Cron target: auto-publish pending devices older than 24 hours. */
 export const autoPublishPendingDevices = internalMutation({
   args: {},

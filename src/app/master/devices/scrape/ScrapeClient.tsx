@@ -169,11 +169,11 @@ export default function ScrapeClient() {
   const [addError, setAddError] = useState('')
   const [certified, setCertified] = useState(false)
 
-  function loadResult(data: ScrapeResult) {
+  function loadResult(data: ScrapeResult, fallbacks?: { manufacturer?: string; model?: string }) {
     setResult(data)
     const m = data.mapped
-    setEditManufacturer(m.manufacturer)
-    setEditModel(m.model)
+    setEditManufacturer(m.manufacturer || fallbacks?.manufacturer || '')
+    setEditModel(m.model || fallbacks?.model || '')
     setEditDeviceType(m.deviceType)
     setEditMriStatus(m.mriStatus)
     setEditClassification(m.classification)
@@ -188,7 +188,7 @@ export default function ScrapeClient() {
 
   function loadFromHistory(job: any) {
     if (!job.result) return
-    loadResult(job.result as ScrapeResult)
+    loadResult(job.result as ScrapeResult, { manufacturer: job.manufacturer, model: job.model })
     setLoadedJobId(job._id)
     setManufacturer(job.manufacturer)
     setModel(job.model)
@@ -232,7 +232,7 @@ export default function ScrapeClient() {
       // Persist result to Convex so it shows in history
       await completeJob({ jobId, result: data })
       setLoadedJobId(String(jobId))
-      loadResult(data)
+      loadResult(data, { manufacturer, model })
     } catch {
       const msg = 'Network error — please try again'
       await failJob({ jobId, errorMessage: msg }).catch(() => {})
@@ -561,8 +561,8 @@ export default function ScrapeClient() {
                       </span>
                     </label>
                   </div>
-                  {addError && <div style={{ color:'var(--err)', fontSize:13, marginBottom:8, fontFamily:'var(--ff)' }}>{addError}</div>}
-                  <button className="btn btn-s btn-block" disabled={adding || !editManufacturer || !editModel || !certified} onClick={handleAddToDb} style={{ fontSize:14 }}>
+                  {addError && <div style={{ color:'var(--err)', fontFamily:'var(--ff)', fontSize:13.5, marginBottom:12, background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:8, padding:'10px 14px' }}>{addError}</div>}
+                  <button type="button" className="btn btn-s btn-block" disabled={adding || !editManufacturer || !editModel || !certified} onClick={handleAddToDb} style={{ fontSize:14 }}>
                     {adding ? 'Adding…' : '+ Add to device catalogue'}
                   </button>
                   {!certified && (

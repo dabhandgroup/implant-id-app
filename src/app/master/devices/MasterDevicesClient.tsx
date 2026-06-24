@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useRouter } from 'next/navigation'
 import { api as apiBase } from '../../../../convex/_generated/api'
@@ -65,18 +65,27 @@ export default function MasterDevicesClient() {
       </div>
 
       {/* ── View tabs ── */}
-      <div style={{ display:'flex', gap:4, marginBottom:20, borderBottom:'1px solid var(--border)', paddingBottom:0 }}>
+      <div
+        className="m-tabs"
+        style={{ '--m-tab-count': 2, '--m-tab-idx': view === 'catalogue' ? 0 : 1 } as React.CSSProperties}
+        role="tablist"
+      >
+        <div className="m-tab-slider" aria-hidden="true" />
         <button
           type="button"
+          role="tab"
+          aria-selected={view === 'catalogue'}
+          className={`m-tab${view === 'catalogue' ? ' active' : ''}`}
           onClick={() => setView('catalogue')}
-          style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:600, color: view === 'catalogue' ? 'var(--accent)' : 'var(--muted)', background:'none', border:0, borderBottom: view === 'catalogue' ? '2px solid var(--accent)' : '2px solid transparent', padding:'10px 16px', cursor:'pointer', transition:'all .15s', marginBottom:-1 }}
         >
           Catalogue
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={view === 'trash'}
+          className={`m-tab${view === 'trash' ? ' active' : ''}`}
           onClick={() => setView('trash')}
-          style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:600, color: view === 'trash' ? 'var(--err)' : 'var(--muted)', background:'none', border:0, borderBottom: view === 'trash' ? '2px solid var(--err)' : '2px solid transparent', padding:'10px 16px', cursor:'pointer', transition:'all .15s', marginBottom:-1, display:'flex', alignItems:'center', gap:6 }}
         >
           Trash
           {trashDevices && trashDevices.length > 0 && (

@@ -133,19 +133,24 @@ export default function ManufacturersClient() {
       </div>
 
       {/* Tabs */}
-      <div className="m-tabs">
-        <button className={`m-tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>
+      <div
+        className="m-tabs"
+        style={{ '--m-tab-count': 3, '--m-tab-idx': tab === 'all' ? 0 : tab === 'pending' ? 1 : 2 } as React.CSSProperties}
+        role="tablist"
+      >
+        <div className="m-tab-slider" aria-hidden="true" />
+        <button role="tab" aria-selected={tab === 'all'} className={`m-tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>
           All Manufacturers
         </button>
-        <button className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
+        <button role="tab" aria-selected={tab === 'pending'} className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
           Pending
           {(pendingApps?.length ?? 0) > 0 && (
-            <span style={{ marginLeft: 7, background: 'rgba(var(--warn-rgb),0.14)', color: 'var(--warn)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
+            <span style={{ background: 'rgba(var(--warn-rgb),0.14)', color: 'var(--warn)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
               {pendingApps!.length}
             </span>
           )}
         </button>
-        <button className={`m-tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
+        <button role="tab" aria-selected={tab === 'rejected'} className={`m-tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
           Rejected
         </button>
       </div>

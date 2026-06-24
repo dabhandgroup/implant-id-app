@@ -62,10 +62,10 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.type-scan   { background: color-mix(in srgb,var(--accent) 12%,transparent); color: var(--accent); }
-.type-view   { background: color-mix(in srgb,var(--ok) 12%,transparent);     color: var(--ok); }
-.type-access { background: color-mix(in srgb,var(--warn) 12%,transparent);   color: var(--warn); }
-.type-admin  { background: color-mix(in srgb,var(--muted) 15%,transparent);  color: var(--muted); }
+.type-scan   { background: rgba(var(--accent-rgb),0.12); color: var(--accent); }
+.type-view   { background: rgba(var(--ok-rgb),0.12);     color: var(--ok); }
+.type-access { background: rgba(var(--warn-rgb),0.12);   color: var(--warn); }
+.type-admin  { background: rgba(var(--muted-rgb),0.15);  color: var(--muted); }
 
 /* ── Audit table header ────────────────────────────────────────────────────── */
 .audit-head {
@@ -79,5 +79,5 @@
   letter-spacing: 1.3px;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--text) 3%, transparent);
+  background: rgba(var(--text-rgb),0.03);
 }

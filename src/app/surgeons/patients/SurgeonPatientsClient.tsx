@@ -45,7 +45,7 @@ function SignOffModal({
         <div className="logout-body">
           <div style={{
             width: 44, height: 44, borderRadius: '50%',
-            background: 'color-mix(in srgb,var(--ok) 12%,transparent)',
+            background: 'rgba(var(--ok-rgb),0.12)',
             display: 'grid', placeItems: 'center', margin: '0 auto 14px',
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2" aria-hidden="true">
@@ -195,7 +195,7 @@ function DocsModal({
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                 <div style={{
                   width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-                  background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                  background: 'rgba(var(--accent-rgb),0.10)',
                   display: 'grid', placeItems: 'center',
                 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
@@ -248,8 +248,8 @@ function DocsModal({
 
           {error && (
             <div style={{
-              background: 'color-mix(in srgb,var(--err) 8%,transparent)',
-              border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
+              background: 'rgba(var(--err-rgb),0.08)',
+              border: '1px solid rgba(var(--err-rgb),0.20)',
               borderRadius: 8, padding: '8px 12px',
               fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)',
               marginBottom: 10,
@@ -425,8 +425,8 @@ export default function SurgeonPatientsClient() {
                 padding: '1px 6px',
                 borderRadius: 99,
                 background: tab.key === 'pending'
-                  ? 'color-mix(in srgb,#f59e0b 15%,transparent)'
-                  : 'color-mix(in srgb,var(--ok) 12%,transparent)',
+                  ? 'rgba(245,158,11,0.15)'
+                  : 'rgba(var(--ok-rgb),0.12)',
                 color: tab.key === 'pending' ? '#92400e' : 'var(--ok)',
               }}>
                 {tab.count}
@@ -505,12 +505,12 @@ export default function SurgeonPatientsClient() {
                       padding: '2px 8px',
                       borderRadius: 5,
                       background: p.verificationStatus === 'active'
-                        ? 'color-mix(in srgb,var(--ok) 10%,transparent)'
-                        : 'color-mix(in srgb,#f59e0b 10%,transparent)',
+                        ? 'rgba(var(--ok-rgb),0.10)'
+                        : 'rgba(245,158,11,0.10)',
                       color: p.verificationStatus === 'active' ? 'var(--ok)' : '#92400e',
                       border: p.verificationStatus === 'active'
-                        ? '1px solid color-mix(in srgb,var(--ok) 25%,transparent)'
-                        : '1px solid color-mix(in srgb,#f59e0b 25%,transparent)',
+                        ? '1px solid rgba(var(--ok-rgb),0.25)'
+                        : '1px solid rgba(245,158,11,0.25)',
                     }}>
                       {p.verificationStatus === 'active' ? 'Verified' : 'Awaiting review'}
                     </span>
@@ -553,8 +553,8 @@ export default function SurgeonPatientsClient() {
       {signErr && !signOffFor && (
         <div style={{
           marginTop: 16,
-          background: 'color-mix(in srgb,var(--err) 8%,transparent)',
-          border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
+          background: 'rgba(var(--err-rgb),0.08)',
+          border: '1px solid rgba(var(--err-rgb),0.20)',
           borderRadius: 8, padding: '10px 14px',
           fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)',
         }}>

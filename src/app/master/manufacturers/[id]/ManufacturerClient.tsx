@@ -3,6 +3,7 @@
 import { useState }             from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useRouter }             from 'next/navigation'
+import { tint } from '@/lib/tint'
 import { api as apiBase }        from '../../../../../convex/_generated/api'
 import { Id }                    from '../../../../../convex/_generated/dataModel'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -38,7 +39,7 @@ function TagField({ label, values }: { label: string; values?: string[] | null }
       <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '.6px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>{label}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {values.map(v => (
-          <span key={v} style={{ background: 'color-mix(in srgb,var(--accent) 10%,transparent)', color: 'var(--accent)', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 6 }}>{v}</span>
+          <span key={v} style={{ background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent)', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 6 }}>{v}</span>
         ))}
       </div>
     </div>
@@ -49,7 +50,7 @@ function TagField({ label, values }: { label: string; values?: string[] | null }
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
-      <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)' }}>
+      <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--border)', background: 'rgba(var(--text-rgb),0.02)' }}>
         <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)' }}>{title}</div>
       </div>
       <div style={{ padding: '20px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: '18px 24px' }}>
@@ -107,13 +108,13 @@ export default function ManufacturerClient({ id }: Props) {
 
       {/* ── Profile header ── */}
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div style={{ width: 60, height: 60, borderRadius: 14, flexShrink: 0, background: 'color-mix(in srgb,var(--accent) 14%,transparent)', border: '1.5px solid color-mix(in srgb,var(--accent) 28%,transparent)', display: 'grid', placeItems: 'center' }}>
+        <div style={{ width: 60, height: 60, borderRadius: 14, flexShrink: 0, background: 'rgba(var(--accent-rgb),0.14)', border: '1.5px solid rgba(var(--accent-rgb),0.28)', display: 'grid', placeItems: 'center' }}>
           <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 20, color: 'var(--accent)' }}>{getInitials(mfr.companyName)}</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ marginBottom: 6, fontFamily: 'var(--ff)' }}>{mfr.companyName}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 700, color: colour, background: `color-mix(in srgb,${colour} 10%,transparent)`, border: `1px solid color-mix(in srgb,${colour} 25%,transparent)`, borderRadius: 7, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 700, color: colour, background: tint(colour, 10), border: `1px solid ${tint(colour, 25)}`, borderRadius: 7, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: '.5px' }}>
               {isPending && <span style={{ width: 6, height: 6, borderRadius: '50%', background: colour, display: 'inline-block' }} />}
               {mfr.status.charAt(0).toUpperCase() + mfr.status.slice(1)}
             </span>
@@ -161,7 +162,7 @@ export default function ManufacturerClient({ id }: Props) {
       {/* ── Supporting Documents panel ── */}
       {(mfr.docCompanyRegistration || mfr.docIso13485 || mfr.docRegulatoryCert || mfr.docLetterhead || mfr.docMriSampleData) && (
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
-          <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)' }}>
+          <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--border)', background: 'rgba(var(--text-rgb),0.02)' }}>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)' }}>Supporting Documents</div>
           </div>
           <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -187,7 +188,7 @@ export default function ManufacturerClient({ id }: Props) {
 
       {/* Review notes */}
       {mfr.reviewNotes && (
-        <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
+        <div style={{ background: 'rgba(var(--err-rgb),0.06)', border: '1px solid rgba(var(--err-rgb),0.18)', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--err)', marginBottom: 6 }}>Review Notes</div>
           <div style={{ fontFamily: 'var(--fb)', fontSize: 14 }}>{mfr.reviewNotes}</div>
         </div>
@@ -198,12 +199,12 @@ export default function ManufacturerClient({ id }: Props) {
         <div className="logout-back open" onClick={closeConfirm}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(var(--ok-rgb),0.12)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
               </div>
               <h3>Approve manufacturer?</h3>
               <p><strong>{mfr.companyName}</strong> will be activated and able to upload devices to the catalogue.</p>
-              {submitError && <div style={{ marginTop: 12, padding: '10px 12px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', borderRadius: 8, fontSize: 13, color: 'var(--err)' }}>{submitError}</div>}
+              {submitError && <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(var(--err-rgb),0.08)', borderRadius: 8, fontSize: 13, color: 'var(--err)' }}>{submitError}</div>}
             </div>
             <div className="logout-actions">
               <button className="btn" onClick={closeConfirm} disabled={submitting}>Cancel</button>
@@ -218,7 +219,7 @@ export default function ManufacturerClient({ id }: Props) {
         <div className="logout-back open" onClick={closeConfirm}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(var(--err-rgb),0.12)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </div>
               <h3>{isApproved ? 'Suspend manufacturer?' : 'Reject application?'}</h3>
@@ -227,7 +228,7 @@ export default function ManufacturerClient({ id }: Props) {
               <textarea className="input" style={{ resize: 'vertical', minHeight: 80 }}
                 placeholder="e.g. Unable to verify ISO 13485 certificate…"
                 value={rejectNotes} onChange={e => setRejectNotes(e.target.value)} />
-              {submitError && <div style={{ marginTop: 12, padding: '10px 12px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', borderRadius: 8, fontSize: 13, color: 'var(--err)' }}>{submitError}</div>}
+              {submitError && <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(var(--err-rgb),0.08)', borderRadius: 8, fontSize: 13, color: 'var(--err)' }}>{submitError}</div>}
             </div>
             <div className="logout-actions">
               <button className="btn" onClick={closeConfirm} disabled={submitting}>Cancel</button>

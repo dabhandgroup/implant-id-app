@@ -227,7 +227,7 @@ export function PlanPicker({ reason, onSkip }: { reason: 'trial_expired' | 'canc
                       fontSize: 11,
                       fontWeight: 700,
                       padding: '3px 9px',
-                      background: 'color-mix(in srgb,var(--accent) 14%,transparent)',
+                      background: 'rgba(var(--accent-rgb),0.14)',
                       color: 'var(--accent-deep)',
                       borderRadius: 20,
                       letterSpacing: '.04em',

@@ -4,6 +4,7 @@ import { useState }       from 'react'
 import { useQuery }       from 'convex/react'
 import { useUser, useClerk } from '@clerk/nextjs'
 import { api as apiBase } from '../../../../convex/_generated/api'
+import { tint } from '@/lib/tint'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
@@ -240,7 +241,7 @@ export default function MfrDashboardClient() {
                           </td>
                           <td>{d.deviceType || '—'}</td>
                           <td>
-                            <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:MRI_COLOUR[d.mriStatus??'unknown'], padding:(d.mriStatus==='safe'||d.mriStatus==='conditional'||d.mriStatus==='unsafe')?'3px 8px 3px 4px':'3px 8px', borderRadius:6, background:`color-mix(in srgb,${MRI_COLOUR[d.mriStatus??'unknown']} 12%,transparent)`, whiteSpace:'nowrap' }}>
+                            <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:MRI_COLOUR[d.mriStatus??'unknown'], padding:(d.mriStatus==='safe'||d.mriStatus==='conditional'||d.mriStatus==='unsafe')?'3px 8px 3px 4px':'3px 8px', borderRadius:6, background:tint(MRI_COLOUR[d.mriStatus??'unknown'], 12), whiteSpace:'nowrap' }}>
                               {(d.mriStatus==='safe'||d.mriStatus==='conditional'||d.mriStatus==='unsafe') && <img src={`/mr-${d.mriStatus}.svg`} alt="" aria-hidden="true" style={{ width:18, height:18, display:'block', flexShrink:0 }} />}
                               {mriLabel(d.mriStatus ?? 'unknown')}
                             </span>
@@ -330,7 +331,7 @@ export default function MfrDashboardClient() {
                           <td>
                             <span style={{
                               fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 5,
-                              background: d.status === 'live' ? 'color-mix(in srgb,var(--ok) 15%,transparent)' : d.status === 'pending' ? 'color-mix(in srgb,#d97706 12%,transparent)' : 'color-mix(in srgb,var(--muted) 15%,transparent)',
+                              background: d.status === 'live' ? 'rgba(var(--ok-rgb),0.15)' : d.status === 'pending' ? 'rgba(217,119,6,0.12)' : 'rgba(var(--muted-rgb),0.15)',
                               color: d.status === 'live' ? 'var(--ok)' : d.status === 'pending' ? '#d97706' : 'var(--muted)',
                             }}>
                               {d.status === 'live' ? 'Live' : d.status === 'pending' ? 'Pending review' : d.status ?? '—'}
@@ -391,7 +392,7 @@ export default function MfrDashboardClient() {
         <div className="logout-back open" onClick={() => !signingOut && setSignOutConfirm(false)}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
-              <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:44, height:44, borderRadius:'50%', background:'rgba(var(--err-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                   <polyline points="16 17 21 12 16 7"/>

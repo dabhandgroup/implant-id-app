@@ -38,7 +38,7 @@
 .em-notes{display:flex;flex-direction:column;gap:10px}
 .em-note{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px 18px}
 .em-note-hd{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.em-note-av{width:30px;height:30px;border-radius:50%;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);font-family:var(--ff);font-size:11px;font-weight:700;display:grid;place-items:center;flex-shrink:0}
+.em-note-av{width:30px;height:30px;border-radius:50%;background:rgba(var(--accent-rgb),0.14);color:var(--accent);font-family:var(--ff);font-size:11px;font-weight:700;display:grid;place-items:center;flex-shrink:0}
 .em-note-info{flex:1;min-width:0}
 .em-note-info .nm{font-family:var(--ff);font-size:13px;font-weight:600;color:var(--text)}
 .em-note-info .org{font-size:12px;color:var(--muted2);margin-top:1px}

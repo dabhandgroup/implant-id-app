@@ -3,15 +3,16 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation }        from 'convex/react'
 import { useSearchParams }              from 'next/navigation'
 import { api as apiBase }              from '../../../../convex/_generated/api'
+import { tint } from '@/lib/tint'
 const api = apiBase as any
 
 // ── MRI badge colours ──────────────────────────────────────────────────────────
 
 const MRI_META: Record<string, { label: string; color: string; bg: string }> = {
-  safe:        { label: 'MR Safe',        color: 'var(--ok)',    bg: 'color-mix(in srgb,var(--ok) 10%,transparent)'   },
-  conditional: { label: 'MR Conditional', color: '#b45309',      bg: 'color-mix(in srgb,#f59e0b 12%,transparent)'     },
-  unsafe:      { label: 'MR Unsafe',      color: 'var(--err)',   bg: 'color-mix(in srgb,var(--err) 10%,transparent)'  },
-  unknown:     { label: 'Unknown',        color: 'var(--muted)', bg: 'color-mix(in srgb,var(--muted) 10%,transparent)' },
+  safe:        { label: 'MR Safe',        color: 'var(--ok)',    bg: 'rgba(var(--ok-rgb),0.10)'   },
+  conditional: { label: 'MR Conditional', color: '#b45309',      bg: 'rgba(245,158,11,0.12)'     },
+  unsafe:      { label: 'MR Unsafe',      color: 'var(--err)',   bg: 'rgba(var(--err-rgb),0.10)'  },
+  unknown:     { label: 'Unknown',        color: 'var(--muted)', bg: 'rgba(var(--muted-rgb),0.10)' },
 }
 
 // ── Parameter row helper ───────────────────────────────────────────────────────
@@ -103,8 +104,8 @@ export default function SurgeonScanClient() {
       {/* ── Tier badge ── */}
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 8,
-        background: 'color-mix(in srgb,var(--accent) 8%,transparent)',
-        border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)',
+        background: 'rgba(var(--accent-rgb),0.08)',
+        border: '1px solid rgba(var(--accent-rgb),0.20)',
         borderRadius: 8, padding: '6px 14px',
         fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 500,
         color: 'var(--accent)', marginBottom: 24,
@@ -189,8 +190,8 @@ export default function SurgeonScanClient() {
       {/* ── Not found ── */}
       {notFound && (
         <div style={{
-          background: 'color-mix(in srgb,var(--err) 6%,transparent)',
-          border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)',
+          background: 'rgba(var(--err-rgb),0.06)',
+          border: '1px solid rgba(var(--err-rgb),0.18)',
           borderRadius: 12,
           padding: '20px 24px',
           maxWidth: 560,
@@ -223,8 +224,8 @@ export default function SurgeonScanClient() {
           {/* Found badge */}
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            background: 'color-mix(in srgb,var(--ok) 10%,transparent)',
-            border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)',
+            background: 'rgba(var(--ok-rgb),0.10)',
+            border: '1px solid rgba(var(--ok-rgb),0.22)',
             borderRadius: 8, padding: '5px 12px',
             fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600,
             color: 'var(--ok)', marginBottom: 20,
@@ -239,7 +240,7 @@ export default function SurgeonScanClient() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             background: mriMeta.bg,
-            border: `1px solid color-mix(in srgb,${mriMeta.color} 22%,transparent)`,
+            border: `1px solid ${tint(mriMeta.color, 22)}`,
             borderRadius: 10, padding: '10px 16px',
             marginBottom: 24,
           }}>
@@ -290,12 +291,12 @@ export default function SurgeonScanClient() {
                 fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600,
                 padding: '2px 8px', borderRadius: 5,
                 background: result.verificationStatus === 'active'
-                  ? 'color-mix(in srgb,var(--ok) 10%,transparent)'
-                  : 'color-mix(in srgb,#f59e0b 10%,transparent)',
+                  ? 'rgba(var(--ok-rgb),0.10)'
+                  : 'rgba(245,158,11,0.10)',
                 color: result.verificationStatus === 'active' ? 'var(--ok)' : '#92400e',
                 border: result.verificationStatus === 'active'
-                  ? '1px solid color-mix(in srgb,var(--ok) 25%,transparent)'
-                  : '1px solid color-mix(in srgb,#f59e0b 25%,transparent)',
+                  ? '1px solid rgba(var(--ok-rgb),0.25)'
+                  : '1px solid rgba(245,158,11,0.25)',
               }}>
                 {result.verificationStatus === 'active' ? 'Verified' : 'Pending verification'}
               </span>
@@ -364,8 +365,8 @@ export default function SurgeonScanClient() {
                             {deviceDetail.mriStatus === 'conditional' && (
                               <div style={{
                                 display: 'flex', alignItems: 'flex-start', gap: 10,
-                                background: 'color-mix(in srgb,#f59e0b 8%,transparent)',
-                                border: '1px solid color-mix(in srgb,#f59e0b 22%,transparent)',
+                                background: 'rgba(245,158,11,0.08)',
+                                border: '1px solid rgba(245,158,11,0.22)',
                                 borderRadius: 8, padding: '10px 14px', marginBottom: 14,
                               }}>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
@@ -399,7 +400,7 @@ export default function SurgeonScanClient() {
 
                             <div style={{
                               display: 'flex', alignItems: 'center', gap: 8,
-                              background: 'color-mix(in srgb,var(--muted) 6%,transparent)',
+                              background: 'rgba(var(--muted-rgb),0.06)',
                               borderRadius: 8, padding: '8px 12px',
                             }}>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.7" aria-hidden="true">
@@ -422,7 +423,7 @@ export default function SurgeonScanClient() {
           {/* Tier 1 note */}
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 10,
-            background: 'color-mix(in srgb,var(--muted) 5%,transparent)',
+            background: 'rgba(var(--muted-rgb),0.05)',
             borderRadius: 10, padding: '12px 16px',
           }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">

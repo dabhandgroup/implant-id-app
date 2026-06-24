@@ -97,7 +97,7 @@ export default function ClinicActivateClient() {
 
           {/* Error banner */}
           {phase === 'error' && (
-            <div style={{ background: 'color-mix(in srgb,var(--err) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', borderRadius: 10, padding: '12px 14px', fontSize: 13.5, color: 'var(--err)', marginBottom: 16 }}>
+            <div style={{ background: 'rgba(var(--err-rgb),0.10)', border: '1px solid rgba(var(--err-rgb),0.25)', borderRadius: 10, padding: '12px 14px', fontSize: 13.5, color: 'var(--err)', marginBottom: 16 }}>
               <div style={{ marginBottom: 6 }}>{errorMsg}</div>
               <div style={{ fontSize: 13, color: 'var(--muted)' }}>
                 If this link has expired, ask your administrator to resend the activation email.
@@ -107,7 +107,7 @@ export default function ClinicActivateClient() {
 
           {/* Invalid link */}
           {!ticket && (
-            <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+            <div style={{ background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
               <p style={{ margin: '0 0 8px', color: 'var(--err)', fontSize: 14, fontWeight: 500 }}>
                 This activation link is invalid or has already been used.
               </p>
@@ -122,7 +122,7 @@ export default function ClinicActivateClient() {
 
           {/* Email display */}
           {email && (
-            <div style={{ background: 'color-mix(in srgb,var(--accent) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 10, padding: '13px 16px', marginBottom: 24 }}>
+            <div style={{ background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid rgba(var(--accent-rgb),0.20)', borderRadius: 10, padding: '13px 16px', marginBottom: 24 }}>
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--accent-deep)', marginBottom: 4 }}>
                 Activating account for
               </div>

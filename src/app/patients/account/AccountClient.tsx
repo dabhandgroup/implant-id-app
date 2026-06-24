@@ -143,14 +143,14 @@ export default function AccountClient() {
       <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'var(--bg)', fontFamily:'var(--ff)', gap:32 }}>
         <Link href="/" style={{ textDecoration:'none' }}>
           <div style={{ display:'flex', alignItems:'center', gap:11, color:'var(--text)', fontSize:19, fontWeight:600, letterSpacing:'-.02em' }}>
-            <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px color-mix(in srgb,var(--accent) 35%,transparent)' }}>
+            <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(var(--accent-rgb),0.35)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             </div>
             Implant ID
           </div>
         </Link>
         <svg width="38" height="38" viewBox="0 0 38 38" aria-label="Loading" role="status">
-          <circle cx="19" cy="19" r="15" fill="none" stroke="color-mix(in srgb,var(--accent) 15%,transparent)" strokeWidth="2.5"/>
+          <circle cx="19" cy="19" r="15" fill="none" stroke="rgba(var(--accent-rgb),0.15)" strokeWidth="2.5"/>
           <circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="24 70">
             <animateTransform attributeName="transform" type="rotate" from="0 19 19" to="360 19 19" dur="0.85s" repeatCount="indefinite"/>
           </circle>
@@ -647,7 +647,7 @@ export default function AccountClient() {
                       justifyContent: 'space-between',
                       gap: 8,
                       width: '100%',
-                      background: iidCopied ? 'color-mix(in srgb,var(--ok) 8%,var(--bg))' : undefined,
+                      background: iidCopied ? 'rgba(var(--ok-rgb),0.08)' : undefined,
                       borderColor: iidCopied ? 'var(--ok)' : undefined,
                       color: iidCopied ? 'var(--ok)' : 'var(--text)',
                       transition: 'background .2s,border-color .2s,color .2s',
@@ -795,7 +795,7 @@ export default function AccountClient() {
                         <button
                           className="btn"
                           onClick={() => removePasskey(pk.id)}
-                          style={{ fontSize: 12, padding: '5px 12px', color: 'var(--err)', borderColor: 'color-mix(in srgb, var(--err) 30%, var(--border))' }}
+                          style={{ fontSize: 12, padding: '5px 12px', color: 'var(--err)', borderColor: 'rgba(var(--err-rgb),0.35)' }}
                         >
                           Remove
                         </button>
@@ -826,7 +826,7 @@ export default function AccountClient() {
                           className="btn"
                           onClick={disableTotp}
                           disabled={totpDisableLoading}
-                          style={{ fontSize: 12, padding: '5px 12px', color: 'var(--err)', borderColor: 'color-mix(in srgb, var(--err) 30%, var(--border))' }}
+                          style={{ fontSize: 12, padding: '5px 12px', color: 'var(--err)', borderColor: 'rgba(var(--err-rgb),0.35)' }}
                         >
                           {totpDisableLoading ? 'Removing…' : 'Remove'}
                         </button>
@@ -1038,12 +1038,12 @@ export default function AccountClient() {
                     const working   = accessResponding[req._id]
                     return (
                       <div key={req._id} style={{
-                        background: responded ? 'color-mix(in srgb,var(--bg2) 60%,transparent)' : 'var(--bg2)',
+                        background: responded ? 'rgba(var(--bg2-rgb),0.60)' : 'var(--bg2)',
                         border: '1px solid var(--border)',
                         borderRadius: 12, padding: '16px 18px',
                         display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
                       }}>
-                        <div style={{ width: 38, height: 38, borderRadius: 10, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(var(--accent-rgb),0.10)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
                             <path d="M3 21V8l9-5 9 5v13"/><path d="M9 9h6M9 13h6M9 17h6"/>
                           </svg>
@@ -1058,7 +1058,7 @@ export default function AccountClient() {
                         {responded ? (
                           <span style={{
                             fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 999,
-                            background: responded === 'approved' ? 'color-mix(in srgb,var(--ok) 12%,transparent)' : 'color-mix(in srgb,var(--muted2) 12%,transparent)',
+                            background: responded === 'approved' ? 'rgba(var(--ok-rgb),0.12)' : 'rgba(var(--muted2-rgb),0.12)',
                             color: responded === 'approved' ? 'var(--ok)' : 'var(--muted)',
                           }}>
                             {responded === 'approved' ? 'Approved' : 'Declined'}
@@ -1169,11 +1169,11 @@ export default function AccountClient() {
           {!notifications || notifications.length === 0 ? (
             <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No notifications</div>
           ) : (notifications as {_id: string, title: string, body: string, read: boolean, createdAt: number}[]).map(n => (
-            <div key={n._id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', borderLeft: n.read ? '3px solid transparent' : '3px solid var(--accent)', background: n.read ? 'transparent' : 'color-mix(in srgb,var(--accent) 5%,transparent)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div key={n._id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', borderLeft: n.read ? '3px solid transparent' : '3px solid var(--accent)', background: n.read ? 'transparent' : 'rgba(var(--accent-rgb),0.05)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                   <span style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: n.read ? 400 : 600, color: 'var(--text)' }}>{n.title}</span>
-                  {!n.read && <span style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 12%,transparent)', borderRadius: 4, padding: '2px 6px' }}>New</span>}
+                  {!n.read && <span style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--accent)', background: 'rgba(var(--accent-rgb),0.12)', borderRadius: 4, padding: '2px 6px' }}>New</span>}
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--muted2)', marginTop: 4 }}>{new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>

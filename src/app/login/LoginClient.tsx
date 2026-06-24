@@ -490,7 +490,7 @@ export default function LoginClient() {
           <p className="sub">Choose your account type to continue.</p>
 
           {error && (
-            <div style={{ background: 'color-mix(in srgb,var(--err) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', borderRadius: 10, padding: '10px 14px', fontSize: 13.5, color: 'var(--err)', marginBottom: 16 }}>
+            <div style={{ background: 'rgba(var(--err-rgb),0.10)', border: '1px solid rgba(var(--err-rgb),0.25)', borderRadius: 10, padding: '10px 14px', fontSize: 13.5, color: 'var(--err)', marginBottom: 16 }}>
               {error}
             </div>
           )}
@@ -650,7 +650,7 @@ export default function LoginClient() {
               {patPhase === 'mfa-totp' && (
                 <div className="tab-view active">
                   <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
-                    <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:'color-mix(in srgb,var(--accent) 10%,transparent)', display:'grid', placeItems:'center' }}>
+                    <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:'rgba(var(--accent-rgb),0.10)', display:'grid', placeItems:'center' }}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.2" fill="var(--accent)" stroke="none"/></svg>
                     </div>
                     <div>
@@ -766,7 +766,7 @@ export default function LoginClient() {
               {clPhase === 'mfa-totp' && (
                 <div className="tab-view active">
                   <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
-                    <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:'color-mix(in srgb,var(--accent) 10%,transparent)', display:'grid', placeItems:'center' }}>
+                    <div style={{ width:38, height:38, borderRadius:10, flexShrink:0, background:'rgba(var(--accent-rgb),0.10)', display:'grid', placeItems:'center' }}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.2" fill="var(--accent)" stroke="none"/></svg>
                     </div>
                     <div>

@@ -143,8 +143,8 @@ export default function SignUpClient() {
 
           {error && (
             <div style={{
-              background:'color-mix(in srgb,var(--err) 10%,transparent)',
-              border:'1px solid color-mix(in srgb,var(--err) 25%,transparent)',
+              background:'rgba(var(--err-rgb),0.10)',
+              border:'1px solid rgba(var(--err-rgb),0.25)',
               borderRadius:10, padding:'10px 14px', fontSize:13.5,
               color:'var(--err)', marginBottom:16,
             }}>

@@ -179,14 +179,14 @@ export default function ClinicNotificationsOverlay() {
                   display: 'flex', gap: 14,
                   padding: '16px 20px',
                   borderBottom: '1px solid var(--border)',
-                  background: n.read ? 'transparent' : 'color-mix(in srgb,var(--accent) 4%,transparent)',
+                  background: n.read ? 'transparent' : 'rgba(var(--accent-rgb),0.04)',
                 }}
               >
                 {/* Icon */}
                 <div style={{
                   width: 34, height: 34, borderRadius: 9, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: `color-mix(in srgb,var(--${color}) 12%,transparent)`,
+                  background: `rgba(var(--${color}-rgb),0.12)`,
                   color: `var(--${color})`,
                 }} dangerouslySetInnerHTML={{ __html: icon }} />
 

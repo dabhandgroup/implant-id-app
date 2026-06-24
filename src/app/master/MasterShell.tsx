@@ -509,7 +509,7 @@ export default function MasterShell({ children }: MasterShellProps) {
         <div className="logout-back open" onClick={cancelSignOut}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(var(--err-rgb),0.12)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                   <polyline points="16 17 21 12 16 7"/>

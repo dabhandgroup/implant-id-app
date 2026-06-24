@@ -12,9 +12,9 @@ type MriStatus      = 'safe' | 'conditional' | 'unsafe' | 'unknown'
 type Classification = 'active' | 'passive' | 'legacy'
 
 const MRI_OPTIONS: { value: MriStatus; label: string; color: string; bg: string; icon?: string }[] = [
-  { value: 'safe',        label: 'MR Safe',        color: 'var(--ok)',   bg: 'color-mix(in srgb,var(--ok) 10%,transparent)',  icon: '/mr-safe.svg' },
-  { value: 'conditional', label: 'MR Conditional',  color: '#b45309',    bg: 'color-mix(in srgb,#f59e0b 10%,transparent)',     icon: '/mr-conditional.svg' },
-  { value: 'unsafe',      label: 'MR Unsafe',       color: 'var(--err)', bg: 'color-mix(in srgb,var(--err) 10%,transparent)',  icon: '/mr-unsafe.svg' },
+  { value: 'safe',        label: 'MR Safe',        color: 'var(--ok)',   bg: 'rgba(var(--ok-rgb),0.10)',  icon: '/mr-safe.svg' },
+  { value: 'conditional', label: 'MR Conditional',  color: '#b45309',    bg: 'rgba(245,158,11,0.10)',     icon: '/mr-conditional.svg' },
+  { value: 'unsafe',      label: 'MR Unsafe',       color: 'var(--err)', bg: 'rgba(var(--err-rgb),0.10)',  icon: '/mr-unsafe.svg' },
   { value: 'unknown',     label: 'Unknown',          color: 'var(--muted)', bg: 'var(--bg)', icon: undefined },
 ]
 
@@ -184,7 +184,7 @@ export default function EditDeviceClient({ id }: { id: string }) {
               <div style={{ display: 'flex', gap: 8 }}>
                 {(['active', 'passive', 'legacy'] as Classification[]).map(c => (
                   <button key={c} type="button" onClick={() => setClassification(c)}
-                    style={{ flex:1, padding:'9px 4px', borderRadius:8, cursor:'pointer', fontFamily:'var(--ff)', fontSize:13, fontWeight: classification===c ? 600 : 400, border:`1.5px solid ${classification===c ? 'var(--accent)' : 'var(--border)'}`, background: classification===c ? 'color-mix(in srgb,var(--accent) 12%,transparent)' : 'transparent', color: classification===c ? 'var(--accent-deep)' : 'var(--muted)', transition:'all .15s', textTransform:'capitalize' }}>
+                    style={{ flex:1, padding:'9px 4px', borderRadius:8, cursor:'pointer', fontFamily:'var(--ff)', fontSize:13, fontWeight: classification===c ? 600 : 400, border:`1.5px solid ${classification===c ? 'var(--accent)' : 'var(--border)'}`, background: classification===c ? 'rgba(var(--accent-rgb),0.12)' : 'transparent', color: classification===c ? 'var(--accent-deep)' : 'var(--muted)', transition:'all .15s', textTransform:'capitalize' }}>
                     {c}
                   </button>
                 ))}
@@ -250,7 +250,7 @@ export default function EditDeviceClient({ id }: { id: string }) {
               const on = approvedRegions.includes(r)
               return (
                 <button key={r} type="button" onClick={() => toggleRegion(r)}
-                  style={{ padding:'7px 16px', borderRadius:8, cursor:'pointer', transition:'all .15s', fontFamily:'var(--ff)', fontSize:13, fontWeight: on ? 600 : 400, border:`1.5px solid ${on ? 'var(--accent)' : 'var(--border)'}`, background: on ? 'color-mix(in srgb,var(--accent) 10%,transparent)' : 'transparent', color: on ? 'var(--accent-deep)' : 'var(--muted)' }}>
+                  style={{ padding:'7px 16px', borderRadius:8, cursor:'pointer', transition:'all .15s', fontFamily:'var(--ff)', fontSize:13, fontWeight: on ? 600 : 400, border:`1.5px solid ${on ? 'var(--accent)' : 'var(--border)'}`, background: on ? 'rgba(var(--accent-rgb),0.10)' : 'transparent', color: on ? 'var(--accent-deep)' : 'var(--muted)' }}>
                   {r}
                 </button>
               )
@@ -282,7 +282,7 @@ export default function EditDeviceClient({ id }: { id: string }) {
               </div>
             ))}
             <button type="button" onClick={addSourceRow}
-              style={{ alignSelf:'flex-start', display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
+              style={{ alignSelf:'flex-start', display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'rgba(var(--accent-rgb),0.08)', border:'1px dashed rgba(var(--accent-rgb),0.30)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add another source
             </button>
@@ -290,7 +290,7 @@ export default function EditDeviceClient({ id }: { id: string }) {
 
           {/* ── Error + Actions ── */}
           {error && (
-            <div style={{ marginTop: 24, background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)' }}>
+            <div style={{ marginTop: 24, background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)' }}>
               {error}
             </div>
           )}

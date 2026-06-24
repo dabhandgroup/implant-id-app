@@ -956,8 +956,8 @@ export default function RegisterClient() {
           {/* Error banner */}
           {error && (
             <div style={{
-              background: 'color-mix(in srgb,var(--err) 10%,transparent)',
-              border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)',
+              background: 'rgba(var(--err-rgb),0.10)',
+              border: '1px solid rgba(var(--err-rgb),0.25)',
               borderRadius: 10, padding: '10px 14px',
               fontSize: 13.5, color: 'var(--err)', marginBottom: 20,
             }}>
@@ -1146,7 +1146,7 @@ export default function RegisterClient() {
                         style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--border)' }}
                         onClick={() => { setSelfReportedSurgeon(s.name); setSurgeonSearch(s.name); setSelectedSurgeonId(String(s.userId)); setSurgeonDropOpen(false) }}
                       >
-                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 14%,transparent)', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 11, color: 'var(--accent)', flexShrink: 0 }}>{s.name.slice(0, 2).toUpperCase()}</div>
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(var(--accent-rgb),0.14)', display: 'grid', placeItems: 'center', fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 11, color: 'var(--accent)', flexShrink: 0 }}>{s.name.slice(0, 2).toUpperCase()}</div>
                         <div><div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{s.name}</div><div style={{ fontSize: 11.5, color: 'var(--muted)' }}>{s.email}</div></div>
                       </button>
                     ))}
@@ -1240,7 +1240,7 @@ export default function RegisterClient() {
               {implants.map((imp, idx) => (
                 <React.Fragment key={imp.id}>
                   {implants.length > 1 && (
-                    <div className="row" style={{ background: 'color-mix(in srgb,var(--accent) 5%,transparent)' }}>
+                    <div className="row" style={{ background: 'rgba(var(--accent-rgb),0.05)' }}>
                       <span className="k" style={{ fontWeight: 600, color: 'var(--accent)' }}>
                         Implant {idx + 1}
                       </span>
@@ -1337,7 +1337,7 @@ export default function RegisterClient() {
       <div className="logout-back open" onClick={() => !loading && setSubmitConfirm(false)}>
         <div className="logout-modal" onClick={e => e.stopPropagation()}>
           <div className="logout-body">
-            <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--accent) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 16px' }}>
+            <div style={{ width:48, height:48, borderRadius:'50%', background:'rgba(var(--accent-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 16px' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 <path d="m9 12 2 2 4-4"/>

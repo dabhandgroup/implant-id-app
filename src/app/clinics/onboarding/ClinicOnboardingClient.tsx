@@ -222,7 +222,7 @@ export default function ClinicOnboardingClient() {
             <div style={{ textAlign:'center', padding:'20px 0 10px' }}>
               <div style={{
                 width:72, height:72, borderRadius:'50%',
-                background:'color-mix(in srgb,var(--ok) 12%,transparent)',
+                background:'rgba(var(--ok-rgb),0.12)',
                 color:'var(--ok)', display:'grid', placeItems:'center', margin:'0 auto 24px',
               }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -283,8 +283,8 @@ export default function ClinicOnboardingClient() {
           {/* Error banner */}
           {error && (
             <div style={{
-              background:'color-mix(in srgb,var(--err) 10%,transparent)',
-              border:'1px solid color-mix(in srgb,var(--err) 25%,transparent)',
+              background:'rgba(var(--err-rgb),0.10)',
+              border:'1px solid rgba(var(--err-rgb),0.25)',
               borderRadius:10, padding:'10px 14px', fontSize:13.5, color:'var(--err)', marginBottom:24,
             }}>{error}</div>
           )}
@@ -473,7 +473,7 @@ export default function ClinicOnboardingClient() {
                 onDragOver={e => { e.preventDefault(); setDragOver(true) }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleFileDrop}
-                style={dragOver ? { borderColor:'var(--accent)', background:'color-mix(in srgb,var(--accent) 6%,transparent)' } : {}}
+                style={dragOver ? { borderColor:'var(--accent)', background:'rgba(var(--accent-rgb),0.06)' } : {}}
               >
                 {accreditationFile ? (
                   <>

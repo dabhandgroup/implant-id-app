@@ -85,7 +85,7 @@ export default function MasterPatientsClient() {
                   <td>
                     {(p as any).accountActivated
                       ? <span className="m-status active">Active</span>
-                      : <span className="m-status" style={{ background: 'color-mix(in srgb,#64748b 10%,transparent)', color: '#475569', border: '1px solid color-mix(in srgb,#64748b 25%,transparent)' }}>Invite pending</span>}
+                      : <span className="m-status" style={{ background: 'rgba(100,116,139,0.10)', color: '#475569', border: '1px solid rgba(100,116,139,0.25)' }}>Invite pending</span>}
                   </td>
                   <td>
                     {p.verificationStatus === 'active'
@@ -129,7 +129,7 @@ export default function MasterPatientsClient() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
               {(p as any).accountActivated
                 ? <span className="m-status active">Active</span>
-                : <span className="m-status" style={{ background: 'color-mix(in srgb,#64748b 10%,transparent)', color: '#475569', border: '1px solid color-mix(in srgb,#64748b 25%,transparent)' }}>Invite pending</span>}
+                : <span className="m-status" style={{ background: 'rgba(100,116,139,0.10)', color: '#475569', border: '1px solid rgba(100,116,139,0.25)' }}>Invite pending</span>}
               {p.verificationStatus === 'active'
                 ? <span className="m-status active">Verified</span>
                 : <span className="m-status pending">Pending</span>}

@@ -238,14 +238,14 @@ export default function DashboardClient() {
       <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'var(--bg)', fontFamily:'var(--ff)', gap:32 }}>
         <Link href="/" style={{ textDecoration:'none' }}>
           <div style={{ display:'flex', alignItems:'center', gap:11, color:'var(--text)', fontSize:19, fontWeight:600, letterSpacing:'-.02em' }}>
-            <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px color-mix(in srgb,var(--accent) 35%,transparent)' }}>
+            <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(var(--accent-rgb),0.35)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             </div>
             Implant ID
           </div>
         </Link>
         <svg width="38" height="38" viewBox="0 0 38 38" aria-label="Loading" role="status">
-          <circle cx="19" cy="19" r="15" fill="none" stroke="color-mix(in srgb,var(--accent) 15%,transparent)" strokeWidth="2.5"/>
+          <circle cx="19" cy="19" r="15" fill="none" stroke="rgba(var(--accent-rgb),0.15)" strokeWidth="2.5"/>
           <circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="24 70">
             <animateTransform attributeName="transform" type="rotate" from="0 19 19" to="360 19 19" dur="0.85s" repeatCount="indefinite"/>
           </circle>
@@ -407,7 +407,7 @@ export default function DashboardClient() {
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
                   <div style={{
                     width:40, height:40, borderRadius:12, flexShrink:0,
-                    background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                    background: 'rgba(var(--accent-rgb),0.10)',
                     display:'grid', placeItems:'center',
                   }}>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
@@ -428,7 +428,7 @@ export default function DashboardClient() {
 
                   {/* 1 — Verify email */}
                   <div style={{ display:'flex', gap:12, alignItems:'flex-start', marginBottom:14 }}>
-                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, zIndex:1, position:'relative', background:'color-mix(in srgb,var(--accent) 10%,transparent)', border:'1.5px solid var(--accent)', display:'grid', placeItems:'center' }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, zIndex:1, position:'relative', background:'rgba(var(--accent-rgb),0.10)', border:'1.5px solid var(--accent)', display:'grid', placeItems:'center' }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.2">
                         <path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
                         <path d="m22 6-10 7L2 6"/>
@@ -481,7 +481,7 @@ export default function DashboardClient() {
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
                   <div style={{
                     width:40, height:40, borderRadius:12, flexShrink:0,
-                    background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                    background: 'rgba(var(--accent-rgb),0.10)',
                     display:'grid', placeItems:'center',
                   }}>
                     <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
@@ -512,7 +512,7 @@ export default function DashboardClient() {
                   <div style={{ textAlign:'center', padding:'16px 0 20px' }}>
                     <div style={{
                       width:52, height:52, borderRadius:'50%', margin:'0 auto 12px',
-                      background:'color-mix(in srgb,var(--ok) 12%,transparent)',
+                      background:'rgba(var(--ok-rgb),0.12)',
                       display:'grid', placeItems:'center',
                     }}>
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.2">
@@ -591,8 +591,8 @@ export default function DashboardClient() {
 
                     {wEmailErr && (
                       <div style={{
-                        background: 'color-mix(in srgb,var(--err) 8%,transparent)',
-                        border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
+                        background: 'rgba(var(--err-rgb),0.08)',
+                        border: '1px solid rgba(var(--err-rgb),0.20)',
                         borderRadius: 10, padding: '10px 14px',
                         color:'var(--err)', fontSize:13, marginBottom:12, lineHeight:1.4,
                       }}>{wEmailErr}</div>
@@ -1181,8 +1181,8 @@ export default function DashboardClient() {
                 }}>
                   <div style={{
                     width:38, height:38, borderRadius:10, flexShrink:0,
-                    background:'color-mix(in srgb,var(--ok) 10%,transparent)',
-                    border:'1px solid color-mix(in srgb,var(--ok) 22%,transparent)',
+                    background:'rgba(var(--ok-rgb),0.10)',
+                    border:'1px solid rgba(var(--ok-rgb),0.22)',
                     display:'grid', placeItems:'center',
                   }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="1.7" aria-hidden="true">
@@ -1194,7 +1194,7 @@ export default function DashboardClient() {
                       <span style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>
                         {d.manufacturer} {d.name}
                       </span>
-                      <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--ok)', background:'color-mix(in srgb,var(--ok) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
+                      <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--ok)', background:'rgba(var(--ok-rgb),0.10)', border:'1px solid rgba(var(--ok-rgb),0.22)', borderRadius:5, padding:'2px 7px' }}>
                         Verified
                       </span>
                     </div>
@@ -1215,8 +1215,8 @@ export default function DashboardClient() {
                 }}>
                   <div style={{
                     width:38, height:38, borderRadius:10, flexShrink:0,
-                    background: isPending ? 'color-mix(in srgb,#f59e0b 10%,transparent)' : 'color-mix(in srgb,var(--accent) 10%,transparent)',
-                    border: isPending ? '1px solid color-mix(in srgb,#f59e0b 22%,transparent)' : '1px solid color-mix(in srgb,var(--accent) 22%,transparent)',
+                    background: isPending ? 'rgba(245,158,11,0.10)' : 'rgba(var(--accent-rgb),0.10)',
+                    border: isPending ? '1px solid rgba(245,158,11,0.22)' : '1px solid rgba(var(--accent-rgb),0.22)',
                     display:'grid', placeItems:'center',
                   }}>
                     {isPending ? (
@@ -1235,7 +1235,7 @@ export default function DashboardClient() {
                         {patient.selfReportedDevice}
                       </span>
                       {isPending ? (
-                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'color-mix(in srgb,#f59e0b 10%,transparent)', border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
+                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'rgba(245,158,11,0.10)', border:'1px solid rgba(245,158,11,0.22)', borderRadius:5, padding:'2px 7px' }}>
                           Pending verification
                         </span>
                       ) : (
@@ -1260,8 +1260,8 @@ export default function DashboardClient() {
                 }}>
                   <div style={{
                     width:38, height:38, borderRadius:10, flexShrink:0,
-                    background: isPending ? 'color-mix(in srgb,#f59e0b 10%,transparent)' : 'color-mix(in srgb,var(--accent) 10%,transparent)',
-                    border: isPending ? '1px solid color-mix(in srgb,#f59e0b 22%,transparent)' : '1px solid color-mix(in srgb,var(--accent) 22%,transparent)',
+                    background: isPending ? 'rgba(245,158,11,0.10)' : 'rgba(var(--accent-rgb),0.10)',
+                    border: isPending ? '1px solid rgba(245,158,11,0.22)' : '1px solid rgba(var(--accent-rgb),0.22)',
                     display:'grid', placeItems:'center',
                   }}>
                     {isPending ? (
@@ -1278,7 +1278,7 @@ export default function DashboardClient() {
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
                       <span style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>{imp.device}</span>
                       {isPending ? (
-                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'color-mix(in srgb,#f59e0b 10%,transparent)', border:'1px solid color-mix(in srgb,#f59e0b 22%,transparent)', borderRadius:5, padding:'2px 7px' }}>
+                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'#92400e', background:'rgba(245,158,11,0.10)', border:'1px solid rgba(245,158,11,0.22)', borderRadius:5, padding:'2px 7px' }}>
                           Pending verification
                         </span>
                       ) : (
@@ -1340,7 +1340,7 @@ export default function DashboardClient() {
                       }}>
                         <div style={{
                           width:36, height:36, borderRadius:9, flexShrink:0,
-                          background:'color-mix(in srgb,var(--accent) 10%,transparent)',
+                          background:'rgba(var(--accent-rgb),0.10)',
                           display:'grid', placeItems:'center',
                           fontFamily:'var(--ff)', fontWeight:700, fontSize:12, color:'var(--accent)',
                         }}>
@@ -1527,9 +1527,9 @@ export default function DashboardClient() {
                       {matches.map((c: any, i: number) => (
                         <button key={c._id} type="button"
                           onClick={() => { setClinicEmail(c.email ?? ''); setClinicSearch(c.name) }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: clinicEmail === c.email ? 'color-mix(in srgb,var(--accent) 7%,transparent)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: i < matches.length - 1 ? '1px solid var(--border)' : 'none' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: clinicEmail === c.email ? 'rgba(var(--accent-rgb),0.07)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: i < matches.length - 1 ? '1px solid var(--border)' : 'none' }}
                         >
-                          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0, fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 12, color: 'var(--accent)' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(var(--accent-rgb),0.10)', display: 'grid', placeItems: 'center', flexShrink: 0, fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 12, color: 'var(--accent)' }}>
                             {c.name.slice(0,2).toUpperCase()}
                           </div>
                           <div style={{ flex: 1 }}>
@@ -1543,7 +1543,7 @@ export default function DashboardClient() {
                       ))}
                     </div>
                   ) : (
-                    <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, padding: '10px 14px', background: 'color-mix(in srgb,#f59e0b 7%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 8, lineHeight: 1.55 }}>
+                    <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, padding: '10px 14px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.20)', borderRadius: 8, lineHeight: 1.55 }}>
                       Clinic not found — enter their email below and we&apos;ll invite them to join Implant ID.
                     </div>
                   )
@@ -1570,7 +1570,7 @@ export default function DashboardClient() {
               </form>
             ) : (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', color: 'var(--ok)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+                <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(var(--ok-rgb),0.12)', color: 'var(--ok)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M20 6 9 17l-5-5"/>
                   </svg>
@@ -1602,11 +1602,11 @@ export default function DashboardClient() {
           {!notifications || notifications.length === 0 ? (
             <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No notifications</div>
           ) : (notifications as {_id: string, title: string, body: string, read: boolean, createdAt: number}[]).map(n => (
-            <div key={n._id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', borderLeft: n.read ? '3px solid transparent' : '3px solid var(--accent)', background: n.read ? 'transparent' : 'color-mix(in srgb,var(--accent) 5%,transparent)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div key={n._id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', borderLeft: n.read ? '3px solid transparent' : '3px solid var(--accent)', background: n.read ? 'transparent' : 'rgba(var(--accent-rgb),0.05)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                   <span style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: n.read ? 400 : 600, color: 'var(--text)' }}>{n.title}</span>
-                  {!n.read && <span style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 12%,transparent)', borderRadius: 4, padding: '2px 6px' }}>New</span>}
+                  {!n.read && <span style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--accent)', background: 'rgba(var(--accent-rgb),0.12)', borderRadius: 4, padding: '2px 6px' }}>New</span>}
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--muted2)', marginTop: 4 }}>{new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
@@ -1705,7 +1705,7 @@ export default function DashboardClient() {
                 </div>
               </div>
               {implantErr && (
-                <div style={{ background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:10, padding:'10px 14px', color:'var(--err)', fontSize:13, marginBottom:14 }}>{implantErr}</div>
+                <div style={{ background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:10, padding:'10px 14px', color:'var(--err)', fontSize:13, marginBottom:14 }}>{implantErr}</div>
               )}
               <div style={{ display:'flex', gap:10 }}>
                 <button type="button" className="btn btn-lg" style={{ flex:1, justifyContent:'center' }} onClick={() => { setImplantOpen(false); setImplantErr('') }}>Cancel</button>
@@ -1726,7 +1726,7 @@ export default function DashboardClient() {
         >
           <div style={{ width:'100%', maxWidth:400, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden', boxShadow:'0 40px 80px -20px rgba(0,0,0,.4)' }}>
             <div style={{ padding:'28px 28px 20px', textAlign:'center' }}>
-              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 22%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'rgba(var(--err-rgb),0.10)', border:'1px solid rgba(var(--err-rgb),0.22)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" aria-hidden="true">
                   <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>

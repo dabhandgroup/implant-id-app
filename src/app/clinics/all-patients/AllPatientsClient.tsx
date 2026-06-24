@@ -121,12 +121,12 @@ export default function AllPatientsClient() {
                       padding: '2px 8px',
                       borderRadius: 5,
                       background: p.accountActivated
-                        ? 'color-mix(in srgb,var(--ok) 10%,transparent)'
-                        : 'color-mix(in srgb,#64748b 10%,transparent)',
+                        ? 'rgba(var(--ok-rgb),0.10)'
+                        : 'rgba(100,116,139,0.10)',
                       color: p.accountActivated ? 'var(--ok)' : '#475569',
                       border: p.accountActivated
-                        ? '1px solid color-mix(in srgb,var(--ok) 25%,transparent)'
-                        : '1px solid color-mix(in srgb,#64748b 25%,transparent)',
+                        ? '1px solid rgba(var(--ok-rgb),0.25)'
+                        : '1px solid rgba(100,116,139,0.25)',
                     }}>
                       {p.accountActivated ? 'Active' : 'Invite pending'}
                     </span>
@@ -139,12 +139,12 @@ export default function AllPatientsClient() {
                       padding: '2px 8px',
                       borderRadius: 5,
                       background: p.verificationStatus === 'active'
-                        ? 'color-mix(in srgb,var(--ok) 10%,transparent)'
-                        : 'color-mix(in srgb,#f59e0b 10%,transparent)',
+                        ? 'rgba(var(--ok-rgb),0.10)'
+                        : 'rgba(245,158,11,0.10)',
                       color: p.verificationStatus === 'active' ? 'var(--ok)' : '#92400e',
                       border: p.verificationStatus === 'active'
-                        ? '1px solid color-mix(in srgb,var(--ok) 25%,transparent)'
-                        : '1px solid color-mix(in srgb,#f59e0b 25%,transparent)',
+                        ? '1px solid rgba(var(--ok-rgb),0.25)'
+                        : '1px solid rgba(245,158,11,0.25)',
                     }}>
                       {p.verificationStatus === 'active' ? 'Verified' : 'Pending'}
                     </span>

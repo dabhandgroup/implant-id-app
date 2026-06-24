@@ -59,7 +59,7 @@
 }
 .phone-row:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12);
 }
 .phone-code {
   display: flex;
@@ -70,7 +70,7 @@
   font-size: 13.5px;
   color: var(--text);
   white-space: nowrap;
-  background: color-mix(in srgb, var(--text) 3%, transparent);
+  background: rgba(var(--text-rgb),0.03);
   border: 0;
   border-right: 1px solid var(--border);
   border-radius: 10px 0 0 10px;
@@ -142,7 +142,7 @@
   cursor: pointer;
 }
 .phone-dd-list button:hover {
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  background: rgba(var(--accent-rgb),0.07);
 }
 .dial-r {
   margin-left: auto;
@@ -243,7 +243,7 @@
   cursor: pointer;
 }
 .custom-select-list button:hover {
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  background: rgba(var(--accent-rgb),0.07);
 }
 
 /* ── Device search ───────────────────────────────────────────────────────── */
@@ -262,7 +262,7 @@
 }
 .dev-search:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12);
 }
 .dev-search svg {
   width: 18px;
@@ -299,7 +299,7 @@
   transition: background .1s;
 }
 .dev-results a:last-child { border-bottom: 0; }
-.dev-results a:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.dev-results a:hover { background: rgba(var(--accent-rgb),0.06); }
 
 .nm {
   font-family: var(--ff);
@@ -319,8 +319,8 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  background: color-mix(in srgb, var(--ok) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ok) 20%, transparent);
+  background: rgba(var(--ok-rgb),0.08);
+  border: 1px solid rgba(var(--ok-rgb),0.20);
   border-radius: 12px;
 }
 .dev-sel-info .nm {
@@ -353,8 +353,8 @@
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  background: color-mix(in srgb, var(--warn) 7%, transparent);
-  border: 1px solid color-mix(in srgb, var(--warn) 16%, transparent);
+  background: rgba(var(--warn-rgb),0.07);
+  border: 1px solid rgba(var(--warn-rgb),0.16);
   border-radius: 10px;
   font-size: 12.5px;
   color: var(--muted);
@@ -487,7 +487,7 @@
 }
 .code-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.12);
 }
 
 /* ── Mobile ──────────────────────────────────────────────────────────────── */

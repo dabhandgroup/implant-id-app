@@ -3,6 +3,7 @@
 import { useState }    from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useRouter }   from 'next/navigation'
+import { tint } from '@/lib/tint'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
@@ -15,7 +16,7 @@ function CopyBadge({ text }: { text: string }) {
       onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 1800) }}
       title="Copy Implant ID device code"
       aria-label={`Copy device code ${text}`}
-      style={{ display:'inline-flex', alignItems:'center', gap:8, fontFamily:'SF Mono,Monaco,monospace', fontSize:15, fontWeight:700, letterSpacing:'.08em', color:'var(--accent-deep)', background:'color-mix(in srgb,var(--accent) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--accent) 22%,transparent)', borderRadius:10, padding:'8px 14px', cursor:'pointer', transition:'all .15s' }}
+      style={{ display:'inline-flex', alignItems:'center', gap:8, fontFamily:'SF Mono,Monaco,monospace', fontSize:15, fontWeight:700, letterSpacing:'.08em', color:'var(--accent-deep)', background:'rgba(var(--accent-rgb),0.10)', border:'1px solid rgba(var(--accent-rgb),0.22)', borderRadius:10, padding:'8px 14px', cursor:'pointer', transition:'all .15s' }}
     >
       {text}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
@@ -161,7 +162,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           <h2 style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             {device.manufacturer} {device.model}
             {justSaved && (
-              <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: 'var(--ok)', background: 'color-mix(in srgb,var(--ok) 10%,transparent)', padding: '3px 10px', borderRadius: 6 }}>
+              <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: 'var(--ok)', background: 'rgba(var(--ok-rgb),0.10)', padding: '3px 10px', borderRadius: 6 }}>
                 ✓ Saved
               </span>
             )}
@@ -171,7 +172,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Trash badge */}
           {(device as any).status === 'trash' && (
-            <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, color: 'var(--err)', background: 'color-mix(in srgb,var(--err) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', padding: '4px 10px', borderRadius: 6 }}>
+            <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, color: 'var(--err)', background: 'rgba(var(--err-rgb),0.10)', border: '1px solid rgba(var(--err-rgb),0.25)', padding: '4px 10px', borderRadius: 6 }}>
               In trash
             </span>
           )}
@@ -180,7 +181,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
             <button
               onClick={() => setShowPatients(true)}
               aria-label={`View ${device.patientCount} linked patient${device.patientCount !== 1 ? 's' : ''}`}
-              style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', transition: 'all .15s' }}
+              style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--accent)', background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid rgba(var(--accent-rgb),0.20)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', transition: 'all .15s' }}
             >
               {device.patientCount} patient{device.patientCount !== 1 ? 's' : ''} linked →
             </button>
@@ -234,7 +235,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           { label: 'Approved Regions',    value: device.approvedRegions?.join(', ') },
           { label: 'Patients linked',     value: String(device.patientCount), highlight: device.patientCount > 0 },
         ].filter(f => f.value).map(f => (
-          <div key={f.label} style={{ background: 'var(--bg2)', border: `1px solid ${f.highlight ? 'color-mix(in srgb,var(--accent) 25%,transparent)' : 'var(--border)'}`, borderRadius: 12, padding: '14px 18px' }}>
+          <div key={f.label} style={{ background: 'var(--bg2)', border: `1px solid ${f.highlight ? 'rgba(var(--accent-rgb),0.25)' : 'var(--border)'}`, borderRadius: 12, padding: '14px 18px' }}>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 5 }}>{f.label}</div>
             <div style={{ fontFamily: 'var(--fb)', fontSize: 14, color: f.highlight ? 'var(--accent)' : 'var(--text)', fontWeight: f.highlight ? 600 : 400 }}>{f.value}</div>
           </div>
@@ -261,7 +262,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
             <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 12 }}>Sources</div>
 
             {(pdfLinks.length > 0 || sourceUrl) && (
-              <div style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.20)', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--accent-deep)', marginBottom: 8 }}>📄 Source documents (IFU / MRI Manual)</div>
                 {(pdfLinks.length > 0 ? pdfLinks : [sourceUrl]).map((url, i) => (
                   <a key={i} href={url} target="_blank" rel="noopener noreferrer"
@@ -281,7 +282,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
                 {webSources.map((s, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'flex-start' }}>
                     <span style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, flexShrink: 0,
-                      background: s.accessible !== false ? 'color-mix(in srgb,var(--ok) 12%,transparent)' : 'color-mix(in srgb,var(--err) 10%,transparent)',
+                      background: s.accessible !== false ? 'rgba(var(--ok-rgb),0.12)' : 'rgba(var(--err-rgb),0.10)',
                       color: s.accessible !== false ? 'var(--ok)' : 'var(--err)' }}>
                       {s.accessible !== false ? '✓' : '⚠'} {s.type ?? 'src'}
                     </span>
@@ -336,7 +337,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
       {/* Patient linkage info */}
       {device.patientCount > 0 && (
-        <div style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', lineHeight: 1.6 }}>
+        <div style={{ background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.20)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent)', lineHeight: 1.6 }}>
           ℹ <strong>{device.patientCount} patient{device.patientCount !== 1 ? 's' : ''}</strong> currently have this device linked to their record.
           Changing the MRI status will immediately affect their wallet passes and dashboard card colour.
           You can move this device to trash at any time — patient links are preserved until permanent deletion.
@@ -345,7 +346,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
       {/* Trash notice */}
       {(device as any).status === 'trash' && (
-        <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', lineHeight: 1.6 }}>
+        <div style={{ background: 'rgba(var(--err-rgb),0.06)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', lineHeight: 1.6 }}>
           This device is in the trash. It is hidden from all public views and the device catalogue.
           You can restore it or permanently delete it — permanent deletion also removes all linked patient records.
         </div>
@@ -381,7 +382,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
                       onClick={() => setShowPatients(false)}
                       style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 14px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, textDecoration:'none', transition:'all .15s' }}
                     >
-                      <div style={{ width:36, height:36, borderRadius:'50%', background:'color-mix(in srgb,var(--accent) 12%,transparent)', display:'grid', placeItems:'center', flexShrink:0 }}>
+                      <div style={{ width:36, height:36, borderRadius:'50%', background:'rgba(var(--accent-rgb),0.12)', display:'grid', placeItems:'center', flexShrink:0 }}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
                           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                         </svg>
@@ -397,8 +398,8 @@ export default function DeviceDetailClient({ id }: { id: string }) {
                       <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
                         <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, padding:'3px 8px', borderRadius:6,
                           background: p.verificationStatus === 'active'
-                            ? 'color-mix(in srgb,var(--ok) 12%,transparent)'
-                            : 'color-mix(in srgb,var(--muted) 12%,transparent)',
+                            ? 'rgba(var(--ok-rgb),0.12)'
+                            : 'rgba(var(--muted-rgb),0.12)',
                           color: p.verificationStatus === 'active' ? 'var(--ok)' : 'var(--muted)',
                         }}>
                           {p.verificationStatus === 'active' ? 'Verified' : 'Pending'}
@@ -424,7 +425,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
         <div className="confirm-back open" onClick={() => !deleting && setTrashConfirm(false)}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()}>
             <div className="confirm-body">
-              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'rgba(var(--err-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                 </svg>
@@ -451,7 +452,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
         <div className="confirm-back open" onClick={() => !deleting && setDeleteConfirm(false)}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()}>
             <div className="confirm-body">
-              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'rgba(var(--err-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                 </svg>
@@ -488,7 +489,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
                   <button key={s} type="button"
                     onClick={() => setNewStatus(s)}
                     style={{ padding: '12px 10px', borderRadius: 10, cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, transition: 'all .15s', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center',
-                      background: newStatus === s ? `color-mix(in srgb,${MRI_COLOUR[s]} 12%,transparent)` : 'var(--bg)',
+                      background: newStatus === s ? tint(MRI_COLOUR[s], 12) : 'var(--bg)',
                       border: `2px solid ${newStatus === s ? MRI_COLOUR[s] : 'var(--border)'}`,
                       color: newStatus === s ? MRI_COLOUR[s] : 'var(--muted)',
                     }}

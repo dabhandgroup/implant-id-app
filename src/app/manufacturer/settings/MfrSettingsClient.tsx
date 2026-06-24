@@ -16,7 +16,7 @@ function Field({ label, value }: { label: string; value?: string | string[] | nu
       <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 5 }}>{label}</div>
       {Array.isArray(value) ? (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {value.map(v => <span key={v} style={{ background: 'color-mix(in srgb,var(--accent) 10%,transparent)', color: 'var(--accent)', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 6 }}>{v}</span>)}
+          {value.map(v => <span key={v} style={{ background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent)', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 6 }}>{v}</span>)}
         </div>
       ) : (
         <div style={{ fontFamily: 'var(--fb)', fontSize: 14.5, color: 'var(--text)' }}>{value}</div>
@@ -55,7 +55,7 @@ export default function MfrSettingsClient() {
         </div>
 
         {/* Account status banner */}
-        <div style={{ background: mfr?.status === 'approved' ? 'color-mix(in srgb,var(--ok) 8%,transparent)' : 'color-mix(in srgb,var(--warn) 8%,transparent)', border: `1px solid ${mfr?.status === 'approved' ? 'color-mix(in srgb,var(--ok) 20%,transparent)' : 'color-mix(in srgb,var(--warn) 20%,transparent)'}`, borderRadius: 12, padding: '14px 18px', marginBottom: 22, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ background: mfr?.status === 'approved' ? 'rgba(var(--ok-rgb),0.08)' : 'rgba(var(--warn-rgb),0.08)', border: `1px solid ${mfr?.status === 'approved' ? 'rgba(var(--ok-rgb),0.20)' : 'rgba(var(--warn-rgb),0.20)'}`, borderRadius: 12, padding: '14px 18px', marginBottom: 22, display: 'flex', alignItems: 'center', gap: 10 }}>
           {mfr?.status === 'approved' ? (
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2" width="17" height="17" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
           ) : (
@@ -144,7 +144,7 @@ export default function MfrSettingsClient() {
         <div className="logout-back open" onClick={() => !signingOut && setSignOutConfirm(false)}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
-              <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:44, height:44, borderRadius:'50%', background:'rgba(var(--err-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                   <polyline points="16 17 21 12 16 7"/>

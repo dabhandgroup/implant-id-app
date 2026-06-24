@@ -69,14 +69,14 @@ export default function ShareClient() {
       <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'var(--bg)', fontFamily:'var(--ff)', gap:32 }}>
         <Link href="/" style={{ textDecoration:'none' }}>
           <div style={{ display:'flex', alignItems:'center', gap:11, color:'var(--text)', fontSize:19, fontWeight:600, letterSpacing:'-.02em' }}>
-            <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px color-mix(in srgb,var(--accent) 35%,transparent)' }}>
+            <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(var(--accent-rgb),0.35)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
             </div>
             Implant ID
           </div>
         </Link>
         <svg width="38" height="38" viewBox="0 0 38 38" aria-label="Loading" role="status">
-          <circle cx="19" cy="19" r="15" fill="none" stroke="color-mix(in srgb,var(--accent) 15%,transparent)" strokeWidth="2.5"/>
+          <circle cx="19" cy="19" r="15" fill="none" stroke="rgba(var(--accent-rgb),0.15)" strokeWidth="2.5"/>
           <circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="24 70">
             <animateTransform attributeName="transform" type="rotate" from="0 19 19" to="360 19 19" dur="0.85s" repeatCount="indefinite"/>
           </circle>
@@ -266,7 +266,7 @@ export default function ShareClient() {
                     Google Wallet
                   </span>
                 </div>
-                <div style={{ background: 'color-mix(in srgb, var(--accent) 4%, transparent)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 10 }}>
+                <div style={{ background: 'rgba(var(--accent-rgb),0.04)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, marginBottom: 10 }}>
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600 }}>Your share link</div>
                   <div className="sh-link-row">
                     <input type="text" value={passUrl} readOnly className="input" style={{ flex: 1, background: 'var(--bg2)', fontSize: 13 }} />
@@ -332,9 +332,9 @@ export default function ShareClient() {
                         {matches.map((c: any, i: number) => (
                           <button key={c._id} type="button"
                             onClick={() => { setClinicEmail(c.email ?? ''); setClinicSearch(c.name) }}
-                            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: clinicEmail === c.email ? 'color-mix(in srgb,var(--accent) 7%,transparent)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: i < matches.length - 1 ? '1px solid var(--border)' : 'none' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 16px', background: clinicEmail === c.email ? 'rgba(var(--accent-rgb),0.07)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', borderBottom: i < matches.length - 1 ? '1px solid var(--border)' : 'none' }}
                           >
-                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0, fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 12, color: 'var(--accent)' }}>
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(var(--accent-rgb),0.10)', display: 'grid', placeItems: 'center', flexShrink: 0, fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 12, color: 'var(--accent)' }}>
                               {c.name.slice(0,2).toUpperCase()}
                             </div>
                             <div style={{ flex: 1 }}>
@@ -348,7 +348,7 @@ export default function ShareClient() {
                         ))}
                       </div>
                     ) : (
-                      <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, padding: '10px 14px', background: 'color-mix(in srgb,#f59e0b 7%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 8, lineHeight: 1.55 }}>
+                      <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, padding: '10px 14px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.20)', borderRadius: 8, lineHeight: 1.55 }}>
                         Clinic not found — enter their email below and we'll invite them to join Implant ID.
                       </div>
                     )
@@ -365,7 +365,7 @@ export default function ShareClient() {
                   <div className="sh-field" style={{ marginBottom: 16 }}>
                     <label style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6, display: 'block' }}>Your name</label>
                     <input className="input" type="text" value={fullName} readOnly
-                      style={{ background: 'color-mix(in srgb, var(--text) 3%, transparent)', color: 'var(--text)' }} />
+                      style={{ background: 'rgba(var(--text-rgb),0.03)', color: 'var(--text)' }} />
                   </div>
 
                   {shareError && <div style={{ color: 'var(--err)', fontSize: 13, marginBottom: 12 }}>{shareError}</div>}
@@ -381,7 +381,7 @@ export default function ShareClient() {
                 </form>
               ) : (
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', color: 'var(--ok)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+                  <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(var(--ok-rgb),0.12)', color: 'var(--ok)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M20 6 9 17l-5-5"/>
                     </svg>
@@ -456,11 +456,11 @@ export default function ShareClient() {
           {!notifications || notifications.length === 0 ? (
             <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>No notifications</div>
           ) : (notifications as {_id: string, title: string, body: string, read: boolean, createdAt: number}[]).map(n => (
-            <div key={n._id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', borderLeft: n.read ? '3px solid transparent' : '3px solid var(--accent)', background: n.read ? 'transparent' : 'color-mix(in srgb,var(--accent) 5%,transparent)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div key={n._id} style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', borderLeft: n.read ? '3px solid transparent' : '3px solid var(--accent)', background: n.read ? 'transparent' : 'rgba(var(--accent-rgb),0.05)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                   <span style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: n.read ? 400 : 600, color: 'var(--text)' }}>{n.title}</span>
-                  {!n.read && <span style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 12%,transparent)', borderRadius: 4, padding: '2px 6px' }}>New</span>}
+                  {!n.read && <span style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--accent)', background: 'rgba(var(--accent-rgb),0.12)', borderRadius: 4, padding: '2px 6px' }}>New</span>}
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--muted2)', marginTop: 4 }}>{new Date(n.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</div>

@@ -81,8 +81,8 @@ export default function ActivateClient() {
 
       {/* Email display */}
       <div style={{
-        background: 'color-mix(in srgb, var(--accent) 8%, transparent)',
-        border: '1px solid color-mix(in srgb, var(--accent) 20%, transparent)',
+        background: 'rgba(var(--accent-rgb),0.08)',
+        border: '1px solid rgba(var(--accent-rgb),0.20)',
         borderRadius: 10, padding: '13px 16px', marginBottom: 24,
       }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--accent-deep)', marginBottom: 4 }}>
@@ -96,8 +96,8 @@ export default function ActivateClient() {
       {/* Error */}
       {phase === 'error' && (
         <div style={{
-          background: 'color-mix(in srgb, var(--err) 8%, transparent)',
-          border: '1px solid color-mix(in srgb, var(--err) 20%, transparent)',
+          background: 'rgba(var(--err-rgb),0.08)',
+          border: '1px solid rgba(var(--err-rgb),0.20)',
           borderRadius: 10, padding: '12px 16px', marginBottom: 20,
         }}>
           <p style={{ margin: '0 0 8px', color: 'var(--err)', fontSize: 14 }}>{errorMsg}</p>

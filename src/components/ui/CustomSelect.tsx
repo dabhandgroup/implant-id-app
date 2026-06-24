@@ -98,7 +98,7 @@ export function CustomSelect({
                     width: '100%', textAlign: 'left', padding: '10px 14px',
                     fontFamily: 'var(--ff)', fontSize: 14,
                     background: o.value === value
-                      ? 'color-mix(in srgb,var(--accent) 10%,transparent)'
+                      ? 'rgba(var(--accent-rgb),0.10)'
                       : 'transparent',
                     color: o.value === value ? 'var(--accent-deep)' : 'var(--text)',
                     border: 'none', cursor: 'pointer',
@@ -200,7 +200,7 @@ export function InlineSelect({ value, onChange, placeholder, options }: InlineSe
                   display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px',
                   fontFamily: 'var(--ff)', fontSize: 13.5,
                   background: o.value === value
-                    ? 'color-mix(in srgb,var(--accent) 10%,transparent)'
+                    ? 'rgba(var(--accent-rgb),0.10)'
                     : 'transparent',
                   color: o.value === value ? 'var(--accent-deep)' : 'var(--text)',
                   border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',

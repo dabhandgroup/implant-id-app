@@ -3,16 +3,17 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useSearchParams }       from 'next/navigation'
 import { api as apiBase }        from '../../../../convex/_generated/api'
+import { tint } from '@/lib/tint'
 
 const api = apiBase as any
 
 type ViewRole = 'admin' | 'radiographer' | 'surgeon'
 
 const MRI_META: Record<string, { label: string; color: string; bg: string }> = {
-  safe:        { label: 'MR Safe',        color: 'var(--ok)',    bg: 'color-mix(in srgb,var(--ok) 10%,transparent)'    },
-  conditional: { label: 'MR Conditional', color: '#b45309',      bg: 'color-mix(in srgb,#f59e0b 12%,transparent)'      },
-  unsafe:      { label: 'MR Unsafe',      color: 'var(--err)',   bg: 'color-mix(in srgb,var(--err) 10%,transparent)'   },
-  unknown:     { label: 'Unknown',         color: 'var(--muted)', bg: 'color-mix(in srgb,var(--muted) 10%,transparent)' },
+  safe:        { label: 'MR Safe',        color: 'var(--ok)',    bg: 'rgba(var(--ok-rgb),0.10)'    },
+  conditional: { label: 'MR Conditional', color: '#b45309',      bg: 'rgba(245,158,11,0.12)'      },
+  unsafe:      { label: 'MR Unsafe',      color: 'var(--err)',   bg: 'rgba(var(--err-rgb),0.10)'   },
+  unknown:     { label: 'Unknown',         color: 'var(--muted)', bg: 'rgba(var(--muted-rgb),0.10)' },
 }
 
 function fmtDate(ts: number) {
@@ -110,8 +111,8 @@ export default function PatientViewClient() {
           <a href="/clinics/scan-patient" className="btn" style={{ textDecoration: 'none' }}>← Scan patient</a>
         </div>
         <div style={{
-          background: 'color-mix(in srgb,var(--err) 6%,transparent)',
-          border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)',
+          background: 'rgba(var(--err-rgb),0.06)',
+          border: '1px solid rgba(var(--err-rgb),0.18)',
           borderRadius: 12, padding: '20px 24px', maxWidth: 520,
           fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--err)',
         }}>
@@ -138,8 +139,8 @@ export default function PatientViewClient() {
           <a href="/clinics/scan-patient" className="btn" style={{ textDecoration: 'none' }}>← Scan patient</a>
         </div>
         <div style={{
-          background: 'color-mix(in srgb,var(--err) 6%,transparent)',
-          border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)',
+          background: 'rgba(var(--err-rgb),0.06)',
+          border: '1px solid rgba(var(--err-rgb),0.18)',
           borderRadius: 12, padding: '20px 24px', maxWidth: 520,
           fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--err)',
         }}>
@@ -320,7 +321,7 @@ export default function PatientViewClient() {
                       type="button"
                       onClick={() => { setSelDevice(d); setDevSearch(`${d.manufacturer} ${d.model}`) }}
                       style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontFamily: 'var(--ff)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb,var(--accent) 6%,transparent)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(var(--accent-rgb),0.06)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                     >
                       <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{d.manufacturer} {d.model}</div>
@@ -331,7 +332,7 @@ export default function PatientViewClient() {
               )}
             </div>
             {selDevice && (
-              <div style={{ marginTop: 12, background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ marginTop: 12, background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.20)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <div>
                   <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{selDevice.manufacturer} {selDevice.model}</div>
                   <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{selDevice.deviceType}</div>
@@ -388,7 +389,7 @@ export default function PatientViewClient() {
                         type="button"
                         onClick={() => { setAddSurgeonTxt(r.name); setSurgSearch('') }}
                         style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '11px 16px', cursor: 'pointer', borderBottom: '1px solid var(--border)', fontFamily: 'var(--ff)' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb,var(--accent) 6%,transparent)')}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(var(--accent-rgb),0.06)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'none')}
                       >
                         <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{r.name}</div>
@@ -408,7 +409,7 @@ export default function PatientViewClient() {
           </div>
 
           {addErr && (
-            <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 14 }}>
+            <div style={{ background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 14 }}>
               {addErr}
             </div>
           )}
@@ -560,7 +561,7 @@ export default function PatientViewClient() {
             <span className={`pill ${isPending ? 'pill-warn' : ''}`} style={!isPending ? {
               color: mriMeta.color,
               background: mriMeta.bg,
-              border: `1px solid color-mix(in srgb,${mriMeta.color} 28%,transparent)`,
+              border: `1px solid ${tint(mriMeta.color, 28)}`,
             } : undefined}>
               {isPending ? 'Pending verification' : mriMeta.label}
             </span>
@@ -579,7 +580,7 @@ export default function PatientViewClient() {
                   <button
                     type="button"
                     className="btn"
-                    style={{ fontSize: 12.5, padding: '5px 12px', color: 'var(--err)', borderColor: 'color-mix(in srgb,var(--err) 30%,transparent)' }}
+                    style={{ fontSize: 12.5, padding: '5px 12px', color: 'var(--err)', borderColor: 'rgba(var(--err-rgb),0.30)' }}
                     onClick={() => setUnsaveOpen(true)}
                     aria-label="Remove patient from your saved list"
                   >
@@ -625,8 +626,8 @@ export default function PatientViewClient() {
       {isPending && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 12,
-          background: 'color-mix(in srgb,#f59e0b 8%,transparent)',
-          border: '1px solid color-mix(in srgb,#f59e0b 22%,transparent)',
+          background: 'rgba(245,158,11,0.08)',
+          border: '1px solid rgba(245,158,11,0.22)',
           borderRadius: 12, padding: '14px 18px', marginBottom: 24,
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">
@@ -760,12 +761,12 @@ export default function PatientViewClient() {
               </div>
             </label>
             {noteErr && (
-              <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, fontFamily: 'var(--ff)' }}>
+              <div style={{ background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, fontFamily: 'var(--ff)' }}>
                 {noteErr}
               </div>
             )}
             {noteSent && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px', background: 'color-mix(in srgb,var(--ok) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--ok)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px', background: 'rgba(var(--ok-rgb),0.08)', border: '1px solid rgba(var(--ok-rgb),0.22)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--ok)' }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
                 Note added
               </div>
@@ -856,7 +857,7 @@ export default function PatientViewClient() {
                 </div>
               )}
               {primaryDevice.contraindications && (
-                <div style={{ marginTop: 14, background: 'color-mix(in srgb,var(--err) 5%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ marginTop: 14, background: 'rgba(var(--err-rgb),0.05)', border: '1px solid rgba(var(--err-rgb),0.18)', borderRadius: 10, padding: '12px 14px' }}>
                   <div style={{ fontFamily: 'var(--ff)', fontSize: 10.5, fontWeight: 600, letterSpacing: 1.3, textTransform: 'uppercase', color: 'var(--err)', marginBottom: 4 }}>Contraindications</div>
                   <div style={{ fontSize: 13.5, color: 'var(--text)', lineHeight: 1.5 }}>{primaryDevice.contraindications}</div>
                 </div>
@@ -921,7 +922,7 @@ export default function PatientViewClient() {
                 )}
               </div>
               {addSaved ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'color-mix(in srgb,var(--ok) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'rgba(var(--ok-rgb),0.08)', border: '1px solid rgba(var(--ok-rgb),0.22)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
                   Device linked — record updated.
                 </div>
@@ -1025,7 +1026,7 @@ export default function PatientViewClient() {
             <div className="card">
               <div className="ey" style={{ marginBottom: 8 }}>Verify this record</div>
               {verifySaved ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'color-mix(in srgb,var(--ok) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', background: 'rgba(var(--ok-rgb),0.08)', border: '1px solid rgba(var(--ok-rgb),0.22)', borderRadius: 10, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)' }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
                   Record verified — patient now has an active status.
                 </div>
@@ -1048,7 +1049,7 @@ export default function PatientViewClient() {
                     />
                   </div>
                   {verifyErr && (
-                    <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 14 }}>
+                    <div style={{ background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 14 }}>
                       {verifyErr}
                     </div>
                   )}
@@ -1075,7 +1076,7 @@ export default function PatientViewClient() {
           {/* Reference note */}
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 10,
-            background: 'color-mix(in srgb,var(--muted) 5%,transparent)',
+            background: 'rgba(var(--muted-rgb),0.05)',
             border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px',
           }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="1.7" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true">

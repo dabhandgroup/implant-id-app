@@ -244,8 +244,8 @@ export default function ClinicSettingsClient() {
                 title="Click to upload logo"
                 style={{
                   width: 80, height: 80, borderRadius: 14, flexShrink: 0, cursor: 'pointer',
-                  background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
-                  border: '1.5px dashed color-mix(in srgb,var(--accent) 30%,transparent)',
+                  background: 'rgba(var(--accent-rgb),0.10)',
+                  border: '1.5px dashed rgba(var(--accent-rgb),0.30)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
                 }}
               >
@@ -326,7 +326,7 @@ export default function ClinicSettingsClient() {
               </div>
             </div>
             {infoError && (
-              <div style={{ marginTop: 12, padding: '10px 14px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, fontSize: 13, color: 'var(--err)' }}>
+              <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, fontSize: 13, color: 'var(--err)' }}>
                 {infoError}
               </div>
             )}
@@ -365,7 +365,7 @@ export default function ClinicSettingsClient() {
               })}
             </div>
             {capsError && (
-              <div style={{ marginBottom: 12, padding: '10px 14px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, fontSize: 13, color: 'var(--err)' }}>
+              <div style={{ marginBottom: 12, padding: '10px 14px', background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, fontSize: 13, color: 'var(--err)' }}>
                 {capsError}
               </div>
             )}
@@ -501,8 +501,8 @@ export default function ClinicSettingsClient() {
 
           <div style={{ marginTop: 20 }}>
             <div style={{
-              background: 'color-mix(in srgb,var(--err) 5%,transparent)',
-              border: '1px solid color-mix(in srgb,var(--err) 18%,transparent)',
+              background: 'rgba(var(--err-rgb),0.05)',
+              border: '1px solid rgba(var(--err-rgb),0.18)',
               borderRadius: 14, padding: '20px 24px',
             }}>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--err)', marginBottom: 6 }}>Danger zone</div>

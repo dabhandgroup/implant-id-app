@@ -44,7 +44,7 @@ export default function OffboardClient() {
           </p>
         </div>
 
-        <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '14px 18px', marginBottom: 24 }}>
+        <div style={{ background: 'rgba(var(--err-rgb),0.06)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '14px 18px', marginBottom: 24 }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)', fontWeight: 500, lineHeight: 1.6 }}>
             ⚠ This action cannot be undone. Your wallet passes will be deactivated and clinics will no longer be able to access your record.
           </div>
@@ -74,7 +74,7 @@ export default function OffboardClient() {
         <div className="logout-back open" onClick={() => setConfirmOpen(false)}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(var(--err-rgb),0.12)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
               <h3>Delete your account?</h3>

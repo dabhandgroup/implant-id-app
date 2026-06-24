@@ -14,31 +14,31 @@ function typeColour(type: string) {
   const t = type.toLowerCase()
   if (t.includes('mri') || t.includes('technical manual'))
     return {
-      bg: 'color-mix(in srgb,#3b82f6 10%,transparent)',
-      border: 'color-mix(in srgb,#3b82f6 25%,transparent)',
+      bg: 'rgba(59,130,246,0.10)',
+      border: 'rgba(59,130,246,0.25)',
       text: '#3b82f6',
     }
   if (t.includes('ifu') || t.includes('instructions for use'))
     return {
-      bg: 'color-mix(in srgb,var(--ok) 10%,transparent)',
-      border: 'color-mix(in srgb,var(--ok) 25%,transparent)',
+      bg: 'rgba(var(--ok-rgb),0.10)',
+      border: 'rgba(var(--ok-rgb),0.25)',
       text: 'var(--ok)',
     }
   if (t.includes('submission contract'))
     return {
-      bg: 'color-mix(in srgb,var(--accent) 10%,transparent)',
-      border: 'color-mix(in srgb,var(--accent) 25%,transparent)',
+      bg: 'rgba(var(--accent-rgb),0.10)',
+      border: 'rgba(var(--accent-rgb),0.25)',
       text: 'var(--accent)',
     }
   if (t.includes('peer') || t.includes('publication'))
     return {
-      bg: 'color-mix(in srgb,#8b5cf6 10%,transparent)',
-      border: 'color-mix(in srgb,#8b5cf6 25%,transparent)',
+      bg: 'rgba(139,92,246,0.10)',
+      border: 'rgba(139,92,246,0.25)',
       text: '#8b5cf6',
     }
   return {
-    bg: 'color-mix(in srgb,var(--muted) 10%,transparent)',
-    border: 'color-mix(in srgb,var(--muted) 25%,transparent)',
+    bg: 'rgba(var(--muted-rgb),0.10)',
+    border: 'rgba(var(--muted-rgb),0.25)',
     text: 'var(--muted)',
   }
 }
@@ -134,7 +134,7 @@ export default function DocumentsClient() {
                           width: 28,
                           height: 28,
                           borderRadius: 7,
-                          background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+                          background: 'rgba(var(--accent-rgb),0.10)',
                           display: 'grid',
                           placeItems: 'center',
                           flexShrink: 0,

@@ -5,7 +5,7 @@ export default function ClinicPendingPage() {
   return (
     <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 24, fontFamily: 'var(--ff)' }}>
       <div style={{ maxWidth: 480, textAlign: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'color-mix(in srgb,#f59e0b 12%,transparent)', border: '1.5px solid color-mix(in srgb,#f59e0b 30%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 20px' }}>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(245,158,11,0.12)', border: '1.5px solid rgba(245,158,11,0.30)', display: 'grid', placeItems: 'center', margin: '0 auto 20px' }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6M12 16h.01"/></svg>
         </div>
         <h2 style={{ margin: '0 0 12px', fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Application under review</h2>

@@ -127,7 +127,7 @@ export default function ClinicsClient() {
         <button className={`m-tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
           Rejected
           {(rejectedApps?.length ?? 0) > 0 && (
-            <span style={{ marginLeft: 6, background: 'color-mix(in srgb,var(--err) 80%,transparent)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
+            <span style={{ marginLeft: 6, background: 'rgba(var(--err-rgb),0.80)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
               {rejectedApps!.length}
             </span>
           )}
@@ -169,7 +169,7 @@ export default function ClinicsClient() {
           <div className="m-list-cards">
             {pendingApps.map(app => (
               <div key={app._id} onClick={() => router.push('/master/clinics/' + app._id)}
-                style={{ background:'var(--bg2)', border:'1px solid color-mix(in srgb,var(--warn) 30%,var(--border))', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
+                style={{ background:'var(--bg2)', border:'1px solid rgba(var(--warn-rgb),0.35)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
                   <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{app.facilityName}</div>
                   <span className="m-status pending" style={{ flexShrink:0, marginLeft:8 }}>Pending</span>
@@ -262,7 +262,7 @@ export default function ClinicsClient() {
           </div>
 
           {deleteError && (
-            <div style={{ background: 'color-mix(in srgb,var(--err) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)' }}>
+            <div style={{ background: 'rgba(var(--err-rgb),0.10)', border: '1px solid rgba(var(--err-rgb),0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)' }}>
               {deleteError}
             </div>
           )}
@@ -295,7 +295,7 @@ export default function ClinicsClient() {
                     <td onClick={e => e.stopPropagation()}>
                       <button
                         className="m-act"
-                        style={{ color: 'var(--err)', borderColor: 'color-mix(in srgb,var(--err) 30%,transparent)' }}
+                        style={{ color: 'var(--err)', borderColor: 'rgba(var(--err-rgb),0.30)' }}
                         onClick={() => { setDeleteSingleId(app._id); setDeleteError(''); setConfirmDelete('single') }}
                       >
                         Delete
@@ -311,7 +311,7 @@ export default function ClinicsClient() {
           <div className="m-list-cards">
             {rejectedApps.map(app => (
               <div key={app._id}
-                style={{ background:'var(--bg2)', border:`1px solid ${selected.has(app._id) ? 'color-mix(in srgb,var(--accent) 40%,var(--border))' : 'color-mix(in srgb,var(--err) 20%,var(--border))'}`, borderRadius:12, padding:'14px 16px', marginBottom:10 }}>
+                style={{ background:'var(--bg2)', border:`1px solid ${selected.has(app._id) ? 'rgba(var(--accent-rgb),0.45)' : 'rgba(var(--err-rgb),0.25)'}`, borderRadius:12, padding:'14px 16px', marginBottom:10 }}>
                 <div style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:6 }}>
                   <input
                     type="checkbox"
@@ -322,7 +322,7 @@ export default function ClinicsClient() {
                   <div style={{ flex:1, cursor:'pointer' }} onClick={() => router.push('/master/clinics/' + app._id)}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:4 }}>
                       <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{app.facilityName}</div>
-                      <span style={{ flexShrink:0, marginLeft:8, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--err)', padding:'2px 8px', borderRadius:4, background:'color-mix(in srgb,var(--err) 10%,transparent)' }}>Rejected</span>
+                      <span style={{ flexShrink:0, marginLeft:8, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--err)', padding:'2px 8px', borderRadius:4, background:'rgba(var(--err-rgb),0.10)' }}>Rejected</span>
                     </div>
                     <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:2 }}>{app.facilityCountry} · {formatDate(app.submittedAt)}</div>
                     <div style={{ fontSize:12.5, color:'var(--muted)' }}>{app.contactEmail}</div>
@@ -350,7 +350,7 @@ export default function ClinicsClient() {
         <div className="confirm-back open" onClick={() => { if (!deleting) { setConfirmDelete(null); setDeleteSingleId(null) } }}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()}>
             <div className="confirm-body">
-              <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:44, height:44, borderRadius:'50%', background:'rgba(var(--err-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                 </svg>

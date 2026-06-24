@@ -18,7 +18,7 @@
 .staff-av {
   width: 38px; height: 38px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--text) 12%, transparent);
+  background: rgba(var(--text-rgb),0.12);
   color: var(--text);
   font-family: var(--ff);
   font-size: 12px;
@@ -37,9 +37,9 @@
   border-radius: 999px;
   text-align: center;
 }
-.staff-role-badge.admin { background: color-mix(in srgb,var(--accent) 12%,transparent); color: var(--accent); }
+.staff-role-badge.admin { background: rgba(var(--accent-rgb),0.12); color: var(--accent); }
 .staff-role-badge.member { background: var(--border); color: var(--muted); }
-.staff-role-badge.pending { background: color-mix(in srgb,var(--warn) 12%,transparent); color: var(--warn); }
+.staff-role-badge.pending { background: rgba(var(--warn-rgb),0.12); color: var(--warn); }
 @media (max-width: 700px) {
   .staff-row { grid-template-columns: 38px 1fr; }
   .staff-row > *:nth-child(n+3) { display: none; }
@@ -80,7 +80,7 @@
 .csd-btn.has-val { color: var(--text); }
 .csd.open .csd-btn {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb),0.14);
 }
 .csd-arr { margin-left: auto; width: 14px; height: 14px; flex-shrink: 0; transition: transform .15s; }
 .csd.open .csd-arr { transform: rotate(180deg); }
@@ -112,12 +112,12 @@
   transition: background .1s;
   white-space: nowrap;
 }
-.csd-opt:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.csd-opt:hover { background: rgba(var(--text-rgb),0.05); }
 .csd-opt.selected { color: var(--accent); font-weight: 600; }
 
 /* Role badge variants */
-.staff-role-badge.clinician { background: color-mix(in srgb,var(--ok) 14%,transparent); color: var(--ok); }
-.staff-role-badge.specialist { background: color-mix(in srgb,#7c3aed 12%,transparent); color: #7c3aed; }
+.staff-role-badge.clinician { background: rgba(var(--ok-rgb),0.14); color: var(--ok); }
+.staff-role-badge.specialist { background: rgba(124,58,237,0.12); color: #7c3aed; }
 
 /* Staff table header row */
 .staff-head {
@@ -132,7 +132,7 @@
   text-transform: uppercase;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--text) 3%, transparent);
+  background: rgba(var(--text-rgb),0.03);
 }
 
 /* ── Full-width CSD inside field labels ─────────────────────────────────────── */

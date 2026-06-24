@@ -53,7 +53,7 @@ export default function ManufacturerShell({ children }: { children: React.ReactN
           <div className="sb-scroll">
 
           {mfr && (
-            <div style={{ padding: '10px 16px 6px', margin: '0 8px 8px', background: 'color-mix(in srgb,var(--accent) 8%,transparent)', borderRadius: 10 }}>
+            <div style={{ padding: '10px 16px 6px', margin: '0 8px 8px', background: 'rgba(var(--accent-rgb),0.08)', borderRadius: 10 }}>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '.8px', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 2 }}>
                 {mfr.status === 'approved' ? '✓ Verified' : '⏳ Pending'}
               </div>

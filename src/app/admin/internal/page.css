@@ -10,7 +10,7 @@
 .adm-h .sub{color:var(--muted);font-size:14px;margin-top:4px}
 .adm-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .adm-acts .dd-menu button{background:transparent;border:0;width:100%;text-align:left;padding:9px 12px;font-family:var(--ff);font-size:13px;color:var(--muted);border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:10px}
-.adm-acts .dd-menu button:hover{background:color-mix(in srgb,var(--text) 5%,transparent);color:var(--text)}
+.adm-acts .dd-menu button:hover{background:rgba(var(--text-rgb),0.05);color:var(--text)}
 .adm-acts .dd-menu button svg{width:14px;height:14px}
 
 .adm-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}
@@ -29,10 +29,10 @@
 
 .adm-table{background:var(--bg2);border:1px solid var(--border);border-radius:0 0 14px 14px;overflow:hidden}
 .adm-row{display:grid;grid-template-columns:40px 2fr 1.4fr 1fr 1fr 1fr auto;gap:16px;padding:12px 18px;border-bottom:1px solid var(--border);align-items:center;font-size:13.5px;transition:background .15s}
-.adm-row:hover{background:color-mix(in srgb,var(--text) 3%,transparent)}
+.adm-row:hover{background:rgba(var(--text-rgb),0.03)}
 .adm-row:last-child{border-bottom:0}
-.adm-thead{font-family:var(--ff);font-size:10.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted2);font-weight:600;background:color-mix(in srgb,var(--text) 3%,transparent)}
-.adm-thead:hover{background:color-mix(in srgb,var(--text) 3%,transparent);cursor:default}
+.adm-thead{font-family:var(--ff);font-size:10.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted2);font-weight:600;background:rgba(var(--text-rgb),0.03)}
+.adm-thead:hover{background:rgba(var(--text-rgb),0.03);cursor:default}
 .adm-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent)}
 .adm-row .dev{display:flex;align-items:center;gap:10px}
 .adm-row .dev-ic{width:38px;height:30px;border-radius:6px;background:linear-gradient(160deg,#f0f5f8,#d9e6ec);overflow:hidden;flex-shrink:0;padding:2px}
@@ -47,7 +47,7 @@
 .adm-row .act-btns svg{width:14px;height:14px}
 
 .adm-upload{background:var(--bg2);border:2px dashed var(--border2);border-radius:14px;padding:40px;text-align:center;margin-bottom:24px;transition:all .15s}
-.adm-upload:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 3%,var(--bg2))}
+.adm-upload:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),0.03)}
 .adm-upload svg{width:32px;height:32px;color:var(--accent);margin-bottom:12px}
 .adm-upload h3{font-family:var(--ff);font-size:16px;letter-spacing:-.01em;margin-bottom:6px}
 .adm-upload p{color:var(--muted);font-size:13.5px;margin-bottom:14px}
@@ -62,7 +62,7 @@
 
 .adm-pdf-list{display:flex;flex-direction:column;gap:8px}
 .adm-pdf{display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:12px}
-.adm-pdf .pdf-ic{width:40px;height:40px;border-radius:9px;background:color-mix(in srgb,var(--err) 10%,transparent);color:var(--err);display:grid;place-items:center}
+.adm-pdf .pdf-ic{width:40px;height:40px;border-radius:9px;background:rgba(var(--err-rgb),0.10);color:var(--err);display:grid;place-items:center}
 .adm-pdf .pdf-ic svg{width:20px;height:20px}
 .adm-pdf .pdf-nm{font-family:var(--ff);font-weight:500;font-size:14px}
 .adm-pdf .pdf-meta{font-size:12px;color:var(--muted);margin-top:2px}

@@ -418,7 +418,7 @@ export default function BulkUploadClient({ returnUrl = '/master/devices' }: Prop
           </div>
         )}
         {parseErr && (
-          <div style={{ marginTop: 10, padding: '10px 14px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)' }}>
+          <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 8, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)' }}>
             {parseErr}
           </div>
         )}
@@ -523,7 +523,7 @@ export default function BulkUploadClient({ returnUrl = '/master/devices' }: Prop
                 </thead>
                 <tbody>
                   {validated.map((row, i) => (
-                    <tr key={i} style={{ background: row.status === 'err' ? 'color-mix(in srgb,var(--err) 4%,transparent)' : undefined }}>
+                    <tr key={i} style={{ background: row.status === 'err' ? 'rgba(var(--err-rgb),0.04)' : undefined }}>
                       <td>
                         {row.status === 'ok'   && <span className="bulk-row-flag ok">✓</span>}
                         {row.status === 'warn' && <span className="bulk-row-flag warn">⚠</span>}
@@ -583,7 +583,7 @@ export default function BulkUploadClient({ returnUrl = '/master/devices' }: Prop
             </div>
 
             {importErr && (
-              <div style={{ marginBottom: 16, padding: '10px 14px', background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)' }}>
+              <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 8, fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)' }}>
                 {importErr}
               </div>
             )}

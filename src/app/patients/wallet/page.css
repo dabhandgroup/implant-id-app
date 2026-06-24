@@ -61,7 +61,7 @@ section{padding:140px 0;position:relative}
 .f:hover{background:var(--bg)}
 .f h3{font-size:22px;font-weight:500;margin-bottom:12px;letter-spacing:-.015em}
 .f p{color:var(--muted);font-size:14.5px;line-height:1.6}
-.f-ic{width:44px;height:44px;border-radius:12px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);display:grid;place-items:center;margin-bottom:22px}
+.f-ic{width:44px;height:44px;border-radius:12px;background:rgba(var(--accent-rgb),0.10);color:var(--accent);display:grid;place-items:center;margin-bottom:22px}
 .f-ic svg{width:22px;height:22px}
 
 /* STEPS */
@@ -83,7 +83,7 @@ section{padding:140px 0;position:relative}
 
 /* BTN */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--ff);font-size:13px;font-weight:500;padding:11px 20px;border-radius:999px;border:1px solid var(--border2);transition:all .2s;cursor:pointer;white-space:nowrap;color:var(--text);background:transparent}
-.btn:hover{border-color:var(--text);background:color-mix(in srgb,var(--text) 5%,transparent)}
+.btn:hover{border-color:var(--text);background:rgba(var(--text-rgb),0.05)}
 .btn-s{background:var(--text);color:var(--bg);border-color:var(--text)}
 .btn-s:hover{background:var(--accent);border-color:var(--accent)}
 

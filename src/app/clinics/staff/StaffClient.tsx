@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useQuery, useMutation } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import type { Id } from '../../../../convex/_generated/dataModel'
+import { tint } from '@/lib/tint'
 
 function timeAgo(ts: number) {
   const diff  = Date.now() - ts
@@ -38,7 +39,7 @@ const ROLE_CAPS: Record<string, {
 }> = {
   radiographer: {
     color: 'var(--ok)',
-    bg: 'color-mix(in srgb,var(--ok) 10%,transparent)',
+    bg: 'rgba(var(--ok-rgb),0.10)',
     headline: 'Radiographer',
     detail: 'Standard clinical access. Can look up devices, scan patient cards, and view records that patients have explicitly granted access to.',
     can: [
@@ -56,7 +57,7 @@ const ROLE_CAPS: Record<string, {
   },
   surgeon: {
     color: '#7c3aed',
-    bg: 'color-mix(in srgb,#7c3aed 10%,transparent)',
+    bg: 'rgba(124,58,237,0.10)',
     headline: 'Surgeon Portal',
     detail: 'Surgeons get a dedicated Surgeon Portal — a separate dashboard where they see all patients linked to their practice, manage pre-operative implant checks, and receive alerts when a patient requests MRI clearance.',
     can: [
@@ -75,7 +76,7 @@ const ROLE_CAPS: Record<string, {
   },
   admin: {
     color: 'var(--accent)',
-    bg: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+    bg: 'rgba(var(--accent-rgb),0.10)',
     headline: 'Full admin access',
     detail: 'Admins can manage the whole clinic account — billing, settings, team members, and all clinic-level data. They have the same device lookup access as a Radiographer.',
     can: [
@@ -350,7 +351,7 @@ export default function StaffClient() {
             style={{ background: 'var(--bg2)', borderRadius: 18, padding: '32px 28px 28px', maxWidth: 420, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.18)', fontFamily: 'var(--ff)' }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(var(--err-rgb),0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
             </div>
             <h2 id="revoke-modal-title" style={{ fontSize: 17, fontWeight: 700, color: 'var(--text)', margin: '0 0 8px', letterSpacing: '-.01em' }}>
@@ -360,7 +361,7 @@ export default function StaffClient() {
               This will immediately remove their access to the clinic portal. This cannot be undone — you would need to re-invite them to restore access.
             </p>
             {revokeErr && (
-              <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 16 }}>
+              <div style={{ background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '10px 14px', color: 'var(--err)', fontSize: 13, marginBottom: 16 }}>
                 {revokeErr}
               </div>
             )}
@@ -452,11 +453,11 @@ export default function StaffClient() {
                       padding: '13px 24px', border: 'none', borderBottom: '1px solid var(--border)',
                       cursor: 'pointer', textAlign: 'left', transition: 'background .1s',
                       background: selectedUserId === r.userId
-                        ? 'color-mix(in srgb,var(--accent) 8%,transparent)'
+                        ? 'rgba(var(--accent-rgb),0.08)'
                         : 'var(--bg2)',
                     }}
                   >
-                    <div className="staff-av" style={{ background: 'color-mix(in srgb,var(--accent) 14%,transparent)', color: 'var(--accent)' }}>
+                    <div className="staff-av" style={{ background: 'rgba(var(--accent-rgb),0.14)', color: 'var(--accent)' }}>
                       {r.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div style={{ flex: 1 }}>
@@ -546,7 +547,7 @@ export default function StaffClient() {
                   {/* Role capability panel */}
                   <div style={{
                     background: roleCap.bg,
-                    border: `1px solid color-mix(in srgb,${roleCap.color} 22%,transparent)`,
+                    border: `1px solid ${tint(roleCap.color, 22)}`,
                     borderRadius: 12, padding: '14px 16px', marginBottom: 6,
                   }}>
                     <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 700, color: roleCap.color, marginBottom: 4 }}>
@@ -556,7 +557,7 @@ export default function StaffClient() {
                       {roleCap.detail}
                     </div>
 
-                    <div style={{ borderTop: `1px solid color-mix(in srgb,${roleCap.color} 16%,transparent)`, paddingTop: 10 }}>
+                    <div style={{ borderTop: `1px solid ${tint(roleCap.color, 16)}`, paddingTop: 10 }}>
                       {roleCap.can.map(item => (
                         <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, fontSize: 12.5 }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={roleCap.color} strokeWidth="2.5" aria-hidden="true" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
@@ -612,8 +613,8 @@ export default function StaffClient() {
 
       {success && (
         <div style={{
-          background: 'color-mix(in srgb,var(--ok) 10%,transparent)',
-          border: '1px solid color-mix(in srgb,var(--ok) 30%,transparent)',
+          background: 'rgba(var(--ok-rgb),0.10)',
+          border: '1px solid rgba(var(--ok-rgb),0.30)',
           borderRadius: 10, padding: '12px 16px', marginBottom: 20,
           fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)',
         }}>

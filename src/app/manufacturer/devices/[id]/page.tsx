@@ -4,6 +4,7 @@ import { useQuery } from 'convex/react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
+import { tint } from '@/lib/tint'
 
 const MRI_COLOUR: Record<string, string> = {
   safe: 'var(--ok)', conditional: '#d97706', unsafe: 'var(--err)', unknown: 'var(--muted)',
@@ -47,7 +48,7 @@ export default function MfrDeviceDetailPage() {
             <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px' }}>{device.model ?? 'Unnamed device'}</h1>
             <div style={{ fontSize: 13.5, color: 'var(--muted)' }}>{device.manufacturer}</div>
           </div>
-          <span style={{ fontSize: 11.5, fontWeight: 600, padding: '4px 12px', borderRadius: 6, background: `color-mix(in srgb,${MRI_COLOUR[device.mriStatus ?? 'unknown']} 12%,transparent)`, color: MRI_COLOUR[device.mriStatus ?? 'unknown'] }}>
+          <span style={{ fontSize: 11.5, fontWeight: 600, padding: '4px 12px', borderRadius: 6, background: tint(MRI_COLOUR[device.mriStatus ?? 'unknown'], 12), color: MRI_COLOUR[device.mriStatus ?? 'unknown'] }}>
             {device.mriStatus === 'safe' ? 'MR Safe' : device.mriStatus === 'conditional' ? 'MR Conditional' : device.mriStatus === 'unsafe' ? 'MR Unsafe' : 'Unknown'}
           </span>
         </div>
@@ -68,7 +69,7 @@ export default function MfrDeviceDetailPage() {
         </div>
       </div>
 
-      <div className="card" style={{ background: 'color-mix(in srgb,var(--accent) 4%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 15%,transparent)' }}>
+      <div className="card" style={{ background: 'rgba(var(--accent-rgb),0.04)', border: '1px solid rgba(var(--accent-rgb),0.15)' }}>
         <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8, color: 'var(--accent-deep)' }}>Requesting changes</div>
         <p style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 16px' }}>
           Device data on Implant ID is verified before publishing. To request a change to MRI safety parameters, field strengths, or other clinical data, submit a change request for review by the Implant ID team.

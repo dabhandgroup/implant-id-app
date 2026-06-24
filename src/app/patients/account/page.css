@@ -23,8 +23,8 @@ body{background:var(--bg)}
 .f-group.full{grid-column:1/-1}
 .f-label{font-family:var(--ff);font-size:12.5px;font-weight:500;color:var(--muted);letter-spacing:.2px}
 .f-input{font-family:var(--fb);font-size:1rem;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg);color:var(--text);transition:all .15s;outline:none}
-.f-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
-.f-input:disabled{background:color-mix(in srgb,var(--border) 30%,var(--bg));color:var(--muted);cursor:not-allowed}
+.f-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.12)}
+.f-input:disabled{background:rgba(var(--text-rgb),0.06);color:var(--muted);cursor:not-allowed}
 select.f-input{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230e2a33' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 
 /* Toggle switches */
@@ -44,10 +44,10 @@ select.f-input{cursor:pointer;appearance:none;background-image:url("data:image/s
 .save-bar .btn{font-size:13.5px;padding:10px 22px}
 
 /* Danger zone */
-.danger-zone{border-color:color-mix(in srgb,var(--err) 20%,var(--border))}
+.danger-zone{border-color:rgba(var(--err-rgb),0.25)}
 .danger-zone h2{color:var(--err)}
-.danger-btn{background:transparent;border:1px solid color-mix(in srgb,var(--err) 40%,transparent);color:var(--err);font-family:var(--ff);font-size:13px;font-weight:500;padding:9px 18px;border-radius:10px;cursor:pointer;transition:all .15s}
-.danger-btn:hover{background:color-mix(in srgb,var(--err) 8%,transparent);border-color:var(--err)}
+.danger-btn{background:transparent;border:1px solid rgba(var(--err-rgb),0.40);color:var(--err);font-family:var(--ff);font-size:13px;font-weight:500;padding:9px 18px;border-radius:10px;cursor:pointer;transition:all .15s}
+.danger-btn:hover{background:rgba(var(--err-rgb),0.08);border-color:var(--err)}
 
 /* Security section */
 .sec-section{padding:4px 0}
@@ -55,14 +55,14 @@ select.f-input{cursor:pointer;appearance:none;background-image:url("data:image/s
 .sec-divider{border:0;border-top:1px solid var(--border);margin:22px 0}
 .sec-list{display:flex;flex-direction:column;gap:8px}
 .sec-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px}
-.sec-row-ic{width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--accent) 10%,transparent);display:grid;place-items:center;color:var(--accent);flex-shrink:0}
+.sec-row-ic{width:30px;height:30px;border-radius:8px;background:rgba(var(--accent-rgb),0.10);display:grid;place-items:center;color:var(--accent);flex-shrink:0}
 .sec-row-info{flex:1;min-width:0}
 .sec-row-info b{display:block;font-family:var(--ff);font-size:13.5px;font-weight:500}
 .sec-row-info span{font-size:12px;color:var(--muted2)}
 .sec-empty{font-size:13.5px;color:var(--muted2);padding:12px 14px;background:var(--bg);border:1px dashed var(--border2);border-radius:10px;text-align:center}
 .sec-badge{display:inline-flex;align-items:center;font-family:var(--ff);font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;letter-spacing:.02em}
-.sec-badge--on{background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 25%,transparent)}
-.sec-err{font-size:13px;color:var(--err);background:color-mix(in srgb,var(--err) 7%,transparent);border:1px solid color-mix(in srgb,var(--err) 18%,transparent);border-radius:8px;padding:10px 14px;margin-top:10px}
+.sec-badge--on{background:rgba(var(--ok-rgb),0.12);color:var(--ok);border:1px solid rgba(var(--ok-rgb),0.25)}
+.sec-err{font-size:13px;color:var(--err);background:rgba(var(--err-rgb),0.07);border:1px solid rgba(var(--err-rgb),0.18);border-radius:8px;padding:10px 14px;margin-top:10px}
 
 /* TOTP setup flow */
 .totp-setup{display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:4px}

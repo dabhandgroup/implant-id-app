@@ -16,7 +16,7 @@ const MRI_OPTIONS: { value: MriStatus; label: string; fullLabel: string; color: 
     label:     'MR Safe',
     fullLabel: 'MR Safe — no known hazards in any MRI environment',
     color:     'var(--ok)',
-    bg:        'color-mix(in srgb,var(--ok) 10%,transparent)',
+    bg:        'rgba(var(--ok-rgb),0.10)',
     icon:      '/mr-safe.svg',
   },
   {
@@ -24,7 +24,7 @@ const MRI_OPTIONS: { value: MriStatus; label: string; fullLabel: string; color: 
     label:     'MR Conditional',
     fullLabel: 'MR Conditional — safe only under specific conditions',
     color:     '#b45309',
-    bg:        'color-mix(in srgb,#f59e0b 10%,transparent)',
+    bg:        'rgba(245,158,11,0.10)',
     icon:      '/mr-conditional.svg',
   },
   {
@@ -32,7 +32,7 @@ const MRI_OPTIONS: { value: MriStatus; label: string; fullLabel: string; color: 
     label:     'MR Unsafe',
     fullLabel: 'MR Unsafe — do not allow in the MRI environment',
     color:     'var(--err)',
-    bg:        'color-mix(in srgb,var(--err) 10%,transparent)',
+    bg:        'rgba(var(--err-rgb),0.10)',
     icon:      '/mr-unsafe.svg',
   },
   {
@@ -252,7 +252,7 @@ export default function AddDeviceClient() {
                       flex: 1, padding: '9px 4px', borderRadius: 8, cursor: 'pointer',
                       fontFamily: 'var(--ff)', fontSize: 13, fontWeight: classification === c ? 600 : 400,
                       border: `1.5px solid ${classification === c ? 'var(--accent)' : 'var(--border)'}`,
-                      background: classification === c ? 'color-mix(in srgb,var(--accent) 12%,transparent)' : 'transparent',
+                      background: classification === c ? 'rgba(var(--accent-rgb),0.12)' : 'transparent',
                       color: classification === c ? 'var(--accent-deep)' : 'var(--muted)',
                       transition: 'all .15s', textTransform: 'capitalize',
                     }}
@@ -311,7 +311,7 @@ export default function AddDeviceClient() {
               onClick={() => fieldStrengthInputRef.current?.focus()}
             >
               {fieldStrengthPills.map((pill, i) => (
-                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb,var(--accent) 12%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 25%,transparent)', borderRadius: 20, padding: '2px 8px 2px 10px', fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600, color: 'var(--accent-deep)', whiteSpace: 'nowrap' }}>
+                <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(var(--accent-rgb),0.12)', border: '1px solid rgba(var(--accent-rgb),0.25)', borderRadius: 20, padding: '2px 8px 2px 10px', fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600, color: 'var(--accent-deep)', whiteSpace: 'nowrap' }}>
                   {pill}
                   <button
                     type="button"
@@ -419,7 +419,7 @@ export default function AddDeviceClient() {
                     padding: '7px 16px', borderRadius: 8, cursor: 'pointer', transition: 'all .15s',
                     fontFamily: 'var(--ff)', fontSize: 13, fontWeight: on ? 600 : 400,
                     border: `1.5px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
-                    background: on ? 'color-mix(in srgb,var(--accent) 10%,transparent)' : 'transparent',
+                    background: on ? 'rgba(var(--accent-rgb),0.10)' : 'transparent',
                     color: on ? 'var(--accent-deep)' : 'var(--muted)',
                   }}
                 >
@@ -459,7 +459,7 @@ export default function AddDeviceClient() {
               </div>
             ))}
             <button type="button" onClick={addSourceRow}
-              style={{ alignSelf: 'flex-start', display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
+              style={{ alignSelf: 'flex-start', display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'rgba(var(--accent-rgb),0.08)', border:'1px dashed rgba(var(--accent-rgb),0.30)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add URL
             </button>
@@ -503,7 +503,7 @@ export default function AddDeviceClient() {
             />
             <button type="button"
               onClick={() => docInputRef.current?.click()}
-              style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
+              style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'rgba(var(--accent-rgb),0.08)', border:'1px dashed rgba(var(--accent-rgb),0.30)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
               Upload PDF
             </button>
@@ -511,7 +511,7 @@ export default function AddDeviceClient() {
 
           {/* ── Error + Actions ── */}
           {error && (
-            <div style={{ marginTop: 24, background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)' }}>
+            <div style={{ marginTop: 24, background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)' }}>
               {error}
             </div>
           )}

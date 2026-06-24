@@ -8,7 +8,7 @@ body{background:var(--bg)}
 .fc-panel-hd h1{font-size:22px;font-weight:500;letter-spacing:-.02em;margin-bottom:4px}
 .fc-panel-hd p{color:var(--muted);font-size:13.5px;margin-bottom:18px}
 .fc-search{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border2);border-radius:12px;padding:0 14px;margin:0 24px 8px;transition:all .15s}
-.fc-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.fc-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.12)}
 .fc-search svg{width:18px;height:18px;color:var(--muted);flex-shrink:0}
 .fc-search input{flex:1;border:0;background:transparent;padding:12px 0;font-family:var(--fb);font-size:15px;color:var(--text);outline:none}
 .fc-search input::placeholder{color:var(--muted2)}
@@ -25,15 +25,15 @@ body{background:var(--bg)}
 /* Clinic list */
 .fc-list{flex:1;overflow-y:auto;padding:6px}
 .fc-item{display:grid;grid-template-columns:auto 1fr auto;gap:14px;padding:16px 18px;border-radius:12px;cursor:pointer;transition:all .15s;border:1px solid transparent}
-.fc-item:hover{background:color-mix(in srgb,var(--accent) 5%,transparent);border-color:var(--border)}
-.fc-item.selected{background:color-mix(in srgb,var(--accent) 8%,transparent);border-color:var(--accent)}
-.fc-pin{width:38px;height:38px;border-radius:10px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);display:grid;place-items:center;flex-shrink:0}
+.fc-item:hover{background:rgba(var(--accent-rgb),0.05);border-color:var(--border)}
+.fc-item.selected{background:rgba(var(--accent-rgb),0.08);border-color:var(--accent)}
+.fc-pin{width:38px;height:38px;border-radius:10px;background:rgba(var(--accent-rgb),0.10);color:var(--accent);display:grid;place-items:center;flex-shrink:0}
 .fc-pin svg{width:18px;height:18px}
 .fc-item h3{font-family:var(--ff);font-size:14.5px;font-weight:500;letter-spacing:-.005em;margin-bottom:3px;color:var(--text)}
 .fc-item .addr{font-size:13px;color:var(--muted);line-height:1.4}
 .fc-item .dist{font-family:var(--ff);font-size:12px;color:var(--accent);font-weight:500;white-space:nowrap}
 .fc-item .tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.fc-tag{font-family:var(--ff);font-size:10.5px;font-weight:500;padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--ok) 10%,transparent);color:var(--ok);letter-spacing:.2px}
+.fc-tag{font-family:var(--ff);font-size:10.5px;font-weight:500;padding:3px 8px;border-radius:6px;background:rgba(var(--ok-rgb),0.10);color:var(--ok);letter-spacing:.2px}
 
 /* Map */
 .fc-map{background:#e8ece6;position:relative;overflow:hidden}
@@ -51,18 +51,18 @@ body{background:var(--bg)}
 .fc-overlay-addr{font-size:12.5px;color:var(--muted);line-height:1.4}
 .fc-overlay-body{overflow-y:auto;padding:10px 16px 16px;flex:1;min-height:0;display:flex;flex-direction:column;gap:6px}
 .fc-overlay-contact{display:flex;align-items:center;gap:10px;text-decoration:none;padding:7px 8px;border-radius:10px;transition:background .12s}
-.fc-overlay-contact:hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
-.fc-overlay-contact-ic{width:30px;height:30px;border-radius:8px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);display:grid;place-items:center;flex-shrink:0}
+.fc-overlay-contact:hover{background:rgba(var(--accent-rgb),0.06)}
+.fc-overlay-contact-ic{width:30px;height:30px;border-radius:8px;background:rgba(var(--accent-rgb),0.10);color:var(--accent);display:grid;place-items:center;flex-shrink:0}
 .fc-overlay-contact-label{font-family:var(--ff);font-size:9.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);margin-bottom:1px}
 .fc-overlay-contact-val{font-size:12.5px;color:var(--text);font-family:var(--fb)}
 
 /* Capability tags — keys derived from stored value by lowercasing + stripping [\s/- ] */
-.fc-tag.cap-pacemakericd{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
-.fc-tag.cap-cochlear{background:color-mix(in srgb,var(--warn) 12%,transparent);color:var(--warn)}
-.fc-tag.cap-dbsneurostim{background:color-mix(in srgb,#7c3aed 12%,transparent);color:#7c3aed}
-.fc-tag.cap-spinalcord{background:color-mix(in srgb,var(--ok) 10%,transparent);color:var(--ok)}
-.fc-tag.cap-mricentre{background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent)}
-.fc-tag.cap-orthopaedic{background:color-mix(in srgb,var(--muted) 14%,transparent);color:var(--muted)}
+.fc-tag.cap-pacemakericd{background:rgba(var(--accent-rgb),0.12);color:var(--accent)}
+.fc-tag.cap-cochlear{background:rgba(var(--warn-rgb),0.12);color:var(--warn)}
+.fc-tag.cap-dbsneurostim{background:rgba(124,58,237,0.12);color:#7c3aed}
+.fc-tag.cap-spinalcord{background:rgba(var(--ok-rgb),0.10);color:var(--ok)}
+.fc-tag.cap-mricentre{background:rgba(var(--accent-rgb),0.10);color:var(--accent)}
+.fc-tag.cap-orthopaedic{background:rgba(var(--muted-rgb),0.14);color:var(--muted)}
 .fc-book{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);margin:4px 0}
 .fc-book svg{flex-shrink:0}
 .fc-item.hidden{display:none}

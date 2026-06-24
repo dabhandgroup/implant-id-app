@@ -161,10 +161,10 @@ const SparkleIcon = ({ size = 16, color = 'currentColor' }: { size?: number; col
 
 function MriBadge({ status }: { status: string }) {
   const cfg: Record<string, { bg: string; color: string; label: string }> = {
-    safe:        { bg: 'color-mix(in srgb,var(--ok) 14%,transparent)',    color: 'var(--ok)',   label: 'MRI Safe' },
-    conditional: { bg: 'color-mix(in srgb,#f59e0b 14%,transparent)',      color: '#b45309',     label: 'MRI Conditional' },
-    unsafe:      { bg: 'color-mix(in srgb,var(--err) 14%,transparent)',   color: 'var(--err)',  label: 'MRI Unsafe' },
-    unknown:     { bg: 'color-mix(in srgb,var(--muted2) 14%,transparent)', color: 'var(--muted)', label: 'MRI Unknown' },
+    safe:        { bg: 'rgba(var(--ok-rgb),0.14)',    color: 'var(--ok)',   label: 'MRI Safe' },
+    conditional: { bg: 'rgba(245,158,11,0.14)',      color: '#b45309',     label: 'MRI Conditional' },
+    unsafe:      { bg: 'rgba(var(--err-rgb),0.14)',   color: 'var(--err)',  label: 'MRI Unsafe' },
+    unknown:     { bg: 'rgba(var(--muted2-rgb),0.14)', color: 'var(--muted)', label: 'MRI Unknown' },
   }
   const { bg, color, label } = cfg[status] ?? cfg.unknown
   return (
@@ -183,7 +183,7 @@ function MarkdownText({ text }: { text: string }) {
       const cellsHtml = cells.map((cell, ci) => {
         const fmt = cell.trim()
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-          .replace(/`(.+?)`/g, '<code style="background:color-mix(in srgb,var(--accent) 10%,transparent);padding:1px 4px;border-radius:3px;font-family:SF Mono,monospace;font-size:11px">$1</code>')
+          .replace(/`(.+?)`/g, '<code style="background:rgba(var(--accent-rgb),0.10);padding:1px 4px;border-radius:3px;font-family:SF Mono,monospace;font-size:11px">$1</code>')
         return `<span style="flex:${ci === 0 ? '0 0 110px' : '1'};padding:3px 8px 3px 0;font-size:12.5px;font-weight:${ci === 0 ? '600' : '400'}">${fmt}</span>`
       }).join('')
       return `<div style="display:flex;border-bottom:1px solid var(--border)">${cellsHtml}</div>`
@@ -195,7 +195,7 @@ function MarkdownText({ text }: { text: string }) {
     const formatted = line
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/`(.+?)`/g, '<code style="background:color-mix(in srgb,var(--accent) 10%,transparent);padding:1px 5px;border-radius:4px;font-size:12px;font-family:SF Mono,Monaco,monospace">$1</code>')
+      .replace(/`(.+?)`/g, '<code style="background:rgba(var(--accent-rgb),0.10);padding:1px 5px;border-radius:4px;font-size:12px;font-family:SF Mono,Monaco,monospace">$1</code>')
     return `<div style="margin:2px 0">${formatted}</div>`
   }).join('')
   return (
@@ -520,14 +520,14 @@ export default function AiChatClient() {
     return (
       <div className="m-content">
         <div style={{ maxWidth: 520, margin: '60px auto', textAlign: 'center' }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 24px' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(var(--accent-rgb),0.12)', display: 'grid', placeItems: 'center', margin: '0 auto 24px' }}>
             <SparkleIcon size={28} color="var(--accent)" />
           </div>
           <h2 style={{ fontFamily: 'var(--ff)', fontWeight: 500, marginBottom: 10 }}>AI Assistant</h2>
           <p style={{ color: 'var(--muted)', fontSize: 14.5, lineHeight: 1.6, marginBottom: 28 }}>
             The AI assistant uses your Anthropic API key. Add your key in Settings and it will be available across all your devices.
           </p>
-          <div style={{ background: 'color-mix(in srgb,var(--accent) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 18%,transparent)', borderRadius: 12, padding: '20px 24px', marginBottom: 28, textAlign: 'left' }}>
+          <div style={{ background: 'rgba(var(--accent-rgb),0.06)', border: '1px solid rgba(var(--accent-rgb),0.18)', borderRadius: 12, padding: '20px 24px', marginBottom: 28, textAlign: 'left' }}>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 }}>How to set up</div>
             <ol style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.7, paddingLeft: 18, margin: 0 }}>
               <li>Go to <strong>console.anthropic.com</strong> and create an API key</li>
@@ -590,9 +590,9 @@ export default function AiChatClient() {
                     padding: '7px 8px 7px 14px', cursor: renamingChatId === chat._id ? 'default' : 'pointer',
                     borderLeft: activeChatId === chat._id ? '2px solid var(--accent)' : '2px solid transparent',
                     background: activeChatId === chat._id
-                      ? 'color-mix(in srgb,var(--accent) 8%,transparent)'
+                      ? 'rgba(var(--accent-rgb),0.08)'
                       : hoveredChatId === chat._id
-                        ? 'color-mix(in srgb,var(--text) 4%,transparent)'
+                        ? 'rgba(var(--text-rgb),0.04)'
                         : 'transparent',
                     transition: 'background .1s',
                   }}
@@ -658,7 +658,7 @@ export default function AiChatClient() {
       >
         {/* Drag overlay */}
         {isDragging && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'color-mix(in srgb,var(--accent) 8%,transparent)', border: '3px dashed var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(var(--accent-rgb),0.08)', border: '3px dashed var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, pointerEvents: 'none' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--accent)', display: 'grid', placeItems: 'center' }}>
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             </div>
@@ -674,7 +674,7 @@ export default function AiChatClient() {
 
           {messages.length === 0 && (
             <div style={{ margin: 'auto', textAlign: 'center', maxWidth: 460 }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(var(--accent-rgb),0.10)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <SparkleIcon size={24} color="var(--accent)" />
               </div>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 500, marginBottom: 8 }}>Device research assistant</div>
@@ -704,7 +704,7 @@ export default function AiChatClient() {
             return (
               <div key={i}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: m.role === 'user' ? 'var(--accent)' : 'color-mix(in srgb,var(--accent) 12%,transparent)', color: m.role === 'user' ? '#fff' : 'var(--accent)', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: m.role === 'user' ? 'var(--accent)' : 'rgba(var(--accent-rgb),0.12)', color: m.role === 'user' ? '#fff' : 'var(--accent)', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700 }}>
                     {m.role === 'user' ? 'MA' : <SparkleIcon size={14} color="var(--accent)" />}
                   </div>
                   <div style={{ maxWidth: '82%' }}>
@@ -750,11 +750,11 @@ export default function AiChatClient() {
                           const deviceTitle = device.name ?? device.model
                           const hasLongNotes = (device.contraindications?.length ?? 0) > 140
                           return (
-                            <div key={idx} style={{ background: isDup ? 'color-mix(in srgb,var(--err) 3%,var(--bg))' : 'var(--bg)', border: `1px solid ${isDup ? 'color-mix(in srgb,var(--err) 18%,transparent)' : importStatus === 'done' ? 'color-mix(in srgb,var(--ok) 25%,transparent)' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden' }}>
+                            <div key={idx} style={{ background: isDup ? 'rgba(var(--err-rgb),0.03)' : 'var(--bg)', border: `1px solid ${isDup ? 'rgba(var(--err-rgb),0.18)' : importStatus === 'done' ? 'rgba(var(--ok-rgb),0.25)' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden' }}>
                               <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', background: 'var(--bg2)' }}>
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', color: 'var(--accent-deep)', padding: '2px 8px', borderRadius: 5 }}>{device.deviceType}</span>
+                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent-deep)', padding: '2px 8px', borderRadius: 5 }}>{device.deviceType}</span>
                                 <MriBadge status={device.mriStatus} />
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted)', background: 'color-mix(in srgb,var(--muted2) 14%,transparent)', padding: '2px 8px', borderRadius: 5, textTransform: 'capitalize' }}>{device.classification}</span>
+                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted)', background: 'rgba(var(--muted2-rgb),0.14)', padding: '2px 8px', borderRadius: 5, textTransform: 'capitalize' }}>{device.classification}</span>
                                 {isDup && <span style={{ marginLeft: 'auto', fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--err)', fontWeight: 700, flexShrink: 0 }}>Already in catalogue{dupStatus ? ` (${dupStatus.replace('_', ' ')})` : ''}</span>}
                                 {importStatus === 'done' && !isDup && <span style={{ marginLeft: 'auto', fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--ok)', fontWeight: 700, flexShrink: 0 }}>✓ Added</span>}
                               </div>
@@ -807,7 +807,7 @@ export default function AiChatClient() {
           {/* Streaming message */}
           {loading && (
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 12%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(var(--accent-rgb),0.12)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                 <SparkleIcon size={14} color="var(--accent)" />
               </div>
               <div style={{ maxWidth: '82%', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '4px 14px 14px 14px', padding: '12px 16px' }}>
@@ -829,7 +829,7 @@ export default function AiChatClient() {
           )}
 
           {error && (
-            <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '10px 14px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', whiteSpace: 'pre-line' }}>
+            <div style={{ background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '10px 14px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', whiteSpace: 'pre-line' }}>
               {error}
             </div>
           )}
@@ -842,11 +842,11 @@ export default function AiChatClient() {
           {/* File drop zone */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            style={{ border: `2px dashed ${isDragging ? 'var(--accent)' : attachedFiles.length ? 'color-mix(in srgb,var(--accent) 40%,transparent)' : 'var(--border2)'}`, borderRadius: 12, background: isDragging ? 'color-mix(in srgb,var(--accent) 6%,transparent)' : attachedFiles.length ? 'color-mix(in srgb,var(--accent) 4%,transparent)' : 'transparent', padding: attachedFiles.length ? '10px 14px' : '16px 20px', marginBottom: 12, cursor: 'pointer', transition: 'border-color .15s, background .15s' }}
+            style={{ border: `2px dashed ${isDragging ? 'var(--accent)' : attachedFiles.length ? 'rgba(var(--accent-rgb),0.40)' : 'var(--border2)'}`, borderRadius: 12, background: isDragging ? 'rgba(var(--accent-rgb),0.06)' : attachedFiles.length ? 'rgba(var(--accent-rgb),0.04)' : 'transparent', padding: attachedFiles.length ? '10px 14px' : '16px 20px', marginBottom: 12, cursor: 'pointer', transition: 'border-color .15s, background .15s' }}
           >
             {attachedFiles.length === 0 ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, pointerEvents: 'none' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(var(--accent-rgb),0.10)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 </div>
                 <div>
@@ -857,7 +857,7 @@ export default function AiChatClient() {
             ) : (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 {attachedFiles.map(f => (
-                  <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'color-mix(in srgb,var(--accent) 12%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 25%,transparent)', borderRadius: 6, padding: '4px 10px 4px 8px', fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent-deep)' }}>
+                  <div key={f.name} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(var(--accent-rgb),0.12)', border: '1px solid rgba(var(--accent-rgb),0.25)', borderRadius: 6, padding: '4px 10px 4px 8px', fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent-deep)' }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                     {f.name}
                     <button onClick={e => { e.stopPropagation(); setAttachedFiles(p => p.filter(x => x.name !== f.name)) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', padding: 0, lineHeight: 1, fontSize: 13, marginLeft: 2 }} aria-label={`Remove ${f.name}`}>✕</button>

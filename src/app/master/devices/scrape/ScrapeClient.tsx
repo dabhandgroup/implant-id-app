@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { useRouter }   from 'next/navigation'
+import { tint } from '@/lib/tint'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
@@ -61,14 +62,14 @@ function HistoryRow({ job, isActive, onLoad }: { job: any; isActive: boolean; on
         display:'flex', alignItems:'center', gap:14, padding:'13px 18px',
         borderBottom:'1px solid var(--border)',
         cursor: isComplete ? 'pointer' : 'default',
-        background: isActive ? 'color-mix(in srgb,var(--accent) 6%,transparent)' : 'transparent',
+        background: isActive ? 'rgba(var(--accent-rgb),0.06)' : 'transparent',
         transition: 'background .15s',
       }}
     >
       {/* Status dot */}
       <div style={{ width:8, height:8, borderRadius:'50%', flexShrink:0,
         background: isComplete ? 'var(--ok)' : isError ? 'var(--err)' : 'var(--accent)',
-        boxShadow: isPending ? '0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)' : 'none',
+        boxShadow: isPending ? '0 0 0 3px rgba(var(--accent-rgb),0.25)' : 'none',
       }} />
 
       {/* Device info */}
@@ -352,7 +353,7 @@ export default function ScrapeClient() {
             </div>
 
             {error && (
-              <div style={{ color:'var(--err)', fontFamily:'var(--ff)', fontSize:13.5, marginBottom:12, background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:8, padding:'10px 14px' }}>
+              <div style={{ color:'var(--err)', fontFamily:'var(--ff)', fontSize:13.5, marginBottom:12, background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:8, padding:'10px 14px' }}>
                 {error}
               </div>
             )}
@@ -415,7 +416,7 @@ export default function ScrapeClient() {
         {result && (
           <div ref={resultsRef} style={{ marginTop: 24 }}>
               {/* Confidence banner */}
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, padding:'12px 16px', borderRadius:10, background: confPct >= 80 ? 'color-mix(in srgb,var(--ok) 8%,transparent)' : 'color-mix(in srgb,#f59e0b 8%,transparent)', border: `1px solid color-mix(in srgb,${confPct >= 80 ? 'var(--ok)' : '#f59e0b'} 20%,transparent)` }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, padding:'12px 16px', borderRadius:10, background: confPct >= 80 ? 'rgba(var(--ok-rgb),0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${tint(confPct >= 80 ? 'var(--ok)' : '#f59e0b', 20)}` }}>
                 <div style={{ fontSize:22, fontWeight:700, color: confPct >= 80 ? 'var(--ok)' : '#b45309', fontFamily:'var(--ff)', width:48, flexShrink:0 }}>{confPct}%</div>
                 <div>
                   <div style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:600, color:'var(--text)' }}>
@@ -426,7 +427,7 @@ export default function ScrapeClient() {
               </div>
 
               {conflicts.length > 0 && (
-                <div style={{ marginBottom:12, padding:'10px 14px', borderRadius:8, background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', fontSize:13 }}>
+                <div style={{ marginBottom:12, padding:'10px 14px', borderRadius:8, background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)', fontSize:13 }}>
                   <div style={{ fontFamily:'var(--ff)', fontWeight:600, color:'var(--err)', marginBottom:4 }}>⚠ Source conflicts — verify before adding</div>
                   {conflicts.map((c, i) => (
                     <div key={i} style={{ color:'var(--muted)', fontSize:12 }}>
@@ -507,7 +508,7 @@ export default function ScrapeClient() {
 
               {/* PDF sources — prominent for clinic verification */}
               {pdfLinks.length > 0 && (
-                <div style={{ background:'color-mix(in srgb,var(--accent) 6%,transparent)', border:'1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius:10, padding:'14px 16px', marginBottom:16 }}>
+                <div style={{ background:'rgba(var(--accent-rgb),0.06)', border:'1px solid rgba(var(--accent-rgb),0.20)', borderRadius:10, padding:'14px 16px', marginBottom:16 }}>
                   <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--accent-deep)', marginBottom:10 }}>
                     📄 Source documents (IFU / MRI Manual)
                   </div>
@@ -529,7 +530,7 @@ export default function ScrapeClient() {
                   <div style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, letterSpacing:'1px', textTransform:'uppercase', color:'var(--muted2)', marginBottom:10 }}>Sources consulted</div>
                   {sources.map((s, i) => (
                     <div key={i} style={{ display:'flex', gap:8, marginBottom:6, alignItems:'flex-start' }}>
-                      <span style={{ fontFamily:'var(--ff)', fontSize:10, fontWeight:600, padding:'2px 6px', borderRadius:4, background: s.accessible !== false ? 'color-mix(in srgb,var(--ok) 12%,transparent)' : 'color-mix(in srgb,var(--err) 10%,transparent)', color: s.accessible !== false ? 'var(--ok)' : 'var(--err)', flexShrink:0 }}>
+                      <span style={{ fontFamily:'var(--ff)', fontSize:10, fontWeight:600, padding:'2px 6px', borderRadius:4, background: s.accessible !== false ? 'rgba(var(--ok-rgb),0.12)' : 'rgba(var(--err-rgb),0.10)', color: s.accessible !== false ? 'var(--ok)' : 'var(--err)', flexShrink:0 }}>
                         {s.accessible !== false ? '✓' : '⚠'} {s.type ?? 'src'}
                       </span>
                       <div>
@@ -543,7 +544,7 @@ export default function ScrapeClient() {
 
               {/* Certification + Add to catalogue */}
               {added ? (
-                <div style={{ background:'color-mix(in srgb,var(--ok) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--ok) 25%,transparent)', borderRadius:10, padding:'14px 18px', display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ background:'rgba(var(--ok-rgb),0.10)', border:'1px solid rgba(var(--ok-rgb),0.25)', borderRadius:10, padding:'14px 18px', display:'flex', alignItems:'center', gap:10 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                   <span style={{ fontFamily:'var(--ff)', fontSize:13.5, color:'var(--ok)', fontWeight:500 }}>Added to device catalogue</span>
                   <button className="btn" style={{ marginLeft:'auto', fontSize:12 }} onClick={() => router.push('/master/devices')}>View all devices</button>
@@ -551,7 +552,7 @@ export default function ScrapeClient() {
               ) : (
                 <>
                   {/* Certification checkbox — mandatory before adding */}
-                  <div style={{ background:'color-mix(in srgb,var(--warn) 6%,transparent)', border:'1px solid color-mix(in srgb,var(--warn) 25%,transparent)', borderRadius:10, padding:'14px 16px', marginBottom:14 }}>
+                  <div style={{ background:'rgba(var(--warn-rgb),0.06)', border:'1px solid rgba(var(--warn-rgb),0.25)', borderRadius:10, padding:'14px 16px', marginBottom:14 }}>
                     <label style={{ display:'flex', alignItems:'flex-start', gap:10, cursor:'pointer' }}>
                       <input type="checkbox" checked={certified} onChange={e => setCertified(e.target.checked)}
                         style={{ marginTop:2, accentColor:'var(--accent)', width:15, height:15, flexShrink:0 }} />
@@ -561,7 +562,7 @@ export default function ScrapeClient() {
                       </span>
                     </label>
                   </div>
-                  {addError && <div style={{ color:'var(--err)', fontFamily:'var(--ff)', fontSize:13.5, marginBottom:12, background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:8, padding:'10px 14px' }}>{addError}</div>}
+                  {addError && <div style={{ color:'var(--err)', fontFamily:'var(--ff)', fontSize:13.5, marginBottom:12, background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:8, padding:'10px 14px' }}>{addError}</div>}
                   <button type="button" className="btn btn-s btn-block" disabled={adding || !editManufacturer || !editModel || !certified} onClick={handleAddToDb} style={{ fontSize:14 }}>
                     {adding ? 'Adding…' : '+ Add to device catalogue'}
                   </button>

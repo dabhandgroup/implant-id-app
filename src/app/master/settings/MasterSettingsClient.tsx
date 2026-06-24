@@ -329,7 +329,7 @@ export default function MasterSettingsClient() {
           <h2 style={{ fontSize: 'clamp(20px,2vw,26px)', letterSpacing: '-.025em', marginTop: 6 }}>Settings</h2>
         </div>
         <button className="btn btn-danger btn-s" onClick={() => setSignOutConfirm(true)}
-          style={{ background: 'color-mix(in srgb,var(--err) 12%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', color: 'var(--err)', borderRadius: 999 }}>
+          style={{ background: 'rgba(var(--err-rgb),0.12)', border: '1px solid rgba(var(--err-rgb),0.25)', color: 'var(--err)', borderRadius: 999 }}>
           Sign out
         </button>
       </div>
@@ -380,7 +380,7 @@ export default function MasterSettingsClient() {
                 </div>
 
                 {passkeyErr && (
-                  <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', borderBottom: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', padding: '10px 22px', fontSize: 13, color: 'var(--err)' }}>
+                  <div style={{ background: 'rgba(var(--err-rgb),0.08)', borderBottom: '1px solid rgba(var(--err-rgb),0.20)', padding: '10px 22px', fontSize: 13, color: 'var(--err)' }}>
                     {passkeyErr}
                   </div>
                 )}
@@ -392,7 +392,7 @@ export default function MasterSettingsClient() {
                 ) : (
                   passkeys.map((pk, i) => (
                     <div key={pk.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 22px', borderBottom: i < passkeys.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(var(--accent-rgb),0.10)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
                           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                         </svg>
@@ -423,7 +423,7 @@ export default function MasterSettingsClient() {
                     <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
                       Authenticator app (TOTP)
                       {totpEnabled && (
-                        <span style={{ background: 'color-mix(in srgb,var(--ok) 12%,transparent)', color: 'var(--ok)', fontSize: 10.5, fontWeight: 600, letterSpacing: '.6px', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 4 }}>
+                        <span style={{ background: 'rgba(var(--ok-rgb),0.12)', color: 'var(--ok)', fontSize: 10.5, fontWeight: 600, letterSpacing: '.6px', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 4 }}>
                           Enabled
                         </span>
                       )}
@@ -435,7 +435,7 @@ export default function MasterSettingsClient() {
                   {!totpSetup && (
                     totpEnabled ? (
                       <button onClick={disableTotp} disabled={totpDisableLoading}
-                        style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer' }}>
+                        style={{ background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.25)', color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, padding: '8px 14px', borderRadius: 8, cursor: 'pointer' }}>
                         {totpDisableLoading ? 'Disabling…' : 'Disable 2FA'}
                       </button>
                     ) : (
@@ -447,7 +447,7 @@ export default function MasterSettingsClient() {
                 </div>
 
                 {totpDisableErr && (
-                  <div style={{ padding: '10px 22px', fontSize: 13, color: 'var(--err)', background: 'color-mix(in srgb,var(--err) 8%,transparent)' }}>
+                  <div style={{ padding: '10px 22px', fontSize: 13, color: 'var(--err)', background: 'rgba(var(--err-rgb),0.08)' }}>
                     {totpDisableErr}
                   </div>
                 )}
@@ -581,7 +581,7 @@ export default function MasterSettingsClient() {
                   <span className="hint">Account role cannot be changed here.</span>
                 </div>
 
-                <div style={{ padding: '14px 18px', background: 'color-mix(in srgb,var(--ok) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 20%,transparent)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ padding: '14px 18px', background: 'rgba(var(--ok-rgb),0.08)', border: '1px solid rgba(var(--ok-rgb),0.20)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="1.7"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                   <span style={{ fontSize: 13, color: 'var(--ok)', fontFamily: 'var(--ff)', fontWeight: 500 }}>Verified master account — full platform access</span>
                 </div>
@@ -639,7 +639,7 @@ export default function MasterSettingsClient() {
                 </div>
               )}
 
-              <div style={{ padding: '14px 22px', background: 'color-mix(in srgb,var(--accent) 5%,transparent)', borderTop: '1px solid var(--border)' }}>
+              <div style={{ padding: '14px 22px', background: 'rgba(var(--accent-rgb),0.05)', borderTop: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>
                   These settings apply only to your account. Other admins manage their own notification preferences.
                 </div>
@@ -703,9 +703,9 @@ export default function MasterSettingsClient() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                               {isMe && (
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 10%,transparent)', padding: '2px 8px', borderRadius: 5 }}>You</span>
+                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: 'var(--accent)', background: 'rgba(var(--accent-rgb),0.10)', padding: '2px 8px', borderRadius: 5 }}>You</span>
                               )}
-                              <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: isPending ? '#b45309' : 'var(--ok)', background: isPending ? 'color-mix(in srgb,#f59e0b 10%,transparent)' : 'color-mix(in srgb,var(--ok) 10%,transparent)', padding: '2px 8px', borderRadius: 5 }}>
+                              <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: isPending ? '#b45309' : 'var(--ok)', background: isPending ? 'rgba(245,158,11,0.10)' : 'rgba(var(--ok-rgb),0.10)', padding: '2px 8px', borderRadius: 5 }}>
                                 {isPending ? 'Pending' : 'Active'}
                               </span>
                               {/* Edit button */}
@@ -834,7 +834,7 @@ export default function MasterSettingsClient() {
                         </a>
                       )}
                     </div>
-                    <div style={{ marginTop: 18, background: 'color-mix(in srgb,var(--accent) 5%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 14%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
+                    <div style={{ marginTop: 18, background: 'rgba(var(--accent-rgb),0.05)', border: '1px solid rgba(var(--accent-rgb),0.14)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
                       <strong style={{ color: 'var(--text)' }}>What it does:</strong> The AI Assistant lets you chat with Claude to
                       research medical devices, find MRI safety specs, and import device data from spreadsheets. Your key
                       is stored in your account and syncs across all devices — it is never logged or used outside of AI Assistant calls.
@@ -853,7 +853,7 @@ export default function MasterSettingsClient() {
       <div className="confirm-back open" onClick={() => !removingId && setConfirmRemove(null)}>
         <div className="confirm-modal" onClick={e => e.stopPropagation()}>
           <div className="confirm-body">
-            <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+            <div style={{ width:44, height:44, borderRadius:'50%', background:'rgba(var(--err-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2" aria-hidden="true">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                 <circle cx="9" cy="7" r="4"/>
@@ -887,7 +887,7 @@ export default function MasterSettingsClient() {
       <div className="logout-back open" onClick={() => !signingOut && setSignOutConfirm(false)}>
         <div className="logout-modal" onClick={e => e.stopPropagation()}>
           <div className="logout-body">
-            <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+            <div style={{ width:44, height:44, borderRadius:'50%', background:'rgba(var(--err-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
                 <polyline points="16 17 21 12 16 7"/>

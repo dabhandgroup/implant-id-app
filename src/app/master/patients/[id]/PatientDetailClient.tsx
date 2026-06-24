@@ -2,6 +2,7 @@
 import { useState }    from 'react'
 import { useQuery, useMutation, useAction } from 'convex/react'
 import { useRouter }   from 'next/navigation'
+import { tint } from '@/lib/tint'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 import { Id }             from '../../../../../convex/_generated/dataModel'
 import DatePicker from '../../../../components/ui/DatePicker'
@@ -146,7 +147,7 @@ export default function PatientDetailClient({ id }: Props) {
           <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {fullName}
             {isActive && (
-              <span style={{ background: 'color-mix(in srgb,var(--ok) 12%,transparent)', color: 'var(--ok)', fontSize: 12, fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase', padding: '3px 9px', borderRadius: 4, fontFamily: 'var(--ff)' }}>
+              <span style={{ background: 'rgba(var(--ok-rgb),0.12)', color: 'var(--ok)', fontSize: 12, fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase', padding: '3px 9px', borderRadius: 4, fontFamily: 'var(--ff)' }}>
                 ✓ Verified
               </span>
             )}
@@ -170,7 +171,7 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* Success banner */}
       {verified && (
-        <div style={{ background: 'color-mix(in srgb,var(--ok) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 25%,transparent)', borderRadius: 10, padding: '12px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ background: 'rgba(var(--ok-rgb),0.10)', border: '1px solid rgba(var(--ok-rgb),0.25)', borderRadius: 10, padding: '12px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="1.7"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           <span style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)', fontWeight: 500 }}>
             Patient verified — email notification sent.
@@ -180,13 +181,13 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* Error banner */}
       {error && (
-        <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 18px', marginBottom: 24, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)' }}>
+        <div style={{ background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '12px 18px', marginBottom: 24, fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)' }}>
           {error}
         </div>
       )}
 
       {/* ── Admin Status Override ── */}
-      <div style={{ background: 'color-mix(in srgb,var(--accent) 4%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 12, padding: '18px 20px', marginBottom: 24 }}>
+      <div style={{ background: 'rgba(var(--accent-rgb),0.04)', border: '1px solid rgba(var(--accent-rgb),0.20)', borderRadius: 12, padding: '18px 20px', marginBottom: 24 }}>
         <div style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 14 }}>Admin: Status Override (for testing)</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end' }}>
           <div>
@@ -325,7 +326,7 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* Self-reported device section */}
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'rgba(var(--text-rgb),0.02)' }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--muted2)' }}>
             Self-reported implant
           </div>
@@ -343,7 +344,7 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* Verified implants section */}
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'rgba(var(--text-rgb),0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--muted2)' }}>
             Verified implants
           </div>
@@ -366,7 +367,7 @@ export default function PatientDetailClient({ id }: Props) {
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       {d.device?.mriStatus && (
-                        <span style={{ fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 5, color: MRI_COLOUR[d.device.mriStatus] ?? 'var(--muted)', background: `color-mix(in srgb,${MRI_COLOUR[d.device.mriStatus] ?? 'transparent'} 10%,transparent)`, border: `1px solid color-mix(in srgb,${MRI_COLOUR[d.device.mriStatus] ?? 'transparent'} 25%,transparent)` }}>
+                        <span style={{ fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, padding: '2px 8px', borderRadius: 5, color: MRI_COLOUR[d.device.mriStatus] ?? 'var(--muted)', background: tint(MRI_COLOUR[d.device.mriStatus] ?? 'var(--muted)', 10), border: `1px solid ${tint(MRI_COLOUR[d.device.mriStatus] ?? 'var(--muted)', 25)}` }}>
                           {MRI_LABEL[d.device.mriStatus] ?? d.device.mriStatus}
                         </span>
                       )}
@@ -390,7 +391,7 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* Emergency contact section */}
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 20 }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'rgba(var(--text-rgb),0.02)' }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--muted2)' }}>
             Emergency contact
           </div>
@@ -404,7 +405,7 @@ export default function PatientDetailClient({ id }: Props) {
 
       {/* Clinic access section */}
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb,var(--text) 2%,transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'rgba(var(--text-rgb),0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--muted2)' }}>
             Clinic access
           </div>
@@ -435,7 +436,7 @@ export default function PatientDetailClient({ id }: Props) {
                       {r.reason && ` · ${r.reason}`}
                     </div>
                   </div>
-                  <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--ok)', background: 'color-mix(in srgb,var(--ok) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--ok) 25%,transparent)', padding: '3px 8px', borderRadius: 5, flexShrink: 0 }}>
+                  <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, letterSpacing: '.4px', textTransform: 'uppercase', color: 'var(--ok)', background: 'rgba(var(--ok-rgb),0.10)', border: '1px solid rgba(var(--ok-rgb),0.25)', padding: '3px 8px', borderRadius: 5, flexShrink: 0 }}>
                     Active
                   </span>
                 </div>
@@ -446,8 +447,8 @@ export default function PatientDetailClient({ id }: Props) {
       </div>
 
       {/* Danger zone */}
-      <div style={{ marginTop: 32, border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', borderRadius: 14, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 20px', background: 'color-mix(in srgb,var(--err) 5%,transparent)', borderBottom: '1px solid color-mix(in srgb,var(--err) 15%,transparent)' }}>
+      <div style={{ marginTop: 32, border: '1px solid rgba(var(--err-rgb),0.25)', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', background: 'rgba(var(--err-rgb),0.05)', borderBottom: '1px solid rgba(var(--err-rgb),0.15)' }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--err)' }}>
             Danger zone
           </div>
@@ -552,14 +553,14 @@ export default function PatientDetailClient({ id }: Props) {
         <div className="logout-back open" onClick={() => setVerifyModalOpen(false)}>
           <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
             <div className="logout-body">
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(var(--ok-rgb),0.12)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
               </div>
               <h3>Verify patient record?</h3>
               <p style={{ marginBottom: 16 }}><strong>{fullName}</strong> — {patient.implantIdCode}</p>
-              <div style={{ background: 'color-mix(in srgb,#f59e0b 8%,transparent)', border: '1px solid color-mix(in srgb,#f59e0b 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: '#92400e', lineHeight: 1.6, marginBottom: 8 }}>
+              <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.20)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: '#92400e', lineHeight: 1.6, marginBottom: 8 }}>
                 <strong>⚠ Clinical responsibility notice</strong><br/>
                 Only verify this record if you are a qualified clinician or have been instructed to do so by the patient's clinical team. Verification confirms the implant details are correct and activates the patient's wallet pass. Incorrect verification could lead to patient harm.
               </div>
@@ -674,14 +675,14 @@ export default function PatientDetailClient({ id }: Props) {
         <div className="confirm-back open" onClick={() => setDeleteStep('idle')}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
             <div className="confirm-body">
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(var(--err-rgb),0.10)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                 </svg>
               </div>
               <h3 style={{ color: 'var(--err)' }}>Delete patient record?</h3>
               <p style={{ marginBottom: 6 }}><strong>{fullName}</strong> — {patient.implantIdCode}</p>
-              <div style={{ background: 'color-mix(in srgb,var(--err) 6%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', lineHeight: 1.6, marginBottom: 8 }}>
+              <div style={{ background: 'rgba(var(--err-rgb),0.06)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', lineHeight: 1.6, marginBottom: 8 }}>
                 <strong>This permanently deletes:</strong> the patient record, all linked devices, clinical notes, care team access, and clinic connections. This cannot be undone.
               </div>
               <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', margin: 0 }}>
@@ -722,7 +723,7 @@ export default function PatientDetailClient({ id }: Props) {
         <div className="confirm-back open" onClick={() => setDeleteStep('idle')}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div className="confirm-body">
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(var(--err-rgb),0.10)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>

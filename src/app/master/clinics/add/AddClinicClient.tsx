@@ -83,13 +83,13 @@ export default function AddClinicClient() {
         <div style={{ maxWidth: 560 }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 16,
-            background: 'color-mix(in srgb, var(--ok) 8%, transparent)',
-            border: '1px solid color-mix(in srgb, var(--ok) 25%, transparent)',
+            background: 'rgba(var(--ok-rgb),0.08)',
+            border: '1px solid rgba(var(--ok-rgb),0.25)',
             borderRadius: 14, padding: '24px 28px', marginBottom: 28,
           }}>
             <div style={{
               width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
-              background: 'color-mix(in srgb, var(--ok) 15%, transparent)',
+              background: 'rgba(var(--ok-rgb),0.15)',
               display: 'grid', placeItems: 'center',
             }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -272,8 +272,8 @@ export default function AddClinicClient() {
           {/* Error banner */}
           {error && (
             <div style={{
-              background: 'color-mix(in srgb, var(--err) 10%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--err) 25%, transparent)',
+              background: 'rgba(var(--err-rgb),0.10)',
+              border: '1px solid rgba(var(--err-rgb),0.25)',
               borderRadius: 10, padding: '12px 16px',
               fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)',
             }}>

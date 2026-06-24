@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery }  from 'convex/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { api as apiBase } from '../../../../convex/_generated/api'
+import { tint } from '@/lib/tint'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
@@ -57,7 +58,7 @@ export default function SearchClient() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', textTransform: 'uppercase', color: 'var(--muted2)' }}>
         <span style={{ color: colour, display: 'flex' }}>{icon}</span>
         {title}
-        <span style={{ fontFamily: 'var(--ff)', fontSize: 10.5, background: 'color-mix(in srgb,var(--text) 6%,transparent)', borderRadius: 4, padding: '1px 6px', color: 'var(--muted)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>{count}</span>
+        <span style={{ fontFamily: 'var(--ff)', fontSize: 10.5, background: 'rgba(var(--text-rgb),0.06)', borderRadius: 4, padding: '1px 6px', color: 'var(--muted)', fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>{count}</span>
       </div>
     )
   }
@@ -68,7 +69,7 @@ export default function SearchClient() {
       <tr onClick={() => router.push(href)} style={{ cursor: 'pointer' }}>
         <td>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: `color-mix(in srgb,${colour} 10%,transparent)`, display: 'grid', placeItems: 'center', flexShrink: 0, color: colour }}>{icon}</div>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: tint(colour, 10), display: 'grid', placeItems: 'center', flexShrink: 0, color: colour }}>{icon}</div>
             <div>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{title}</div>
               <div style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{sub}</div>
@@ -76,7 +77,7 @@ export default function SearchClient() {
           </div>
         </td>
         <td style={{ width: 150, textAlign: 'right' }}>
-          {badgeNode ?? (badge && <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: badgeColour ?? 'var(--muted)', background: `color-mix(in srgb,${badgeColour ?? 'var(--muted)'} 10%,transparent)`, borderRadius: 5, padding: '2px 8px', whiteSpace: 'nowrap' }}>{badge}</span>)}
+          {badgeNode ?? (badge && <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, color: badgeColour ?? 'var(--muted)', background: tint(badgeColour ?? 'var(--muted)', 10), borderRadius: 5, padding: '2px 8px', whiteSpace: 'nowrap' }}>{badge}</span>)}
         </td>
         <td style={{ width: 32, textAlign: 'right', color: 'var(--muted)', fontFamily: 'var(--ff)', fontSize: 13 }}>→</td>
       </tr>
@@ -187,7 +188,7 @@ export default function SearchClient() {
                 badgeNode={
                   mriIcon
                     ? <img src={mriIcon} alt={MRI_LABEL[d.mriStatus] ?? d.mriStatus} style={{ width:32, height:32, display:'block', flexShrink:0, marginLeft:'auto' }} />
-                    : <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mriColour, padding:'2px 8px', borderRadius:5, background:`color-mix(in srgb,${mriColour} 12%,transparent)`, whiteSpace:'nowrap' }}>{MRI_LABEL[d.mriStatus] ?? d.mriStatus}</span>
+                    : <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mriColour, padding:'2px 8px', borderRadius:5, background:tint(mriColour, 12), whiteSpace:'nowrap' }}>{MRI_LABEL[d.mriStatus] ?? d.mriStatus}</span>
                 }
                 href={`/master/devices/${d.deviceCode ?? d._id}`}
               />

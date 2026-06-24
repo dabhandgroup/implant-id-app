@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useRouter } from 'next/navigation'
 import { api as apiBase } from '../../../../convex/_generated/api'
+import { tint } from '@/lib/tint'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
@@ -79,7 +80,7 @@ export default function MasterDevicesClient() {
         >
           Trash
           {trashDevices && trashDevices.length > 0 && (
-            <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, background:'color-mix(in srgb,var(--err) 12%,transparent)', color:'var(--err)', borderRadius:10, padding:'1px 7px' }}>
+            <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, background:'rgba(var(--err-rgb),0.12)', color:'var(--err)', borderRadius:10, padding:'1px 7px' }}>
               {trashDevices.length}
             </span>
           )}
@@ -122,7 +123,7 @@ export default function MasterDevicesClient() {
                         <td>{d.model}</td>
                         <td style={{ color: 'var(--muted)', fontSize: 13 }}>{d.deviceType}</td>
                         <td>
-                          <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px 3px 4px', borderRadius:6, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, letterSpacing:'.2px', whiteSpace:'nowrap' }}>
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px 3px 4px', borderRadius:6, background:tint(mri.color, 12), letterSpacing:'.2px', whiteSpace:'nowrap' }}>
                             {icon && (
                               <img src={icon} alt="" aria-hidden="true" style={{ width:24, height:24, display:'block', flexShrink:0 }} />
                             )}
@@ -156,7 +157,7 @@ export default function MasterDevicesClient() {
                       <div style={{ fontSize:12, color:'var(--muted)', textTransform:'capitalize' }}>{d.deviceType} · {d.classification}</div>
                     </div>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
-                      <span style={{ fontFamily:'var(--ff)', display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px 3px 4px', borderRadius:6, background:`color-mix(in srgb,${mri.color} 12%,transparent)`, whiteSpace:'nowrap' }}>
+                      <span style={{ fontFamily:'var(--ff)', display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px 3px 4px', borderRadius:6, background:tint(mri.color, 12), whiteSpace:'nowrap' }}>
                         {icon && (
                           <img src={icon} alt="" aria-hidden="true" style={{ width:24, height:24, display:'block', flexShrink:0 }} />
                         )}
@@ -217,7 +218,7 @@ export default function MasterDevicesClient() {
         <div className="confirm-back open" onClick={() => !trashWorking && setTrashAction(null)}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()}>
             <div className="confirm-body">
-              <div style={{ width:48, height:48, borderRadius:'50%', background:`color-mix(in srgb,${trashAction.action === 'delete' ? 'var(--err)' : 'var(--accent)'} 12%,transparent)`, display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:48, height:48, borderRadius:'50%', background:tint(trashAction.action === 'delete' ? 'var(--err)' : 'var(--accent)', 12), display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 {trashAction.action === 'delete' ? (
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
                     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>

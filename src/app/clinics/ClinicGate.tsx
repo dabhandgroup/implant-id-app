@@ -23,7 +23,7 @@ function ClinicLoadingScreen() {
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'var(--bg)', fontFamily:'var(--ff)', gap:32 }}>
       <Link href="/" style={{ textDecoration:'none' }}>
         <div style={{ display:'flex', alignItems:'center', gap:11, color:'var(--text)', fontFamily:'var(--ff)', fontSize:19, fontWeight:600, letterSpacing:'-.02em' }}>
-          <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px color-mix(in srgb,var(--accent) 35%,transparent)' }}>
+          <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(var(--accent-rgb),0.35)' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
             </svg>
@@ -32,7 +32,7 @@ function ClinicLoadingScreen() {
         </div>
       </Link>
       <svg width="38" height="38" viewBox="0 0 38 38" aria-label="Loading" role="status">
-        <circle cx="19" cy="19" r="15" fill="none" stroke="color-mix(in srgb,var(--accent) 15%,transparent)" strokeWidth="2.5"/>
+        <circle cx="19" cy="19" r="15" fill="none" stroke="rgba(var(--accent-rgb),0.15)" strokeWidth="2.5"/>
         <circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="24 70">
           <animateTransform attributeName="transform" type="rotate" from="0 19 19" to="360 19 19" dur="0.85s" repeatCount="indefinite"/>
         </circle>
@@ -110,7 +110,7 @@ function ClinicPendingScreen({ application, signOut }: { application: Applicatio
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            background: 'color-mix(in srgb, var(--warn) 12%, transparent)',
+            background: 'rgba(var(--warn-rgb),0.12)',
             color: 'var(--warn)',
             fontFamily: 'var(--ff)',
             fontSize: 11,
@@ -277,7 +277,7 @@ function ClinicRejectedScreen({ application, signOut }: { application: Applicati
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            background: 'color-mix(in srgb, var(--err) 12%, transparent)',
+            background: 'rgba(var(--err-rgb),0.12)',
             color: 'var(--err)',
             fontFamily: 'var(--ff)',
             fontSize: 11,
@@ -316,8 +316,8 @@ function ClinicRejectedScreen({ application, signOut }: { application: Applicati
 
           {application.reviewNotes && (
             <div style={{
-              background: 'color-mix(in srgb, var(--err) 6%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--err) 20%, transparent)',
+              background: 'rgba(var(--err-rgb),0.06)',
+              border: '1px solid rgba(var(--err-rgb),0.20)',
               borderRadius: 10,
               padding: '14px 18px',
               marginBottom: 16,

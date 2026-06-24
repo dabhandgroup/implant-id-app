@@ -100,7 +100,7 @@ export default function ManufacturerSignUpClient() {
 
           {error && (
             <div style={{
-              background: 'color-mix(in srgb, var(--err) 10%, transparent)',
+              background: 'rgba(var(--err-rgb),0.10)',
               border: '1px solid var(--err)',
               borderRadius: '8px',
               padding: '12px',

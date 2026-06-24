@@ -92,7 +92,7 @@ export default function SurgeonDashboardClient() {
         >
           <div style={{
             width: 40, height: 40, borderRadius: 10,
-            background: 'color-mix(in srgb,var(--accent) 10%,transparent)',
+            background: 'rgba(var(--accent-rgb),0.10)',
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
@@ -127,7 +127,7 @@ export default function SurgeonDashboardClient() {
         >
           <div style={{
             width: 40, height: 40, borderRadius: 10,
-            background: 'color-mix(in srgb,var(--ok) 10%,transparent)',
+            background: 'rgba(var(--ok-rgb),0.10)',
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="1.7" aria-hidden="true">
@@ -222,12 +222,12 @@ export default function SurgeonDashboardClient() {
                       padding: '2px 8px',
                       borderRadius: 5,
                       background: p.verificationStatus === 'active'
-                        ? 'color-mix(in srgb,var(--ok) 10%,transparent)'
-                        : 'color-mix(in srgb,#f59e0b 10%,transparent)',
+                        ? 'rgba(var(--ok-rgb),0.10)'
+                        : 'rgba(245,158,11,0.10)',
                       color: p.verificationStatus === 'active' ? 'var(--ok)' : '#92400e',
                       border: p.verificationStatus === 'active'
-                        ? '1px solid color-mix(in srgb,var(--ok) 25%,transparent)'
-                        : '1px solid color-mix(in srgb,#f59e0b 25%,transparent)',
+                        ? '1px solid rgba(var(--ok-rgb),0.25)'
+                        : '1px solid rgba(245,158,11,0.25)',
                     }}>
                       {p.verificationStatus === 'active' ? 'Verified' : 'Pending'}
                     </span>
@@ -245,8 +245,8 @@ export default function SurgeonDashboardClient() {
         if (!recalls.length) return null
         return (
           <div style={{
-            background: 'color-mix(in srgb,var(--err) 6%,transparent)',
-            border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)',
+            background: 'rgba(var(--err-rgb),0.06)',
+            border: '1px solid rgba(var(--err-rgb),0.20)',
             borderRadius: 14,
             padding: '18px 22px',
           }}>
@@ -272,7 +272,7 @@ export default function SurgeonDashboardClient() {
               {recalls.map((n: any) => (
                 <div key={n._id} style={{
                   background: 'var(--bg2)',
-                  border: '1px solid color-mix(in srgb,var(--err) 15%,transparent)',
+                  border: '1px solid rgba(var(--err-rgb),0.15)',
                   borderRadius: 10,
                   padding: '12px 16px',
                 }}>

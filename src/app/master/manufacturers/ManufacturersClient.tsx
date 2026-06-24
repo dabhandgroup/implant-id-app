@@ -162,7 +162,7 @@ export default function ManufacturersClient() {
         <button className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
           Pending
           {(pendingApps?.length ?? 0) > 0 && (
-            <span style={{ marginLeft: 7, background: 'color-mix(in srgb,var(--warn) 14%,transparent)', color: 'var(--warn)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
+            <span style={{ marginLeft: 7, background: 'rgba(var(--warn-rgb),0.14)', color: 'var(--warn)', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>
               {pendingApps!.length}
             </span>
           )}
@@ -206,7 +206,7 @@ export default function ManufacturersClient() {
             <div className="m-list-cards">
               {pendingApps.map((m: Manufacturer) => (
                 <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
-                  style={{ background:'var(--bg2)', border:'1px solid color-mix(in srgb,var(--warn) 30%,var(--border))', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
+                  style={{ background:'var(--bg2)', border:'1px solid rgba(var(--warn-rgb),0.35)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:5 }}>
                     <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.companyName}</div>
                     <span className="m-status pending" style={{ flexShrink:0, marginLeft:8 }}>Pending</span>
@@ -313,10 +313,10 @@ export default function ManufacturersClient() {
             <div className="m-list-cards">
               {rejectedApps.map((m: Manufacturer) => (
                 <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
-                  style={{ background:'var(--bg2)', border:'1px solid color-mix(in srgb,var(--err) 20%,var(--border))', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
+                  style={{ background:'var(--bg2)', border:'1px solid rgba(var(--err-rgb),0.25)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:5 }}>
                     <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.companyName}</div>
-                    <span style={{ flexShrink:0, marginLeft:8, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--err)', padding:'2px 8px', borderRadius:4, background:'color-mix(in srgb,var(--err) 10%,transparent)' }}>Rejected</span>
+                    <span style={{ flexShrink:0, marginLeft:8, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--err)', padding:'2px 8px', borderRadius:4, background:'rgba(var(--err-rgb),0.10)' }}>Rejected</span>
                   </div>
                   <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:2 }}>{m.country} · {formatDate(m.submittedAt)}</div>
                   <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom: m.reviewNotes ? 8 : 0 }}>{m.contactEmail}</div>
@@ -364,7 +364,7 @@ export default function ManufacturersClient() {
                   </div>
                 </div>
                 {addError && (
-                  <div style={{ color:'var(--err)', fontSize:13, background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:8, padding:'10px 14px' }}>
+                  <div style={{ color:'var(--err)', fontSize:13, background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:8, padding:'10px 14px' }}>
                     {addError}
                   </div>
                 )}
@@ -385,7 +385,7 @@ export default function ManufacturersClient() {
         <div className="logout-back open" onClick={closeConfirm}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--ok) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(var(--ok-rgb),0.12)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2">
                   <path d="M20 6L9 17l-5-5"/>
                 </svg>
@@ -394,7 +394,7 @@ export default function ManufacturersClient() {
               <p><strong>{confirmModal.name}</strong></p>
               <p>This will activate their account and allow them to upload devices to the catalogue.</p>
               {error && (
-                <div style={{ marginTop: 14, background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--err)' }}>
+                <div style={{ marginTop: 14, background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--err)' }}>
                   {error}
                 </div>
               )}
@@ -414,7 +414,7 @@ export default function ManufacturersClient() {
         <div className="logout-back open" onClick={closeConfirm}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
-              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 12%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(var(--err-rgb),0.12)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -430,7 +430,7 @@ export default function ManufacturersClient() {
                 onChange={e => setRejectReason(e.target.value)}
               />
               {error && (
-                <div style={{ marginTop: 14, background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--err)' }}>
+                <div style={{ marginTop: 14, background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 8, padding: '10px 12px', fontSize: 13, color: 'var(--err)' }}>
                   {error}
                 </div>
               )}
@@ -450,7 +450,7 @@ export default function ManufacturersClient() {
         <div className="confirm-back open" onClick={() => !deleteWorking && setDeleteModal(null)}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()}>
             <div className="confirm-body">
-              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'rgba(var(--err-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                 </svg>

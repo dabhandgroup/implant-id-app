@@ -18,7 +18,7 @@ body{background:var(--bg)}
 .lib-side-grp h4{font-family:var(--ff);font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted2);font-weight:600;margin-bottom:8px}
 .lib-side-grp .lib-filt button,.lib-side-grp .lib-mfr button{display:block;width:100%;text-align:left;background:transparent;border:0;padding:8px 11px;border-radius:8px;font-family:var(--ff);font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s}
 .lib-side-grp .lib-filt button.on,.lib-side-grp .lib-mfr button.on{background:var(--text);color:var(--bg)}
-.lib-side-grp .lib-filt button:not(.on):hover,.lib-side-grp .lib-mfr button:not(.on):hover{background:color-mix(in srgb,var(--text) 5%,transparent);color:var(--text)}
+.lib-side-grp .lib-filt button:not(.on):hover,.lib-side-grp .lib-mfr button:not(.on):hover{background:rgba(var(--text-rgb),0.05);color:var(--text)}
 .lib-main{min-width:0}
 .res-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:12px 18px}
 .res-hd h2{font-size:13.5px;color:var(--text);font-weight:500;font-family:var(--ff)}
@@ -30,7 +30,7 @@ body{background:var(--bg)}
 .view-toggle svg{width:14px;height:14px}
 .res-row{display:grid;grid-template-columns:auto 1.6fr 1fr .8fr 1fr 80px;gap:18px;padding:18px 22px;border:1px solid var(--border);border-radius:14px;background:var(--bg2);margin-bottom:8px;align-items:center;transition:all .15s;color:inherit;text-decoration:none}
 .res-row:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 10px 30px -10px rgba(14,42,51,.12)}
-.res-ic{width:44px;height:44px;border-radius:11px;background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);display:grid;place-items:center}
+.res-ic{width:44px;height:44px;border-radius:11px;background:rgba(var(--accent-rgb),0.10);color:var(--accent);display:grid;place-items:center}
 .res-ic svg{width:20px;height:20px}
 .res-row .nm{font-family:var(--ff);font-weight:500;font-size:14.5px;color:var(--text)}
 .res-row .mfr{font-size:12px;color:var(--muted2);margin-top:2px}

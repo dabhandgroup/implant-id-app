@@ -70,7 +70,7 @@ export default function SurgeonSettingsClient() {
             </div>
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: 5,
-              background: 'color-mix(in srgb,var(--accent2) 12%,transparent)',
+              background: 'rgba(var(--accent2-rgb),0.12)',
               color: 'var(--accent-deep)',
               fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600,
               padding: '2px 9px', borderRadius: 5,
@@ -117,8 +117,8 @@ export default function SurgeonSettingsClient() {
       {/* Info note */}
       <div style={{
         display: 'flex', alignItems: 'flex-start', gap: 12,
-        background: 'color-mix(in srgb,var(--accent) 6%,transparent)',
-        border: '1px solid color-mix(in srgb,var(--accent) 18%,transparent)',
+        background: 'rgba(var(--accent-rgb),0.06)',
+        border: '1px solid rgba(var(--accent-rgb),0.18)',
         borderRadius: 12,
         padding: '16px 20px',
         maxWidth: 640,

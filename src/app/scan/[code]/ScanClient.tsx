@@ -8,8 +8,8 @@ const api = apiBase as any
 
 const MRI_COLOUR: Record<string,string> = { safe:'#166534', conditional:'#b45309', unsafe:'#b91c1c', unknown:'#64748b' }
 const MRI_LABEL: Record<string,string> = { safe:'MR Safe', conditional:'MR Conditional', unsafe:'MR Unsafe — Do Not Scan', unknown:'Unknown' }
-const MRI_BG: Record<string,string> = { safe:'color-mix(in srgb,#22c55e 8%,transparent)', conditional:'color-mix(in srgb,#f59e0b 8%,transparent)', unsafe:'color-mix(in srgb,#ef4444 8%,transparent)', unknown:'var(--bg2)' }
-const MRI_BORDER: Record<string,string> = { safe:'color-mix(in srgb,#22c55e 20%,transparent)', conditional:'color-mix(in srgb,#f59e0b 20%,transparent)', unsafe:'color-mix(in srgb,#ef4444 20%,transparent)', unknown:'var(--border)' }
+const MRI_BG: Record<string,string> = { safe:'rgba(34,197,94,0.08)', conditional:'rgba(245,158,11,0.08)', unsafe:'rgba(239,68,68,0.08)', unknown:'var(--bg2)' }
+const MRI_BORDER: Record<string,string> = { safe:'rgba(34,197,94,0.20)', conditional:'rgba(245,158,11,0.20)', unsafe:'rgba(239,68,68,0.20)', unknown:'var(--border)' }
 
 export default function ScanClient({ code }: { code: string }) {
   const { user, isLoaded } = useUser()
@@ -105,7 +105,7 @@ export default function ScanClient({ code }: { code: string }) {
                 ))}
               </div>
               {result.contrastAllergy && (
-                <div style={{marginBottom:12,padding:'10px 14px',borderRadius:8,background:'color-mix(in srgb,var(--err) 8%,transparent)',border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)',fontFamily:'var(--ff)',fontSize:13,color:'var(--err)',fontWeight:500,display:'flex',alignItems:'center',gap:6}}>
+                <div style={{marginBottom:12,padding:'10px 14px',borderRadius:8,background:'rgba(var(--err-rgb),0.08)',border:'1px solid rgba(var(--err-rgb),0.20)',fontFamily:'var(--ff)',fontSize:13,color:'var(--err)',fontWeight:500,display:'flex',alignItems:'center',gap:6}}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                   Contrast allergy{result.contrastAllergyNote?': '+result.contrastAllergyNote:''}
                 </div>

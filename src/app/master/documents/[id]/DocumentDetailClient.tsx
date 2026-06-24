@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { api as apiBase } from '../../../../../convex/_generated/api'
+import { tint } from '@/lib/tint'
 
 // Cast to any — `documents` module added to _generated/api after `npx convex deploy`
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -277,10 +278,10 @@ function mriColour(s: 'safe' | 'conditional' | 'unsafe') {
 }
 
 function typeColour(type: string) {
-  if (type === 'MRI Conditions') return { bg: 'color-mix(in srgb,#3b82f6 10%,transparent)', border: 'color-mix(in srgb,#3b82f6 25%,transparent)', text: '#3b82f6' }
-  if (type === 'Instructions for Use') return { bg: 'color-mix(in srgb,var(--ok) 10%,transparent)', border: 'color-mix(in srgb,var(--ok) 25%,transparent)', text: 'var(--ok)' }
-  if (type === 'Device Contract') return { bg: 'color-mix(in srgb,var(--accent) 10%,transparent)', border: 'color-mix(in srgb,var(--accent) 25%,transparent)', text: 'var(--accent)' }
-  return { bg: 'color-mix(in srgb,var(--muted) 10%,transparent)', border: 'color-mix(in srgb,var(--muted) 25%,transparent)', text: 'var(--muted)' }
+  if (type === 'MRI Conditions') return { bg: 'rgba(59,130,246,0.10)', border: 'rgba(59,130,246,0.25)', text: '#3b82f6' }
+  if (type === 'Instructions for Use') return { bg: 'rgba(var(--ok-rgb),0.10)', border: 'rgba(var(--ok-rgb),0.25)', text: 'var(--ok)' }
+  if (type === 'Device Contract') return { bg: 'rgba(var(--accent-rgb),0.10)', border: 'rgba(var(--accent-rgb),0.25)', text: 'var(--accent)' }
+  return { bg: 'rgba(var(--muted-rgb),0.10)', border: 'rgba(var(--muted-rgb),0.25)', text: 'var(--muted)' }
 }
 
 // ── PDF generation ────────────────────────────────────────────────────────────
@@ -774,7 +775,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
             }}
           >
             {/* Contract toolbar */}
-            <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb,var(--text) 2%,transparent)' }}>
+            <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(var(--text-rgb),0.02)' }}>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -793,7 +794,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
               {/* ── Contract header ── */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32, paddingBottom: 24, borderBottom: '2px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 9, background: 'color-mix(in srgb,var(--accent) 15%,transparent)', display: 'grid', placeItems: 'center' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(var(--accent-rgb),0.15)', display: 'grid', placeItems: 'center' }}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7">
                       <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                     </svg>
@@ -840,8 +841,8 @@ export default function DocumentDetailClient({ id }: { id: string }) {
                       gap: 7,
                       padding: '6px 14px',
                       borderRadius: 8,
-                      border: `1.5px solid color-mix(in srgb,${mriColour(contract.mriStatus)} 35%,transparent)`,
-                      background: `color-mix(in srgb,${mriColour(contract.mriStatus)} 10%,transparent)`,
+                      border: `1.5px solid ${tint(mriColour(contract.mriStatus), 35)}`,
+                      background: tint(mriColour(contract.mriStatus), 10),
                       fontFamily: 'var(--ff)',
                       fontSize: 13,
                       fontWeight: 700,
@@ -863,7 +864,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
                   <Field label="Post-implant Wait Period" value={contract.postImplantWait} />
                 </TwoCol>
                 {contract.mriNotes && (
-                  <div style={{ marginTop: 14, padding: '12px 16px', background: `color-mix(in srgb,${mriColour(contract.mriStatus)} 6%,transparent)`, borderLeft: `3px solid ${mriColour(contract.mriStatus)}`, borderRadius: '0 6px 6px 0' }}>
+                  <div style={{ marginTop: 14, padding: '12px 16px', background: tint(mriColour(contract.mriStatus), 6), borderLeft: `3px solid ${mriColour(contract.mriStatus)}`, borderRadius: '0 6px 6px 0' }}>
                     <div style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: mriColour(contract.mriStatus), marginBottom: 5 }}>
                       Scan Conditions &amp; Restrictions
                     </div>
@@ -906,7 +907,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
                   'I confirm I have the authority and permission to submit this device on behalf of the manufacturer.',
                 ].map((text, i) => (
                   <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-                    <div style={{ width: 18, height: 18, borderRadius: 4, background: 'color-mix(in srgb,var(--ok) 15%,transparent)', border: `1.5px solid color-mix(in srgb,var(--ok) 35%,transparent)`, display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 1 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: 4, background: 'rgba(var(--ok-rgb),0.15)', border: `1.5px solid rgba(var(--ok-rgb),0.35)`, display: 'grid', placeItems: 'center', flexShrink: 0, marginTop: 1 }}>
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="3">
                         <path d="M20 6L9 17l-5-5"/>
                       </svg>
@@ -954,7 +955,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
             <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Review Comments</div>
-              <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, background: 'color-mix(in srgb,var(--accent) 10%,transparent)', color: 'var(--accent)', borderRadius: 5, padding: '2px 8px' }}>
+              <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent)', borderRadius: 5, padding: '2px 8px' }}>
                 {comments.length}
               </span>
             </div>
@@ -967,7 +968,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>{c.author}</span>
-                    <span style={{ fontFamily: 'var(--ff)', fontSize: 10.5, fontWeight: 600, background: 'color-mix(in srgb,var(--text) 5%,transparent)', color: 'var(--muted)', borderRadius: 4, padding: '1px 6px' }}>{c.role}</span>
+                    <span style={{ fontFamily: 'var(--ff)', fontSize: 10.5, fontWeight: 600, background: 'rgba(var(--text-rgb),0.05)', color: 'var(--muted)', borderRadius: 4, padding: '1px 6px' }}>{c.role}</span>
                     <span style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted2)', marginLeft: 'auto' }}>{c.time}</span>
                   </div>
                   <p style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{c.text}</p>
@@ -1016,7 +1017,7 @@ export default function DocumentDetailClient({ id }: { id: string }) {
           {/* MRI badge */}
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 13, padding: '14px 16px' }}>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>MRI Status</div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 9, border: `1.5px solid color-mix(in srgb,${mriColour(contract.mriStatus)} 30%,transparent)`, background: `color-mix(in srgb,${mriColour(contract.mriStatus)} 10%,transparent)`, fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 700, color: mriColour(contract.mriStatus) }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 9, border: `1.5px solid ${tint(mriColour(contract.mriStatus), 30)}`, background: tint(mriColour(contract.mriStatus), 10), fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 700, color: mriColour(contract.mriStatus) }}>
               {contract.mriStatus === 'safe' && '✓'}
               {contract.mriStatus === 'conditional' && '⚠'}
               {contract.mriStatus === 'unsafe' && '✕'}
@@ -1196,7 +1197,7 @@ function SourceDocView({ doc }: { doc: any }) {
           {/* Status badge */}
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 13, padding: '14px 16px' }}>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 10, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Status</div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: doc.status === 'live' ? 'color-mix(in srgb,var(--ok) 10%,transparent)' : 'color-mix(in srgb,var(--muted) 10%,transparent)', border: `1.5px solid color-mix(in srgb,${doc.status === 'live' ? 'var(--ok)' : 'var(--muted)'} 30%,transparent)`, fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 700, color: doc.status === 'live' ? 'var(--ok)' : 'var(--muted)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, background: doc.status === 'live' ? 'rgba(var(--ok-rgb),0.10)' : 'rgba(var(--muted-rgb),0.10)', border: `1.5px solid ${tint(doc.status === 'live' ? 'var(--ok)' : 'var(--muted)', 30)}`, fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 700, color: doc.status === 'live' ? 'var(--ok)' : 'var(--muted)' }}>
               {doc.status === 'live' ? '✓ Live' : '⚠ Superseded'}
             </div>
           </div>
@@ -1208,7 +1209,7 @@ function SourceDocView({ doc }: { doc: any }) {
         <div className="confirm-back open" onClick={() => !deleting && setDeleteConfirm(false)}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()}>
             <div className="confirm-body">
-              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'rgba(var(--err-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
                 </svg>

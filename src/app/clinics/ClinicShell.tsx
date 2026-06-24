@@ -51,14 +51,14 @@ function LoadingScreen() {
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'var(--bg)', fontFamily:'var(--ff)', gap:32 }}>
       <Link href="/" style={{ textDecoration:'none' }}>
         <div style={{ display:'flex', alignItems:'center', gap:11, color:'var(--text)', fontSize:19, fontWeight:600, letterSpacing:'-.02em' }}>
-          <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px color-mix(in srgb,var(--accent) 35%,transparent)' }}>
+          <div style={{ width:38, height:38, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(var(--accent-rgb),0.35)' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
           </div>
           Implant ID
         </div>
       </Link>
       <svg width="38" height="38" viewBox="0 0 38 38" aria-label="Loading" role="status">
-        <circle cx="19" cy="19" r="15" fill="none" stroke="color-mix(in srgb,var(--accent) 15%,transparent)" strokeWidth="2.5"/>
+        <circle cx="19" cy="19" r="15" fill="none" stroke="rgba(var(--accent-rgb),0.15)" strokeWidth="2.5"/>
         <circle cx="19" cy="19" r="15" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="24 70">
           <animateTransform attributeName="transform" type="rotate" from="0 19 19" to="360 19 19" dur="0.85s" repeatCount="indefinite"/>
         </circle>
@@ -91,7 +91,7 @@ function PendingScreen({ app, onSignOut }: { app: Application; onSignOut: () => 
       <SimpleBar onSignOut={onSignOut} />
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'48px 24px' }}>
         <div style={{ maxWidth:520, width:'100%' }}>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'color-mix(in srgb,var(--warn) 12%,transparent)', color:'var(--warn)', fontSize:11, fontWeight:700, letterSpacing:'1.2px', textTransform:'uppercase', padding:'4px 10px', borderRadius:6, marginBottom:20 }}>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(var(--warn-rgb),0.12)', color:'var(--warn)', fontSize:11, fontWeight:700, letterSpacing:'1.2px', textTransform:'uppercase', padding:'4px 10px', borderRadius:6, marginBottom:20 }}>
             <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--warn)', display:'inline-block' }} />
             Awaiting Review
           </div>
@@ -123,7 +123,7 @@ function RejectedScreen({ app, onSignOut }: { app: Application; onSignOut: () =>
       <SimpleBar onSignOut={onSignOut} />
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'48px 24px' }}>
         <div style={{ maxWidth:520, width:'100%' }}>
-          <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'color-mix(in srgb,var(--err) 12%,transparent)', color:'var(--err)', fontSize:11, fontWeight:700, letterSpacing:'1.2px', textTransform:'uppercase', padding:'4px 10px', borderRadius:6, marginBottom:20 }}>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:6, background:'rgba(var(--err-rgb),0.12)', color:'var(--err)', fontSize:11, fontWeight:700, letterSpacing:'1.2px', textTransform:'uppercase', padding:'4px 10px', borderRadius:6, marginBottom:20 }}>
             <span style={{ width:6, height:6, borderRadius:'50%', background:'var(--err)', display:'inline-block' }} />
             Not Approved
           </div>
@@ -134,7 +134,7 @@ function RejectedScreen({ app, onSignOut }: { app: Application; onSignOut: () =>
             Unfortunately your application for <strong style={{ color:'var(--text)', fontWeight:600 }}>{app.facilityName}</strong> was not approved.
           </p>
           {app.reviewNotes && (
-            <div style={{ background:'color-mix(in srgb,var(--err) 6%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:10, padding:'14px 18px', marginBottom:16, color:'var(--text)', fontSize:14, lineHeight:1.55 }}>
+            <div style={{ background:'rgba(var(--err-rgb),0.06)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:10, padding:'14px 18px', marginBottom:16, color:'var(--text)', fontSize:14, lineHeight:1.55 }}>
               {app.reviewNotes}
             </div>
           )}
@@ -495,7 +495,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
           {notifications?.map((n: any) => (
             <div
               key={n._id}
-              style={{ display:'flex', gap:14, padding:'16px 20px', borderBottom:'1px solid var(--border)', background:n.read ? 'transparent' : 'color-mix(in srgb,var(--accent) 4%,transparent)' }}
+              style={{ display:'flex', gap:14, padding:'16px 20px', borderBottom:'1px solid var(--border)', background:n.read ? 'transparent' : 'rgba(var(--accent-rgb),0.04)' }}
             >
               <div className={`notif-ic ${n.type === 'device_recall' ? 'err' : n.type === 'expiry' ? 'warn' : 'ok'}`}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>

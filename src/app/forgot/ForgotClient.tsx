@@ -170,7 +170,7 @@ export default function ForgotClient() {
         <div className="auth-box">
 
           {error && (
-            <div style={{ background: 'color-mix(in srgb,var(--err) 10%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 25%,transparent)', borderRadius: 10, padding: '10px 14px', fontSize: 13.5, color: 'var(--err)', marginBottom: 16 }}>
+            <div style={{ background: 'rgba(var(--err-rgb),0.10)', border: '1px solid rgba(var(--err-rgb),0.25)', borderRadius: 10, padding: '10px 14px', fontSize: 13.5, color: 'var(--err)', marginBottom: 16 }}>
               {error}
             </div>
           )}
@@ -270,7 +270,7 @@ export default function ForgotClient() {
           {/* ── Done ────────────────────────────────────────────────────── */}
           {phase === 'done' && (
             <div style={{ textAlign: 'center', padding: '24px 0' }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'color-mix(in srgb,var(--accent) 15%,transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(var(--accent-rgb),0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
               </div>
               <h1>Password updated</h1>

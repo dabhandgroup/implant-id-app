@@ -89,40 +89,40 @@
 
 /* MRI status badge colours */
 .dv-badge-mri-conditional {
-  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  background: rgba(var(--warn-rgb),0.12);
   color: var(--warn);
-  border-color: color-mix(in srgb, var(--warn) 25%, transparent);
+  border-color: rgba(var(--warn-rgb),0.25);
 }
 
 .dv-badge-mri-safe {
-  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  background: rgba(var(--ok-rgb),0.12);
   color: var(--ok);
-  border-color: color-mix(in srgb, var(--ok) 25%, transparent);
+  border-color: rgba(var(--ok-rgb),0.25);
 }
 
 .dv-badge-mri-unsafe {
-  background: color-mix(in srgb, var(--err) 12%, transparent);
+  background: rgba(var(--err-rgb),0.12);
   color: var(--err);
-  border-color: color-mix(in srgb, var(--err) 25%, transparent);
+  border-color: rgba(var(--err-rgb),0.25);
 }
 
 /* Classification badges */
 .dv-badge-class-active {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: rgba(var(--accent-rgb),0.10);
   color: var(--accent-deep);
-  border-color: color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: rgba(var(--accent-rgb),0.22);
 }
 
 .dv-badge-class-passive {
-  background: color-mix(in srgb, var(--text) 6%, transparent);
+  background: rgba(var(--text-rgb),0.06);
   color: var(--muted);
   border-color: var(--border);
 }
 
 .dv-badge-class-legacy {
-  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  background: rgba(var(--warn-rgb),0.10);
   color: var(--warn);
-  border-color: color-mix(in srgb, var(--warn) 22%, transparent);
+  border-color: rgba(var(--warn-rgb),0.22);
 }
 
 /* Two-column grid */
@@ -184,13 +184,13 @@
   font-weight: 600;
   padding: 6px 14px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  background: rgba(var(--ok-rgb),0.12);
   color: var(--ok);
-  border: 1px solid color-mix(in srgb, var(--ok) 25%, transparent);
+  border: 1px solid rgba(var(--ok-rgb),0.25);
 }
 
 .fs-chip.off {
-  background: color-mix(in srgb, var(--text) 5%, transparent);
+  background: rgba(var(--text-rgb),0.05);
   color: var(--muted2);
   border-color: var(--border);
   text-decoration: line-through;
@@ -259,12 +259,12 @@
 
 .dv-notes.warn {
   border-left-color: var(--warn);
-  background: color-mix(in srgb, var(--warn) 5%, transparent);
+  background: rgba(var(--warn-rgb),0.05);
 }
 
 .dv-notes.err {
   border-left-color: var(--err);
-  background: color-mix(in srgb, var(--err) 5%, transparent);
+  background: rgba(var(--err-rgb),0.05);
   color: var(--err);
   font-weight: 500;
 }
@@ -292,7 +292,7 @@
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: rgba(var(--accent-rgb),0.10);
   color: var(--accent-deep);
   font-family: var(--ff);
   font-size: 14px;
@@ -331,9 +331,9 @@
   letter-spacing: .6px;
   padding: 3px 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ok) 10%, transparent);
+  background: rgba(var(--ok-rgb),0.10);
   color: var(--ok);
-  border: 1px solid color-mix(in srgb, var(--ok) 22%, transparent);
+  border: 1px solid rgba(var(--ok-rgb),0.22);
 }
 
 .reg-chip.off {
@@ -352,9 +352,9 @@
   font-weight: 500;
   color: var(--accent);
   padding: 8px 14px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border: 1px solid rgba(var(--accent-rgb),0.30);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  background: rgba(var(--accent-rgb),0.06);
   cursor: pointer;
   transition: all .15s;
   text-decoration: none;
@@ -364,7 +364,7 @@
 }
 
 .mfr-portal-btn:hover {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: rgba(var(--accent-rgb),0.12);
   border-color: var(--accent);
 }
 
@@ -393,7 +393,7 @@
   width: 38px;
   height: 38px;
   border-radius: 9px;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: rgba(var(--accent-rgb),0.10);
   color: var(--accent);
   display: grid;
   place-items: center;
@@ -434,7 +434,7 @@
 
 /* Sources card — product-page icon variant */
 .doc-ic-web {
-  background: color-mix(in srgb, var(--accent2) 12%, transparent);
+  background: rgba(var(--accent2-rgb),0.12);
   color: var(--accent2);
 }
 
@@ -453,7 +453,7 @@
   font-weight: 600;
   letter-spacing: .01em;
   color: var(--accent-deep);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: rgba(var(--accent-rgb),0.10);
   padding: 1px 6px 2px;
   border-radius: 5px;
   vertical-align: middle;
@@ -516,7 +516,7 @@
 .qa-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  background: rgba(var(--accent-rgb),0.04);
 }
 
 .qa-btn svg {
@@ -610,7 +610,7 @@
   font-weight: 500;
   text-decoration: underline;
   text-underline-offset: 2px;
-  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  text-decoration-color: rgba(var(--accent-rgb),0.35);
   transition: color .15s;
 }
 .dv-mfr-link:hover {
@@ -636,7 +636,7 @@
 
 .qa-model-copy:hover {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  background: rgba(var(--accent-rgb),0.04);
 }
 
 .qa-model-copy-label {
@@ -698,8 +698,8 @@
   align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
-  background: color-mix(in srgb, var(--warn) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--warn) 22%, transparent);
+  background: rgba(var(--warn-rgb),0.08);
+  border: 1px solid rgba(var(--warn-rgb),0.22);
   border-radius: 10px;
   margin-bottom: 14px;
   font-size: 13px;
@@ -711,7 +711,7 @@
 .va-bar{display:inline-flex;align-items:center;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px;flex-shrink:0}
 .va-label{font-family:var(--ff);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted2);white-space:nowrap;padding:0 6px 0 4px}
 .va-tab{font-family:var(--ff);font-size:12px;font-weight:500;color:var(--muted);background:transparent;border:0;border-radius:7px;padding:5px 11px;cursor:pointer;white-space:nowrap;transition:color .15s,background .15s;line-height:1}
-.va-tab:hover{color:var(--text);background:color-mix(in srgb,var(--text) 5%,transparent)}
+.va-tab:hover{color:var(--text);background:rgba(var(--text-rgb),0.05)}
 .va-tab.active{background:var(--accent);color:#fff}
 
 /* Responsive */

@@ -70,7 +70,7 @@ export default function InviteManufacturerClient() {
       </div>
 
       {done ? (
-        <div style={{ background:'color-mix(in srgb,var(--ok) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--ok) 25%,transparent)', borderRadius:14, padding:'32px 28px', textAlign:'center', maxWidth:520 }}>
+        <div style={{ background:'rgba(var(--ok-rgb),0.10)', border:'1px solid rgba(var(--ok-rgb),0.25)', borderRadius:14, padding:'32px 28px', textAlign:'center', maxWidth:520 }}>
           <div style={{ fontSize:36, marginBottom:12 }}>✓</div>
           <div style={{ fontFamily:'var(--ff)', fontSize:18, fontWeight:600, color:'var(--ok)', marginBottom:8 }}>Invite sent</div>
           <div style={{ fontFamily:'var(--fb)', fontSize:14, color:'var(--muted)', marginBottom:24 }}>
@@ -125,7 +125,7 @@ export default function InviteManufacturerClient() {
           </div>
 
           {error && (
-            <div style={{ margin:'14px 0', background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:8, padding:'10px 14px', fontSize:13.5, color:'var(--err)' }}>
+            <div style={{ margin:'14px 0', background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:8, padding:'10px 14px', fontSize:13.5, color:'var(--err)' }}>
               {error}
             </div>
           )}

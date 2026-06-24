@@ -177,7 +177,7 @@ export default function AddImplantClient() {
         <div className="logout-back open" onClick={() => !signingOut && setLogoutOpen(false)}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>
             <div className="logout-body">
-              <div style={{ width:44, height:44, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 10%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 22%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+              <div style={{ width:44, height:44, borderRadius:'50%', background:'rgba(var(--err-rgb),0.10)', border:'1px solid rgba(var(--err-rgb),0.22)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7" aria-hidden="true">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
@@ -334,7 +334,7 @@ export default function AddImplantClient() {
                 <div className="field" style={{ marginBottom: filteredDevices.length > 0 ? 0 : 12 }}>
                   <label style={labelStyle}>Search the catalogue</label>
                   {selectedDevice ? (
-                    <div style={{ display:'flex', alignItems:'center', gap:10, background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--accent) 25%,transparent)', borderRadius:10, padding:'10px 14px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(var(--accent-rgb),0.08)', border:'1px solid rgba(var(--accent-rgb),0.25)', borderRadius:10, padding:'10px 14px' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                       <span style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:600, color:'var(--accent)', flex:1 }}>
                         {selectedDevice.manufacturer} {selectedDevice.model}
@@ -374,7 +374,7 @@ export default function AddImplantClient() {
                         type="button"
                         onClick={() => selectDevice(d)}
                         style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--bg2)', border:'none', borderBottom: i < filteredDevices.length - 1 ? '1px solid var(--border)' : 'none', cursor:'pointer', textAlign:'left' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb,var(--accent) 5%,var(--bg2))')}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(var(--accent-rgb),0.05)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg2)')}
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
@@ -455,7 +455,7 @@ export default function AddImplantClient() {
                 {surgeonMode === 'search' ? (
                   <>
                     {selectedSurgeon ? (
-                      <div style={{ display:'flex', alignItems:'center', gap:10, background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--accent) 25%,transparent)', borderRadius:10, padding:'10px 14px' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(var(--accent-rgb),0.08)', border:'1px solid rgba(var(--accent-rgb),0.25)', borderRadius:10, padding:'10px 14px' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                         <div style={{ flex:1 }}>
                           <div style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:600, color:'var(--accent)' }}>{selectedSurgeon.name}</div>
@@ -498,10 +498,10 @@ export default function AddImplantClient() {
                                 type="button"
                                 onClick={() => selectSurgeon(s)}
                                 style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--bg2)', border:'none', borderBottom: i < surgeonResults.length - 1 ? '1px solid var(--border)' : 'none', cursor:'pointer', textAlign:'left' }}
-                                onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb,var(--accent) 5%,var(--bg2))')}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(var(--accent-rgb),0.05)')}
                                 onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg2)')}
                               >
-                                <div style={{ width:30, height:30, borderRadius:'50%', background:'color-mix(in srgb,var(--accent) 12%,transparent)', display:'grid', placeItems:'center', flexShrink:0 }}>
+                                <div style={{ width:30, height:30, borderRadius:'50%', background:'rgba(var(--accent-rgb),0.12)', display:'grid', placeItems:'center', flexShrink:0 }}>
                                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                 </div>
                                 <div style={{ flex:1 }}>
@@ -543,7 +543,7 @@ export default function AddImplantClient() {
                         <input id="ai-surg-email" className="input" type="email" placeholder="surgeon@clinic.com" value={surgeonEmail} onChange={e => setSurgeonEmail(e.target.value)} />
                       </div>
                     </div>
-                    <div style={{ background:'color-mix(in srgb,var(--ok) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--ok) 22%,transparent)', borderRadius:8, padding:'9px 12px', display:'flex', alignItems:'flex-start', gap:8, marginBottom:10 }}>
+                    <div style={{ background:'rgba(var(--ok-rgb),0.08)', border:'1px solid rgba(var(--ok-rgb),0.22)', borderRadius:8, padding:'9px 12px', display:'flex', alignItems:'flex-start', gap:8, marginBottom:10 }}>
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2" style={{ flexShrink:0, marginTop:1 }} aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
                       <p style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'var(--ok)', margin:0, lineHeight:1.4 }}>
                         If you provide an email, we&apos;ll invite them to join Implant ID and link them to your record.
@@ -571,7 +571,7 @@ export default function AddImplantClient() {
                 {clinicMode === 'search' ? (
                   <>
                     {selectedClinic ? (
-                      <div style={{ display:'flex', alignItems:'center', gap:10, background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--accent) 25%,transparent)', borderRadius:10, padding:'10px 14px' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(var(--accent-rgb),0.08)', border:'1px solid rgba(var(--accent-rgb),0.25)', borderRadius:10, padding:'10px 14px' }}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.2" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
                         <div style={{ flex:1 }}>
                           <div style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:600, color:'var(--accent)' }}>{selectedClinic.name}</div>
@@ -617,10 +617,10 @@ export default function AddImplantClient() {
                                 type="button"
                                 onClick={() => selectClinic(c)}
                                 style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--bg2)', border:'none', borderBottom: i < Math.min(clinicResults.length, 6) - 1 ? '1px solid var(--border)' : 'none', cursor:'pointer', textAlign:'left' }}
-                                onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb,var(--accent) 5%,var(--bg2))')}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(var(--accent-rgb),0.05)')}
                                 onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg2)')}
                               >
-                                <div style={{ width:30, height:30, borderRadius:'50%', background:'color-mix(in srgb,var(--accent) 12%,transparent)', display:'grid', placeItems:'center', flexShrink:0 }}>
+                                <div style={{ width:30, height:30, borderRadius:'50%', background:'rgba(var(--accent-rgb),0.12)', display:'grid', placeItems:'center', flexShrink:0 }}>
                                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                                 </div>
                                 <div style={{ flex:1 }}>
@@ -671,7 +671,7 @@ export default function AddImplantClient() {
 
               {/* ── Error banner ───────────────────────────────────────────── */}
               {err && (
-                <div style={{ background:'color-mix(in srgb,var(--err) 8%,transparent)', border:'1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius:10, padding:'11px 15px', color:'var(--err)', fontFamily:'var(--ff)', fontSize:13.5, lineHeight:1.4 }}>
+                <div style={{ background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:10, padding:'11px 15px', color:'var(--err)', fontFamily:'var(--ff)', fontSize:13.5, lineHeight:1.4 }}>
                   {err}
                 </div>
               )}

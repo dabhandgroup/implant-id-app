@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useAction } from 'convex/react'
 import { useRouter } from 'next/navigation'
+import { tint } from '@/lib/tint'
 import { api } from '../../../../../convex/_generated/api'
 import type { Id } from '../../../../../convex/_generated/dataModel'
 
@@ -230,8 +231,8 @@ export default function ApplicationClient({ id }: { id: string }) {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 14 }}>
           <div style={{
             width: 56, height: 56, borderRadius: 14, flexShrink: 0,
-            background: 'color-mix(in srgb,var(--accent) 14%,transparent)',
-            border: '1.5px solid color-mix(in srgb,var(--accent) 28%,transparent)',
+            background: 'rgba(var(--accent-rgb),0.14)',
+            border: '1.5px solid rgba(var(--accent-rgb),0.28)',
             display: 'grid', placeItems: 'center',
           }}>
             <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 20, color: 'var(--accent)' }}>
@@ -244,8 +245,8 @@ export default function ApplicationClient({ id }: { id: string }) {
               display: 'inline-flex', alignItems: 'center', gap: 5,
               fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600,
               color: colour,
-              background: `color-mix(in srgb,${colour} 10%,transparent)`,
-              border: `1px solid color-mix(in srgb,${colour} 25%,transparent)`,
+              background: tint(colour, 10),
+              border: `1px solid ${tint(colour, 25)}`,
               borderRadius: 8, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: '.5px',
             }}>
               {app.status === 'pending' && (
@@ -493,8 +494,8 @@ export default function ApplicationClient({ id }: { id: string }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
             <div style={{
               width: 38, height: 38, borderRadius: 9, flexShrink: 0,
-              background: 'color-mix(in srgb,var(--err) 10%,transparent)',
-              border: '1px solid color-mix(in srgb,var(--err) 22%,transparent)',
+              background: 'rgba(var(--err-rgb),0.10)',
+              border: '1px solid rgba(var(--err-rgb),0.22)',
               display: 'grid', placeItems: 'center',
             }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.7">
@@ -685,7 +686,7 @@ export default function ApplicationClient({ id }: { id: string }) {
       )}
 
       {/* ── Danger zone — delete clinic ─────────────────────────────────── */}
-      <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px dashed color-mix(in srgb,var(--err) 30%,transparent)', textAlign: 'center' }}>
+      <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px dashed rgba(var(--err-rgb),0.30)', textAlign: 'center' }}>
         <button
           type="button"
           onClick={() => { setClinicDeleteStep('confirm'); setClinicDeleteCode(''); setClinicDeleteError('') }}
@@ -710,7 +711,7 @@ export default function ApplicationClient({ id }: { id: string }) {
                 <>
                   <div style={{
                     width: 44, height: 44, borderRadius: '50%',
-                    background: 'color-mix(in srgb,var(--ok) 12%,transparent)',
+                    background: 'rgba(var(--ok-rgb),0.12)',
                     display: 'grid', placeItems: 'center', margin: '0 auto 14px',
                   }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2">
@@ -725,7 +726,7 @@ export default function ApplicationClient({ id }: { id: string }) {
                 <>
                   <div style={{
                     width: 44, height: 44, borderRadius: '50%',
-                    background: 'color-mix(in srgb,var(--err) 12%,transparent)',
+                    background: 'rgba(var(--err-rgb),0.12)',
                     display: 'grid', placeItems: 'center', margin: '0 auto 14px',
                   }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
@@ -756,7 +757,7 @@ export default function ApplicationClient({ id }: { id: string }) {
                 <>
                   <div style={{
                     width: 44, height: 44, borderRadius: '50%',
-                    background: 'color-mix(in srgb,var(--warn,#d97706) 12%,transparent)',
+                    background: 'rgba(217,125,44,0.12)',
                     display: 'grid', placeItems: 'center', margin: '0 auto 14px',
                   }}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2">
@@ -819,7 +820,7 @@ export default function ApplicationClient({ id }: { id: string }) {
         <div className="confirm-back open" onClick={() => setClinicDeleteStep('idle')}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
             <div className="confirm-body">
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(var(--err-rgb),0.10)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                 </svg>
@@ -828,7 +829,7 @@ export default function ApplicationClient({ id }: { id: string }) {
               <p style={{ fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--muted)', margin: '0 0 16px', textAlign: 'center', lineHeight: 1.6 }}>
                 This will permanently delete <strong style={{ color: 'var(--text)' }}>{app?.facilityName}</strong> and all associated staff records. This cannot be undone.
               </p>
-              <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--err)', fontFamily: 'var(--ff)', lineHeight: 1.5 }}>
+              <div style={{ background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--err)', fontFamily: 'var(--ff)', lineHeight: 1.5 }}>
                 A verification code will be sent to harry@dabhandmarketing.com. You will need to enter it to confirm deletion.
               </div>
               {clinicDeleteError && (
@@ -863,7 +864,7 @@ export default function ApplicationClient({ id }: { id: string }) {
         <div className="confirm-back open" onClick={() => setClinicDeleteStep('idle')}>
           <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div className="confirm-body">
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(var(--err-rgb),0.10)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
                   <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>

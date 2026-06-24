@@ -411,7 +411,7 @@ export default function ScanPatientClient() {
                   </div>
                   <div style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted2)' }}>{row.implantIdCode || '—'}</div>
                   <div>
-                    <span style={{ fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, letterSpacing:'.4px', padding:'3px 8px', borderRadius:5, background:'color-mix(in srgb,var(--accent) 8%,transparent)', color:'var(--accent)' }}>
+                    <span style={{ fontFamily:'var(--ff)', fontSize:11.5, fontWeight:600, letterSpacing:'.4px', padding:'3px 8px', borderRadius:5, background:'rgba(var(--accent-rgb),0.08)', color:'var(--accent)' }}>
                       {row.action}
                     </span>
                   </div>
@@ -459,7 +459,7 @@ export default function ScanPatientClient() {
             <div className="table-h">
               <h3>Flagged for review</h3>
               {flagged.length > 0 && (
-                <span style={{ background:'color-mix(in srgb,var(--warn) 12%,transparent)', color:'var(--warn)', fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:5 }}>
+                <span style={{ background:'rgba(var(--warn-rgb),0.12)', color:'var(--warn)', fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:5 }}>
                   {flagged.length}
                 </span>
               )}
@@ -487,7 +487,7 @@ export default function ScanPatientClient() {
                     <div className="impl-nm">{[p.firstName, p.lastName].filter(Boolean).join(' ') || 'Unknown'}</div>
                     <div className="impl-mfr">{p.implantIdCode || 'No ID'}</div>
                   </div>
-                  <span style={{ fontSize:11, fontWeight:600, padding:'3px 8px', borderRadius:5, background:'color-mix(in srgb,var(--warn) 10%,transparent)', color:'var(--warn)', flexShrink:0 }}>
+                  <span style={{ fontSize:11, fontWeight:600, padding:'3px 8px', borderRadius:5, background:'rgba(var(--warn-rgb),0.10)', color:'var(--warn)', flexShrink:0 }}>
                     Pending
                   </span>
                 </a>

@@ -62,13 +62,13 @@ export default function AuditClient() {
             </thead>
             <tbody>
               {entries.map((e, i) => (
-                <tr key={e._id} style={{ borderBottom: i < entries.length - 1 ? '1px solid var(--border)' : 'none', background: i % 2 === 1 ? 'color-mix(in srgb, var(--bg) 40%, transparent)' : 'transparent' }}>
+                <tr key={e._id} style={{ borderBottom: i < entries.length - 1 ? '1px solid var(--border)' : 'none', background: i % 2 === 1 ? 'rgba(var(--bg-rgb),0.40)' : 'transparent' }}>
                   <td style={{ padding: '11px 16px', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{formatDate(e.createdAt)}</td>
                   <td style={{ padding: '11px 16px', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{formatTime(e.createdAt)}</td>
                   <td style={{ padding: '11px 16px', fontWeight: 500, color: 'var(--text)' }}>{e.clinicName}</td>
                   <td style={{ padding: '11px 16px', color: 'var(--text)' }}>{e.staffName}</td>
                   <td style={{ padding: '11px 16px' }}>
-                    <span style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)', color: 'var(--accent-deep)', fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 5 }}>
+                    <span style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent-deep)', fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 5 }}>
                       {actionLabel(e.action)}
                     </span>
                   </td>

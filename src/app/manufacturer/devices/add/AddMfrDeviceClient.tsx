@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useRouter }      from 'next/navigation'
 import { api as apiBase } from '../../../../../convex/_generated/api'
+import { tint } from '@/lib/tint'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
@@ -156,7 +157,7 @@ export default function AddMfrDeviceClient() {
               <div style={{ display: 'flex', gap: 8 }}>
                 {(['active', 'passive', 'legacy'] as Classification[]).map(c => (
                   <button key={c} type="button" onClick={() => setClassification(c)}
-                    style={{ flex: 1, padding: '9px 4px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: classification === c ? 600 : 400, border: `1.5px solid ${classification === c ? 'var(--accent)' : 'var(--border)'}`, background: classification === c ? 'color-mix(in srgb,var(--accent) 12%,transparent)' : 'transparent', color: classification === c ? 'var(--accent-deep)' : 'var(--muted)', transition: 'all .15s', textTransform: 'capitalize' }}>
+                    style={{ flex: 1, padding: '9px 4px', borderRadius: 8, cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: classification === c ? 600 : 400, border: `1.5px solid ${classification === c ? 'var(--accent)' : 'var(--border)'}`, background: classification === c ? 'rgba(var(--accent-rgb),0.12)' : 'transparent', color: classification === c ? 'var(--accent-deep)' : 'var(--muted)', transition: 'all .15s', textTransform: 'capitalize' }}>
                     {c}
                   </button>
                 ))}
@@ -174,7 +175,7 @@ export default function AddMfrDeviceClient() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 8 }}>
             {MRI_OPTIONS.map(opt => (
               <button key={opt.value} type="button" onClick={() => setMriStatus(opt.value)}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px', borderRadius: 10, cursor: 'pointer', border: `2px solid ${mriStatus === opt.value ? opt.color : 'var(--border)'}`, background: mriStatus === opt.value ? `color-mix(in srgb,${opt.color} 8%,transparent)` : 'transparent', transition: 'all .15s' }}>
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px', borderRadius: 10, cursor: 'pointer', border: `2px solid ${mriStatus === opt.value ? opt.color : 'var(--border)'}`, background: mriStatus === opt.value ? tint(opt.color, 8) : 'transparent', transition: 'all .15s' }}>
                 {opt.icon && <img src={opt.icon} alt="" aria-hidden="true" style={{ width: 32, height: 32 }} />}
                 <span style={{ fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 600, color: mriStatus === opt.value ? opt.color : 'var(--muted)' }}>{opt.label}</span>
               </button>
@@ -194,7 +195,7 @@ export default function AddMfrDeviceClient() {
                     onClick={() => fieldStrengthInputRef.current?.focus()}
                   >
                     {fieldStrengthPills.map((pill, i) => (
-                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'color-mix(in srgb,var(--accent) 12%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 25%,transparent)', borderRadius: 20, padding: '2px 8px 2px 10px', fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600, color: 'var(--accent-deep)', whiteSpace: 'nowrap' }}>
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(var(--accent-rgb),0.12)', border: '1px solid rgba(var(--accent-rgb),0.25)', borderRadius: 20, padding: '2px 8px 2px 10px', fontFamily: 'var(--ff)', fontSize: 12.5, fontWeight: 600, color: 'var(--accent-deep)', whiteSpace: 'nowrap' }}>
                         {pill}
                         <button
                           type="button"
@@ -271,7 +272,7 @@ export default function AddMfrDeviceClient() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {REGION_OPTIONS.map(r => (
               <button key={r} type="button" onClick={() => toggleRegion(r)}
-                style={{ padding: '7px 14px', borderRadius: 20, cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: approvedRegions.includes(r) ? 600 : 400, border: `1.5px solid ${approvedRegions.includes(r) ? 'var(--accent)' : 'var(--border)'}`, background: approvedRegions.includes(r) ? 'color-mix(in srgb,var(--accent) 12%,transparent)' : 'transparent', color: approvedRegions.includes(r) ? 'var(--accent-deep)' : 'var(--muted)', transition: 'all .15s' }}>
+                style={{ padding: '7px 14px', borderRadius: 20, cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 13, fontWeight: approvedRegions.includes(r) ? 600 : 400, border: `1.5px solid ${approvedRegions.includes(r) ? 'var(--accent)' : 'var(--border)'}`, background: approvedRegions.includes(r) ? 'rgba(var(--accent-rgb),0.12)' : 'transparent', color: approvedRegions.includes(r) ? 'var(--accent-deep)' : 'var(--muted)', transition: 'all .15s' }}>
                 {r}
               </button>
             ))}
@@ -308,7 +309,7 @@ export default function AddMfrDeviceClient() {
             ))}
             <button type="button"
               onClick={() => setSourceUrls(p => [...p, { url: '', label: '' }])}
-              style={{ alignSelf: 'flex-start', display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
+              style={{ alignSelf: 'flex-start', display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'rgba(var(--accent-rgb),0.08)', border:'1px dashed rgba(var(--accent-rgb),0.30)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Add URL
             </button>
@@ -350,7 +351,7 @@ export default function AddMfrDeviceClient() {
             />
             <button type="button"
               onClick={() => docInputRef.current?.click()}
-              style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'color-mix(in srgb,var(--accent) 8%,transparent)', border:'1px dashed color-mix(in srgb,var(--accent) 30%,transparent)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
+              style={{ display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)', fontSize:13, fontWeight:500, color:'var(--accent)', background:'rgba(var(--accent-rgb),0.08)', border:'1px dashed rgba(var(--accent-rgb),0.30)', borderRadius:8, padding:'7px 14px', cursor:'pointer' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
               Upload PDF
             </button>
@@ -358,7 +359,7 @@ export default function AddMfrDeviceClient() {
 
           {/* ── Error + submit ── */}
           {error && (
-            <div style={{ marginTop: 28, background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)' }}>
+            <div style={{ marginTop: 28, background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 10, padding: '12px 16px', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--err)' }}>
               {error}
             </div>
           )}

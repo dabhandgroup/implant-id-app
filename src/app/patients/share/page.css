@@ -26,13 +26,13 @@ body{background:var(--bg)}
 .sh-field{margin-bottom:16px}
 .sh-field label{display:block;font-family:var(--ff);font-size:12.5px;font-weight:500;color:var(--muted);margin-bottom:6px;letter-spacing:.2px}
 .sh-field input,.sh-field textarea{width:100%;font-family:var(--fb);font-size:1rem;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg);color:var(--text);transition:all .15s;outline:none;box-sizing:border-box}
-.sh-field input:focus,.sh-field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.sh-field input:focus,.sh-field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.12)}
 .sh-check{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--muted);margin-bottom:20px;cursor:pointer}
 .sh-check input{width:16px;height:16px;accent-color:var(--accent)}
 
 /* Sent state */
 .sh-sent{text-align:center;padding:40px 0}
-.sh-sent-ic{width:56px;height:56px;border-radius:50%;background:color-mix(in srgb,var(--ok) 12%,transparent);color:var(--ok);display:grid;place-items:center;margin:0 auto 16px}
+.sh-sent-ic{width:56px;height:56px;border-radius:50%;background:rgba(var(--ok-rgb),0.12);color:var(--ok);display:grid;place-items:center;margin:0 auto 16px}
 .sh-sent h3{font-family:var(--ff);font-size:20px;margin-bottom:8px;letter-spacing:-.01em}
 .sh-sent p{color:var(--muted);font-size:14.5px;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.5}
 
@@ -40,7 +40,7 @@ body{background:var(--bg)}
 .sh-recent{margin-top:6px}
 .sh-recent-item{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
 .sh-recent-item:last-child{border:0}
-.sh-recent-ic{width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--ok) 10%,transparent);color:var(--ok);display:grid;place-items:center;flex-shrink:0}
+.sh-recent-ic{width:36px;height:36px;border-radius:10px;background:rgba(var(--ok-rgb),0.10);color:var(--ok);display:grid;place-items:center;flex-shrink:0}
 .sh-recent-ic svg{width:16px;height:16px}
 .sh-recent-item b{display:block;font-family:var(--ff);font-size:14px;font-weight:500;margin-bottom:2px}
 .sh-recent-item span{font-size:12.5px;color:var(--muted2);font-family:var(--ff)}

@@ -249,6 +249,8 @@ export default function AiChatClient() {
   const [renamingChatId,   setRenamingChatId]   = useState<string | null>(null)
   const [renameValue,      setRenameValue]      = useState('')
   const [thinkingPhaseIdx, setThinkingPhaseIdx] = useState(0)
+  const [confirmDeleteId,  setConfirmDeleteId]  = useState<string | null>(null)
+  const [deletingChat,     setDeletingChat]     = useState(false)
 
   // Derive dup pairs from last assistant message unconditionally
   const _lastMsg = messages.length > 0 ? messages[messages.length - 1] : null
@@ -520,8 +522,11 @@ export default function AiChatClient() {
   }
 
   async function handleDeleteChat(id: string) {
+    setDeletingChat(true)
     if (activeChatId === id) newChat()
     try { await deleteChatMut({ id: id as never }) } catch { /* ignore */ }
+    setDeletingChat(false)
+    setConfirmDeleteId(null)
   }
 
   function startRename(chat: SavedChat) {
@@ -663,7 +668,7 @@ export default function AiChatClient() {
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       </button>
                       <button
-                        onClick={e => { e.stopPropagation(); handleDeleteChat(chat._id) }}
+                        onClick={e => { e.stopPropagation(); setConfirmDeleteId(chat._id) }}
                         onMouseEnter={e => { e.currentTarget.style.color = 'var(--err)' }}
                         onMouseLeave={e => { e.currentTarget.style.color = 'var(--muted2)' }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', padding: '2px 3px', fontSize: 12.5, flexShrink: 0, lineHeight: 1 }}
@@ -1038,6 +1043,39 @@ export default function AiChatClient() {
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      {/* ── Delete chat confirmation modal ── */}
+      {confirmDeleteId && (
+        <div
+          onClick={() => { if (!deletingChat) setConfirmDeleteId(null) }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 18, padding: '28px 28px 24px', width: '100%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
+          >
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(var(--err-rgb),0.1)', border: '1px solid rgba(var(--err-rgb),0.2)', display: 'grid', placeItems: 'center', marginBottom: 18 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+            </div>
+            <h3 style={{ fontFamily: 'var(--ff)', fontSize: 17, fontWeight: 700, marginBottom: 8, color: 'var(--text)' }}>Delete this chat?</h3>
+            <p style={{ fontFamily: 'var(--fb)', fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 24 }}>
+              This conversation and all its messages will be permanently deleted. This cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => setConfirmDeleteId(null)} disabled={deletingChat}>Cancel</button>
+              <button
+                className="btn btn-danger"
+                onClick={() => handleDeleteChat(confirmDeleteId)}
+                disabled={deletingChat}
+              >
+                {deletingChat ? 'Deleting…' : 'Delete chat'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

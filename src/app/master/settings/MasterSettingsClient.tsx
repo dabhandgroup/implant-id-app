@@ -717,8 +717,8 @@ export default function MasterSettingsClient() {
                               >
                                 {isEditing ? 'Cancel' : 'Edit'}
                               </button>
-                              {/* Remove button — hidden for self */}
-                              {!isMe && (
+                              {/* Remove button — hidden for self and protected root account */}
+                              {!isMe && a.email !== 'harry@dabhandmarketing.com' && (
                                 <button
                                   className="btn btn-danger"
                                   style={{ padding: '4px 10px', fontSize: 12 }}

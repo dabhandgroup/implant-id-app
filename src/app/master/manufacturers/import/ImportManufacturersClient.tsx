@@ -10,13 +10,17 @@ const api = apiBase as any
 const REQUIRED = ['companyName', 'contactName', 'contactEmail', 'country']
 
 interface MfrRow {
-  companyName: string
-  contactName: string
-  contactEmail: string
-  country: string
-  regNumber?: string
-  website?: string
-  logoUrl?: string
+  companyName:             string
+  legalEntityName?:        string
+  contactName:             string
+  contactJobTitle?:        string
+  contactEmail:            string
+  contactPhone?:           string
+  country:                 string
+  regNumber?:              string
+  website?:                string
+  logoUrl?:                string
+  regulatoryRegistrations?: string
 }
 
 function parseCSV(text: string): { headers: string[]; rows: string[][] } {
@@ -43,7 +47,7 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } {
   return { headers, rows }
 }
 
-type ImportResult = { added: number; skipped: string[] }
+type ImportResult = { added: number; updated: number }
 
 export default function ImportManufacturersClient() {
   const router   = useRouter()
@@ -85,13 +89,17 @@ export default function ImportManufacturersClient() {
           const miss = REQUIRED.filter(r => !get(r))
           if (miss.length) { errs.push(`Row ${i + 2}: missing ${miss.join(', ')}`); return }
           mfrs.push({
-            companyName:  get('companyName'),
-            contactName:  get('contactName'),
-            contactEmail: get('contactEmail'),
-            country:      get('country'),
-            regNumber:    get('regNumber') || undefined,
-            website:      get('website') || undefined,
-            logoUrl:      get('logoUrl') || undefined,
+            companyName:             get('companyName'),
+            legalEntityName:         get('legalEntityName') || undefined,
+            contactName:             get('contactName'),
+            contactJobTitle:         get('contactJobTitle') || undefined,
+            contactEmail:            get('contactEmail'),
+            contactPhone:            get('contactPhone') || undefined,
+            country:                 get('country'),
+            regNumber:               get('regNumber') || undefined,
+            website:                 get('website') || undefined,
+            logoUrl:                 get('logoUrl') || undefined,
+            regulatoryRegistrations: get('regulatoryRegistrations') || undefined,
           })
         })
 
@@ -151,7 +159,7 @@ export default function ImportManufacturersClient() {
       <div className="m-h" style={{ marginBottom:28 }}>
         <div>
           <h2>Import Manufacturers</h2>
-          <div className="sub">Bulk-import manufacturers from a CSV file. Duplicate emails are automatically skipped.</div>
+          <div className="sub">Bulk-import manufacturers from a CSV file. Existing manufacturers are updated by name; new ones are added.</div>
         </div>
       </div>
 
@@ -168,22 +176,16 @@ export default function ImportManufacturersClient() {
                 <div style={{ fontSize:13, color:'var(--muted)', marginTop:2 }}>from {fileName}</div>
               </div>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom: result.skipped.length ? 16 : 0 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
               <div style={{ background:'rgba(var(--ok-rgb),0.08)', borderRadius:10, padding:'14px 16px' }}>
                 <div style={{ fontFamily:'var(--ff)', fontSize:28, fontWeight:700, color:'var(--ok)' }}>{result.added}</div>
                 <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>manufacturers added</div>
               </div>
-              <div style={{ background:'var(--bg)', borderRadius:10, padding:'14px 16px' }}>
-                <div style={{ fontFamily:'var(--ff)', fontSize:28, fontWeight:700, color:'var(--muted)' }}>{result.skipped.length}</div>
-                <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>skipped (duplicates)</div>
+              <div style={{ background:'rgba(var(--accent-rgb),0.08)', borderRadius:10, padding:'14px 16px' }}>
+                <div style={{ fontFamily:'var(--ff)', fontSize:28, fontWeight:700, color:'var(--accent)' }}>{result.updated}</div>
+                <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>records updated</div>
               </div>
             </div>
-            {result.skipped.length > 0 && (
-              <div style={{ fontSize:12, color:'var(--muted)', background:'var(--bg)', borderRadius:8, padding:'10px 12px' }}>
-                <div style={{ fontWeight:500, marginBottom:4, color:'var(--text)' }}>Skipped (already exist):</div>
-                {result.skipped.map(e => <div key={e} style={{ fontFamily:'monospace' }}>{e}</div>)}
-              </div>
-            )}
           </div>
           <div style={{ display:'flex', gap:10 }}>
             <button className="btn btn-s" onClick={() => router.push('/master/manufacturers')}>View manufacturers</button>

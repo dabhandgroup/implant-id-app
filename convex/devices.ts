@@ -202,6 +202,7 @@ export const bulkInsertDevices = mutation({
     if (!user || !['admin', 'manufacturer'].includes(user.role)) throw new Error('Insufficient permissions')
 
     const now = Date.now()
+    const isAdmin = user.role === 'admin'
     const ids: string[] = []
     for (const d of args.devices) {
       const id = await ctx.db.insert('devices', {
@@ -218,13 +219,46 @@ export const bulkInsertDevices = mutation({
         maxScanTime:       d.maxScanTime,
         contraindications: d.contraindications,
         oem_ownedNotes:    d.notes,
-        status:            'pending_review',
-        verified:          false,
+        sourceUrl:         d.sourceUrl,
+        status:            isAdmin ? 'live' : 'pending_review',
+        verified:          isAdmin,
         publishedAt:       now,
       })
       ids.push(String(id))
     }
     return { inserted: ids.length }
+  },
+})
+
+/** Admin: immediately publish a pending-review device. */
+export const approvePendingDevice = mutation({
+  args: { id: v.id('devices') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+    await ctx.db.patch(args.id, { status: 'live', verified: true })
+  },
+})
+
+/** Cron target: auto-publish pending devices older than 24 hours. */
+export const autoPublishPendingDevices = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000
+    const pending = await ctx.db
+      .query('devices')
+      .withIndex('by_status', q => q.eq('status', 'pending_review'))
+      .collect()
+    let published = 0
+    for (const d of pending) {
+      if (d._creationTime <= cutoff) {
+        await ctx.db.patch(d._id, { status: 'live', verified: true })
+        published++
+      }
+    }
+    return { published }
   },
 })
 

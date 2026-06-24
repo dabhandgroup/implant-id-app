@@ -74,6 +74,7 @@ export default function ManufacturerClient({ id }: Props) {
   const [deleteOpen,    setDeleteOpen]    = useState(false)
   const [deleting,      setDeleting]      = useState(false)
   const [deleteError,   setDeleteError]   = useState('')
+  const [logoFailed,    setLogoFailed]    = useState(false)
 
   function openConfirm(type: ActionType) { setConfirmAction(type); setRejectNotes(''); setSubmitError('') }
   function closeConfirm() { if (!submitting) { setConfirmAction(null); setSubmitError('') } }
@@ -126,14 +127,13 @@ export default function ManufacturerClient({ id }: Props) {
       {/* ── Profile header ── */}
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20 }}>
         <div style={{ width: 60, height: 60, borderRadius: 14, flexShrink: 0, background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
-          {mfr.logoUrl
+          {mfr.logoUrl && !logoFailed
             ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={mfr.logoUrl} alt={mfr.companyName} style={{ width: 44, height: 44, objectFit: 'contain', padding: 2 }}
-                onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.removeAttribute('style') }} />
+                onError={() => setLogoFailed(true)} />
             )
-            : null}
-          <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 20, color: 'var(--accent)', display: mfr.logoUrl ? 'none' : 'block' }}>{getInitials(mfr.companyName)}</span>
+            : <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 20, color: 'var(--accent)' }}>{getInitials(mfr.companyName)}</span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ marginBottom: 6, fontFamily: 'var(--ff)' }}>{mfr.companyName}</h2>

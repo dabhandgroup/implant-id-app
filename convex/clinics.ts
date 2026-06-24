@@ -4,6 +4,18 @@ import { internal }                        from './_generated/api'
 
 // ── File upload ───────────────────────────────────────────────────────────────
 
+/** Admin: generate a one-time upload URL for an accreditation document. */
+export const adminGenerateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
 /** Generate a one-time upload URL for the accreditation document. */
 export const generateUploadUrl = mutation({
   args: {},
@@ -1013,14 +1025,24 @@ export const retriggerClinicActivation = action({
 /** Admin manually adds a clinic, bypassing the onboarding form. */
 export const adminAddClinic = mutation({
   args: {
-    clinicName:      v.string(),
-    contactName:     v.string(),
-    contactEmail:    v.string(),
-    facilityType:    v.string(),
-    facilityAddress: v.string(),
-    facilityCountry: v.string(),
-    facilityCity:    v.optional(v.string()),
-    facilityPhone:   v.optional(v.string()),
+    clinicName:          v.string(),
+    contactName:         v.string(),
+    contactEmail:        v.string(),
+    contactPhone:        v.optional(v.string()),
+    jobTitle:            v.optional(v.string()),
+    facilityType:        v.string(),
+    facilityAddress:     v.string(),
+    facilityCountry:     v.string(),
+    facilityCity:        v.optional(v.string()),
+    facilityPhone:       v.optional(v.string()),
+    regulatoryBody:      v.optional(v.string()),
+    registrationNum:     v.optional(v.string()),
+    services:            v.optional(v.array(v.string())),
+    additionalInfo:      v.optional(v.string()),
+    mriScannerCount:     v.optional(v.number()),
+    staffUsingImplantId: v.optional(v.number()),
+    storageId:           v.optional(v.id('_storage')),
+    fileName:            v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -1048,19 +1070,29 @@ export const adminAddClinic = mutation({
     }
 
     const now = Date.now()
+    const svcList = args.services ?? []
     const appId = await ctx.db.insert('clinicApplications', {
-      contactName:     args.contactName,
-      contactEmail:    args.contactEmail,
-      facilityName:    args.clinicName,
-      facilityType:    args.facilityType,
-      facilityAddress: args.facilityAddress,
-      facilityCity:    args.facilityCity,
-      facilityCountry: args.facilityCountry,
-      facilityPhone:   args.facilityPhone,
-      services:        [],
-      status:          'approved',
-      submittedAt:     now,
-      reviewedAt:      now,
+      contactName:         args.contactName,
+      contactEmail:        args.contactEmail,
+      contactPhone:        args.contactPhone,
+      jobTitle:            args.jobTitle,
+      facilityName:        args.clinicName,
+      facilityType:        args.facilityType,
+      facilityAddress:     args.facilityAddress,
+      facilityCity:        args.facilityCity,
+      facilityCountry:     args.facilityCountry,
+      facilityPhone:       args.facilityPhone,
+      regulatoryBody:      args.regulatoryBody,
+      registrationNum:     args.registrationNum,
+      services:            svcList,
+      additionalInfo:      args.additionalInfo,
+      mriScannerCount:     args.mriScannerCount,
+      staffUsingImplantId: args.staffUsingImplantId,
+      storageId:           args.storageId,
+      fileName:            args.fileName,
+      status:              'approved',
+      submittedAt:         now,
+      reviewedAt:          now,
     })
 
     await ctx.db.insert('clinics', {
@@ -1070,7 +1102,7 @@ export const adminAddClinic = mutation({
       country:        args.facilityCountry,
       phone:          args.facilityPhone,
       email:          args.contactEmail,
-      capabilities:   [],
+      capabilities:   svcList,
       status:         'active',
       showToPatients: true,
       billingStatus:  'trialing',

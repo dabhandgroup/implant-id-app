@@ -273,6 +273,28 @@ export const backfillSlugs = mutation({
   },
 })
 
+/** Backfill logoUrl from website domain using Clearbit for manufacturers that have a website but no logo. Admin-only. */
+export const backfillLogoUrls = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin role required')
+    const all = await ctx.db.query('manufacturers').collect()
+    let updated = 0
+    for (const mfr of all) {
+      if (mfr.logoUrl) continue
+      if (!mfr.website) continue
+      const domain = mfr.website.replace(/^https?:\/\/(?:www\.)?/, '').replace(/\/.*$/, '').trim()
+      if (!domain) continue
+      await ctx.db.patch(mfr._id, { logoUrl: `https://logo.clearbit.com/${domain}` })
+      updated++
+    }
+    return { updated }
+  },
+})
+
 /** List manufacturer applications, optionally filtered by status. */
 export const listApplications = query({
   args: {
@@ -545,13 +567,17 @@ export const adminAddManufacturer = mutation({
 export const adminBulkAddManufacturers = mutation({
   args: {
     manufacturers: v.array(v.object({
-      companyName:  v.string(),
-      contactName:  v.string(),
-      contactEmail: v.string(),
-      country:      v.string(),
-      regNumber:    v.optional(v.string()),
-      website:      v.optional(v.string()),
-      logoUrl:      v.optional(v.string()),
+      companyName:             v.string(),
+      legalEntityName:         v.optional(v.string()),
+      contactName:             v.string(),
+      contactJobTitle:         v.optional(v.string()),
+      contactEmail:            v.string(),
+      contactPhone:            v.optional(v.string()),
+      country:                 v.string(),
+      regNumber:               v.optional(v.string()),
+      website:                 v.optional(v.string()),
+      logoUrl:                 v.optional(v.string()),
+      regulatoryRegistrations: v.optional(v.string()),
     })),
   },
   handler: async (ctx, args) => {
@@ -561,25 +587,53 @@ export const adminBulkAddManufacturers = mutation({
     if (!user || user.role !== 'admin') throw new Error('Admin role required')
 
     const now = Date.now()
-    let added = 0
-    const skipped: string[] = []
+    let added = 0, updated = 0
+
+    // Upsert by company name — update existing, insert new
+    const allExisting = await ctx.db.query('manufacturers').collect()
+    const byName = new Map(allExisting.map(m => [m.companyName.toLowerCase().trim(), m]))
 
     for (const mfr of args.manufacturers) {
-      const existing = await ctx.db.query('manufacturers').withIndex('by_email', q => q.eq('contactEmail', mfr.contactEmail)).first()
-      if (existing) { skipped.push(mfr.contactEmail); continue }
-      const slug = await uniqueSlug(ctx, mfr.companyName, mfr.country)
-      await ctx.db.insert('manufacturers', {
-        ...mfr,
-        slug,
-        clerkUserId: undefined,
-        status:      'approved',
-        submittedAt: now,
-        reviewedAt:  now,
-      })
-      added++
+      const existing = byName.get(mfr.companyName.toLowerCase().trim())
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          legalEntityName:         mfr.legalEntityName,
+          contactName:             mfr.contactName,
+          contactJobTitle:         mfr.contactJobTitle,
+          contactEmail:            mfr.contactEmail,
+          contactPhone:            mfr.contactPhone,
+          country:                 mfr.country,
+          regNumber:               mfr.regNumber,
+          website:                 mfr.website,
+          logoUrl:                 mfr.logoUrl,
+          regulatoryRegistrations: mfr.regulatoryRegistrations,
+        })
+        updated++
+      } else {
+        const slug = await uniqueSlug(ctx, mfr.companyName, mfr.country)
+        await ctx.db.insert('manufacturers', {
+          companyName:             mfr.companyName,
+          legalEntityName:         mfr.legalEntityName,
+          contactName:             mfr.contactName,
+          contactJobTitle:         mfr.contactJobTitle,
+          contactEmail:            mfr.contactEmail,
+          contactPhone:            mfr.contactPhone,
+          country:                 mfr.country,
+          regNumber:               mfr.regNumber,
+          website:                 mfr.website,
+          logoUrl:                 mfr.logoUrl,
+          regulatoryRegistrations: mfr.regulatoryRegistrations,
+          slug,
+          clerkUserId: undefined,
+          status:      'approved',
+          submittedAt: now,
+          reviewedAt:  now,
+        })
+        added++
+      }
     }
 
-    return { added, skipped }
+    return { added, updated }
   },
 })
 

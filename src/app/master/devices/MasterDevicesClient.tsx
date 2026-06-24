@@ -7,6 +7,14 @@ import { tint } from '@/lib/tint'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
+function pendingCountdown(creationTime: number): string {
+  const remaining = (creationTime + 24 * 60 * 60 * 1000) - Date.now()
+  if (remaining <= 0) return 'Due to publish'
+  const h = Math.floor(remaining / (60 * 60 * 1000))
+  const m = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000))
+  return h > 0 ? `Publishes in ${h}h ${m}m` : `Publishes in ${m}m`
+}
+
 const MRI_COLOURS: Record<string, { color: string; label: string }> = {
   safe:        { color: 'var(--ok)',    label: 'MR Safe' },
   conditional: { color: '#b45309',     label: 'MR Conditional' },
@@ -21,16 +29,18 @@ const MRI_ICON: Record<string, string> = {
 }
 
 export default function MasterDevicesClient() {
-  const devices      = useQuery(api.devices.listDevices)
+  const devices      = useQuery(api.devices.listAllDevices)
   const trashDevices = useQuery(api.devices.listTrashDevices)
   const restoreDevice      = useMutation(api.devices.restoreDevice)
   const permanentlyDelete  = useMutation(api.devices.permanentlyDeleteDevice)
+  const approveDevice      = useMutation(api.devices.approvePendingDevice)
   const router = useRouter()
 
   const [view,           setView]           = useState<'catalogue' | 'trash'>('catalogue')
   const [trashAction,    setTrashAction]    = useState<{ id: string; name: string; action: 'restore' | 'delete' } | null>(null)
   const [trashWorking,   setTrashWorking]   = useState(false)
   const [trashError,     setTrashError]     = useState('')
+  const [approvingId,    setApprovingId]    = useState<string | null>(null)
 
   async function handleTrashAction() {
     if (!trashAction) return
@@ -49,6 +59,16 @@ export default function MasterDevicesClient() {
     }
   }
 
+  async function handleApprove(id: string) {
+    setApprovingId(id)
+    try {
+      await approveDevice({ id: id as never })
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  const hasPending = devices?.some((d: any) => d.status === 'pending_review')
   const loading = devices === undefined
 
   return (
@@ -119,6 +139,7 @@ export default function MasterDevicesClient() {
                     <th>Type</th>
                     <th style={{ minWidth: 160 }}>MRI Status</th>
                     <th>Class.</th>
+                    {hasPending && <th style={{ width: 1 }}></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -140,6 +161,26 @@ export default function MasterDevicesClient() {
                           </span>
                         </td>
                         <td style={{ color:'var(--muted)', fontSize:13, textTransform:'capitalize' }}>{d.classification}</td>
+                        {hasPending && (
+                          <td style={{ whiteSpace:'nowrap' }} onClick={e => e.stopPropagation()}>
+                            {d.status === 'pending_review' && (
+                              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
+                                <span style={{ fontFamily:'var(--ff)', fontSize:10.5, fontWeight:600, color:'#b45309' }}>
+                                  {pendingCountdown(d._creationTime)}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn btn-s"
+                                  style={{ fontSize:11, padding:'3px 10px', height:'auto' }}
+                                  disabled={approvingId === d._id}
+                                  onClick={() => handleApprove(d._id)}
+                                >
+                                  {approvingId === d._id ? 'Publishing…' : 'Approve now'}
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     )
                   })}
@@ -164,6 +205,22 @@ export default function MasterDevicesClient() {
                       <div style={{ fontFamily:'var(--ff)', fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:2 }}>{d.manufacturer}</div>
                       <div style={{ fontFamily:'var(--fb)', fontSize:14, color:'var(--text)', fontWeight:500, marginBottom:4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{d.model}</div>
                       <div style={{ fontSize:12, color:'var(--muted)', textTransform:'capitalize' }}>{d.deviceType} · {d.classification}</div>
+                      {d.status === 'pending_review' && (
+                        <div style={{ marginTop:6, display:'flex', alignItems:'center', gap:8 }} onClick={e => e.stopPropagation()}>
+                          <span style={{ fontFamily:'var(--ff)', fontSize:10.5, fontWeight:600, color:'#b45309' }}>
+                            {pendingCountdown(d._creationTime)}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-s"
+                            style={{ fontSize:11, padding:'3px 10px', height:'auto' }}
+                            disabled={approvingId === d._id}
+                            onClick={() => handleApprove(d._id)}
+                          >
+                            {approvingId === d._id ? 'Publishing…' : 'Approve now'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6, flexShrink:0 }}>
                       <span style={{ fontFamily:'var(--ff)', display:'inline-flex', alignItems:'center', gap:5, fontSize:11, fontWeight:600, color:mri.color, padding:'3px 8px 3px 4px', borderRadius:6, background:tint(mri.color, 12), whiteSpace:'nowrap' }}>

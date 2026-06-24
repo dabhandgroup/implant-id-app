@@ -1,2 +1,2 @@
-companyName,contactName,contactEmail,country,regNumber,website,logoUrl
-Example Medical Devices,Jane Smith,jane@example.com,United Kingdom,FDA1234567,https://www.example.com,https://logo.clearbit.com/example.com
+companyName,legalEntityName,contactName,contactJobTitle,contactEmail,contactPhone,country,regNumber,website,logoUrl,regulatoryRegistrations
+Example Medical Devices,Example Medical Holdings Inc.,Regulatory Affairs,VP Regulatory Affairs,regulatory@example.com,+1 555 000 0000,United Kingdom,FDA1234567,https://www.example.com,https://logo.clearbit.com/example.com,"FDA 510(k) cleared | CE marked | ISO 13485:2016 certified"

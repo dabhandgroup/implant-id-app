@@ -58,6 +58,7 @@ export default function ManufacturersClient() {
   const review       = useMutation(api.manufacturers.reviewApplication)
   const deleteMfr    = useMutation(api.manufacturers.deleteManufacturer)
   const backfillSlug = useMutation(api.manufacturers.backfillSlugs)
+  const backfillLogos = useMutation(api.manufacturers.backfillLogoUrls)
 
   // Local state
   const [tab,          setTab]          = useState<Tab>('all')
@@ -73,7 +74,8 @@ export default function ManufacturersClient() {
   const [deleteError,   setDeleteError]   = useState('')
 
   // Backfill state
-  const [backfilling, setBackfilling] = useState(false)
+  const [backfilling,      setBackfilling]      = useState(false)
+  const [backfillingLogos, setBackfillingLogos] = useState(false)
 
   async function handleDelete() {
     if (!deleteModal) return
@@ -134,6 +136,13 @@ export default function ManufacturersClient() {
     try { await backfillSlug({}) } finally { setBackfilling(false) }
   }
 
+  async function handleBackfillLogos() {
+    setBackfillingLogos(true)
+    try { await backfillLogos({}) } finally { setBackfillingLogos(false) }
+  }
+
+  const needsLogoBackfill = [...(allMfrs ?? []), ...(pendingApps ?? []), ...(rejectedApps ?? [])].some(m => !(m as Manufacturer & { logoUrl?: string }).logoUrl && !!(m as Manufacturer & { website?: string }).website)
+
   return (
     <div className="m-content">
       <div className="m-h">
@@ -142,6 +151,11 @@ export default function ManufacturersClient() {
           <div className="sub">Device manufacturers with access to the Implant ID platform catalogue.</div>
         </div>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {needsLogoBackfill && (
+            <button className="btn" onClick={handleBackfillLogos} disabled={backfillingLogos} title="Populate Clearbit logos for manufacturers with a website but no logo set">
+              {backfillingLogos ? 'Loading logos…' : 'Fix Logos'}
+            </button>
+          )}
           {needsBackfill && (
             <button className="btn" onClick={handleBackfill} disabled={backfilling} title="Generate human-readable URL slugs for manufacturers that are missing them">
               {backfilling ? 'Generating…' : 'Fix URLs'}

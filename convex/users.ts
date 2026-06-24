@@ -289,6 +289,7 @@ export const removeAdmin = mutation({
     if (me._id === args.userId) throw new Error('Cannot remove yourself')
     const target = await ctx.db.get(args.userId)
     if (!target || target.role !== 'admin') throw new Error('Not an admin user')
+    if (target.email?.toLowerCase() === 'harry@dabhandmarketing.com') throw new Error('This account is protected and cannot be removed')
     // Optionally downgrade in Clerk if they have a real account
     if (target.clerkId) {
       const secretKey = process.env.CLERK_SECRET_KEY

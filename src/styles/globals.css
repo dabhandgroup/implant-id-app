@@ -145,7 +145,9 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .auth-side .logo{color:#fff;position:relative;z-index:2}
 .auth-side .logo img{filter:brightness(0) invert(1)}
 .auth-side .logo-text span{background:linear-gradient(90deg,#fff,#cdeef6);-webkit-background-clip:text;background-clip:text;color:transparent}
-.auth-side h2{color:#fff;font-size:clamp(32px,3.4vw,48px);margin:40px 0 18px;position:relative;z-index:2;line-height:1.05;letter-spacing:-.03em}
+.auth-side h2{color:#fff;font-size:clamp(32px,3.4vw,48px);margin:40px 0 18px;position:relative;z-index:2;line-height:1.1;letter-spacing:-.03em}
+.auth-side-copy{animation:sideFade .28s ease both}
+@keyframes sideFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .auth-side p{color:rgba(255,255,255,.8);font-size:16px;max-width:420px;line-height:1.6;position:relative;z-index:2}
 .auth-side .quote{position:relative;z-index:2;border-top:1px solid rgba(255,255,255,.18);padding-top:28px;margin-top:40px}
 .auth-side .quote p{font-size:15px;line-height:1.55}

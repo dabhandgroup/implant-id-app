@@ -407,6 +407,7 @@ export const adminAddManufacturer = mutation({
     country:      v.string(),
     regNumber:    v.optional(v.string()),
     website:      v.optional(v.string()),
+    logoUrl:      v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -427,6 +428,46 @@ export const adminAddManufacturer = mutation({
       submittedAt: Date.now(),
       reviewedAt:  Date.now(),
     })
+  },
+})
+
+/** Master admin: bulk-import manufacturers from CSV without sending invitation emails. */
+export const adminBulkAddManufacturers = mutation({
+  args: {
+    manufacturers: v.array(v.object({
+      companyName:  v.string(),
+      contactName:  v.string(),
+      contactEmail: v.string(),
+      country:      v.string(),
+      regNumber:    v.optional(v.string()),
+      website:      v.optional(v.string()),
+      logoUrl:      v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin role required')
+
+    const now = Date.now()
+    let added = 0
+    const skipped: string[] = []
+
+    for (const mfr of args.manufacturers) {
+      const existing = await ctx.db.query('manufacturers').withIndex('by_email', q => q.eq('contactEmail', mfr.contactEmail)).first()
+      if (existing) { skipped.push(mfr.contactEmail); continue }
+      await ctx.db.insert('manufacturers', {
+        ...mfr,
+        clerkUserId: undefined,
+        status:      'approved',
+        submittedAt: now,
+        reviewedAt:  now,
+      })
+      added++
+    }
+
+    return { added, skipped }
   },
 })
 

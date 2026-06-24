@@ -8,7 +8,6 @@ import { api as apiBase } from '../../../../../convex/_generated/api'
 const api = apiBase as any
 
 const REQUIRED = ['companyName', 'contactName', 'contactEmail', 'country']
-const ALL_COLS  = [...REQUIRED, 'regNumber', 'website', 'logoUrl']
 
 interface MfrRow {
   companyName: string
@@ -51,19 +50,19 @@ export default function ImportManufacturersClient() {
   const bulk     = useMutation(api.manufacturers.adminBulkAddManufacturers)
   const fileRef  = useRef<HTMLInputElement>(null)
 
-  const [parsed,    setParsed]    = useState<MfrRow[] | null>(null)
+  const [parsed,     setParsed]     = useState<MfrRow[] | null>(null)
   const [parseError, setParseError] = useState('')
-  const [dragOver,  setDragOver]  = useState(false)
-  const [importing, setImporting] = useState(false)
-  const [result,    setResult]    = useState<ImportResult | null>(null)
-  const [importErr, setImportErr] = useState('')
-  const [fileName,  setFileName]  = useState('')
+  const [dragOver,   setDragOver]   = useState(false)
+  const [importing,  setImporting]  = useState(false)
+  const [result,     setResult]     = useState<ImportResult | null>(null)
+  const [importErr,  setImportErr]  = useState('')
+  const [fileName,   setFileName]   = useState('')
 
   function processFile(file: File) {
     if (!file.name.endsWith('.csv')) {
       setParseError('Please upload a .csv file.'); return
     }
-    setFileName(file.name)
+    setFileName(file.name); setParseError(''); setParsed(null)
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
@@ -73,7 +72,7 @@ export default function ImportManufacturersClient() {
         const missing = REQUIRED.filter(r => !headers.includes(r))
         if (missing.length) {
           setParseError(`CSV is missing required columns: ${missing.join(', ')}`)
-          setParsed(null); return
+          return
         }
 
         const idx = (col: string) => headers.indexOf(col)
@@ -82,9 +81,9 @@ export default function ImportManufacturersClient() {
 
         rows.forEach((row, i) => {
           const get = (col: string) => (row[idx(col)] ?? '').trim()
-          if (!get('companyName') && !get('contactEmail')) return // skip blank rows
-          const missing = REQUIRED.filter(r => !get(r))
-          if (missing.length) { errs.push(`Row ${i + 2}: missing ${missing.join(', ')}`); return }
+          if (!get('companyName') && !get('contactEmail')) return
+          const miss = REQUIRED.filter(r => !get(r))
+          if (miss.length) { errs.push(`Row ${i + 2}: missing ${miss.join(', ')}`); return }
           mfrs.push({
             companyName:  get('companyName'),
             contactName:  get('contactName'),
@@ -96,13 +95,15 @@ export default function ImportManufacturersClient() {
           })
         })
 
-        if (errs.length) { setParseError(errs.slice(0, 3).join('\n') + (errs.length > 3 ? `\n…and ${errs.length - 3} more` : '')); setParsed(null); return }
-        if (!mfrs.length) { setParseError('No valid rows found in the CSV.'); setParsed(null); return }
+        if (errs.length) {
+          setParseError(errs.slice(0, 3).join('\n') + (errs.length > 3 ? `\n…and ${errs.length - 3} more` : ''))
+          return
+        }
+        if (!mfrs.length) { setParseError('No valid rows found in the CSV.'); return }
 
-        setParseError(''); setParsed(mfrs)
+        setParsed(mfrs)
       } catch {
-        setParseError('Could not parse the CSV. Check the file format.')
-        setParsed(null)
+        setParseError('Could not parse the CSV — check the file format.')
       }
     }
     reader.readAsText(file)
@@ -179,7 +180,7 @@ export default function ImportManufacturersClient() {
             </div>
             {result.skipped.length > 0 && (
               <div style={{ fontSize:12, color:'var(--muted)', background:'var(--bg)', borderRadius:8, padding:'10px 12px' }}>
-                <div style={{ fontWeight:500, marginBottom:4, color:'var(--text)' }}>Skipped emails (already exist):</div>
+                <div style={{ fontWeight:500, marginBottom:4, color:'var(--text)' }}>Skipped (already exist):</div>
                 {result.skipped.map(e => <div key={e} style={{ fontFamily:'monospace' }}>{e}</div>)}
               </div>
             )}
@@ -190,80 +191,72 @@ export default function ImportManufacturersClient() {
           </div>
         </div>
       ) : (
-        <div style={{ maxWidth: 680 }}>
+        <div style={{ maxWidth:640 }}>
 
-          {/* ── Step 1: Download template ── */}
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'20px 24px', marginBottom:16 }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:16, flexWrap:'wrap' }}>
-              <div>
-                <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:3 }}>
-                  Step 1 — Download the CSV template
+          {/* ── Drop zone ── */}
+          <div
+            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+            onClick={() => fileRef.current?.click()}
+            style={{
+              border:`2px dashed ${dragOver ? 'var(--accent)' : parsed ? 'var(--ok)' : 'var(--border2)'}`,
+              borderRadius:14, padding:'52px 32px', textAlign:'center', cursor:'pointer',
+              background: dragOver ? 'rgba(var(--accent-rgb),0.04)' : parsed ? 'rgba(var(--ok-rgb),0.04)' : 'var(--bg2)',
+              transition:'border-color .15s, background .15s',
+              marginBottom:12,
+            }}
+          >
+            {parsed ? (
+              <>
+                <div style={{ width:48, height:48, borderRadius:'50%', background:'rgba(var(--ok-rgb),0.12)', display:'grid', placeItems:'center', margin:'0 auto 12px' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+                </div>
+                <div style={{ fontFamily:'var(--ff)', fontSize:15, fontWeight:600, color:'var(--ok)', marginBottom:4 }}>
+                  {fileName}
                 </div>
                 <div style={{ fontSize:13, color:'var(--muted)' }}>
-                  Fill in manufacturer details. Required columns: <span style={{ fontFamily:'monospace', fontSize:12 }}>companyName, contactName, contactEmail, country</span>
+                  {parsed.length} manufacturer{parsed.length !== 1 ? 's' : ''} ready — click to choose a different file
                 </div>
-              </div>
-              <a
-                href="/manufacturers-template.csv"
-                download="manufacturers-template.csv"
-                className="btn"
-                style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:7, textDecoration:'none' }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download template
-              </a>
-            </div>
-          </div>
-
-          {/* ── Step 2: Upload ── */}
-          <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'20px 24px', marginBottom:16 }}>
-            <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:12 }}>
-              Step 2 — Upload your CSV
-            </div>
-
-            <div
-              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={onDrop}
-              onClick={() => fileRef.current?.click()}
-              style={{
-                border:`2px dashed ${dragOver ? 'var(--accent)' : 'var(--border2)'}`,
-                borderRadius:10, padding:'32px 20px', textAlign:'center', cursor:'pointer',
-                background: dragOver ? 'rgba(var(--accent-rgb),0.04)' : 'var(--bg)',
-                transition:'border-color .15s, background .15s',
-              }}
-            >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.5" style={{ marginBottom:10 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <div style={{ fontFamily:'var(--ff)', fontSize:14, color:'var(--text)', marginBottom:4 }}>
-                {fileName ? fileName : 'Drop your CSV here, or click to browse'}
-              </div>
-              <div style={{ fontSize:12, color:'var(--muted2)' }}>.csv files only</div>
-              <input ref={fileRef} type="file" accept=".csv" onChange={onFileChange} style={{ display:'none' }} aria-label="Upload CSV file" />
-            </div>
-
-            {parseError && (
-              <div style={{ marginTop:12, background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:8, padding:'10px 14px', fontSize:13, color:'var(--err)', whiteSpace:'pre-line' }}>
-                {parseError}
-              </div>
+              </>
+            ) : (
+              <>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.5" style={{ marginBottom:12 }}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <div style={{ fontFamily:'var(--ff)', fontSize:16, fontWeight:500, color:'var(--text)', marginBottom:6 }}>
+                  Drop your CSV here, or click to browse
+                </div>
+                <div style={{ fontSize:13, color:'var(--muted2)' }}>.csv files only</div>
+              </>
             )}
+            <input ref={fileRef} type="file" accept=".csv" onChange={onFileChange} style={{ display:'none' }} aria-label="Upload CSV file" />
           </div>
 
-          {/* ── Step 3: Preview & import ── */}
+          {/* Template download hint */}
+          <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:20, display:'flex', alignItems:'center', gap:6 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Need the right format?{' '}
+            <a href="/manufacturers-template.csv" download="manufacturers-template.csv" style={{ color:'var(--accent)', textDecoration:'none', fontWeight:500 }}>
+              Download the CSV template
+            </a>
+          </div>
+
+          {parseError && (
+            <div style={{ marginBottom:16, background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:8, padding:'10px 14px', fontSize:13, color:'var(--err)', whiteSpace:'pre-line' }}>
+              {parseError}
+            </div>
+          )}
+
+          {/* ── Preview & import ── */}
           {parsed && (
             <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:14, padding:'20px 24px' }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, gap:12, flexWrap:'wrap' }}>
-                <div>
-                  <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>
-                    Step 3 — Review and import
-                  </div>
-                  <div style={{ fontSize:13, color:'var(--muted)', marginTop:2 }}>
-                    {parsed.length} manufacturer{parsed.length !== 1 ? 's' : ''} ready to import
-                  </div>
-                </div>
-                <button className="btn" style={{ fontSize:12 }} onClick={reset}>Clear</button>
+              <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:12 }}>
+                Preview — {parsed.length} manufacturer{parsed.length !== 1 ? 's' : ''}
               </div>
 
-              {/* Preview table */}
               <div style={{ overflowX:'auto', borderRadius:8, border:'1px solid var(--border)', marginBottom:16 }}>
                 <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12.5 }}>
                   <thead>
@@ -274,7 +267,7 @@ export default function ImportManufacturersClient() {
                     </tr>
                   </thead>
                   <tbody>
-                    {parsed.slice(0, 10).map((m, i) => (
+                    {parsed.slice(0, 12).map((m, i) => (
                       <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
                         <td style={{ padding:'8px 12px' }}>
                           {m.logoUrl
@@ -296,9 +289,9 @@ export default function ImportManufacturersClient() {
                     ))}
                   </tbody>
                 </table>
-                {parsed.length > 10 && (
+                {parsed.length > 12 && (
                   <div style={{ padding:'8px 12px', fontSize:12, color:'var(--muted)', borderTop:'1px solid var(--border)', background:'var(--bg)' }}>
-                    …and {parsed.length - 10} more
+                    …and {parsed.length - 12} more
                   </div>
                 )}
               </div>
@@ -310,9 +303,7 @@ export default function ImportManufacturersClient() {
               )}
 
               <div style={{ display:'flex', gap:10 }}>
-                <button type="button" className="btn" onClick={() => router.push('/master/manufacturers')} disabled={importing}>
-                  Cancel
-                </button>
+                <button type="button" className="btn" onClick={reset} disabled={importing}>Clear</button>
                 <button type="button" className="btn btn-s btn-block" onClick={handleImport} disabled={importing}>
                   {importing ? 'Importing…' : `Import ${parsed.length} manufacturer${parsed.length !== 1 ? 's' : ''} →`}
                 </button>

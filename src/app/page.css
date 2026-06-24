@@ -22,7 +22,7 @@
 .mini-menu button:hover{background:rgba(var(--text-rgb),0.05);color:var(--text)}
 
 /* NAV */
-nav{position:sticky;top:0;z-index:500;height:72px;background:rgba(var(--bg-rgb),0.90);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);transition:height .2s}
+nav{position:sticky;top:0;z-index:500;height:72px;background:rgba(var(--bg-rgb),0.90);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);transition:height .2s}
 .nav-inner{max-width:1380px;margin:0 auto;height:100%;padding:0 32px;display:flex;align-items:center;justify-content:space-between;gap:32px}
 .nav-l{display:flex;align-items:center;gap:40px;flex:1;min-width:0}
 .logo{display:flex;align-items:center;gap:10px;font-family:var(--ff);font-weight:600;font-size:20px;color:var(--text);letter-spacing:-.015em;transition:font-size .2s}
@@ -92,7 +92,7 @@ nav{position:sticky;top:0;z-index:500;height:72px;background:rgba(var(--bg-rgb),
 .big-search-sub a{color:#fff;font-weight:600;text-decoration:underline;text-underline-offset:3px}
 
 .cat-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;max-width:860px;margin:42px auto 0;position:relative;z-index:2}
-.cat-tile{background:rgba(255,255,255,.1);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:18px 16px;text-align:center;color:#fff;text-decoration:none;transition:all .15s}
+.cat-tile{background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:18px 16px;text-align:center;color:#fff;text-decoration:none;transition:all .15s}
 .cat-tile:hover{background:rgba(255,255,255,.18);transform:translateY(-2px)}
 .cat-tile svg{width:22px;height:22px;margin-bottom:8px;opacity:.9}
 .cat-tile b{display:block;font-family:var(--ff);font-size:14px;font-weight:500;letter-spacing:-.01em}

@@ -79,7 +79,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 
 
 /* NAV */
-.nav{position:fixed;top:0;left:0;right:0;z-index:500;height:84px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--px);background:rgba(var(--bg-rgb),0.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;height:84px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 var(--px);background:rgba(var(--bg-rgb),0.88);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
 .logo{display:flex;align-items:center;gap:12px;font-family:var(--ff);font-weight:600;font-size:22px;color:var(--text);letter-spacing:-.015em}
 .logo img{height:46px;width:auto}
 .logo-text{display:flex;align-items:baseline;gap:3px}
@@ -319,7 +319,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .sb-bot .role{font-size:11.5px;color:var(--muted2);line-height:1.2;margin-top:2px}
 
 .app-main{display:flex;flex-direction:column;min-width:0}
-.app-top{display:flex;align-items:center;justify-content:space-between;padding:12px 28px;background:rgba(var(--bg2-rgb),0.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;gap:16px}
+.app-top{display:flex;align-items:center;justify-content:space-between;padding:12px 28px;background:rgba(var(--bg2-rgb),0.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;gap:16px}
 .topbar-qs{display:inline-flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:8px 14px;font-family:var(--ff);font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s}
 .topbar-qs:hover{border-color:var(--text);color:var(--text)}
 .topbar-qs svg{color:var(--muted2)}
@@ -344,7 +344,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .dd-menu button svg{width:15px;height:15px;flex-shrink:0}
 
 /* CMD-K MODAL */
-.cmdk-back{position:fixed;inset:0;background:rgba(8,19,23,.55);backdrop-filter:blur(6px);z-index:999;display:none;align-items:flex-start;justify-content:center;padding-top:14vh}
+.cmdk-back{position:fixed;inset:0;background:rgba(8,19,23,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:999;display:none;align-items:flex-start;justify-content:center;padding-top:14vh}
 .cmdk-back.open{display:flex}
 .cmdk{width:90%;max-width:620px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;box-shadow:0 40px 90px -20px rgba(0,0,0,.5);overflow:hidden}
 .cmdk-in{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border)}
@@ -383,7 +383,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .announce .flag-b{border-color:transparent}
 
 /* Site nav (shared) */
-.site-nav{position:sticky;top:0;z-index:500;height:76px;background:rgba(var(--bg-rgb),0.90);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);transition:height .2s}
+.site-nav{position:sticky;top:0;z-index:500;height:76px;background:rgba(var(--bg-rgb),0.90);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);transition:height .2s}
 .nav-inner{max-width:1380px;margin:0 auto;height:100%;padding:0 32px;display:flex;align-items:center;justify-content:space-between;gap:32px}
 .nav-l{display:flex;align-items:center;gap:40px;flex:1;min-width:0}
 .site-nav .logo{display:flex;align-items:center;gap:12px;font-family:var(--ff);font-weight:600;font-size:23px;color:var(--text);letter-spacing:-.015em;transition:font-size .2s}
@@ -417,7 +417,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 .mega-img{aspect-ratio:16/9;border-radius:12px;background:#ddd center/cover;margin-bottom:10px;overflow:hidden;background-size:cover;background-position:center}
 
 /* Mobile menu */
-.mob-back{position:fixed;inset:0;background:rgba(8,19,23,.5);backdrop-filter:blur(4px);z-index:650;opacity:0;visibility:hidden;transition:all .2s}
+.mob-back{position:fixed;inset:0;background:rgba(8,19,23,.5);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:650;opacity:0;visibility:hidden;transition:all .2s}
 .mob-back.open{opacity:1;visibility:visible}
 .mob-panel{position:fixed;top:0;right:0;bottom:0;width:92%;max-width:420px;background:var(--bg2);border-left:1px solid var(--border);z-index:700;transform:translateX(100%);transition:transform .25s ease-out;display:flex;flex-direction:column;overflow-y:auto}
 .mob-panel.open{transform:translateX(0)}
@@ -476,7 +476,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 }
 
 /* Shared Wallet-share modal */
-.wall-back{position:fixed;inset:0;background:rgba(8,19,23,.72);backdrop-filter:blur(6px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.wall-back{position:fixed;inset:0;background:rgba(8,19,23,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
 .wall-back.open{display:flex}
 .wall-modal{width:100%;max-width:460px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 40px 90px -20px rgba(0,0,0,.5)}
 .wall-h{padding:22px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
@@ -493,7 +493,7 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
   .wall-qr{width:160px;height:160px}
   .wall-h{padding:18px 20px}
   /* Share modal on mobile: slide-up sheet matching mob-sheet animation */
-  .wall-share{display:flex!important;align-items:flex-end;padding:0;backdrop-filter:none!important;background:rgba(0,0,0,.38)!important;opacity:0;pointer-events:none;transition:opacity .25s}
+  .wall-share{display:flex!important;align-items:flex-end;padding:0;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:rgba(0,0,0,.38)!important;opacity:0;pointer-events:none;transition:opacity .25s}
   .wall-share.open{opacity:1;pointer-events:auto}
   .wall-share .wall-modal{transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);max-width:100%;border-radius:20px 20px 0 0;max-height:88vh;overflow-y:auto}
   .wall-share.open .wall-modal{transform:translateY(0)}
@@ -560,7 +560,7 @@ footer::before{content:"";position:absolute;top:-200px;left:50%;transform:transl
 .notif-btn::after{content:"";position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--err);border:2px solid var(--bg2)}
 .notif-drawer{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:90vw;background:var(--bg2);border-left:1px solid var(--border);box-shadow:-20px 0 50px -10px rgba(0,0,0,.2);opacity:0;visibility:hidden;transform:translateX(16px);transition:opacity .22s ease-out,transform .22s ease-out,visibility 0s linear .22s;z-index:700;display:flex;flex-direction:column}
 .notif-drawer.open{opacity:1;visibility:visible;transform:translateX(0);transition:opacity .22s ease-out,transform .22s ease-out,visibility 0s}
-.notif-back{position:fixed;inset:0;background:rgba(8,19,23,.4);backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:all .2s;z-index:699}
+.notif-back{position:fixed;inset:0;background:rgba(8,19,23,.4);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:all .2s;z-index:699}
 .notif-back.open{opacity:1;visibility:visible}
 .notif-h{padding:22px 24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
 .notif-h h3{font-family:var(--ff);font-size:17px;font-weight:500;letter-spacing:-.015em}
@@ -581,7 +581,7 @@ footer::before{content:"";position:absolute;top:-200px;left:50%;transform:transl
 .notif-foot a{color:var(--accent);font-weight:500}
 
 /* Logout confirmation modal */
-.logout-back{position:fixed;inset:0;background:rgba(8,19,23,.6);backdrop-filter:blur(4px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.logout-back{position:fixed;inset:0;background:rgba(8,19,23,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
 .logout-back.open{display:flex}
 .logout-modal{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 40px 80px -20px rgba(0,0,0,.4)}
 .logout-body{padding:28px 28px 24px;text-align:center}
@@ -592,7 +592,7 @@ footer::before{content:"";position:absolute;top:-200px;left:50%;transform:transl
 .logout-actions{padding:16px 22px 22px;display:flex;gap:10px}
 .logout-actions .btn{flex:1;justify-content:center}
 /* Confirmation modals (approve/reject/unapprove) — separate from sign-out to avoid LogoutHandler intercept */
-.confirm-back{position:fixed;inset:0;background:rgba(8,19,23,.6);backdrop-filter:blur(4px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.confirm-back{position:fixed;inset:0;background:rgba(8,19,23,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
 .confirm-back.open{display:flex}
 .confirm-modal{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 40px 80px -20px rgba(0,0,0,.4)}
 .confirm-body{padding:28px 28px 24px;text-align:center}
@@ -787,7 +787,7 @@ html,body{overflow-x:clip}
 .sb-burger svg{width:20px;height:20px}
 
 /* Backdrop for the slide-in drawer */
-.sb-back{position:fixed;inset:0;background:rgba(8,19,23,.5);backdrop-filter:blur(4px);z-index:39;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+.sb-back{position:fixed;inset:0;background:rgba(8,19,23,.5);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:39;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
 .sb-back.on,.sb-back.open{opacity:1;visibility:visible}
 
 /* Notification button + dot */

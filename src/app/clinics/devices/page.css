@@ -4,7 +4,7 @@ body{background:var(--bg)}
 .lib-hero h1{color:#fff;font-size:clamp(20px,2.2vw,26px);letter-spacing:-.02em;margin:0 0 14px;line-height:1.1;font-weight:500;position:relative;z-index:2}
 .lib-hero h1 .count{color:rgba(255,255,255,.7);font-weight:400;margin-left:8px}
 .lib-search-wrap{position:relative;z-index:2;max-width:620px}
-.lib-search{background:rgba(255,255,255,.14);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:4px 4px 4px 20px;display:flex;align-items:center;gap:10px}
+.lib-search{background:rgba(255,255,255,.14);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:4px 4px 4px 20px;display:flex;align-items:center;gap:10px}
 .lib-search svg{width:18px;height:18px;flex-shrink:0;opacity:.85}
 .lib-search input{flex:1;background:transparent;border:0;outline:0;color:#fff;font-family:var(--fb);font-size:15px;padding:10px 0;min-width:0}
 .lib-search input::placeholder{color:rgba(255,255,255,.55)}

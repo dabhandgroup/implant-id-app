@@ -42,7 +42,7 @@
 .tl-item .body .by{color:var(--muted2);font-size:12.5px;margin-top:2px;display:block}
 
 /* Share wallet modal */
-.share-back{position:fixed;inset:0;background:rgba(8,19,23,.72);backdrop-filter:blur(6px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.share-back{position:fixed;inset:0;background:rgba(8,19,23,.72);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
 .share-back.open{display:flex}
 .share-modal{width:100%;max-width:480px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 40px 90px -20px rgba(0,0,0,.5)}
 .share-h{padding:22px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}

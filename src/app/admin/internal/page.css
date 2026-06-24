@@ -74,7 +74,7 @@
 .adm-log-it .who{font-family:var(--ff);font-size:12px;color:var(--muted)}
 
 /* Edit drawer */
-.edit-back{position:fixed;inset:0;background:rgba(8,19,23,.55);backdrop-filter:blur(4px);z-index:950;opacity:0;visibility:hidden;transition:all .2s}
+.edit-back{position:fixed;inset:0;background:rgba(8,19,23,.55);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:950;opacity:0;visibility:hidden;transition:all .2s}
 .edit-back.open{opacity:1;visibility:visible}
 .edit-panel{position:fixed;top:0;right:0;bottom:0;width:720px;max-width:95vw;background:var(--bg2);border-left:1px solid var(--border);z-index:960;transform:translateX(100%);transition:transform .28s ease-out;display:flex;flex-direction:column;overflow-y:auto}
 .edit-panel.open{transform:translateX(0)}

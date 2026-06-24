@@ -1,9 +1,8 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
-import { useMutation } from 'convex/react'
-import { api }         from '../../../../../convex/_generated/api'
-import { useRouter }   from 'next/navigation'
-import { ALL_DEVICES, MANUFACTURERS } from '@/data/devices'
+import { useMutation, useQuery } from 'convex/react'
+import { api }                  from '../../../../../convex/_generated/api'
+import { useRouter }            from 'next/navigation'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -76,10 +75,6 @@ const MONTHS: Opt[] = [
   { value: '09', label: 'September' },{ value: '10', label: 'October' },
   { value: '11', label: 'November' }, { value: '12', label: 'December' },
 ]
-
-function getMfrName(id: string) {
-  return MANUFACTURERS.find(m => m.manufacturer_id === id)?.common_name ?? id
-}
 
 // ── Compact dropdown ──────────────────────────────────────────────────────────
 
@@ -298,11 +293,14 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
   const [selected, setSelected] = useState<SelectedDevice | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
+  const allDevices = useQuery(api.devices.listDevices, {}) ?? []
+
   const results = query.trim().length >= 2
-    ? ALL_DEVICES.filter(d => {
+    ? allDevices.filter(d => {
         const q = query.toLowerCase()
-        return d.device_name.toLowerCase().includes(q) || d.model_number.toLowerCase().includes(q) ||
-          getMfrName(d.manufacturer_id).toLowerCase().includes(q)
+        return d.model.toLowerCase().includes(q) ||
+               d.manufacturer.toLowerCase().includes(q) ||
+               d.deviceType.toLowerCase().includes(q)
       }).slice(0, 8)
     : []
 
@@ -313,12 +311,20 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
     return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  function pick(d: typeof ALL_DEVICES[0]) {
-    const sel: SelectedDevice = { device_id: d.device_id, device_name: d.device_name, manufacturer: getMfrName(d.manufacturer_id), model_number: d.model_number, device_type: d.device_type }
+  function pick(d: typeof allDevices[0]) {
+    const sel: SelectedDevice = {
+      device_id:    d._id,
+      device_name:  d.model,
+      manufacturer: d.manufacturer,
+      model_number: d.model,
+      device_type:  d.deviceType,
+    }
     setSelected(sel); setOpen(false); setQuery(''); onSelect(sel)
   }
 
   function clear() { setSelected(null); onSelect(null) }
+
+  const loading = allDevices === undefined
 
   return (
     <div ref={ref}>
@@ -328,22 +334,24 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" />
             </svg>
-            <input className="input" placeholder="Search by device name or model number"
-              autoComplete="off" value={query}
+            <input className="input" placeholder={loading ? 'Loading devices…' : 'Search by device name or manufacturer'}
+              autoComplete="off" value={query} disabled={loading}
               onChange={e => { setQuery(e.target.value); setOpen(true) }}
               onFocus={() => setOpen(true)}
               style={{ border: 0, padding: '11px 0', boxShadow: 'none' }} />
           </div>
-          {open && results.length > 0 && (
+          {open && query.trim().length >= 2 && (
             <div className="dev-results on">
-              {results.map(d => (
-                <a key={d.device_id} href="#" onClick={e => { e.preventDefault(); pick(d) }}>
+              {results.length > 0 ? results.map(d => (
+                <a key={d._id} href="#" onClick={e => { e.preventDefault(); pick(d) }}>
                   <div>
-                    <div className="nm">{d.device_name}</div>
-                    <div className="mn">{getMfrName(d.manufacturer_id)} · {d.model_number} · {d.device_type}</div>
+                    <div className="nm">{d.model}</div>
+                    <div className="mn">{d.manufacturer} · {d.deviceType}</div>
                   </div>
                 </a>
-              ))}
+              )) : (
+                <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--muted)' }}>No devices found</div>
+              )}
             </div>
           )}
         </div>
@@ -351,7 +359,7 @@ function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => vo
         <div className="dev-sel-card">
           <div className="dev-sel-info">
             <div className="nm">{selected.device_name}</div>
-            <div className="mn">{selected.manufacturer}{selected.model_number ? ` · ${selected.model_number}` : ''}</div>
+            <div className="mn">{selected.manufacturer} · {selected.device_type}</div>
           </div>
           <button className="dev-sel-x" type="button" onClick={clear} aria-label="Change device">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

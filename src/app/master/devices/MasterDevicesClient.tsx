@@ -371,7 +371,7 @@ export default function MasterDevicesClient() {
               <h3>Cancel scheduled publication?</h3>
               <p style={{ color:'var(--muted)', fontSize:14 }}>
                 <strong style={{ color:'var(--text)' }}>{cancelTarget.name}</strong><br/>
-                This device will return to <strong>Draft</strong> and won&apos;t publish automatically. The manufacturer can edit and re-submit it for review.
+                This device will return to <strong>Draft</strong>{' '}and won&apos;t publish automatically. The manufacturer can edit and re-submit it for review.
               </p>
               {cancelError && <p style={{ color:'var(--err)', fontSize:13, marginTop:8 }}>{cancelError}</p>}
             </div>

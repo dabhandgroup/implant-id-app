@@ -477,25 +477,26 @@ export default function LoginClient() {
         <div key={tab} className="auth-side-copy">
           {tab === 'patient' ? (
             <>
-              <div>
-                <h2>Know Your Implant.<br />With ImplantID.</h2>
-                <p>Your implant records, always with you. Access your full device profile, share it with your care team, and carry your Apple Wallet pass for instant identification anywhere.</p>
-              </div>
-              <div className="quote">
-                <p>"I finally feel in control of my own medical information. My surgeon had my implant details before I even sat down."</p>
-                <cite>Sarah T. · Cardiac Device Patient</cite>
-              </div>
+              <h2>Know Your Implant.<br />With ImplantID.</h2>
+              <p>Your implant records, always with you. Access your full device profile, share it with your care team, and carry your Apple Wallet pass for instant identification anywhere.</p>
             </>
           ) : (
             <>
-              <div>
-                <h2>Every implant.<br />One easy scan.</h2>
-                <p>The modern database for MRI implant safety. Scan the patient's Apple Wallet pass — full device profile in under two seconds, no calls to manufacturers required.</p>
-              </div>
-              <div className="quote">
-                <p>"I used to call three manufacturers before every scan. Now I just hold up my phone."</p>
-                <cite>Dr M. Okafor · Consultant Radiologist</cite>
-              </div>
+              <h2>Every implant.<br />One easy scan.</h2>
+              <p>The modern database for MRI implant safety. Scan the patient's Apple Wallet pass — full device profile in under two seconds, no calls to manufacturers required.</p>
+            </>
+          )}
+        </div>
+        <div className="quote">
+          {tab === 'patient' ? (
+            <>
+              <p>"I finally feel in control of my own medical information. My surgeon had my implant details before I even sat down."</p>
+              <cite>Sarah T. · Cardiac Device Patient</cite>
+            </>
+          ) : (
+            <>
+              <p>"I used to call three manufacturers before every scan. Now I just hold up my phone."</p>
+              <cite>Dr M. Okafor · Consultant Radiologist</cite>
             </>
           )}
         </div>

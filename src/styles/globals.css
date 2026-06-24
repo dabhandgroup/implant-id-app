@@ -140,16 +140,16 @@ h1,h2,h3,h4{font-family:var(--ff);font-weight:500;letter-spacing:-.025em;line-he
 
 /* AUTH SHELL */
 .auth{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;background:var(--bg)}
-.auth-side{position:relative;background:linear-gradient(160deg,var(--accent-deep) 0%,var(--accent) 100%);color:#fff;padding:56px;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between}
+.auth-side{position:relative;background:linear-gradient(160deg,var(--accent-deep) 0%,var(--accent) 100%);color:#fff;padding:56px;overflow:hidden;display:flex;flex-direction:column}
 .auth-side::before{content:"";position:absolute;top:0;right:0;bottom:0;left:0;background:radial-gradient(circle at 80% 10%, rgba(255,255,255,.16), transparent 50%),radial-gradient(circle at 10% 90%, rgba(0,0,0,.25), transparent 55%);pointer-events:none}
-.auth-side .logo{color:#fff;position:relative;z-index:2}
+.auth-side .logo{color:#fff;position:relative;z-index:2;flex-shrink:0}
 .auth-side .logo img{filter:brightness(0) invert(1)}
 .auth-side .logo-text span{background:linear-gradient(90deg,#fff,#cdeef6);-webkit-background-clip:text;background-clip:text;color:transparent}
-.auth-side h2{color:#fff;font-size:clamp(32px,3.4vw,48px);margin:40px 0 18px;position:relative;z-index:2;line-height:1.1;letter-spacing:-.03em}
-.auth-side-copy{animation:sideFade .28s ease both}
-@keyframes sideFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.auth-side-copy{flex:1;display:flex;flex-direction:column;justify-content:center;animation:sideFade .28s ease both}
+@keyframes sideFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.auth-side h2{color:#fff;font-size:clamp(32px,3.4vw,48px);margin:0 0 16px;position:relative;z-index:2;line-height:1.1;letter-spacing:-.03em}
 .auth-side p{color:rgba(255,255,255,.8);font-size:16px;max-width:420px;line-height:1.6;position:relative;z-index:2}
-.auth-side .quote{position:relative;z-index:2;border-top:1px solid rgba(255,255,255,.18);padding-top:28px;margin-top:40px}
+.auth-side .quote{position:relative;z-index:2;border-top:1px solid rgba(255,255,255,.18);padding-top:28px;margin-top:auto;flex-shrink:0}
 .auth-side .quote p{font-size:15px;line-height:1.55}
 .auth-side .quote cite{font-family:var(--ff);font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.65);font-style:normal;display:block;margin-top:10px}
 .auth-main{display:flex;align-items:center;justify-content:center;padding:72px 48px}

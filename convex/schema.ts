@@ -169,6 +169,7 @@ export default defineSchema({
     hospital: v.optional(v.string()),
     patientNotes: v.optional(v.string()),
     clinicNotes: v.optional(v.string()),
+    clinicNotesVisibleToPatient: v.optional(v.boolean()),
     status: v.union(v.literal('active'), v.literal('explanted'), v.literal('replaced')),
     // System grouping — links an IPG to its leads (shared UUID per system)
     systemGroupId: v.optional(v.string()),
@@ -543,4 +544,12 @@ export default defineSchema({
     expiresAt: v.number(),
     used:      v.boolean(),
   }).index('by_patient', ['patientId']),
+
+  // One-time delete-confirmation codes for master admin clinic deletion
+  adminClinicDeleteCodes: defineTable({
+    applicationId: v.id('clinicApplications'),
+    code:          v.string(),
+    expiresAt:     v.number(),
+    used:          v.boolean(),
+  }).index('by_application', ['applicationId']),
 })

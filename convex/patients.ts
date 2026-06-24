@@ -1108,9 +1108,10 @@ export const linkDeviceToPatient = mutation({
     deviceId:          v.id('devices'),
     serialNumber:      v.optional(v.string()),
     implantDate:       v.optional(v.string()),
-    clinicNotes:       v.optional(v.string()),
-    hospital:          v.optional(v.string()),
-    implantingSurgeon: v.optional(v.string()),
+    clinicNotes:                 v.optional(v.string()),
+    clinicNotesVisibleToPatient: v.optional(v.boolean()),
+    hospital:                    v.optional(v.string()),
+    implantingSurgeon:           v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity()
@@ -1132,14 +1133,15 @@ export const linkDeviceToPatient = mutation({
     if (existing) throw new Error('This device is already linked to this patient')
 
     return ctx.db.insert('patientDevices', {
-      patientId:         args.patientId,
-      deviceId:          args.deviceId,
-      serialNumber:      args.serialNumber,
-      implantDate:       args.implantDate,
-      clinicNotes:       args.clinicNotes,
-      hospital:          args.hospital,
-      implantingSurgeon: args.implantingSurgeon,
-      status:            'active',
+      patientId:                   args.patientId,
+      deviceId:                    args.deviceId,
+      serialNumber:                args.serialNumber,
+      implantDate:                 args.implantDate,
+      clinicNotes:                 args.clinicNotes,
+      clinicNotesVisibleToPatient: args.clinicNotesVisibleToPatient,
+      hospital:                    args.hospital,
+      implantingSurgeon:           args.implantingSurgeon,
+      status:                      'active',
     })
   },
 })

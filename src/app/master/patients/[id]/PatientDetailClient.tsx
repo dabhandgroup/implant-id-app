@@ -4,6 +4,7 @@ import { useQuery, useMutation, useAction } from 'convex/react'
 import { useRouter }   from 'next/navigation'
 import { api as apiBase } from '../../../../../convex/_generated/api'
 import { Id }             from '../../../../../convex/_generated/dataModel'
+import DatePicker from '../../../../components/ui/DatePicker'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
@@ -42,6 +43,7 @@ export default function PatientDetailClient({ id }: Props) {
   const [addSerial,       setAddSerial]       = useState('')
   const [addDate,         setAddDate]         = useState('')
   const [addNotes,        setAddNotes]        = useState('')
+  const [addNotesVisible, setAddNotesVisible] = useState(false)
   const [addingDevice,    setAddingDevice]    = useState(false)
   const [addDeviceError,  setAddDeviceError]  = useState('')
   const [statusSaving,    setStatusSaving]    = useState(false)
@@ -62,7 +64,7 @@ export default function PatientDetailClient({ id }: Props) {
   const [deleteLoading, setDeleteLoading] = useState(false)
 
   const patient                   = useQuery(api.patients.getPatientById, { patientId: id as Id<'patients'> })
-  const allDevices                = useQuery(api.devices.listDevices)
+  const allDevices                = useQuery(api.devices.listAllDevices)
   const patientClinics            = useQuery(api.patients.getPatientClinics, { patientId: id as Id<'patients'> })
   const allClinics                = useQuery(api.clinics.listClinics)
   const verifyPatient             = useMutation(api.patients.verifyPatient)
@@ -632,12 +634,16 @@ export default function PatientDetailClient({ id }: Props) {
                 </div>
                 <div className="field">
                   <label>Implant date <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span></label>
-                  <input className="input" type="date" value={addDate} onChange={e => setAddDate(e.target.value)} />
+                  <DatePicker value={addDate} onChange={setAddDate} />
                 </div>
               </div>
               <div className="field">
                 <label>Clinical notes <span style={{ color: 'var(--muted)', fontWeight: 400 }}>(optional)</span></label>
                 <textarea className="input" rows={2} placeholder="Any relevant notes…" value={addNotes} onChange={e => setAddNotes(e.target.value)} style={{ resize: 'vertical' }} />
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, cursor: 'pointer', userSelect: 'none' }}>
+                  <input type="checkbox" checked={addNotesVisible} onChange={e => setAddNotesVisible(e.target.checked)} style={{ accentColor: 'var(--accent)', width: 15, height: 15, cursor: 'pointer' }} />
+                  <span style={{ fontSize: 13, color: 'var(--muted)', fontFamily: 'var(--ff)' }}>Show notes to patient</span>
+                </label>
               </div>
               {addDeviceError && <div style={{ color: 'var(--err)', fontSize: 13, marginTop: 8 }}>{addDeviceError}</div>}
             </div>
@@ -650,7 +656,7 @@ export default function PatientDetailClient({ id }: Props) {
                   if (!match) { setAddDeviceError('Select a device from the list above'); return }
                   setAddingDevice(true); setAddDeviceError('')
                   try {
-                    await linkDevice({ patientId: id as Id<'patients'>, deviceId: match._id, serialNumber: addSerial || undefined, implantDate: addDate || undefined, clinicNotes: addNotes || undefined })
+                    await linkDevice({ patientId: id as Id<'patients'>, deviceId: match._id, serialNumber: addSerial || undefined, implantDate: addDate || undefined, clinicNotes: addNotes || undefined, clinicNotesVisibleToPatient: addNotes ? addNotesVisible : undefined })
                     setAddDeviceOpen(false)
                   } catch (e) { setAddDeviceError((e as any)?.message ?? 'Failed to add') }
                   finally { setAddingDevice(false) }
@@ -755,7 +761,12 @@ export default function PatientDetailClient({ id }: Props) {
                     await adminVerifyAndDeletePatient({ patientId: id as Id<'patients'>, code: deleteCode })
                     router.push('/master/patients')
                   } catch (err) {
-                    setDeleteError((err as Error).message ?? 'Deletion failed — try again.')
+                    const raw = (err as Error).message ?? ''
+                    setDeleteError(
+                      raw.toLowerCase().includes('incorrect code')
+                        ? "That code doesn't look right. Please try again."
+                        : raw || 'Deletion failed — try again.'
+                    )
                     setDeleteLoading(false)
                   }
                 }}

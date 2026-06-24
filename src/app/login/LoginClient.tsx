@@ -189,7 +189,7 @@ export default function LoginClient() {
       try {
         const { error: ce } = await signIn.create({ identifier: prefillEmail })
         if (ce) {
-          setError('No account found for this email. Please contact support@implantid.io.')
+          setError("Your account isn't set up yet. If your clinic has invited you, check your email for an activation link — or contact support@implantid.io.")
           return
         }
         const { error: se } = await signIn.emailCode.sendCode()

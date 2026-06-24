@@ -1971,3 +1971,74 @@ export const countPayingSeats = query({
     return allStaff.filter(s => s.jobType === 'surgeon' || s.jobType === 'admin').length
   },
 })
+
+// ── Clinic deletion (admin-only, email-verified) ──────────────────────────────
+
+export const adminGenerateClinicDeleteCode = internalMutation({
+  args: { applicationId: v.id('clinicApplications') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const admin = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin only')
+
+    const app = await ctx.db.get(args.applicationId)
+    if (!app) throw new Error('Clinic not found')
+
+    // Invalidate any existing codes
+    const existing = await ctx.db
+      .query('adminClinicDeleteCodes')
+      .withIndex('by_application', q => q.eq('applicationId', args.applicationId))
+      .collect()
+    for (const doc of existing) await ctx.db.delete(doc._id)
+
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    await ctx.db.insert('adminClinicDeleteCodes', {
+      applicationId: args.applicationId,
+      code,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      used: false,
+    })
+
+    return { code, clinicName: app.facilityName ?? 'Clinic' }
+  },
+})
+
+export const adminVerifyAndDeleteClinic = mutation({
+  args: { applicationId: v.id('clinicApplications'), code: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const admin = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!admin || admin.role !== 'admin') throw new Error('Admin only')
+
+    const codeDoc = await ctx.db
+      .query('adminClinicDeleteCodes')
+      .withIndex('by_application', q => q.eq('applicationId', args.applicationId))
+      .first()
+    if (!codeDoc) throw new Error('No verification code found. Request a new one.')
+    if (codeDoc.used) throw new Error('Code already used. Request a new one.')
+    if (Date.now() > codeDoc.expiresAt) throw new Error('Code expired. Request a new one.')
+    if (codeDoc.code !== args.code) throw new Error('Incorrect code.')
+
+    await ctx.db.patch(codeDoc._id, { used: true })
+
+    const app = await ctx.db.get(args.applicationId)
+
+    // Find and delete the associated clinic (matched by contact email)
+    if (app) {
+      const clinic = await ctx.db
+        .query('clinics')
+        .filter(q => q.eq(q.field('email'), app.contactEmail))
+        .first()
+      if (clinic) {
+        const staffRows = await ctx.db.query('staff').withIndex('by_clinic', q => q.eq('clinicId', clinic._id)).collect()
+        for (const s of staffRows) await ctx.db.delete(s._id)
+        await ctx.db.delete(clinic._id)
+      }
+    }
+
+    // Delete the application record
+    await ctx.db.delete(args.applicationId)
+  },
+})

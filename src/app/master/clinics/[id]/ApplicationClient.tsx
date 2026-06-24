@@ -88,6 +88,17 @@ export default function ApplicationClient({ id }: { id: string }) {
   const [testPreset,      setTestPreset]      = useState('')
   const [testLoading,     setTestLoading]     = useState(false)
 
+  // ── Delete clinic flow ───────────────────────────────────────────────────────
+  const [clinicDeleteStep,    setClinicDeleteStep]    = useState<'idle' | 'confirm' | 'entering'>('idle')
+  const [clinicDeleteCode,    setClinicDeleteCode]    = useState('')
+  const [clinicDeleteError,   setClinicDeleteError]   = useState('')
+  const [clinicDeleteSending, setClinicDeleteSending] = useState(false)
+  const [clinicDeleteLoading, setClinicDeleteLoading] = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const requestClinicDeleteCode  = useAction((api as any).adminDeleteActions.adminRequestClinicDeleteCode)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const verifyAndDeleteClinic    = useMutation((api as any).clinics.adminVerifyAndDeleteClinic)
+
   async function handleResend() {
     if (!app) return
     setResending(true); setResendError(''); setResendDone(false)
@@ -673,6 +684,23 @@ export default function ApplicationClient({ id }: { id: string }) {
         </div>
       )}
 
+      {/* ── Danger zone — delete clinic ─────────────────────────────────── */}
+      <div style={{ marginTop: 32, paddingTop: 20, borderTop: '1px dashed color-mix(in srgb,var(--err) 30%,transparent)', textAlign: 'center' }}>
+        <button
+          type="button"
+          onClick={() => { setClinicDeleteStep('confirm'); setClinicDeleteCode(''); setClinicDeleteError('') }}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--err)',
+            opacity: 0.6,
+            textDecoration: 'underline', textDecorationStyle: 'dotted',
+            textUnderlineOffset: 3,
+          }}
+        >
+          Delete this clinic permanently
+        </button>
+      </div>
+
       {/* ── Confirmation modal ── */}
       {confirmAction && (
         <div className="confirm-back open" onClick={closeConfirm}>
@@ -781,6 +809,127 @@ export default function ApplicationClient({ id }: { id: string }) {
                   {submitting ? 'Unapproving…' : 'Unapprove'}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete clinic — Step 1: warning + send code ─────────────────── */}
+      {clinicDeleteStep === 'confirm' && (
+        <div className="confirm-back open" onClick={() => setClinicDeleteStep('idle')}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div className="confirm-body">
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                </svg>
+              </div>
+              <h3 style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 18, color: 'var(--text)', margin: '0 0 8px', textAlign: 'center' }}>Delete clinic?</h3>
+              <p style={{ fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--muted)', margin: '0 0 16px', textAlign: 'center', lineHeight: 1.6 }}>
+                This will permanently delete <strong style={{ color: 'var(--text)' }}>{app?.facilityName}</strong> and all associated staff records. This cannot be undone.
+              </p>
+              <div style={{ background: 'color-mix(in srgb,var(--err) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--err) 20%,transparent)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--err)', fontFamily: 'var(--ff)', lineHeight: 1.5 }}>
+                A verification code will be sent to harry@dabhandmarketing.com. You will need to enter it to confirm deletion.
+              </div>
+              {clinicDeleteError && (
+                <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginTop: 10 }}>{clinicDeleteError}</div>
+              )}
+            </div>
+            <div className="confirm-actions">
+              <button type="button" className="btn" onClick={() => { setClinicDeleteStep('idle'); setClinicDeleteError('') }} disabled={clinicDeleteSending}>Cancel</button>
+              <button type="button" className="btn btn-danger" disabled={clinicDeleteSending}
+                onClick={async () => {
+                  if (!app) return
+                  setClinicDeleteSending(true); setClinicDeleteError('')
+                  try {
+                    await requestClinicDeleteCode({ applicationId: app._id })
+                    setClinicDeleteStep('entering')
+                  } catch (e) {
+                    setClinicDeleteError(convexMsg(e, 'Failed to send verification code'))
+                  } finally {
+                    setClinicDeleteSending(false)
+                  }
+                }}
+              >
+                {clinicDeleteSending ? 'Sending code…' : 'Send verification code'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete clinic — Step 2: enter code ──────────────────────────── */}
+      {clinicDeleteStep === 'entering' && (
+        <div className="confirm-back open" onClick={() => setClinicDeleteStep('idle')}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div className="confirm-body">
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'color-mix(in srgb,var(--err) 10%,transparent)', display: 'grid', placeItems: 'center', margin: '0 auto 16px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <h3 style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 18, color: 'var(--text)', margin: '0 0 8px', textAlign: 'center' }}>Enter verification code</h3>
+              <p style={{ fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)', margin: '0 0 20px', textAlign: 'center', lineHeight: 1.6 }}>
+                Check harry@dabhandmarketing.com for a 6-digit code. It expires in 10 minutes.
+              </p>
+              <div className="field" style={{ marginBottom: 0 }}>
+                <input
+                  className="input"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="000000"
+                  value={clinicDeleteCode}
+                  maxLength={6}
+                  style={{ textAlign: 'center', fontSize: 28, fontFamily: 'monospace', letterSpacing: 10, fontWeight: 700, padding: '14px 16px' }}
+                  onChange={e => { setClinicDeleteCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setClinicDeleteError('') }}
+                  autoFocus
+                />
+              </div>
+              {clinicDeleteError && (
+                <div style={{ color: 'var(--err)', fontFamily: 'var(--ff)', fontSize: 13, marginTop: 10, textAlign: 'center' }}>{clinicDeleteError}</div>
+              )}
+              <button
+                type="button"
+                style={{ background: 'none', border: 'none', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', cursor: 'pointer', marginTop: 12, padding: 0, textDecoration: 'underline' }}
+                onClick={async () => {
+                  if (!app) return
+                  setClinicDeleteSending(true); setClinicDeleteError('')
+                  try {
+                    await requestClinicDeleteCode({ applicationId: app._id })
+                  } catch (e) {
+                    setClinicDeleteError(convexMsg(e, 'Failed to resend code'))
+                  } finally {
+                    setClinicDeleteSending(false)
+                  }
+                }}
+                disabled={clinicDeleteSending}
+              >
+                {clinicDeleteSending ? 'Sending…' : 'Resend code'}
+              </button>
+            </div>
+            <div className="confirm-actions">
+              <button type="button" className="btn" onClick={() => { setClinicDeleteStep('idle'); setClinicDeleteCode(''); setClinicDeleteError('') }} disabled={clinicDeleteLoading}>Cancel</button>
+              <button type="button" className="btn btn-danger" disabled={clinicDeleteLoading || clinicDeleteCode.length !== 6}
+                onClick={async () => {
+                  if (!app) return
+                  setClinicDeleteLoading(true); setClinicDeleteError('')
+                  try {
+                    await verifyAndDeleteClinic({ applicationId: app._id, code: clinicDeleteCode })
+                    router.push('/master/clinics')
+                  } catch (e) {
+                    const raw = convexMsg(e, '')
+                    setClinicDeleteError(
+                      raw.toLowerCase().includes('incorrect code')
+                        ? "That code doesn't look right. Please try again."
+                        : raw || 'Deletion failed — try again.'
+                    )
+                  } finally {
+                    setClinicDeleteLoading(false)
+                  }
+                }}
+              >
+                {clinicDeleteLoading ? 'Deleting…' : 'Permanently delete clinic'}
+              </button>
             </div>
           </div>
         </div>

@@ -80,6 +80,7 @@ interface Message {
   content: string
   apiContent?: ApiContent[]
   isFileImport?: boolean
+  fileNames?: string[]
 }
 
 interface AttachedFile {
@@ -159,17 +160,37 @@ const SparkleIcon = ({ size = 16, color = 'currentColor' }: { size?: number; col
   </svg>
 )
 
-function MriBadge({ status }: { status: string }) {
-  const cfg: Record<string, { bg: string; color: string; label: string }> = {
-    safe:        { bg: 'rgba(var(--ok-rgb),0.14)',    color: 'var(--ok)',   label: 'MRI Safe' },
-    conditional: { bg: 'rgba(245,158,11,0.14)',      color: '#b45309',     label: 'MRI Conditional' },
-    unsafe:      { bg: 'rgba(var(--err-rgb),0.14)',   color: 'var(--err)',  label: 'MRI Unsafe' },
-    unknown:     { bg: 'rgba(var(--muted2-rgb),0.14)', color: 'var(--muted)', label: 'MRI Unknown' },
-  }
-  const { bg, color, label } = cfg[status] ?? cfg.unknown
+const MRI_CFG: Record<string, { bg: string; color: string; label: string; icon: React.ReactNode }> = {
+  safe: {
+    bg: 'rgba(var(--ok-rgb),0.14)', color: 'var(--ok)', label: 'MR Safe',
+    icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="var(--ok)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>,
+  },
+  conditional: {
+    bg: 'rgba(245,158,11,0.14)', color: '#b45309', label: 'MR Conditional',
+    icon: (
+      <svg width="13" height="12" viewBox="0 0 26 23" fill="none">
+        <path d="M13 2L2 21h22L13 2z" fill="#fef08a" stroke="#854d0e" strokeWidth="1.8" strokeLinejoin="round"/>
+        <rect x="12" y="9" width="2" height="6" rx="1" fill="#854d0e"/>
+        <rect x="12" y="17" width="2" height="2" rx="1" fill="#854d0e"/>
+      </svg>
+    ),
+  },
+  unsafe: {
+    bg: 'rgba(var(--err-rgb),0.14)', color: 'var(--err)', label: 'MR Unsafe',
+    icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="5" y1="5" x2="19" y2="19"/></svg>,
+  },
+  unknown: {
+    bg: 'rgba(var(--muted2-rgb),0.14)', color: 'var(--muted)', label: 'MRI Unknown',
+    icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9 9a3 3 0 0 1 6 0c0 2-3 3-3 3M12 17h.01"/></svg>,
+  },
+}
+
+function MriBadge({ status, large }: { status: string; large?: boolean }) {
+  const cfg = MRI_CFG[status] ?? MRI_CFG.unknown
   return (
-    <span style={{ background: bg, color, fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 5, fontFamily: 'var(--ff)', letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
-      {label}
+    <span style={{ background: cfg.bg, color: cfg.color, fontSize: large ? 12 : 11, fontWeight: 700, padding: large ? '4px 10px' : '3px 8px', borderRadius: 5, fontFamily: 'var(--ff)', letterSpacing: 0.2, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      {cfg.icon}
+      {cfg.label}
     </span>
   )
 }
@@ -222,6 +243,7 @@ export default function AiChatClient() {
   const [importing,        setImporting]        = useState<Record<number, 'loading' | 'done' | 'error'>>({})
   const [importErrors,     setImportErrors]     = useState<Record<number, string>>({})
   const [expandedCards,    setExpandedCards]    = useState<Set<number>>(new Set())
+  const [signatures,       setSignatures]       = useState<Record<number, string>>({})
   const [activeChatId,     setActiveChatId]     = useState<string | null>(null)
   const [hoveredChatId,    setHoveredChatId]    = useState<string | null>(null)
   const [renamingChatId,   setRenamingChatId]   = useState<string | null>(null)
@@ -353,8 +375,10 @@ export default function AiChatClient() {
     setImporting({})
     setImportErrors({})
     setExpandedCards(new Set())
+    setSignatures({})
 
     const isFileMsg = attachedFiles.length > 0
+    const fileNamesSnapshot = attachedFiles.map(f => f.name)
     const apiContent: ApiContent[] = []
     if (isFileMsg) {
       apiContent.push({ type: 'text', text })
@@ -370,7 +394,7 @@ export default function AiChatClient() {
       setAttachedFiles([])
     }
 
-    const newMsg: Message = { role: 'user', content: text, ...(isFileMsg ? { apiContent, isFileImport: true } : {}) }
+    const newMsg: Message = { role: 'user', content: text, ...(isFileMsg ? { apiContent, isFileImport: true, fileNames: fileNamesSnapshot } : {}) }
     const updated = [...messages, newMsg]
     setMessages(updated)
     setLoading(true)
@@ -413,7 +437,7 @@ export default function AiChatClient() {
         }
       }
 
-      const finalMessages = [...updated, { role: 'assistant' as const, content: accumulated, isFileImport: isFileMsg }]
+      const finalMessages = [...updated, { role: 'assistant' as const, content: accumulated, isFileImport: isFileMsg, fileNames: isFileMsg ? fileNamesSnapshot : undefined }]
       setMessages(finalMessages)
 
       // Persist to Convex — strip apiContent (never save base64 to DB)
@@ -433,7 +457,8 @@ export default function AiChatClient() {
     }
   }
 
-  async function handleImportDevice(device: DeviceImport, index: number) {
+  async function handleImportDevice(device: DeviceImport, index: number, signature: string, sourceLabel?: string) {
+    if (!signature.trim()) return
     setImporting(p => ({ ...p, [index]: 'loading' }))
     setImportErrors(p => { const n = { ...p }; delete n[index]; return n })
     try {
@@ -447,8 +472,11 @@ export default function AiChatClient() {
           mriStatus:         device.mriStatus,
           fieldStrengths:    device.fieldStrengths,
           contraindications: device.contraindications,
+          notes:             sourceLabel ? `Extracted via AI from: ${sourceLabel}` : undefined,
         }],
-        submitterName: 'Master Admin', submitterTitle: 'Master Admin', source: 'admin',
+        submitterName:  signature.trim(),
+        submitterTitle: 'Master Admin',
+        source:         'admin',
       })
       setImporting(p => ({ ...p, [index]: 'done' }))
     } catch (e) {
@@ -457,9 +485,9 @@ export default function AiChatClient() {
     }
   }
 
-  async function handleBulkApprove(devices: DeviceImport[]) {
+  async function handleBulkApprove(devices: DeviceImport[], bulkSig: string, sourceLabel?: string) {
     const toImport = devices.map((d, idx) => ({ d, idx })).filter(({ idx }) => !duplicateCheck?.[idx]?.exists && importing[idx] !== 'done')
-    for (const { d, idx } of toImport) await handleImportDevice(d, idx)
+    for (const { d, idx } of toImport) await handleImportDevice(d, idx, bulkSig, sourceLabel)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -473,6 +501,7 @@ export default function AiChatClient() {
     setImporting({})
     setImportErrors({})
     setExpandedCards(new Set())
+    setSignatures({})
     setStreamingContent('')
     setActiveChatId(null)
     setInput('')
@@ -485,6 +514,7 @@ export default function AiChatClient() {
     setImporting({})
     setImportErrors({})
     setExpandedCards(new Set())
+    setSignatures({})
     setStreamingContent('')
     setInput('')
   }
@@ -700,102 +730,207 @@ export default function AiChatClient() {
 
           {messages.map((m, i) => {
             const isLast = i === messages.length - 1
-            const displayContent = m.role === 'assistant' ? stripImportBlock(m.content) : m.content
+            // For file-import assistant messages, suppress the markdown bubble — device cards replace it
+            const isFileAssistant = m.role === 'assistant' && m.isFileImport
+            const displayContent  = m.role === 'assistant' ? stripImportBlock(m.content) : m.content
+            const hasText         = displayContent.trim().length > 0
+            const sourceLabel     = m.fileNames?.join(', ') ?? ''
+
             return (
               <div key={i}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: m.role === 'user' ? 'var(--accent)' : 'rgba(var(--accent-rgb),0.12)', color: m.role === 'user' ? '#fff' : 'var(--accent)', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700 }}>
-                    {m.role === 'user' ? 'MA' : <SparkleIcon size={14} color="var(--accent)" />}
+                {/* User bubble */}
+                {m.role === 'user' && (
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexDirection: 'row-reverse' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: 'var(--accent)', color: '#fff', fontFamily: 'var(--ff)', fontSize: 12, fontWeight: 700 }}>MA</div>
+                    <div style={{ maxWidth: '82%' }}>
+                      <div style={{ background: 'var(--accent)', color: '#fff', borderRadius: '14px 14px 4px 14px', padding: '12px 16px', fontFamily: 'var(--fb)', fontSize: 14, lineHeight: 1.65 }}>
+                        {m.isFileImport && m.fileNames?.length ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {m.fileNames.map(fn => (
+                              <span key={fn} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,0.18)', borderRadius: 6, padding: '3px 9px', fontSize: 12, fontWeight: 600 }}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                {fn}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <MarkdownText text={displayContent} />
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ maxWidth: '82%' }}>
-                    <div style={{ background: m.role === 'user' ? 'var(--accent)' : 'var(--bg2)', color: m.role === 'user' ? '#fff' : 'var(--text)', border: m.role === 'user' ? 'none' : '1px solid var(--border)', borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '4px 14px 14px 14px', padding: '12px 16px', fontFamily: 'var(--fb)', fontSize: 14, lineHeight: 1.65 }}>
-                      {m.role === 'user' && m.isFileImport && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, opacity: 0.85 }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                          <span style={{ fontSize: 12, fontWeight: 600 }}>File attached</span>
-                        </div>
-                      )}
+                )}
+
+                {/* Assistant bubble — hidden for file imports if device cards follow */}
+                {m.role === 'assistant' && (!isFileAssistant || (isLast && parsedDevices.length === 0)) && hasText && (
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginTop: m.role === 'assistant' && i > 0 ? 0 : 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent)' }}>
+                      <SparkleIcon size={14} color="var(--accent)" />
+                    </div>
+                    <div style={{ maxWidth: '82%', background: 'var(--bg2)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '4px 14px 14px 14px', padding: '12px 16px', fontFamily: 'var(--fb)', fontSize: 14, lineHeight: 1.65 }}>
                       <MarkdownText text={displayContent} />
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Device review cards */}
-                {isLast && m.role === 'assistant' && m.isFileImport && parsedDevices.length > 0 && (() => {
-                  const newCount = parsedDevices.filter((_, idx) => !duplicateCheck?.[idx]?.exists && importing[idx] !== 'done').length
-                  const dupCount = parsedDevices.filter((_, idx) => duplicateCheck?.[idx]?.exists).length
+                {/* Device cards — for the last file-import assistant message */}
+                {isLast && isFileAssistant && parsedDevices.length > 0 && (() => {
+                  const newCount  = parsedDevices.filter((_, idx) => !duplicateCheck?.[idx]?.exists && importing[idx] !== 'done').length
+                  const dupCount  = parsedDevices.filter((_, idx) => duplicateCheck?.[idx]?.exists).length
                   const doneCount = parsedDevices.filter((_, idx) => importing[idx] === 'done').length
+
+                  // Shared signature for bulk add (first non-empty per-card sig, or empty)
+                  const firstSig = Object.values(signatures).find(s => s.trim()) ?? ''
+
                   return (
-                    <div style={{ marginTop: 16, marginLeft: 44 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                    <div style={{ marginTop: 12, marginLeft: 44 }}>
+
+                      {/* Summary row */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
                         <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600 }}>
-                          {parsedDevices.length} device{parsedDevices.length !== 1 ? 's' : ''} extracted
-                          {duplicateCheck === undefined && <span style={{ color: 'var(--muted)', fontWeight: 400, marginLeft: 6 }}>· checking for duplicates…</span>}
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <SparkleIcon size={13} color="var(--accent)" />
+                            {parsedDevices.length} device{parsedDevices.length !== 1 ? 's' : ''} extracted
+                          </span>
+                          {duplicateCheck === undefined && <span style={{ color: 'var(--muted)', fontWeight: 400, marginLeft: 6 }}>· checking duplicates…</span>}
                           {dupCount > 0 && <span style={{ color: 'var(--err)', fontWeight: 400, marginLeft: 6 }}>· {dupCount} already in catalogue</span>}
                           {doneCount > 0 && <span style={{ color: 'var(--ok)', fontWeight: 400, marginLeft: 6 }}>· {doneCount} added</span>}
                         </div>
-                        {duplicateCheck !== undefined && newCount > 0 && (
-                          <button className="btn btn-s" style={{ fontSize: 12, padding: '5px 13px', marginLeft: 'auto' }} onClick={() => handleBulkApprove(parsedDevices)}>
-                            Add all {newCount} to catalogue
-                          </button>
+                        {sourceLabel && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--muted)', background: 'rgba(var(--muted2-rgb),0.10)', border: '1px solid var(--border)', borderRadius: 5, padding: '2px 8px', marginLeft: 'auto' }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            {sourceLabel}
+                          </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                      {/* Bulk add row (shown when multiple new devices) */}
+                      {duplicateCheck !== undefined && newCount > 1 && (
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, background: 'rgba(var(--accent-rgb),0.05)', border: '1px solid rgba(var(--accent-rgb),0.15)', borderRadius: 10, padding: '10px 14px' }}>
+                          <input
+                            className="input"
+                            placeholder="Your name — sign to add all"
+                            value={firstSig}
+                            onChange={e => {
+                              const v = e.target.value
+                              setSignatures(prev => {
+                                const next: Record<number, string> = {}
+                                parsedDevices.forEach((_, idx) => { next[idx] = v })
+                                return next
+                              })
+                            }}
+                            style={{ flex: 1, fontSize: 13, padding: '7px 12px' }}
+                          />
+                          <button
+                            className="btn btn-s"
+                            style={{ fontSize: 12, padding: '7px 14px', flexShrink: 0, whiteSpace: 'nowrap' }}
+                            disabled={!firstSig.trim()}
+                            onClick={() => handleBulkApprove(parsedDevices, firstSig, sourceLabel || undefined)}
+                          >
+                            Add all {newCount} to catalogue
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Device cards */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {parsedDevices.map((device, idx) => {
-                          const isDup = duplicateCheck?.[idx]?.exists
-                          const dupStatus = duplicateCheck?.[idx]?.status
+                          const isDup        = duplicateCheck?.[idx]?.exists
+                          const dupStatus    = duplicateCheck?.[idx]?.status
                           const importStatus = importing[idx]
-                          const importErr = importErrors[idx]
-                          const isExpanded = expandedCards.has(idx)
-                          const deviceTitle = device.name ?? device.model
-                          const hasLongNotes = (device.contraindications?.length ?? 0) > 140
+                          const importErr    = importErrors[idx]
+                          const isExpanded   = expandedCards.has(idx)
+                          const deviceTitle  = device.name ?? device.model
+                          const sig          = signatures[idx] ?? ''
+                          const hasLongNotes = (device.contraindications?.length ?? 0) > 200
+
+                          const TABLE_ROWS: Array<{ label: string; value: string | undefined }> = [
+                            { label: 'Device name',     value: device.name },
+                            { label: 'Model',           value: device.model },
+                            { label: 'Manufacturer',    value: device.manufacturer },
+                            { label: 'Device type',     value: device.deviceType },
+                            { label: 'Classification',  value: device.classification ? device.classification.charAt(0).toUpperCase() + device.classification.slice(1) : undefined },
+                            { label: 'Field strengths', value: device.fieldStrengths },
+                          ].filter(r => r.value)
+
                           return (
-                            <div key={idx} style={{ background: isDup ? 'rgba(var(--err-rgb),0.03)' : 'var(--bg)', border: `1px solid ${isDup ? 'rgba(var(--err-rgb),0.18)' : importStatus === 'done' ? 'rgba(var(--ok-rgb),0.25)' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden' }}>
-                              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', background: 'var(--bg2)' }}>
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent-deep)', padding: '2px 8px', borderRadius: 5 }}>{device.deviceType}</span>
+                            <div key={idx} style={{ background: isDup ? 'rgba(var(--err-rgb),0.03)' : importStatus === 'done' ? 'rgba(var(--ok-rgb),0.02)' : 'var(--bg)', border: `1px solid ${isDup ? 'rgba(var(--err-rgb),0.18)' : importStatus === 'done' ? 'rgba(var(--ok-rgb),0.25)' : 'var(--border)'}`, borderRadius: 14, overflow: 'hidden' }}>
+
+                              {/* Card header */}
+                              <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', background: 'var(--bg2)' }}>
+                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 600, background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent-deep)', padding: '3px 9px', borderRadius: 5 }}>{device.deviceType}</span>
                                 <MriBadge status={device.mriStatus} />
-                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted)', background: 'rgba(var(--muted2-rgb),0.14)', padding: '2px 8px', borderRadius: 5, textTransform: 'capitalize' }}>{device.classification}</span>
-                                {isDup && <span style={{ marginLeft: 'auto', fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--err)', fontWeight: 700, flexShrink: 0 }}>Already in catalogue{dupStatus ? ` (${dupStatus.replace('_', ' ')})` : ''}</span>}
-                                {importStatus === 'done' && !isDup && <span style={{ marginLeft: 'auto', fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--ok)', fontWeight: 700, flexShrink: 0 }}>✓ Added</span>}
+                                <span style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted)', background: 'rgba(var(--muted2-rgb),0.12)', padding: '3px 8px', borderRadius: 5, textTransform: 'capitalize' }}>{device.classification}</span>
+                                {isDup && <span style={{ marginLeft: 'auto', fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--err)', fontWeight: 700 }}>Already in catalogue{dupStatus ? ` (${dupStatus.replace('_', ' ')})` : ''}</span>}
+                                {importStatus === 'done' && !isDup && <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--ok)', fontWeight: 700 }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg> Added to catalogue</span>}
                               </div>
-                              <div style={{ padding: '12px 14px' }}>
-                                <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, marginBottom: 2 }}>{deviceTitle}</div>
-                                <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', marginBottom: device.fieldStrengths || device.contraindications ? 10 : 0 }}>
-                                  {device.manufacturer}
-                                  {device.name && device.model && <span> · <span style={{ fontFamily: 'SF Mono,Monaco,monospace', fontSize: 11.5 }}>{device.model}</span></span>}
+
+                              {/* Device identity */}
+                              <div style={{ padding: '14px 16px 0' }}>
+                                <div style={{ fontFamily: 'var(--ff)', fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{deviceTitle}</div>
+                                <div style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', marginBottom: 14 }}>{device.manufacturer}</div>
+
+                                {/* Data table */}
+                                <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', marginBottom: device.contraindications ? 10 : 16 }}>
+                                  {TABLE_ROWS.map((row, ri) => (
+                                    <div key={row.label} style={{ display: 'flex', borderBottom: ri < TABLE_ROWS.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                                      <div style={{ flex: '0 0 130px', padding: '7px 12px', fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, color: 'var(--muted)', background: 'rgba(var(--muted2-rgb),0.06)', borderRight: '1px solid var(--border)' }}>{row.label}</div>
+                                      <div style={{ flex: 1, padding: '7px 12px', fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--text)' }}>{row.value}</div>
+                                    </div>
+                                  ))}
                                 </div>
-                                {device.fieldStrengths && (
-                                  <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--text)', marginBottom: device.contraindications ? 6 : 0 }}>
-                                    <span style={{ color: 'var(--muted)', marginRight: 4 }}>Field strengths:</span>{device.fieldStrengths}
-                                  </div>
-                                )}
+
+                                {/* MRI conditions / notes */}
                                 {device.contraindications && (
-                                  <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--text)', lineHeight: 1.5 }}>
-                                    <span style={{ color: 'var(--muted)' }}>Notes: </span>
-                                    {isExpanded || !hasLongNotes ? device.contraindications : device.contraindications.slice(0, 140) + '…'}
-                                    {hasLongNotes && (
-                                      <button onClick={() => toggleCardExpanded(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent)', padding: '0 0 0 4px', fontWeight: 500 }}>
-                                        {isExpanded ? 'Show less' : 'Show more'}
-                                      </button>
-                                    )}
+                                  <div style={{ marginBottom: 16 }}>
+                                    <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 6 }}>MRI Conditions &amp; Notes</div>
+                                    <div style={{ fontFamily: 'var(--fb)', fontSize: 12.5, color: 'var(--text)', lineHeight: 1.6, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: 8, padding: '10px 12px' }}>
+                                      {isExpanded || !hasLongNotes
+                                        ? device.contraindications
+                                        : device.contraindications.slice(0, 200) + '…'}
+                                      {hasLongNotes && (
+                                        <button onClick={() => toggleCardExpanded(idx)} style={{ display: 'block', marginTop: 4, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent)', padding: 0, fontWeight: 500 }}>
+                                          {isExpanded ? 'Show less' : 'Show full conditions'}
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 )}
                               </div>
+
+                              {/* Add to catalogue footer */}
                               {!isDup && importStatus !== 'done' && (
-                                <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10 }}>
-                                  {importErr && <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--err)', flex: 1 }}>{importErr}</span>}
-                                  {importStatus === 'loading'
-                                    ? <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)' }}>Adding…</span>
-                                    : <button className="btn btn-s" style={{ fontSize: 12.5, padding: '6px 14px' }} onClick={() => handleImportDevice(device, idx)}>Add to catalogue</button>
-                                  }
+                                <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg2)' }}>
+                                  <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '0.8px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 8 }}>Add to catalogue</div>
+                                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <input
+                                      className="input"
+                                      placeholder="Sign with your name to confirm…"
+                                      value={sig}
+                                      onChange={e => setSignatures(prev => ({ ...prev, [idx]: e.target.value }))}
+                                      style={{ flex: 1, minWidth: 180, fontSize: 13, padding: '7px 12px', fontStyle: sig ? 'normal' : 'italic' }}
+                                    />
+                                    {importErr && <span style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--err)', width: '100%' }}>{importErr}</span>}
+                                    {importStatus === 'loading'
+                                      ? <span style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)', flexShrink: 0 }}>Adding…</span>
+                                      : <button
+                                          className="btn btn-s"
+                                          style={{ fontSize: 12.5, padding: '7px 16px', flexShrink: 0, opacity: sig.trim() ? 1 : 0.45 }}
+                                          disabled={!sig.trim()}
+                                          onClick={() => handleImportDevice(device, idx, sig, sourceLabel || undefined)}
+                                        >
+                                          Add to catalogue →
+                                        </button>
+                                    }
+                                  </div>
+                                  <div style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted2)', marginTop: 6 }}>
+                                    Adds as pending review · source document: {sourceLabel || 'AI extraction'}
+                                  </div>
                                 </div>
                               )}
                             </div>
                           )
                         })}
-                      </div>
-                      <div style={{ fontFamily: 'var(--ff)', fontSize: 11.5, color: 'var(--muted2)', marginTop: 10 }}>
-                        Adds as pending review — visible in All Devices for final sign-off before going live
                       </div>
                     </div>
                   )

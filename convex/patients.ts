@@ -76,8 +76,10 @@ export const clinicAddPatient = mutation({
     selfReportedDeviceType:   v.optional(v.string()),
     selfReportedImplantMonth: v.optional(v.string()),
     selfReportedImplantYear:  v.optional(v.string()),
-    selfReportedHospital:     v.optional(v.string()),
-    selfReportedSurgeon:      v.optional(v.string()),
+    selfReportedHospital:           v.optional(v.string()),
+    selfReportedHospitalContactEmail: v.optional(v.string()),
+    selfReportedClinicId:           v.optional(v.string()),
+    selfReportedSurgeon:            v.optional(v.string()),
 
     emergencyContactName:     v.optional(v.string()),
     emergencyContactPhone:    v.optional(v.string()),
@@ -183,6 +185,16 @@ export const clinicAddPatient = mutation({
       phone:         args.phone,
       implantIdCode: code,
     })
+
+    // If unlisted clinic provided a contact email, notify them to verify the record
+    if (args.selfReportedHospitalContactEmail && args.selfReportedHospital && !args.selfReportedClinicId) {
+      await ctx.scheduler.runAfter(0, internal.email.sendUnlistedClinicNotification, {
+        clinicName:      args.selfReportedHospital,
+        contactEmail:    args.selfReportedHospitalContactEmail,
+        patientInitials: `${args.firstName[0]}.${args.lastName[0]}.`,
+        addedByName:     caller.name ?? 'Implant ID admin',
+      })
+    }
 
     return { id: patientId, implantIdCode: code }
   },

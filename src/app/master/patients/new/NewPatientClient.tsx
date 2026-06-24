@@ -18,12 +18,15 @@ interface SelectedDevice {
 }
 
 interface ImplantEntry {
-  id:           number
-  device:       SelectedDevice | null
-  hospital:     string
-  surgeon:      string
-  surgeryMonth: string
-  surgeryYear:  string
+  id:                 number
+  device:             SelectedDevice | null
+  hospital:           string
+  clinicId:           string
+  clinicContactEmail: string
+  clinicIsUnlisted:   boolean
+  surgeon:            string
+  surgeryMonth:       string
+  surgeryYear:        string
 }
 
 interface Opt { value: string; label: string; icon?: string }
@@ -285,6 +288,125 @@ function CountrySelect({ flag, country, onChange }: {
   )
 }
 
+// ── Clinic search ─────────────────────────────────────────────────────────────
+
+interface ClinicResult { _id: string; name: string; city?: string; country?: string; email?: string }
+
+function ClinicSearch({ entry, onChange }: {
+  entry: ImplantEntry
+  onChange: (updated: Partial<ImplantEntry>) => void
+}) {
+  const [query,    setQuery]    = useState(entry.hospital)
+  const [open,     setOpen]     = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const allClinics = (useQuery((api as any).clinics.listClinics) ?? []) as ClinicResult[]
+
+  const results = query.trim().length >= 2
+    ? allClinics.filter(c => {
+        const q = query.toLowerCase()
+        return c.name.toLowerCase().includes(q) || (c.city ?? '').toLowerCase().includes(q)
+      }).slice(0, 8)
+    : []
+
+  const isSelected = !!entry.clinicId
+  const isUnlisted = entry.clinicIsUnlisted
+
+  useEffect(() => {
+    if (!open) return
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  function selectClinic(c: ClinicResult) {
+    setQuery(c.name)
+    setOpen(false)
+    onChange({ hospital: c.name, clinicId: c._id, clinicIsUnlisted: false, clinicContactEmail: '' })
+  }
+
+  function handleInput(v: string) {
+    setQuery(v)
+    setOpen(true)
+    onChange({ hospital: v, clinicId: '', clinicIsUnlisted: false, clinicContactEmail: '' })
+  }
+
+  function markUnlisted() {
+    setOpen(false)
+    onChange({ hospital: query, clinicId: '', clinicIsUnlisted: true })
+  }
+
+  function clear() {
+    setQuery('')
+    setOpen(false)
+    onChange({ hospital: '', clinicId: '', clinicIsUnlisted: false, clinicContactEmail: '' })
+  }
+
+  return (
+    <div ref={ref}>
+      <div className="dev-search-wrap">
+        <div className="dev-search" style={{ borderColor: isUnlisted ? 'rgba(245,158,11,0.45)' : undefined }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <input className="input" placeholder="Search hospitals and clinics…" autoComplete="off"
+            value={query}
+            onChange={e => handleInput(e.target.value)}
+            onFocus={() => query.trim().length >= 2 && setOpen(true)}
+            style={{ border: 0, padding: '11px 0', boxShadow: 'none' }} />
+          {query && (
+            <button type="button" onClick={clear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted2)', padding: '0 4px', fontSize: 14, lineHeight: 1 }} aria-label="Clear">✕</button>
+          )}
+        </div>
+
+        {open && query.trim().length >= 2 && (
+          <div className="dev-results on">
+            {results.length > 0
+              ? results.map(c => (
+                  <a key={c._id} href="#" onClick={e => { e.preventDefault(); selectClinic(c) }}>
+                    <div>
+                      <div className="nm">{c.name}</div>
+                      <div className="mn">{[c.city, c.country].filter(Boolean).join(', ') || 'On Implant ID'}</div>
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ok)', background: 'rgba(var(--ok-rgb),0.12)', padding: '2px 7px', borderRadius: 4, flexShrink: 0 }}>Verified</span>
+                  </a>
+                ))
+              : null
+            }
+            <a href="#" onClick={e => { e.preventDefault(); markUnlisted() }}
+              style={{ borderTop: results.length > 0 ? '1px solid var(--border)' : undefined }}>
+              <div>
+                <div className="nm" style={{ color: 'var(--muted)' }}>Use &ldquo;{query}&rdquo;</div>
+                <div className="mn">Not on Implant ID — we&rsquo;ll flag for verification</div>
+              </div>
+            </a>
+          </div>
+        )}
+      </div>
+
+      {isSelected && (
+        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--ok)' }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Verified on Implant ID
+        </div>
+      )}
+
+      {isUnlisted && (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: '#b45309', background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
+            This facility isn&rsquo;t on Implant ID. If you provide their contact email, we&rsquo;ll send a verification request.
+          </div>
+          <input className="input" type="email" placeholder="Clinic contact email (optional)"
+            value={entry.clinicContactEmail}
+            onChange={e => onChange({ clinicContactEmail: e.target.value })}
+            style={{ fontSize: 13 }} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Device search ─────────────────────────────────────────────────────────────
 
 function DeviceSearch({ onSelect }: { onSelect: (d: SelectedDevice | null) => void }) {
@@ -401,8 +523,7 @@ function ImplantBlock({ entry, index, total, onChange, onRemove }: {
       </div>
       <div className="field">
         <label>Hospital / clinic where implanted</label>
-        <input className="input" placeholder="e.g. Royal Melbourne Hospital" value={entry.hospital}
-          onChange={e => onChange({ ...entry, hospital: e.target.value })} />
+        <ClinicSearch entry={entry} onChange={patch => onChange({ ...entry, ...patch })} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div className="field">
@@ -447,7 +568,7 @@ export default function NewPatientClient() {
 
   const implantIdCounter = useRef(0)
   const [implants, setImplants] = useState<ImplantEntry[]>([
-    { id: 0, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' },
+    { id: 0, device: null, hospital: '', clinicId: '', clinicContactEmail: '', clinicIsUnlisted: false, surgeon: '', surgeryMonth: '', surgeryYear: '' },
   ])
   const [contrastAllergy,     setContrastAllergy]     = useState(false)
   const [contrastAllergyNote, setContrastAllergyNote] = useState('')
@@ -479,7 +600,7 @@ export default function NewPatientClient() {
     setPhoneNum(''); setHeightCm(''); setWeightKg('')
     setCountryName(''); setCountryFlag(''); setNotes('')
     setContrastAllergy(false); setContrastAllergyNote('')
-    setImplants([{ id: 0, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' }])
+    setImplants([{ id: 0, device: null, hospital: '', clinicId: '', clinicContactEmail: '', clinicIsUnlisted: false, surgeon: '', surgeryMonth: '', surgeryYear: '' }])
     setSuccess(null)
   }
 
@@ -523,8 +644,10 @@ export default function NewPatientClient() {
         selfReportedDeviceType:   first?.device?.device_type   || undefined,
         selfReportedImplantMonth: first?.surgeryMonth || undefined,
         selfReportedImplantYear:  first?.surgeryYear  || undefined,
-        selfReportedHospital:     first?.hospital.trim() || undefined,
-        selfReportedSurgeon:      first?.surgeon.trim()  || undefined,
+        selfReportedHospital:              first?.hospital.trim() || undefined,
+        selfReportedClinicId:              first?.clinicId || undefined,
+        selfReportedHospitalContactEmail:  first?.clinicContactEmail.trim() || undefined,
+        selfReportedSurgeon:               first?.surgeon.trim()  || undefined,
 
         additionalNotes:     notes.trim() || undefined,
         heightCm:            heightCm ? Number(heightCm) : undefined,
@@ -771,7 +894,7 @@ export default function NewPatientClient() {
                 <button type="button" className="btn btn-block" style={{ marginTop: 4, marginBottom: 4 }}
                   onClick={() => {
                     implantIdCounter.current += 1
-                    setImplants(prev => [...prev, { id: implantIdCounter.current, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' }])
+                    setImplants(prev => [...prev, { id: implantIdCounter.current, device: null, hospital: '', clinicId: '', clinicContactEmail: '', clinicIsUnlisted: false, surgeon: '', surgeryMonth: '', surgeryYear: '' }])
                   }}>
                   + Add another implant
                 </button>

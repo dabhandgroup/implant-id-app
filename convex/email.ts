@@ -942,3 +942,42 @@ export const sendClinicPatientInviteEmail = internalAction({
     })
   },
 })
+
+// ── Unlisted clinic notification ──────────────────────────────────────────────
+
+export const sendUnlistedClinicNotification = internalAction({
+  args: {
+    clinicName:     v.string(),
+    contactEmail:   v.string(),
+    patientInitials: v.string(),
+    addedByName:    v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r = resend()
+    await r.emails.send({
+      from:    FROM,
+      to:      [args.contactEmail],
+      subject: `Implant record added at ${args.clinicName} — verification requested`,
+      html: buildEmail({
+        title:   'Implant Record Verification',
+        heading: 'A patient implant record at your facility needs verification',
+        body: `
+          <p style="margin:0 0 12px;color:#64748b;font-size:15px;line-height:1.65;">
+            A patient record (initials: <strong>${args.patientInitials}</strong>) has been added to Implant ID
+            for your facility: <strong>${args.clinicName}</strong>.
+          </p>
+          <p style="margin:0 0 12px;color:#64748b;font-size:15px;line-height:1.65;">
+            This record was added by <strong>${args.addedByName}</strong>.
+            If your facility would like to review and verify this record, please contact us at
+            <a href="mailto:${SUPPORT}" style="color:#1a6a80;">${SUPPORT}</a>.
+          </p>
+          <p style="margin:0;color:#64748b;font-size:15px;line-height:1.65;">
+            Implant ID is a medical device registry that helps patients and clinics manage
+            implant records securely. You can apply to join the network at
+            <a href="https://implantid.io" style="color:#1a6a80;">implantid.io</a>.
+          </p>
+        `,
+      }),
+    })
+  },
+})

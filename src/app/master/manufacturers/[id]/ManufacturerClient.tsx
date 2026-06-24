@@ -62,7 +62,7 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 
 export default function ManufacturerClient({ id }: Props) {
   const router   = useRouter()
-  const mfr      = useQuery(api.manufacturers.getApplicationById, { id: id as Id<'manufacturers'> })
+  const mfr      = useQuery(api.manufacturers.getBySlugOrId, { slugOrId: id })
   const review   = useMutation(api.manufacturers.reviewApplication)
   const deleteMfr = useMutation(api.manufacturers.deleteManufacturer)
 
@@ -79,9 +79,10 @@ export default function ManufacturerClient({ id }: Props) {
   function closeConfirm() { if (!submitting) { setConfirmAction(null); setSubmitError('') } }
 
   async function handleDelete() {
+    if (!mfr) return
     setDeleting(true); setDeleteError('')
     try {
-      await deleteMfr({ id: id as Id<'manufacturers'> })
+      await deleteMfr({ id: mfr._id as Id<'manufacturers'> })
       router.push('/master/manufacturers')
     } catch (e) {
       setDeleteError((e as { message?: string })?.message ?? 'Failed to delete — try again.')
@@ -94,7 +95,7 @@ export default function ManufacturerClient({ id }: Props) {
     setSubmitting(true); setSubmitError('')
     try {
       await review({
-        applicationId: id,
+        applicationId: mfr._id,
         decision: confirmAction === 'approve' ? 'approved' : 'rejected',
         notes: confirmAction === 'reject' && rejectNotes.trim() ? rejectNotes.trim() : undefined,
       })
@@ -147,6 +148,7 @@ export default function ManufacturerClient({ id }: Props) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <button className="btn" onClick={() => router.push(`/master/manufacturers/${id}/edit`)}>Edit</button>
           {(isPending || mfr.status === 'rejected') && <button className="btn btn-s" onClick={() => openConfirm('approve')}>Approve ✓</button>}
           {isPending && <button className="btn btn-danger" onClick={() => openConfirm('reject')}>Reject</button>}
         </div>

@@ -408,10 +408,12 @@ export default defineSchema({
     reviewedAt: v.optional(v.number()),
     reviewNotes: v.optional(v.string()),
     clerkUserId: v.optional(v.string()),
+    slug: v.optional(v.string()),
   })
     .index('by_status', ['status'])
     .index('by_email', ['contactEmail'])
-    .index('by_clerk', ['clerkUserId']),
+    .index('by_clerk', ['clerkUserId'])
+    .index('by_slug', ['slug']),
 
   // Source documents & submission contracts
   // Source docs = IFUs, manuals, spec sheets from manufacturer sites (seeded from devices.ts)

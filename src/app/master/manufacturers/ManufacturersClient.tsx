@@ -21,6 +21,7 @@ interface Manufacturer {
   regNumber: string
   website: string
   logoUrl?: string
+  slug?: string
   status: 'pending' | 'approved' | 'rejected'
   submittedAt: number
   reviewedAt?: number
@@ -54,8 +55,9 @@ export default function ManufacturersClient() {
   const pendingApps = useQuery(api.manufacturers.listApplications, { status: 'pending' })
   const rejectedApps = useQuery(api.manufacturers.listApplications, { status: 'rejected' })
   const allMfrs = useQuery(api.manufacturers.listApprovedManufacturers)
-  const review      = useMutation(api.manufacturers.reviewApplication)
-  const deleteMfr   = useMutation(api.manufacturers.deleteManufacturer)
+  const review       = useMutation(api.manufacturers.reviewApplication)
+  const deleteMfr    = useMutation(api.manufacturers.deleteManufacturer)
+  const backfillSlug = useMutation(api.manufacturers.backfillSlugs)
 
   // Local state
   const [tab,          setTab]          = useState<Tab>('all')
@@ -69,6 +71,9 @@ export default function ManufacturersClient() {
   const [deleteModal,   setDeleteModal]   = useState<{ id: string; name: string } | null>(null)
   const [deleteWorking, setDeleteWorking] = useState(false)
   const [deleteError,   setDeleteError]   = useState('')
+
+  // Backfill state
+  const [backfilling, setBackfilling] = useState(false)
 
   async function handleDelete() {
     if (!deleteModal) return
@@ -118,6 +123,17 @@ export default function ManufacturersClient() {
     }
   }
 
+  // URL segment: use slug when available, fall back to Convex ID
+  function mfrUrl(m: Manufacturer) { return `/master/manufacturers/${m.slug ?? m._id}` }
+
+  // Whether any loaded manufacturer is missing a slug
+  const needsBackfill = [...(allMfrs ?? []), ...(pendingApps ?? []), ...(rejectedApps ?? [])].some(m => !(m as Manufacturer).slug)
+
+  async function handleBackfill() {
+    setBackfilling(true)
+    try { await backfillSlug({}) } finally { setBackfilling(false) }
+  }
+
   return (
     <div className="m-content">
       <div className="m-h">
@@ -125,7 +141,12 @@ export default function ManufacturersClient() {
           <h2>Manufacturers</h2>
           <div className="sub">Device manufacturers with access to the Implant ID platform catalogue.</div>
         </div>
-        <div style={{ display:'flex', gap:8 }}>
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+          {needsBackfill && (
+            <button className="btn" onClick={handleBackfill} disabled={backfilling} title="Generate human-readable URL slugs for manufacturers that are missing them">
+              {backfilling ? 'Generating…' : 'Fix URLs'}
+            </button>
+          )}
           <button className="btn" onClick={() => router.push('/master/manufacturers/import')}>Import CSV</button>
           <button className="btn" onClick={() => router.push('/master/manufacturers/new')}>+ Add manually</button>
           <button className="btn btn-s" onClick={() => router.push('/master/manufacturers/invite')}>+ Invite Manufacturer</button>
@@ -167,14 +188,14 @@ export default function ManufacturersClient() {
                 <thead><tr><th>Company</th><th>Contact</th><th>Country</th><th>Applied</th><th>Reg. Number</th><th>Actions</th></tr></thead>
                 <tbody>
                   {pendingApps.map((m: Manufacturer) => (
-                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
+                    <tr key={m._id} onClick={() => router.push(mfrUrl(m))} style={{ cursor:'pointer' }}>
                       <td><div style={{ display:'flex', alignItems:'center', gap:10 }}><MfrAvatar logoUrl={m.logoUrl} name={m.companyName} /><span style={{ fontWeight:500 }}>{m.companyName}</span></div></td>
                       <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
                       <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
                       <td style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted)' }}>{m.regNumber || '—'}</td>
                       <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}>
-                        <a href={`/master/manufacturers/${m._id}`} className="m-act">Review</a>
+                        <a href={mfrUrl(m)} className="m-act">Review</a>
                         <button className="m-act danger" onClick={() => openConfirm('reject', m._id, m.companyName)}>Reject</button>
                         <button className="m-act danger" onClick={() => { setDeleteModal({ id: m._id, name: m.companyName }); setDeleteError('') }}>Delete</button>
                       </td>
@@ -185,7 +206,7 @@ export default function ManufacturersClient() {
             </div>
             <div className="m-list-cards">
               {pendingApps.map((m: Manufacturer) => (
-                <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
+                <div key={m._id} onClick={() => router.push(mfrUrl(m))}
                   style={{ background:'var(--bg2)', border:'1px solid rgba(var(--warn-rgb),0.35)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
@@ -198,7 +219,7 @@ export default function ManufacturersClient() {
                   <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:12 }}>{m.contactEmail}</div>
                   <div style={{ display:'flex', gap:8 }} onClick={e => e.stopPropagation()}>
                     <button className="btn btn-s" style={{ fontSize:12, flex:1 }} onClick={() => openConfirm('approve', m._id, m.companyName)}>Approve</button>
-                    <button className="btn" style={{ fontSize:12, flex:1 }} onClick={() => router.push(`/master/manufacturers/${m._id}`)}>Review</button>
+                    <button className="btn" style={{ fontSize:12, flex:1 }} onClick={() => router.push(mfrUrl(m))}>Review</button>
                   </div>
                 </div>
               ))}
@@ -216,27 +237,27 @@ export default function ManufacturersClient() {
                 <thead><tr><th>Company</th><th>Contact</th><th>Country</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
                 <tbody>
                   {allMfrs.map((m: Manufacturer) => (
-                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
+                    <tr key={m._id} onClick={() => router.push(mfrUrl(m))} style={{ cursor:'pointer' }}>
                       <td><div style={{ display:'flex', alignItems:'center', gap:10 }}><MfrAvatar logoUrl={m.logoUrl} name={m.companyName} /><span style={{ fontWeight:500 }}>{m.companyName}</span></div></td>
                       <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
                       <td><span className="m-status active">Active</span></td>
                       <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
                       <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}>
-                        <a href={`/master/manufacturers/${m._id}`} className="m-act">View</a>
+                        <a href={mfrUrl(m)} className="m-act">View</a>
                         <button className="m-act danger" onClick={() => { setDeleteModal({ id: m._id, name: m.companyName }); setDeleteError('') }}>Delete</button>
                       </td>
                     </tr>
                   ))}
                   {pendingApps.map((m: Manufacturer) => (
-                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
+                    <tr key={m._id} onClick={() => router.push(mfrUrl(m))} style={{ cursor:'pointer' }}>
                       <td><div style={{ display:'flex', alignItems:'center', gap:10 }}><MfrAvatar logoUrl={m.logoUrl} name={m.companyName} /><span style={{ fontWeight:500 }}>{m.companyName}</span></div></td>
                       <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
                       <td><span className="m-status pending">Pending</span></td>
                       <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
                       <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}>
-                        <a href={`/master/manufacturers/${m._id}`} className="m-act">View</a>
+                        <a href={mfrUrl(m)} className="m-act">View</a>
                         <button className="m-act danger" onClick={() => { setDeleteModal({ id: m._id, name: m.companyName }); setDeleteError('') }}>Delete</button>
                       </td>
                     </tr>
@@ -248,7 +269,7 @@ export default function ManufacturersClient() {
               {[...allMfrs.map((m: Manufacturer) => ({ ...m, _status:'active' })), ...pendingApps.map((m: Manufacturer) => ({ ...m, _status:'pending' }))].map((m: any) => (
                 <div key={m._id}
                   style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:10 }}>
-                  <div onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                  <div onClick={() => router.push(mfrUrl(m))} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
                     <MfrAvatar logoUrl={m.logoUrl} name={m.companyName} size={36} />
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:3 }}>{m.companyName}</div>
@@ -258,7 +279,7 @@ export default function ManufacturersClient() {
                     <span className={`m-status ${m._status}`}>{m._status === 'active' ? 'Active' : 'Pending'}</span>
                   </div>
                   <div style={{ display:'flex', gap:8 }}>
-                    <button className="btn" style={{ flex:1, fontSize:12 }} onClick={() => router.push(`/master/manufacturers/${m._id}`)}>View</button>
+                    <button className="btn" style={{ flex:1, fontSize:12 }} onClick={() => router.push(mfrUrl(m))}>View</button>
                     <button className="btn btn-danger" style={{ fontSize:12 }} onClick={() => { setDeleteModal({ id: m._id, name: m.companyName }); setDeleteError('') }}>Delete</button>
                   </div>
                 </div>
@@ -279,7 +300,7 @@ export default function ManufacturersClient() {
                 <thead><tr><th>Company</th><th>Contact</th><th>Country</th><th>Applied</th><th>Rejection Reason</th><th>Actions</th></tr></thead>
                 <tbody>
                   {rejectedApps.map((m: Manufacturer) => (
-                    <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
+                    <tr key={m._id} onClick={() => router.push(mfrUrl(m))} style={{ cursor:'pointer' }}>
                       <td><div style={{ display:'flex', alignItems:'center', gap:10 }}><MfrAvatar logoUrl={m.logoUrl} name={m.companyName} /><span style={{ fontWeight:500 }}>{m.companyName}</span></div></td>
                       <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
@@ -296,7 +317,7 @@ export default function ManufacturersClient() {
             </div>
             <div className="m-list-cards">
               {rejectedApps.map((m: Manufacturer) => (
-                <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
+                <div key={m._id} onClick={() => router.push(mfrUrl(m))}
                   style={{ background:'var(--bg2)', border:'1px solid rgba(var(--err-rgb),0.25)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>

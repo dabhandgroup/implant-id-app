@@ -1,6 +1,50 @@
 import { mutation, query, internalAction, internalMutation } from './_generated/server'
 import { v } from 'convex/values'
 import { internal } from './_generated/api'
+import type { Id } from './_generated/dataModel'
+
+// ── Slug helpers ──────────────────────────────────────────────────────────────
+
+const COUNTRY_ISO2: Record<string, string> = {
+  'Afghanistan':'af','Albania':'al','Algeria':'dz','Argentina':'ar','Australia':'au',
+  'Austria':'at','Belgium':'be','Brazil':'br','Canada':'ca','Chile':'cl','China':'cn',
+  'Colombia':'co','Croatia':'hr','Czech Republic':'cz','Czechia':'cz','Denmark':'dk',
+  'Egypt':'eg','Finland':'fi','France':'fr','Germany':'de','Greece':'gr','Hungary':'hu',
+  'India':'in','Indonesia':'id','Ireland':'ie','Israel':'il','Italy':'it','Japan':'jp',
+  'Malaysia':'my','Mexico':'mx','Netherlands':'nl','New Zealand':'nz','Nigeria':'ng',
+  'Norway':'no','Pakistan':'pk','Philippines':'ph','Poland':'pl','Portugal':'pt',
+  'Romania':'ro','Russia':'ru','Saudi Arabia':'sa','Singapore':'sg','Slovakia':'sk',
+  'Slovenia':'si','South Africa':'za','South Korea':'kr','Spain':'es','Sweden':'se',
+  'Switzerland':'ch','Taiwan':'tw','Thailand':'th','Turkey':'tr','UAE':'ae',
+  'Ukraine':'ua','United Arab Emirates':'ae','United Kingdom':'gb','UK':'gb',
+  'United States':'us','USA':'us','US':'us','Vietnam':'vn',
+}
+
+function slugBase(companyName: string, country: string): string {
+  const cc = COUNTRY_ISO2[country] ?? country.slice(0, 2).toLowerCase()
+  const name = companyName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-{2,}/g, '-')
+  return `${name}-${cc}`
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function uniqueSlug(ctx: any, companyName: string, country: string, excludeId?: Id<'manufacturers'>): Promise<string> {
+  const base = slugBase(companyName, country)
+  let candidate = base
+  let i = 2
+  for (;;) {
+    const existing = await ctx.db
+      .query('manufacturers')
+      .withIndex('by_slug', (q: any) => q.eq('slug', candidate))
+      .first()
+    if (!existing || existing._id === excludeId) return candidate
+    candidate = `${base}-${i++}`
+  }
+}
 
 /** Generate a one-time Convex storage upload URL for manufacturer documents. */
 export const generateUploadUrl = mutation({
@@ -162,6 +206,70 @@ export const getApplicationById = query({
   args: { id: v.id('manufacturers') },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.id)
+  },
+})
+
+/** Get a manufacturer by slug or Convex ID — slug takes priority. */
+export const getBySlugOrId = query({
+  args: { slugOrId: v.string() },
+  handler: async (ctx, args) => {
+    const bySlug = await ctx.db
+      .query('manufacturers')
+      .withIndex('by_slug', (q) => q.eq('slug', args.slugOrId))
+      .first()
+    if (bySlug) return bySlug
+    // Fall back to treating it as a Convex ID
+    try { return await ctx.db.get(args.slugOrId as Id<'manufacturers'>) } catch { return null }
+  },
+})
+
+/** Master admin: update editable fields on a manufacturer record. */
+export const updateManufacturer = mutation({
+  args: {
+    id: v.id('manufacturers'),
+    companyName:             v.optional(v.string()),
+    legalEntityName:         v.optional(v.string()),
+    contactName:             v.optional(v.string()),
+    contactEmail:            v.optional(v.string()),
+    contactPhone:            v.optional(v.string()),
+    contactJobTitle:         v.optional(v.string()),
+    country:                 v.optional(v.string()),
+    website:                 v.optional(v.string()),
+    logoUrl:                 v.optional(v.string()),
+    regNumber:               v.optional(v.string()),
+    iso13485CertNumber:      v.optional(v.string()),
+    iso13485IssuingBody:     v.optional(v.string()),
+    iso13485ExpiryDate:      v.optional(v.string()),
+    regulatoryRegistrations: v.optional(v.string()),
+    deviceCategories:        v.optional(v.array(v.string())),
+    geographicMarkets:       v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, { id, ...patch }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin role required')
+    await ctx.db.patch(id, patch)
+  },
+})
+
+/** Master admin: generate slugs for any manufacturer that doesn't have one yet. */
+export const backfillSlugs = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin role required')
+    const all = await ctx.db.query('manufacturers').collect()
+    let updated = 0
+    for (const mfr of all) {
+      if (mfr.slug) continue
+      const slug = await uniqueSlug(ctx, mfr.companyName, mfr.country, mfr._id)
+      await ctx.db.patch(mfr._id, { slug })
+      updated++
+    }
+    return { updated }
   },
 })
 
@@ -421,8 +529,10 @@ export const adminAddManufacturer = mutation({
     const existingClinic = await ctx.db.query('clinicApplications').withIndex('by_email', q => q.eq('contactEmail', args.contactEmail)).first()
     if (existingClinic && existingClinic.status !== 'rejected') throw new Error('This email is already registered as a clinic account.')
 
+    const slug = await uniqueSlug(ctx, args.companyName, args.country)
     return ctx.db.insert('manufacturers', {
       ...args,
+      slug,
       clerkUserId: undefined,
       status:      'approved',
       submittedAt: Date.now(),
@@ -457,8 +567,10 @@ export const adminBulkAddManufacturers = mutation({
     for (const mfr of args.manufacturers) {
       const existing = await ctx.db.query('manufacturers').withIndex('by_email', q => q.eq('contactEmail', mfr.contactEmail)).first()
       if (existing) { skipped.push(mfr.contactEmail); continue }
+      const slug = await uniqueSlug(ctx, mfr.companyName, mfr.country)
       await ctx.db.insert('manufacturers', {
         ...mfr,
+        slug,
         clerkUserId: undefined,
         status:      'approved',
         submittedAt: now,

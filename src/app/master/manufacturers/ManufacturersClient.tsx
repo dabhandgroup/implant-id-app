@@ -32,15 +32,16 @@ function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function MfrAvatar({ logoUrl, name, size = 28 }: { logoUrl?: string; name: string; size?: number }) {
+function MfrAvatar({ logoUrl, name, size = 36 }: { logoUrl?: string; name: string; size?: number }) {
+  const [failed, setFailed] = useState(false)
   const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
   return (
-    <div style={{ width: size, height: size, borderRadius: 6, background: 'rgba(var(--accent-rgb),0.07)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
-      {logoUrl
+    <div style={{ width: size, height: size, borderRadius: 8, background: 'var(--bg2)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+      {logoUrl && !failed
         // eslint-disable-next-line @next/next/no-img-element
-        ? <img src={logoUrl} alt={name} style={{ width: size - 8, height: size - 8, objectFit: 'contain' }}
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-        : <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: Math.round(size * 0.36), color: 'var(--accent)' }}>{initials}</span>
+        ? <img src={logoUrl} alt={name} style={{ width: size - 10, height: size - 10, objectFit: 'contain', padding: 2 }}
+            onError={() => setFailed(true)} />
+        : <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: Math.round(size * 0.33), color: 'var(--accent)' }}>{initials}</span>
       }
     </div>
   )

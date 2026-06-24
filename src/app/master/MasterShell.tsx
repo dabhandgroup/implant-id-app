@@ -21,6 +21,7 @@ function pageTitleFromPathname(pathname: string): string {
   if (pathname.startsWith('/master/devices/scrape')) return 'Scrape'
   if (pathname.startsWith('/master/devices/ai'))     return 'AI Assistant'
   if (pathname.startsWith('/master/devices'))        return 'Devices'
+  if (pathname.startsWith('/master/patients/new'))   return 'Add Patient'
   if (pathname.startsWith('/master/patients'))       return 'Patients'
   if (pathname.startsWith('/master/manufacturers'))  return 'Manufacturers'
   if (pathname.startsWith('/master/documents'))      return 'Documents'

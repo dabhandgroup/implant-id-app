@@ -4,6 +4,7 @@ import { useQuery }  from 'convex/react'
 import { useRouter } from 'next/navigation'
 import { api }       from '../../../../convex/_generated/api'
 
+
 function formatDate(ts: number) {
   return new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
@@ -38,6 +39,7 @@ export default function MasterPatientsClient() {
           <h2>All Patients</h2>
           <div className="sub">{patients.length} patient{patients.length !== 1 ? 's' : ''} registered on the platform.</div>
         </div>
+        <button className="btn btn-s" onClick={() => router.push('/master/patients/new')}>+ Add patient</button>
       </div>
 
       {/* Search */}

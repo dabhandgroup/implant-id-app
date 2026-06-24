@@ -32,6 +32,20 @@ function formatDate(ms: number): string {
   return new Date(ms).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+function MfrAvatar({ logoUrl, name, size = 28 }: { logoUrl?: string; name: string; size?: number }) {
+  const initials = name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  return (
+    <div style={{ width: size, height: size, borderRadius: 6, background: 'rgba(var(--accent-rgb),0.07)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }}>
+      {logoUrl
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={logoUrl} alt={name} style={{ width: size - 8, height: size - 8, objectFit: 'contain' }}
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+        : <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: Math.round(size * 0.36), color: 'var(--accent)' }}>{initials}</span>
+      }
+    </div>
+  )
+}
+
 export default function ManufacturersClient() {
   const router = useRouter()
 
@@ -148,7 +162,7 @@ export default function ManufacturersClient() {
                 <tbody>
                   {pendingApps.map((m: Manufacturer) => (
                     <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
-                      <td style={{ fontWeight:500 }}>{m.companyName}</td>
+                      <td><div style={{ display:'flex', alignItems:'center', gap:10 }}><MfrAvatar logoUrl={m.logoUrl} name={m.companyName} /><span style={{ fontWeight:500 }}>{m.companyName}</span></div></td>
                       <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
                       <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
@@ -167,8 +181,11 @@ export default function ManufacturersClient() {
               {pendingApps.map((m: Manufacturer) => (
                 <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
                   style={{ background:'var(--bg2)', border:'1px solid rgba(var(--warn-rgb),0.35)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:5 }}>
-                    <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.companyName}</div>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+                      <MfrAvatar logoUrl={m.logoUrl} name={m.companyName} size={36} />
+                      <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.companyName}</div>
+                    </div>
                     <span className="m-status pending" style={{ flexShrink:0, marginLeft:8 }}>Pending</span>
                   </div>
                   <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:10 }}>{m.country} · {formatDate(m.submittedAt)}</div>
@@ -194,7 +211,7 @@ export default function ManufacturersClient() {
                 <tbody>
                   {allMfrs.map((m: Manufacturer) => (
                     <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
-                      <td style={{ fontWeight:500 }}>{m.companyName}</td>
+                      <td><div style={{ display:'flex', alignItems:'center', gap:10 }}><MfrAvatar logoUrl={m.logoUrl} name={m.companyName} /><span style={{ fontWeight:500 }}>{m.companyName}</span></div></td>
                       <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
                       <td><span className="m-status active">Active</span></td>
@@ -207,7 +224,7 @@ export default function ManufacturersClient() {
                   ))}
                   {pendingApps.map((m: Manufacturer) => (
                     <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
-                      <td style={{ fontWeight:500 }}>{m.companyName}</td>
+                      <td><div style={{ display:'flex', alignItems:'center', gap:10 }}><MfrAvatar logoUrl={m.logoUrl} name={m.companyName} /><span style={{ fontWeight:500 }}>{m.companyName}</span></div></td>
                       <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
                       <td><span className="m-status pending">Pending</span></td>
@@ -225,7 +242,8 @@ export default function ManufacturersClient() {
               {[...allMfrs.map((m: Manufacturer) => ({ ...m, _status:'active' })), ...pendingApps.map((m: Manufacturer) => ({ ...m, _status:'pending' }))].map((m: any) => (
                 <div key={m._id}
                   style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:10 }}>
-                  <div onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
+                  <div onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                    <MfrAvatar logoUrl={m.logoUrl} name={m.companyName} size={36} />
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:3 }}>{m.companyName}</div>
                       <div style={{ fontSize:12.5, color:'var(--muted)' }}>{m.contactEmail}</div>
@@ -256,7 +274,7 @@ export default function ManufacturersClient() {
                 <tbody>
                   {rejectedApps.map((m: Manufacturer) => (
                     <tr key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer' }}>
-                      <td style={{ fontWeight:500 }}>{m.companyName}</td>
+                      <td><div style={{ display:'flex', alignItems:'center', gap:10 }}><MfrAvatar logoUrl={m.logoUrl} name={m.companyName} /><span style={{ fontWeight:500 }}>{m.companyName}</span></div></td>
                       <td style={{ color:'var(--muted)' }}>{m.contactEmail}</td>
                       <td>{m.country}</td>
                       <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
@@ -274,8 +292,11 @@ export default function ManufacturersClient() {
               {rejectedApps.map((m: Manufacturer) => (
                 <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
                   style={{ background:'var(--bg2)', border:'1px solid rgba(var(--err-rgb),0.25)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer' }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:5 }}>
-                    <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.companyName}</div>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+                      <MfrAvatar logoUrl={m.logoUrl} name={m.companyName} size={36} />
+                      <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>{m.companyName}</div>
+                    </div>
                     <span style={{ flexShrink:0, marginLeft:8, fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--err)', padding:'2px 8px', borderRadius:4, background:'rgba(var(--err-rgb),0.10)' }}>Rejected</span>
                   </div>
                   <div style={{ fontSize:12.5, color:'var(--muted)', marginBottom:2 }}>{m.country} · {formatDate(m.submittedAt)}</div>

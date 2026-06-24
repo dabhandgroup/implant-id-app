@@ -60,14 +60,17 @@ export default function DeviceDetailClient({ id }: { id: string }) {
   const updateMriStatus   = useMutation(api.devices.updateDeviceMriStatus)
   const deleteDevice      = useMutation(api.devices.deleteDevice)
 
-  const [editingStatus,   setEditingStatus]   = useState(false)
-  const [newStatus,       setNewStatus]       = useState<MriStatus>('conditional')
-  const [saving,          setSaving]          = useState(false)
-  const [saveError,       setSaveError]       = useState('')
-  const [justSaved,       setJustSaved]       = useState(false)
-  const [deleteConfirm,   setDeleteConfirm]   = useState(false)
-  const [deleting,        setDeleting]        = useState(false)
-  const [deleteError,     setDeleteError]     = useState('')
+  const linkedPatients = useQuery(api.devices.getPatientsForDevice, device ? { deviceId: device._id } : 'skip')
+
+  const [editingStatus,    setEditingStatus]   = useState(false)
+  const [newStatus,        setNewStatus]       = useState<MriStatus>('conditional')
+  const [saving,           setSaving]          = useState(false)
+  const [saveError,        setSaveError]       = useState('')
+  const [justSaved,        setJustSaved]       = useState(false)
+  const [deleteConfirm,    setDeleteConfirm]   = useState(false)
+  const [deleting,         setDeleting]        = useState(false)
+  const [deleteError,      setDeleteError]     = useState('')
+  const [showPatients,     setShowPatients]    = useState(false)
 
   // ── Guards ────────────────────────────────────────────────────────────────
   if (device === undefined) {
@@ -142,11 +145,15 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           <div className="sub" style={{ margin: 0, marginTop: 4 }}>{device.deviceType} · {device.classification}</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Patient count — only show when > 0 */}
+          {/* Patient count — clickable when > 0 */}
           {device.patientCount > 0 && (
-            <div style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 8, padding: '6px 12px' }}>
-              {device.patientCount} patient{device.patientCount !== 1 ? 's' : ''} linked
-            </div>
+            <button
+              onClick={() => setShowPatients(true)}
+              aria-label={`View ${device.patientCount} linked patient${device.patientCount !== 1 ? 's' : ''}`}
+              style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--accent)', background: 'color-mix(in srgb,var(--accent) 8%,transparent)', border: '1px solid color-mix(in srgb,var(--accent) 20%,transparent)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', transition: 'all .15s' }}
+            >
+              {device.patientCount} patient{device.patientCount !== 1 ? 's' : ''} linked →
+            </button>
           )}
           <a href={`/master/devices/${slug}/edit`} className="btn">Edit device</a>
           <button className="btn btn-s" onClick={() => { setNewStatus(status); setEditingStatus(true) }}>
@@ -295,6 +302,74 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           ℹ <strong>{device.patientCount} patient{device.patientCount !== 1 ? 's' : ''}</strong> currently have this device linked to their record.
           Changing the MRI status will immediately affect their wallet passes and dashboard card colour.
           This device cannot be deleted while patients are linked.
+        </div>
+      )}
+
+      {/* ── Linked patients modal ─────────────────────────────────────────── */}
+      {showPatients && (
+        <div className="confirm-back open" onClick={() => setShowPatients(false)}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+            <div className="confirm-body" style={{ padding: '24px 24px 8px' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+                <div>
+                  <h3 style={{ margin:0, fontFamily:'var(--ff)', fontSize:17, fontWeight:700, color:'var(--text)' }}>
+                    Linked patients
+                  </h3>
+                  <p style={{ margin:'4px 0 0', fontFamily:'var(--ff)', fontSize:13, color:'var(--muted)' }}>
+                    {device.manufacturer} {device.model}
+                  </p>
+                </div>
+                <button onClick={() => setShowPatients(false)} aria-label="Close" style={{ background:'none', border:0, cursor:'pointer', color:'var(--muted)', fontSize:20, lineHeight:1, padding:4 }}>✕</button>
+              </div>
+
+              {linkedPatients === undefined ? (
+                <div style={{ padding:'24px 0', textAlign:'center', fontFamily:'var(--ff)', fontSize:13, color:'var(--muted)' }}>Loading…</div>
+              ) : linkedPatients.length === 0 ? (
+                <div style={{ padding:'24px 0', textAlign:'center', fontFamily:'var(--ff)', fontSize:13, color:'var(--muted)' }}>No patients currently linked.</div>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', gap:8, maxHeight:400, overflowY:'auto', paddingRight:4 }}>
+                  {linkedPatients.map((p: NonNullable<typeof linkedPatients[number]>) => p && (
+                    <a
+                      key={p._id}
+                      href={`/master/patients/${p._id}`}
+                      onClick={() => setShowPatients(false)}
+                      style={{ display:'flex', alignItems:'center', gap:14, padding:'12px 14px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, textDecoration:'none', transition:'all .15s' }}
+                    >
+                      <div style={{ width:36, height:36, borderRadius:'50%', background:'color-mix(in srgb,var(--accent) 12%,transparent)', display:'grid', placeItems:'center', flexShrink:0 }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.7" aria-hidden="true">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)' }}>
+                          {p.firstName} {p.lastName}
+                        </div>
+                        <div style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted)', marginTop:2 }}>
+                          {p.implantIdCode}
+                        </div>
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, padding:'3px 8px', borderRadius:6,
+                          background: p.verificationStatus === 'active'
+                            ? 'color-mix(in srgb,var(--ok) 12%,transparent)'
+                            : 'color-mix(in srgb,var(--muted) 12%,transparent)',
+                          color: p.verificationStatus === 'active' ? 'var(--ok)' : 'var(--muted)',
+                        }}>
+                          {p.verificationStatus === 'active' ? 'Verified' : 'Pending'}
+                        </span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.7" aria-hidden="true">
+                          <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="confirm-actions">
+              <button className="btn" onClick={() => setShowPatients(false)}>Close</button>
+            </div>
+          </div>
         </div>
       )}
 

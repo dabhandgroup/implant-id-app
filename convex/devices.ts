@@ -357,6 +357,39 @@ export const getDeviceWithUsageBySlug = query({
   },
 })
 
+/** Return the full list of patients linked to a device, for the master admin detail view. */
+export const getPatientsForDevice = query({
+  args: { deviceId: v.id('devices') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return []
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') return []
+
+    const links = await ctx.db
+      .query('patientDevices')
+      .withIndex('by_device', q => q.eq('deviceId', args.deviceId))
+      .filter(q => q.eq(q.field('status'), 'active'))
+      .collect()
+
+    const patients = await Promise.all(
+      links.map(async (link) => {
+        const p = await ctx.db.get(link.patientId)
+        if (!p) return null
+        return {
+          _id:                p._id,
+          firstName:          p.firstName,
+          lastName:           p.lastName,
+          implantIdCode:      p.implantIdCode,
+          verificationStatus: p.verificationStatus,
+          linkedAt:           link._creationTime,
+        }
+      })
+    )
+    return patients.filter(Boolean)
+  },
+})
+
 /** Check which manufacturer+model pairs already exist in the catalogue (case-insensitive). */
 export const findDuplicates = query({
   args: {

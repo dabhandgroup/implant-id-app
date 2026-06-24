@@ -39,8 +39,9 @@ export default function ManufacturersClient() {
   const pendingApps = useQuery(api.manufacturers.listApplications, { status: 'pending' })
   const rejectedApps = useQuery(api.manufacturers.listApplications, { status: 'rejected' })
   const allMfrs = useQuery(api.manufacturers.listApprovedManufacturers)
-  const review  = useMutation(api.manufacturers.reviewApplication)
-  const addMfr  = useMutation(api.manufacturers.adminAddManufacturer)
+  const review      = useMutation(api.manufacturers.reviewApplication)
+  const addMfr      = useMutation(api.manufacturers.adminAddManufacturer)
+  const deleteMfr   = useMutation(api.manufacturers.deleteManufacturer)
 
   // Local state
   const [tab,          setTab]          = useState<Tab>('pending')
@@ -49,6 +50,24 @@ export default function ManufacturersClient() {
   const [confirmed,    setConfirmed]    = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [error,        setError]        = useState('')
+
+  // Delete state
+  const [deleteModal,   setDeleteModal]   = useState<{ id: string; name: string } | null>(null)
+  const [deleteWorking, setDeleteWorking] = useState(false)
+  const [deleteError,   setDeleteError]   = useState('')
+
+  async function handleDelete() {
+    if (!deleteModal) return
+    setDeleteWorking(true); setDeleteError('')
+    try {
+      await deleteMfr({ id: deleteModal.id as never })
+      setDeleteModal(null)
+    } catch (e) {
+      setDeleteError((e as { message?: string })?.message ?? 'Failed to delete — try again')
+    } finally {
+      setDeleteWorking(false)
+    }
+  }
 
   // Add manufacturer manually state
   const [addOpen,    setAddOpen]    = useState(false)
@@ -177,6 +196,7 @@ export default function ManufacturersClient() {
                       <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}>
                         <a href={`/master/manufacturers/${m._id}`} className="m-act">Review</a>
                         <button className="m-act danger" onClick={() => openConfirm('reject', m._id, m.companyName)}>Reject</button>
+                        <button className="m-act danger" onClick={() => { setDeleteModal({ id: m._id, name: m.companyName }); setDeleteError('') }}>Delete</button>
                       </td>
                     </tr>
                   ))}
@@ -219,7 +239,10 @@ export default function ManufacturersClient() {
                       <td>{m.country}</td>
                       <td><span className="m-status active">Active</span></td>
                       <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
-                      <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}><a href={`/master/manufacturers/${m._id}`} className="m-act">View</a></td>
+                      <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}>
+                        <a href={`/master/manufacturers/${m._id}`} className="m-act">View</a>
+                        <button className="m-act danger" onClick={() => { setDeleteModal({ id: m._id, name: m.companyName }); setDeleteError('') }}>Delete</button>
+                      </td>
                     </tr>
                   ))}
                   {pendingApps.map((m: Manufacturer) => (
@@ -229,7 +252,10 @@ export default function ManufacturersClient() {
                       <td>{m.country}</td>
                       <td><span className="m-status pending">Pending</span></td>
                       <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
-                      <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}><a href={`/master/manufacturers/${m._id}`} className="m-act">View</a></td>
+                      <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}>
+                        <a href={`/master/manufacturers/${m._id}`} className="m-act">View</a>
+                        <button className="m-act danger" onClick={() => { setDeleteModal({ id: m._id, name: m.companyName }); setDeleteError('') }}>Delete</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -237,16 +263,19 @@ export default function ManufacturersClient() {
             </div>
             <div className="m-list-cards">
               {[...allMfrs.map((m: Manufacturer) => ({ ...m, _status:'active' })), ...pendingApps.map((m: Manufacturer) => ({ ...m, _status:'pending' }))].map((m: any) => (
-                <div key={m._id} onClick={() => router.push(`/master/manufacturers/${m._id}`)}
-                  style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:10, cursor:'pointer', display:'flex', alignItems:'center', gap:14 }}>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:3 }}>{m.companyName}</div>
-                    <div style={{ fontSize:12.5, color:'var(--muted)' }}>{m.contactEmail}</div>
-                    <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>{m.country}</div>
-                  </div>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
+                <div key={m._id}
+                  style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'14px 16px', marginBottom:10 }}>
+                  <div onClick={() => router.push(`/master/manufacturers/${m._id}`)} style={{ cursor:'pointer', display:'flex', alignItems:'center', gap:14, marginBottom:10 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', marginBottom:3 }}>{m.companyName}</div>
+                      <div style={{ fontSize:12.5, color:'var(--muted)' }}>{m.contactEmail}</div>
+                      <div style={{ fontSize:12, color:'var(--muted)', marginTop:2 }}>{m.country}</div>
+                    </div>
                     <span className={`m-status ${m._status}`}>{m._status === 'active' ? 'Active' : 'Pending'}</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted2)" strokeWidth="1.7"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                  <div style={{ display:'flex', gap:8 }}>
+                    <button className="btn" style={{ flex:1, fontSize:12 }} onClick={() => router.push(`/master/manufacturers/${m._id}`)}>View</button>
+                    <button className="btn btn-danger" style={{ fontSize:12 }} onClick={() => { setDeleteModal({ id: m._id, name: m.companyName }); setDeleteError('') }}>Delete</button>
                   </div>
                 </div>
               ))}
@@ -272,7 +301,10 @@ export default function ManufacturersClient() {
                       <td>{m.country}</td>
                       <td style={{ color:'var(--muted)' }}>{formatDate(m.submittedAt)}</td>
                       <td style={{ color:'var(--muted)', fontStyle:'italic' }}>{m.reviewNotes || 'No reason provided'}</td>
-                      <td onClick={e => e.stopPropagation()}><button className="m-act" onClick={() => openConfirm('approve', m._id, m.companyName)}>Reconsider</button></td>
+                      <td style={{ display:'flex', gap:6 }} onClick={e => e.stopPropagation()}>
+                        <button className="m-act" onClick={() => openConfirm('approve', m._id, m.companyName)}>Reconsider</button>
+                        <button className="m-act danger" onClick={() => { setDeleteModal({ id: m._id, name: m.companyName }); setDeleteError('') }}>Delete</button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -407,6 +439,35 @@ export default function ManufacturersClient() {
               <button className="btn" onClick={closeConfirm} disabled={confirming}>Cancel</button>
               <button className="btn btn-danger" onClick={handleConfirm} disabled={confirming || !rejectReason.trim()}>
                 {confirmed ? 'Rejected' : confirming ? 'Rejecting…' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete manufacturer modal ── */}
+      {deleteModal && (
+        <div className="confirm-back open" onClick={() => !deleteWorking && setDeleteModal(null)}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="confirm-body">
+              <div style={{ width:48, height:48, borderRadius:'50%', background:'color-mix(in srgb,var(--err) 12%,transparent)', display:'grid', placeItems:'center', margin:'0 auto 14px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8" aria-hidden="true">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </div>
+              <h3>Delete manufacturer?</h3>
+              <p style={{ color:'var(--muted)', fontSize:14 }}>
+                <strong style={{ color:'var(--text)' }}>{deleteModal.name}</strong><br/>
+                This will permanently remove their record from the platform. Any devices they have submitted will remain in the catalogue. This cannot be undone.
+              </p>
+              {deleteError && (
+                <p style={{ color:'var(--err)', fontSize:13, marginTop:8 }}>{deleteError}</p>
+              )}
+            </div>
+            <div className="confirm-actions">
+              <button type="button" className="btn" onClick={() => setDeleteModal(null)} disabled={deleteWorking}>Cancel</button>
+              <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={deleteWorking}>
+                {deleteWorking ? 'Deleting…' : 'Yes, delete manufacturer'}
               </button>
             </div>
           </div>

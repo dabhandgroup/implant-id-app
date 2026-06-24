@@ -430,6 +430,20 @@ export const adminAddManufacturer = mutation({
   },
 })
 
+/** Master admin: permanently delete a manufacturer record. */
+export const deleteManufacturer = mutation({
+  args: { id: v.id('manufacturers') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).first()
+    if (!user || user.role !== 'admin') throw new Error('Admin role required')
+    const mfr = await ctx.db.get(args.id)
+    if (!mfr) throw new Error('Manufacturer not found')
+    await ctx.db.delete(args.id)
+  },
+})
+
 /** Master admin: directly invite a manufacturer (skips application process). */
 export const inviteManufacturer = mutation({
   args: {

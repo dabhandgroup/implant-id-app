@@ -64,14 +64,30 @@ export default function ManufacturerClient({ id }: Props) {
   const router   = useRouter()
   const mfr      = useQuery(api.manufacturers.getApplicationById, { id: id as Id<'manufacturers'> })
   const review   = useMutation(api.manufacturers.reviewApplication)
+  const deleteMfr = useMutation(api.manufacturers.deleteManufacturer)
 
   const [confirmAction, setConfirmAction] = useState<ActionType | null>(null)
   const [rejectNotes,   setRejectNotes]   = useState('')
   const [submitting,    setSubmitting]    = useState(false)
   const [submitError,   setSubmitError]   = useState('')
 
+  const [deleteOpen,    setDeleteOpen]    = useState(false)
+  const [deleting,      setDeleting]      = useState(false)
+  const [deleteError,   setDeleteError]   = useState('')
+
   function openConfirm(type: ActionType) { setConfirmAction(type); setRejectNotes(''); setSubmitError('') }
   function closeConfirm() { if (!submitting) { setConfirmAction(null); setSubmitError('') } }
+
+  async function handleDelete() {
+    setDeleting(true); setDeleteError('')
+    try {
+      await deleteMfr({ id: id as Id<'manufacturers'> })
+      router.push('/master/manufacturers')
+    } catch (e) {
+      setDeleteError((e as { message?: string })?.message ?? 'Failed to delete — try again.')
+      setDeleting(false)
+    }
+  }
 
   async function handleConfirm() {
     if (!mfr) return
@@ -108,8 +124,15 @@ export default function ManufacturerClient({ id }: Props) {
 
       {/* ── Profile header ── */}
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '24px 28px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div style={{ width: 60, height: 60, borderRadius: 14, flexShrink: 0, background: 'rgba(var(--accent-rgb),0.14)', border: '1.5px solid rgba(var(--accent-rgb),0.28)', display: 'grid', placeItems: 'center' }}>
-          <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 20, color: 'var(--accent)' }}>{getInitials(mfr.companyName)}</span>
+        <div style={{ width: 60, height: 60, borderRadius: 14, flexShrink: 0, background: 'rgba(var(--accent-rgb),0.08)', border: '1px solid var(--border)', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+          {mfr.logoUrl
+            ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={mfr.logoUrl} alt={mfr.companyName} style={{ width: 44, height: 44, objectFit: 'contain', padding: 2 }}
+                onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.removeAttribute('style') }} />
+            )
+            : null}
+          <span style={{ fontFamily: 'var(--ff)', fontWeight: 700, fontSize: 20, color: 'var(--accent)', display: mfr.logoUrl ? 'none' : 'block' }}>{getInitials(mfr.companyName)}</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ marginBottom: 6, fontFamily: 'var(--ff)' }}>{mfr.companyName}</h2>
@@ -118,14 +141,14 @@ export default function ManufacturerClient({ id }: Props) {
               {isPending && <span style={{ width: 6, height: 6, borderRadius: '50%', background: colour, display: 'inline-block' }} />}
               {mfr.status.charAt(0).toUpperCase() + mfr.status.slice(1)}
             </span>
-            <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>Applied {formatDate(mfr.submittedAt)}</span>
+            <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>Added {formatDate(mfr.submittedAt)}</span>
             {mfr.country && <span style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)' }}>{mfr.country}</span>}
             {mfr.website && <a href={mfr.website.startsWith('http') ? mfr.website : `https://${mfr.website}`} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>{mfr.website}</a>}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           {(isPending || mfr.status === 'rejected') && <button className="btn btn-s" onClick={() => openConfirm('approve')}>Approve ✓</button>}
-          {(isPending || isApproved) && <button className="btn btn-danger" onClick={() => openConfirm('reject')}>{isApproved ? 'Suspend' : 'Reject'}</button>}
+          {isPending && <button className="btn btn-danger" onClick={() => openConfirm('reject')}>Reject</button>}
         </div>
       </div>
 
@@ -191,6 +214,52 @@ export default function ManufacturerClient({ id }: Props) {
         <div style={{ background: 'rgba(var(--err-rgb),0.06)', border: '1px solid rgba(var(--err-rgb),0.18)', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
           <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--err)', marginBottom: 6 }}>Review Notes</div>
           <div style={{ fontFamily: 'var(--fb)', fontSize: 14 }}>{mfr.reviewNotes}</div>
+        </div>
+      )}
+
+      {/* ── Danger zone ── */}
+      <div style={{ marginTop: 32, border: '1px solid rgba(var(--err-rgb),0.25)', borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ padding: '14px 20px', background: 'rgba(var(--err-rgb),0.05)', borderBottom: '1px solid rgba(var(--err-rgb),0.15)' }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 700, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--err)' }}>Danger zone</div>
+        </div>
+        <div style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+          <div>
+            <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Delete manufacturer</div>
+            <div style={{ fontFamily: 'var(--fb)', fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
+              Permanently removes this manufacturer from the platform. Any devices they submitted will remain in the catalogue. This cannot be undone.
+            </div>
+          </div>
+          <button className="btn btn-danger" style={{ flexShrink: 0 }} onClick={() => { setDeleteOpen(true); setDeleteError('') }}>
+            Delete manufacturer
+          </button>
+        </div>
+      </div>
+
+      {/* ── Delete confirm modal ── */}
+      {deleteOpen && (
+        <div className="confirm-back open" onClick={() => !deleting && setDeleteOpen(false)}>
+          <div className="confirm-modal" onClick={e => e.stopPropagation()}>
+            <div className="confirm-body">
+              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(var(--err-rgb),0.12)', display: 'grid', placeItems: 'center', margin: '0 auto 14px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="1.8">
+                  <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+              </div>
+              <h3>Delete manufacturer?</h3>
+              <p style={{ color: 'var(--muted)', fontSize: 14 }}>
+                <strong style={{ color: 'var(--text)' }}>{mfr.companyName}</strong><br />
+                Their record will be permanently removed. Any devices they submitted remain in the catalogue. This cannot be undone.
+              </p>
+              {deleteError && <p style={{ color: 'var(--err)', fontSize: 13, marginTop: 8 }}>{deleteError}</p>}
+            </div>
+            <div className="confirm-actions">
+              <button className="btn" onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Deleting…' : 'Yes, delete manufacturer'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

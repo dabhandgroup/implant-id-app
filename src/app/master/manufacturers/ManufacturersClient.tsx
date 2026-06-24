@@ -43,7 +43,7 @@ export default function ManufacturersClient() {
   const deleteMfr   = useMutation(api.manufacturers.deleteManufacturer)
 
   // Local state
-  const [tab,          setTab]          = useState<Tab>('pending')
+  const [tab,          setTab]          = useState<Tab>('all')
   const [confirmModal, setConfirmModal] = useState<ConfirmModal | null>(null)
   const [confirming,   setConfirming]   = useState(false)
   const [confirmed,    setConfirmed]    = useState(false)

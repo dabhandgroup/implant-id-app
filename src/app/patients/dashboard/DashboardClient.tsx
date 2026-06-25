@@ -110,8 +110,11 @@ export default function DashboardClient() {
   const [revoking,    setRevoking]    = useState(false)
 
   const [photoUploading, setPhotoUploading] = useState(false)
-  const photoInputRef   = useRef<HTMLInputElement>(null)
-  const wCodeRefs       = useRef<(HTMLInputElement | null)[]>([])
+  const [walletInfoOpen, setWalletInfoOpen] = useState(false)
+
+  const photoInputRef     = useRef<HTMLInputElement>(null)
+  const walletDownloadRef = useRef<HTMLAnchorElement>(null)
+  const wCodeRefs         = useRef<(HTMLInputElement | null)[]>([])
   // Prevents the welcome init effect from re-running when Clerk updates the user object mid-flow
   const welcomeShownRef = useRef(false)
   const sidebarRef      = useRef<HTMLDivElement>(null)
@@ -1032,23 +1035,26 @@ export default function DashboardClient() {
                     Wallet — pending
                   </button>
                 ) : (
-                  /* Verified — direct .pkpass download, no popup */
-                  <a
-                    href="/api/wallet/pass"
-                    download
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      background: 'rgba(255,255,255,0.22)', border: '1.5px solid rgba(255,255,255,0.5)',
-                      color: '#fff', borderRadius: 8, padding: '9px 16px',
-                      fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      textDecoration: 'none', transition: 'background .15s',
-                    }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                      <rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>
-                    </svg>
-                    Add to Wallet
-                  </a>
+                  /* Verified — show info dialog before downloading */
+                  <>
+                    <button
+                      onClick={() => setWalletInfoOpen(true)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: 'rgba(255,255,255,0.22)', border: '1.5px solid rgba(255,255,255,0.5)',
+                        color: '#fff', borderRadius: 8, padding: '9px 16px',
+                        fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        transition: 'background .15s',
+                      }}
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>
+                      </svg>
+                      Add to Wallet
+                    </button>
+                    {/* Hidden anchor — triggered programmatically after user confirms */}
+                    <a ref={walletDownloadRef} href="/api/wallet/pass" download style={{ display: 'none' }} aria-hidden="true" />
+                  </>
                 )}
 
                 {/* Share with clinic — locked when pending */}
@@ -1619,6 +1625,96 @@ export default function DashboardClient() {
           <a href="/patients/notifications">View all →</a>
         </div>
       </aside>
+
+      {/* ── Add to Wallet info modal ───────────────────────────────────── */}
+      {walletInfoOpen && (
+        <div
+          style={{ position:'fixed', inset:0, background:'rgba(8,19,23,.6)', backdropFilter:'blur(4px)', zIndex:999, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}
+          onClick={e => { if (e.target === e.currentTarget) setWalletInfoOpen(false) }}
+        >
+          <div style={{ width:'100%', maxWidth:420, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:18, overflow:'hidden', boxShadow:'0 40px 80px -20px rgba(0,0,0,.4)' }}>
+            {/* Header */}
+            <div style={{ padding:'22px 24px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ width:36, height:36, borderRadius:10, background:'rgba(var(--accent-rgb, 41,134,159),.12)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
+                    <rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style={{ fontFamily:'var(--ff)', fontSize:16, fontWeight:700, margin:0, letterSpacing:'-.015em' }}>Add to Apple Wallet</h3>
+                  <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted)', margin:'2px 0 0' }}>Before you download — please read</p>
+                </div>
+              </div>
+              <button onClick={() => setWalletInfoOpen(false)} aria-label="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:18, padding:4, lineHeight:1 }}>✕</button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding:'20px 24px' }}>
+              {/* Info banner */}
+              <div style={{ background:'rgba(234,179,8,.08)', border:'1.5px solid rgba(234,179,8,.35)', borderRadius:10, padding:'13px 15px', marginBottom:18, display:'flex', gap:11 }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.8" style={{ flexShrink:0, marginTop:1 }}>
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <p style={{ fontFamily:'var(--ff)', fontSize:13, color:'#92400e', margin:0, lineHeight:1.5 }}>
+                  <strong>Your Wallet pass is a snapshot.</strong> It won't update automatically if your implant details or record status change.
+                </p>
+              </div>
+
+              {/* Two points */}
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                  <div style={{ width:28, height:28, borderRadius:8, background:'rgba(var(--accent-rgb, 41,134,159),.10)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:1 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+                      <path d="M12 2C8 2 4 5.58 4 9.5c0 5.25 8 12.5 8 12.5s8-7.25 8-12.5C20 5.58 16 2 12 2z"/><circle cx="12" cy="9.5" r="2.5"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:600, color:'var(--text)', margin:'0 0 2px' }}>If you receive a new implant</p>
+                    <p style={{ fontFamily:'var(--ff)', fontSize:13, color:'var(--muted)', margin:0, lineHeight:1.5 }}>Delete the old pass from your Wallet and re-add it here after your new implant is registered on Implant ID.</p>
+                  </div>
+                </div>
+
+                <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                  <div style={{ width:28, height:28, borderRadius:8, background:'rgba(var(--accent-rgb, 41,134,159),.10)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:1 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:600, color:'var(--text)', margin:'0 0 2px' }}>If your record status changes</p>
+                    <p style={{ fontFamily:'var(--ff)', fontSize:13, color:'var(--muted)', margin:0, lineHeight:1.5 }}>Re-download and re-add your pass so it reflects the latest information. Your Implant ID card in this app is always current.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding:'0 24px 22px', display:'flex', gap:10 }}>
+              <button
+                className="btn btn-lg"
+                style={{ flex:1 }}
+                onClick={() => setWalletInfoOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-s btn-lg"
+                style={{ flex:1 }}
+                onClick={() => {
+                  setWalletInfoOpen(false)
+                  walletDownloadRef.current?.click()
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Add to Wallet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Logout modal ───────────────────────────────────────────────────── */}
       <div

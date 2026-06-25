@@ -98,10 +98,7 @@ function buildMasterFixture(opts: {
         <td id="actions-cell">
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
             <span id="countdown-text" style="font-size:10.5px;font-weight:600;color:#b45309;">${countdown}</span>
-            <div style="display:flex;gap:5px">
-              <button id="approve-btn" class="btn btn-s" style="font-size:11px;padding:3px 10px;height:auto">Approve now</button>
-              <button id="cancel-btn" class="btn" style="font-size:11px;padding:3px 10px;height:auto;color:var(--err);border-color:rgba(220,38,38,.3)">Cancel</button>
-            </div>
+            <button id="cancel-btn" class="btn" style="font-size:11px;padding:3px 10px;height:auto;color:var(--err);border-color:rgba(220,38,38,.3)">Cancel</button>
           </div>
         </td>` : ''}
       </tr>
@@ -133,7 +130,6 @@ function buildMasterFixture(opts: {
     const cancelModalInner = document.getElementById('cancel-modal-inner')
     const keepPendingBtn = document.getElementById('keep-pending-btn')
     const confirmCancelBtn = document.getElementById('confirm-cancel-btn')
-    const approveBtn     = document.getElementById('approve-btn')
     const statusCell     = document.getElementById('status-cell')
     const actionsCell    = document.getElementById('actions-cell')
 
@@ -160,14 +156,6 @@ function buildMasterFixture(opts: {
       document.body.setAttribute('data-cancelled', 'true')
     })
 
-    approveBtn.addEventListener('click', async () => {
-      approveBtn.disabled = true
-      approveBtn.textContent = 'Publishing…'
-      await new Promise(r => setTimeout(r, 300))
-      statusCell.innerHTML = '<span style="color:var(--ok);font-size:11.5px;font-weight:600;background:rgba(22,163,74,.10);padding:3px 10px;border-radius:6px">Live</span>'
-      actionsCell.innerHTML = '<span style="color:var(--muted);font-size:12px">Published</span>'
-      document.body.setAttribute('data-approved', 'true')
-    })
   </script>` : ''}
 </body>
 </html>`
@@ -178,7 +166,7 @@ function buildMasterFixture(opts: {
 // ---------------------------------------------------------------------------
 
 test.describe('Master devices — pending device row', () => {
-  test('shows countdown timer and Approve/Cancel buttons for pending device', async ({ page }) => {
+  test('shows countdown timer and Cancel button for pending device', async ({ page }) => {
     await page.setContent(buildMasterFixture())
 
     // Countdown is visible
@@ -187,9 +175,9 @@ test.describe('Master devices — pending device row', () => {
     const text = await countdown.textContent()
     expect(text).toMatch(/Publishes in \d+h \d+m/)
 
-    // Both action buttons present
-    await expect(page.getByRole('button', { name: 'Approve now' })).toBeVisible()
+    // Only Cancel — no Approve now
     await expect(page.getByRole('button', { name: 'Cancel' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Approve now' })).toHaveCount(0)
   })
 
   test('shows correct countdown for a device submitted 22 hours ago', async ({ page }) => {
@@ -198,15 +186,6 @@ test.describe('Master devices — pending device row', () => {
     const text = await page.locator('#countdown-text').textContent()
     // 24h hold - 22h elapsed = 2h remaining
     expect(text).toMatch(/Publishes in 2h/)
-  })
-
-  test('Approve now flow — status changes to Live', async ({ page }) => {
-    await page.setContent(buildMasterFixture())
-
-    await page.getByRole('button', { name: 'Approve now' }).click()
-    await expect(page.locator('#actions-cell')).toContainText('Publishing…')
-    await expect(page.locator('#status-cell')).toContainText('Live', { timeout: 2000 })
-    expect(await page.getAttribute('body', 'data-approved')).toBe('true')
   })
 
   test('Cancel button opens confirmation modal', async ({ page }) => {
@@ -254,11 +233,10 @@ test.describe('Master devices — pending device row', () => {
     expect(await page.getAttribute('body', 'data-cancelled')).toBe('true')
   })
 
-  test('live device shows no countdown or action buttons', async ({ page }) => {
+  test('live device shows no countdown or cancel button', async ({ page }) => {
     await page.setContent(buildMasterFixture({ status: 'live' }))
 
     await expect(page.locator('#countdown-text')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Approve now' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Cancel' })).toHaveCount(0)
     await expect(page.locator('#status-cell')).toContainText('Live')
   })

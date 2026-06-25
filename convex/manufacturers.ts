@@ -774,6 +774,7 @@ export const submitDeviceForReview = mutation({
       companyName:  mfr.companyName,
       deviceName:   `${args.manufacturer} ${args.model}`,
       deviceId:     String(deviceId),
+      portalUrl:    `https://portal.implantid.io/manufacturer/devices/${String(deviceId)}`,
     })
 
     return deviceId

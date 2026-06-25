@@ -952,11 +952,12 @@ export const sendDevicePendingEmail = internalAction({
     companyName:  v.string(),
     deviceName:   v.string(),
     deviceId:     v.string(),
+    portalUrl:    v.string(),
   },
   handler: async (_ctx, args) => {
     const r         = resend()
     const firstName = args.contactName.split(' ')[0]
-    const portalUrl = `https://portal.implantid.io/manufacturer/devices/${args.deviceId}`
+    const portalUrl = args.portalUrl
 
     await r.emails.send({
       from:    FROM,

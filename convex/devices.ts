@@ -178,6 +178,7 @@ export const addDevice = mutation({
         companyName:  'Implant ID (Admin)',
         deviceName:   `${args.manufacturer} ${args.model}`,
         deviceId:     String(id),
+        portalUrl:    `https://portal.implantid.io/master/devices/${String(id)}`,
       })
     }
 

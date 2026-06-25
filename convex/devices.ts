@@ -134,6 +134,11 @@ export const addDevice = mutation({
     sourceDocs:         v.optional(v.array(v.object({ storageId: v.id('_storage'), label: v.optional(v.string()) }))),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const user = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'admin') throw new Error('Admin access required')
+
     const id = await ctx.db.insert('devices', {
       manufacturer:     args.manufacturer,
       model:            args.model,
@@ -156,13 +161,26 @@ export const addDevice = mutation({
       sourcesRaw:       args.sourcesRaw,
       sourceUrls:       args.sourceUrls,
       sourceDocs:       args.sourceDocs,
-      status:           'live',
-      publishedAt:      Date.now(),
+      status:           'pending_review',
       verified:         false,
+      submitterEmail:   user.email ?? undefined,
+      submitterName:    user.name ?? undefined,
     })
-    // Auto-generate human-readable device code from the Convex ID
     const deviceCode = makeDeviceCode(args.manufacturer, args.model, String(id))
     await ctx.db.patch(id, { deviceCode })
+
+    // 24h hold: schedule auto-publish and pending notification
+    await ctx.scheduler.runAfter(24 * 60 * 60 * 1000, internal.devices.publishPendingDevice, { deviceId: id })
+    if (user.email) {
+      await ctx.scheduler.runAfter(0, internal.email.sendDevicePendingEmail, {
+        contactName:  user.name ?? 'Admin',
+        contactEmail: user.email,
+        companyName:  'Implant ID (Admin)',
+        deviceName:   `${args.manufacturer} ${args.model}`,
+        deviceId:     String(id),
+      })
+    }
+
     return { id: String(id), deviceCode }
   },
 })
@@ -231,25 +249,64 @@ export const bulkInsertDevices = mutation({
         contraindications:        d.contraindications,
         oem_ownedNotes:           d.notes,
         sourceUrl:                d.sourceUrl,
-        status:                   isAdmin ? 'live' : 'pending_review',
-        verified:                 isAdmin,
+        status:                   'pending_review',
+        verified:                 false,
         publishedAt:              now,
+        submitterEmail:           user.email ?? undefined,
+        submitterName:            user.name ?? undefined,
         ...(mfrRecord ? { submittedByManufacturerId: mfrRecord._id } : {}),
       })
       ids.push(String(id))
     }
 
-    // Email: bulk pending notification for manufacturer
-    if (!isAdmin && mfrRecord) {
+    // Email: bulk pending notification
+    const notifyEmail   = mfrRecord?.contactEmail ?? user.email
+    const notifyName    = mfrRecord?.contactName  ?? user.name ?? 'Admin'
+    const notifyCompany = mfrRecord?.companyName  ?? 'Implant ID (Admin)'
+
+    if (notifyEmail) {
       await ctx.scheduler.runAfter(0, internal.email.sendDeviceBulkPendingEmail, {
-        contactName:  mfrRecord.contactName,
-        contactEmail: mfrRecord.contactEmail,
-        companyName:  mfrRecord.companyName,
+        contactName:  notifyName,
+        contactEmail: notifyEmail,
+        companyName:  notifyCompany,
         count:        ids.length,
       })
     }
 
     return { inserted: ids.length }
+  },
+})
+
+/** Scheduler target: publish a single pending device and send live email. */
+export const publishPendingDevice = internalMutation({
+  args: { deviceId: v.id('devices') },
+  handler: async (ctx, args) => {
+    const device = await ctx.db.get(args.deviceId)
+    if (!device || device.status !== 'pending_review') return
+
+    await ctx.db.patch(args.deviceId, { status: 'live', verified: true, publishedAt: Date.now() })
+
+    const email = device.submitterEmail
+      ?? (device.submittedByManufacturerId
+        ? (await ctx.db.get(device.submittedByManufacturerId))?.contactEmail
+        : undefined)
+    const name = device.submitterName
+      ?? (device.submittedByManufacturerId
+        ? (await ctx.db.get(device.submittedByManufacturerId))?.contactName
+        : undefined)
+    const company = device.submittedByManufacturerId
+      ? (await ctx.db.get(device.submittedByManufacturerId))?.companyName ?? 'Implant ID'
+      : 'Implant ID (Admin)'
+
+    if (email) {
+      await ctx.scheduler.runAfter(0, internal.email.sendDeviceLiveEmail, {
+        contactName:  name ?? 'Admin',
+        contactEmail: email,
+        companyName:  company,
+        deviceNames:  [`${device.manufacturer} ${device.model}`],
+        deviceId:     String(args.deviceId),
+      })
+    }
   },
 })
 
@@ -310,20 +367,20 @@ export const autoPublishPendingDevices = internalMutation({
         await ctx.db.patch(d._id, { status: 'live', verified: true })
         published++
 
-        if (d.submittedByManufacturerId) {
-          const key = String(d.submittedByManufacturerId)
-          if (!byMfr.has(key)) {
-            const mfr = await ctx.db.get(d.submittedByManufacturerId)
-            if (mfr) {
-              byMfr.set(key, {
-                contactName: mfr.contactName,
-                contactEmail: mfr.contactEmail,
-                companyName: mfr.companyName,
-                deviceNames: [],
-              })
-            }
+        // Key by email so admin + manufacturer paths both group correctly
+        const email   = d.submitterEmail
+          ?? (d.submittedByManufacturerId ? (await ctx.db.get(d.submittedByManufacturerId))?.contactEmail : undefined)
+        const name    = d.submitterName
+          ?? (d.submittedByManufacturerId ? (await ctx.db.get(d.submittedByManufacturerId))?.contactName : undefined)
+        const company = d.submittedByManufacturerId
+          ? (await ctx.db.get(d.submittedByManufacturerId))?.companyName ?? 'Implant ID'
+          : 'Implant ID (Admin)'
+
+        if (email) {
+          if (!byMfr.has(email)) {
+            byMfr.set(email, { contactName: name ?? 'Admin', contactEmail: email, companyName: company, deviceNames: [] })
           }
-          byMfr.get(key)?.deviceNames.push(`${d.manufacturer} ${d.model}`)
+          byMfr.get(email)?.deviceNames.push(`${d.manufacturer} ${d.model}`)
         }
       }
     }

@@ -767,6 +767,15 @@ export const submitDeviceForReview = mutation({
       deviceId,
     })
 
+    // Email: device pending notification
+    await ctx.scheduler.runAfter(0, internal.email.sendDevicePendingEmail, {
+      contactName:  mfr.contactName,
+      contactEmail: mfr.contactEmail,
+      companyName:  mfr.companyName,
+      deviceName:   `${args.manufacturer} ${args.model}`,
+      deviceId:     String(deviceId),
+    })
+
     return deviceId
   },
 })
@@ -790,6 +799,20 @@ export const publishDevice = internalMutation({
         publishedAt: Date.now(),
       })
       console.log('[manufacturers] Auto-published device:', args.deviceId)
+
+      // Email: device live notification
+      if (device.submittedByManufacturerId) {
+        const mfr = await ctx.db.get(device.submittedByManufacturerId)
+        if (mfr) {
+          await ctx.scheduler.runAfter(0, internal.email.sendDeviceLiveEmail, {
+            contactName:  mfr.contactName,
+            contactEmail: mfr.contactEmail,
+            companyName:  mfr.companyName,
+            deviceNames:  [`${device.manufacturer} ${device.model}`],
+            deviceId:     String(args.deviceId),
+          })
+        }
+      }
     }
   },
 })

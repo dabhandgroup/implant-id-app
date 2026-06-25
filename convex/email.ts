@@ -943,6 +943,175 @@ export const sendClinicPatientInviteEmail = internalAction({
   },
 })
 
+// ── Device submitted — pending 24h hold ──────────────────────────────────────
+
+export const sendDevicePendingEmail = internalAction({
+  args: {
+    contactName:  v.string(),
+    contactEmail: v.string(),
+    companyName:  v.string(),
+    deviceName:   v.string(),
+    deviceId:     v.string(),
+  },
+  handler: async (_ctx, args) => {
+    const r         = resend()
+    const firstName = args.contactName.split(' ')[0]
+    const portalUrl = `https://portal.implantid.io/manufacturer/devices/${args.deviceId}`
+
+    await r.emails.send({
+      from:    FROM,
+      to:      args.contactEmail,
+      subject: `${args.deviceName} is pending — publishes in 24 hours`,
+      html: buildEmail({
+        title:   'Device Submission Received',
+        heading: `Submission received, ${firstName}`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            <strong style="color:#0e2a33;">${args.deviceName}</strong> has been submitted
+            to the Implant ID catalogue for <strong style="color:#0e2a33;">${args.companyName}</strong>.
+          </p>
+          <p style="margin:0 0 24px;color:#64748b;font-size:15px;line-height:1.65;">
+            To allow time for review, it will <strong style="color:#0e2a33;">automatically go live
+            in 24 hours</strong>. During this window you can preview the listing and cancel if
+            you need to correct anything. Once live, it will be searchable by clinicians across
+            the network.
+          </p>
+        `,
+        tableRows: [
+          { label: 'Device',       value: args.deviceName },
+          { label: 'Company',      value: args.companyName },
+          { label: 'Status',       value: 'Pending — 24-hour hold' },
+          { label: 'Auto-publishes', value: 'In 24 hours' },
+        ],
+        cta: {
+          label: 'Preview or cancel →',
+          url:   portalUrl,
+        },
+        footerNote: `If you spot an error, open the link above and use the <strong>Cancel</strong>
+          button to pull the device back to draft — then edit and resubmit.
+          Questions? Contact <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})
+
+// ── Bulk device submission — pending 24h hold ─────────────────────────────────
+
+export const sendDeviceBulkPendingEmail = internalAction({
+  args: {
+    contactName:  v.string(),
+    contactEmail: v.string(),
+    companyName:  v.string(),
+    count:        v.number(),
+  },
+  handler: async (_ctx, args) => {
+    const r         = resend()
+    const firstName = args.contactName.split(' ')[0]
+
+    await r.emails.send({
+      from:    FROM,
+      to:      args.contactEmail,
+      subject: `${args.count} device${args.count !== 1 ? 's' : ''} submitted — publishing in 24 hours`,
+      html: buildEmail({
+        title:   'Bulk Submission Received',
+        heading: `${args.count} device${args.count !== 1 ? 's' : ''} received, ${firstName}`,
+        body: `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            <strong style="color:#0e2a33;">${args.count} device${args.count !== 1 ? 's' : ''}</strong>
+            from <strong style="color:#0e2a33;">${args.companyName}</strong> have been added to
+            the Implant ID catalogue.
+          </p>
+          <p style="margin:0 0 24px;color:#64748b;font-size:15px;line-height:1.65;">
+            They will <strong style="color:#0e2a33;">automatically go live in 24 hours</strong>.
+            During this window you can review and cancel individual devices from your portal
+            if you need to make corrections.
+          </p>
+        `,
+        tableRows: [
+          { label: 'Devices submitted', value: String(args.count) },
+          { label: 'Company',           value: args.companyName },
+          { label: 'Status',            value: 'Pending — 24-hour hold' },
+          { label: 'Auto-publishes',    value: 'In 24 hours' },
+        ],
+        cta: {
+          label: 'Review pending devices →',
+          url:   'https://portal.implantid.io/manufacturer/devices',
+        },
+        footerNote: `To cancel an individual device, open the link above, find the pending device
+          and click <strong>Cancel</strong>. It will return to draft so you can correct and resubmit.
+          Questions? Contact <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})
+
+// ── Device is now live ────────────────────────────────────────────────────────
+
+export const sendDeviceLiveEmail = internalAction({
+  args: {
+    contactName:  v.string(),
+    contactEmail: v.string(),
+    companyName:  v.string(),
+    deviceNames:  v.array(v.string()),
+    deviceId:     v.optional(v.string()),
+  },
+  handler: async (_ctx, args) => {
+    const r         = resend()
+    const firstName = args.contactName.split(' ')[0]
+    const isBulk    = args.deviceNames.length > 1
+    const subjectDevice = isBulk
+      ? `${args.deviceNames.length} devices from ${args.companyName} are now live`
+      : `${args.deviceNames[0]} is now live on Implant ID`
+
+    const portalUrl = !isBulk && args.deviceId
+      ? `https://portal.implantid.io/manufacturer/devices/${args.deviceId}`
+      : 'https://portal.implantid.io/manufacturer/devices'
+
+    const deviceList = isBulk
+      ? `<ul style="margin:16px 0 24px;padding-left:20px;color:#64748b;font-size:14px;line-height:1.8;">
+          ${args.deviceNames.map(n => `<li>${n}</li>`).join('')}
+         </ul>`
+      : ''
+
+    await r.emails.send({
+      from:    FROM,
+      to:      args.contactEmail,
+      subject: subjectDevice,
+      html: buildEmail({
+        title:   'Device Published',
+        heading: isBulk ? `${args.deviceNames.length} devices are now live` : `${args.deviceNames[0]} is live!`,
+        body: isBulk ? `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            The following devices from <strong style="color:#0e2a33;">${args.companyName}</strong>
+            have passed the 24-hour review hold and are now live on the Implant ID network.
+            Clinicians can find them when performing implant lookups.
+          </p>
+          ${deviceList}
+        ` : `
+          <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
+            <strong style="color:#0e2a33;">${args.deviceNames[0]}</strong> from
+            <strong style="color:#0e2a33;">${args.companyName}</strong> has passed the
+            24-hour review hold and is now live on the Implant ID network.
+          </p>
+          <p style="margin:0 0 24px;color:#64748b;font-size:15px;line-height:1.65;">
+            It is now searchable by clinicians across the network when they look up
+            patient implant records.
+          </p>
+        `,
+        cta: {
+          label: isBulk ? 'View your devices →' : 'View your live device →',
+          url:   portalUrl,
+        },
+        footerNote: `Questions about your device listing? Contact
+          <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a>.`,
+        includeUnsubscribe: false,
+      }),
+    })
+  },
+})
+
 // ── Unlisted clinic notification ──────────────────────────────────────────────
 
 export const sendUnlistedClinicNotification = internalAction({

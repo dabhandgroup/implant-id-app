@@ -203,29 +203,52 @@ export const bulkInsertDevices = mutation({
 
     const now = Date.now()
     const isAdmin = user.role === 'admin'
+
+    // Manufacturer: look up record for submittedByManufacturerId + email notification
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let mfrRecord: any = null
+    if (!isAdmin) {
+      mfrRecord = await ctx.db
+        .query('manufacturers')
+        .filter(q => q.eq(q.field('contactEmail'), user.email ?? ''))
+        .first()
+    }
+
     const ids: string[] = []
     for (const d of args.devices) {
       const id = await ctx.db.insert('devices', {
-        manufacturer:      d.manufacturer,
-        model:             d.model,
-        deviceType:        d.deviceType,
-        classification:    d.classification ?? 'active',
-        mriStatus:         d.mriStatus,
-        fieldStrengths:    d.fieldStrengths,
-        sarLimit:          d.sarLimit,
-        b1RmsLimit:        d.b1RmsLimit,
-        slewRateLimit:     d.slewRateLimit,
-        gradientLimit:     d.gradientLimit,
-        maxScanTime:       d.maxScanTime,
-        contraindications: d.contraindications,
-        oem_ownedNotes:    d.notes,
-        sourceUrl:         d.sourceUrl,
-        status:            isAdmin ? 'live' : 'pending_review',
-        verified:          isAdmin,
-        publishedAt:       now,
+        manufacturer:             d.manufacturer,
+        model:                    d.model,
+        deviceType:               d.deviceType,
+        classification:           d.classification ?? 'active',
+        mriStatus:                d.mriStatus,
+        fieldStrengths:           d.fieldStrengths,
+        sarLimit:                 d.sarLimit,
+        b1RmsLimit:               d.b1RmsLimit,
+        slewRateLimit:            d.slewRateLimit,
+        gradientLimit:            d.gradientLimit,
+        maxScanTime:              d.maxScanTime,
+        contraindications:        d.contraindications,
+        oem_ownedNotes:           d.notes,
+        sourceUrl:                d.sourceUrl,
+        status:                   isAdmin ? 'live' : 'pending_review',
+        verified:                 isAdmin,
+        publishedAt:              now,
+        ...(mfrRecord ? { submittedByManufacturerId: mfrRecord._id } : {}),
       })
       ids.push(String(id))
     }
+
+    // Email: bulk pending notification for manufacturer
+    if (!isAdmin && mfrRecord) {
+      await ctx.scheduler.runAfter(0, internal.email.sendDeviceBulkPendingEmail, {
+        contactName:  mfrRecord.contactName,
+        contactEmail: mfrRecord.contactEmail,
+        companyName:  mfrRecord.companyName,
+        count:        ids.length,
+      })
+    }
+
     return { inserted: ids.length }
   },
 })
@@ -276,13 +299,45 @@ export const autoPublishPendingDevices = internalMutation({
       .query('devices')
       .withIndex('by_status', q => q.eq('status', 'pending_review'))
       .collect()
+
+    // Collect published devices grouped by manufacturer for batch live emails
+    type MfrGroup = { contactName: string; contactEmail: string; companyName: string; deviceNames: string[] }
+    const byMfr = new Map<string, MfrGroup>()
+
     let published = 0
     for (const d of pending) {
       if (d._creationTime <= cutoff) {
         await ctx.db.patch(d._id, { status: 'live', verified: true })
         published++
+
+        if (d.submittedByManufacturerId) {
+          const key = String(d.submittedByManufacturerId)
+          if (!byMfr.has(key)) {
+            const mfr = await ctx.db.get(d.submittedByManufacturerId)
+            if (mfr) {
+              byMfr.set(key, {
+                contactName: mfr.contactName,
+                contactEmail: mfr.contactEmail,
+                companyName: mfr.companyName,
+                deviceNames: [],
+              })
+            }
+          }
+          byMfr.get(key)?.deviceNames.push(`${d.manufacturer} ${d.model}`)
+        }
       }
     }
+
+    // Schedule one live email per manufacturer (batched)
+    for (const group of byMfr.values()) {
+      await ctx.scheduler.runAfter(0, internal.email.sendDeviceLiveEmail, {
+        contactName:  group.contactName,
+        contactEmail: group.contactEmail,
+        companyName:  group.companyName,
+        deviceNames:  group.deviceNames,
+      })
+    }
+
     return { published }
   },
 })

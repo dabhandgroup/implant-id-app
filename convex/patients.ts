@@ -410,7 +410,8 @@ export const createPatient = mutation({
       contrastAllergy:     args.contrastAllergy,
       contrastAllergyNote: args.contrastAllergyNote,
 
-      verificationStatus: 'pending',
+      verificationStatus:    'pending',
+      clinicSharingEnabled:  false,   // private by default — clinic must request access
     })
 
     // Send welcome email using Clerk identity email
@@ -1777,11 +1778,51 @@ export const requestClinicAccess = mutation({
 export const getFullPatientByCode = query({
   args: { code: v.string() },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+
+    const caller = await ctx.db.query('users').withIndex('by_clerk', q => q.eq('clerkId', identity.subject)).unique()
+    if (!caller) return null
+
     const patient = await ctx.db
       .query('patients')
       .withIndex('by_implant_code', (q) => q.eq('implantIdCode', args.code.trim().toUpperCase()))
       .unique()
     if (!patient) return null
+
+    // Admins and surgeons always get full access
+    const bypassRoles = ['admin', 'surgeon']
+    if (!bypassRoles.includes(caller.role ?? '')) {
+      // Check if patient allows global clinic sharing
+      const isGlobalShare = patient.clinicSharingEnabled === true
+
+      // Otherwise check for an approved access request from this clinic
+      let hasApproved = isGlobalShare
+      let hasPending  = false
+      if (!hasApproved) {
+        const staffRow = await ctx.db.query('staff').withIndex('by_user', q => q.eq('userId', caller._id)).first()
+        if (staffRow) {
+          const reqs = await ctx.db.query('accessRequests')
+            .withIndex('by_clinic', q => q.eq('clinicId', staffRow.clinicId))
+            .filter(q => q.eq(q.field('patientId'), patient._id))
+            .collect()
+          hasApproved = reqs.some(r => r.status === 'approved')
+          hasPending  = !hasApproved && reqs.some(r => r.status === 'pending')
+        }
+      }
+
+      if (!hasApproved) {
+        return {
+          _id:                patient._id,
+          implantIdCode:      patient.implantIdCode,
+          firstName:          patient.firstName,
+          lastName:           patient.lastName,
+          verificationStatus: patient.verificationStatus ?? 'pending',
+          accessRestricted:   true  as const,
+          pendingRequest:     hasPending,
+        }
+      }
+    }
 
     const links = await ctx.db
       .query('patientDevices')

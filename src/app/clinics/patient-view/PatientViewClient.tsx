@@ -76,6 +76,10 @@ export default function PatientViewClient() {
     api.clinics.searchPlatformSurgeons,
     addDevOpen && surgSearch.trim().length >= 2 ? { query: surgSearch } : 'skip',
   )
+  const requestAccess  = useMutation(api.patients.requestClinicAccess)
+  const [requestingSent,  setRequestingSent]  = useState(false)
+  const [requestingBusy,  setRequestingBusy]  = useState(false)
+  const [requestingErr,   setRequestingErr]   = useState('')
   const recordLookup   = useMutation(api.clinics.logClinicPatientScan)
   const verifyPatient  = useMutation(api.patients.verifyPatient)
   const linkDevice     = useMutation(api.patients.linkDeviceToPatient)
@@ -145,6 +149,103 @@ export default function PatientViewClient() {
           fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--err)',
         }}>
           No patient found with code <strong style={{ fontFamily: 'SF Mono,Monaco,monospace' }}>{code}</strong>.
+        </div>
+      </div>
+    )
+  }
+
+  // ── Access restricted ─────────────────────────────────────────────────────
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if ((patient as any).accessRestricted) {
+    const restricted = patient as any
+    return (
+      <div className="m-content">
+        <div className="m-h" style={{ marginBottom: 24 }}>
+          <div>
+            <h2 style={{ margin: 0 }}>Patient record</h2>
+            <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', margin: '3px 0 0' }}>
+              {restricted.implantIdCode}
+            </p>
+          </div>
+          <a href="/clinics/scan-patient" className="btn" style={{ textDecoration: 'none' }}>← Back</a>
+        </div>
+
+        <div style={{
+          background: 'var(--bg2)', border: '1px solid var(--border)',
+          borderRadius: 16, padding: '32px 28px', maxWidth: 520,
+        }}>
+          {/* Lock icon */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <div style={{
+              width: 56, height: 56, borderRadius: 16,
+              background: 'rgba(var(--accent-rgb, 41,134,159),.10)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="1.8">
+                <rect x="3" y="11" width="18" height="11" rx="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+          </div>
+
+          <h3 style={{ fontFamily: 'var(--ff)', fontSize: 18, fontWeight: 700, textAlign: 'center', margin: '0 0 8px', letterSpacing: '-.015em' }}>
+            Access required
+          </h3>
+          <p style={{ fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--muted)', textAlign: 'center', margin: '0 0 4px' }}>
+            <strong style={{ color: 'var(--text)' }}>{restricted.firstName} {restricted.lastName}</strong>
+          </p>
+          <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '0 0 24px', lineHeight: 1.5 }}>
+            This patient controls who can view their record. You need their approval to see full implant details.
+          </p>
+
+          {restricted.pendingRequest ? (
+            <div style={{
+              background: 'rgba(234,179,8,.08)', border: '1.5px solid rgba(234,179,8,.3)',
+              borderRadius: 10, padding: '12px 16px', textAlign: 'center',
+              fontFamily: 'var(--ff)', fontSize: 13.5, color: '#92400e',
+            }}>
+              <strong>Access requested</strong> — awaiting patient approval.
+              The patient will be notified on their Implant ID app.
+            </div>
+          ) : requestingSent ? (
+            <div style={{
+              background: 'rgba(var(--ok-rgb),0.08)', border: '1.5px solid rgba(var(--ok-rgb),0.3)',
+              borderRadius: 10, padding: '12px 16px', textAlign: 'center',
+              fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--ok)',
+            }}>
+              Access request sent — the patient will be notified.
+            </div>
+          ) : (
+            <>
+              {requestingErr && (
+                <p style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--err)', textAlign: 'center', marginBottom: 12 }}>
+                  {requestingErr}
+                </p>
+              )}
+              <button
+                className="btn btn-s btn-block btn-lg"
+                disabled={requestingBusy}
+                onClick={async () => {
+                  setRequestingBusy(true)
+                  setRequestingErr('')
+                  try {
+                    await requestAccess({ patientId: restricted._id })
+                    setRequestingSent(true)
+                  } catch (e) {
+                    setRequestingErr((e as { message?: string })?.message ?? 'Failed — please try again')
+                  } finally {
+                    setRequestingBusy(false)
+                  }
+                }}
+              >
+                {requestingBusy ? 'Sending request…' : 'Request access to full record'}
+              </button>
+              <p style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted2)', textAlign: 'center', margin: '12px 0 0', lineHeight: 1.5 }}>
+                The patient will receive a notification and can approve or decline in their Implant ID app.
+              </p>
+            </>
+          )}
         </div>
       </div>
     )

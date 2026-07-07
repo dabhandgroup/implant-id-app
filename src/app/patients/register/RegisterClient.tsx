@@ -625,7 +625,8 @@ export default function RegisterClient() {
 
   // ── Step 2: phone OTP ─────────────────────────────────────────────────────
   const [phoneOtp,  setPhoneOtp]  = useState(['', '', '', '', '', ''])
-  const phoneRefs = useRef<(HTMLInputElement | null)[]>([])
+  const phoneRefs  = useRef<(HTMLInputElement | null)[]>([])
+  const errorBannerRef = useRef<HTMLDivElement>(null)
 
   // ── Step 3: implant details ───────────────────────────────────────────────
   const implantIdCounter = useRef(0)
@@ -692,7 +693,8 @@ export default function RegisterClient() {
 
   function showErr(msg: string) {
     setError(msg)
-    document.querySelector('.auth-main')?.scrollTo(0, 0)
+    // Scroll the banner into view after React re-renders
+    setTimeout(() => errorBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0)
   }
 
   function goStep(s: Step) {
@@ -794,6 +796,12 @@ export default function RegisterClient() {
 
   async function doSubmit() {
     setError('')
+    // Guard: required fields must be present even if step 1 was somehow bypassed
+    if (!firstName.trim())  return showErr('Please enter your first name')
+    if (!lastName.trim())   return showErr('Please enter your last name')
+    if (!dob)               return showErr('Please enter your date of birth')
+    if (!phoneNum.trim())   return showErr('Please enter your phone number')
+    if (!countryName)       return showErr('Please select your country of birth')
     setLoading(true)
     try {
       const first = implants[0]
@@ -955,7 +963,7 @@ export default function RegisterClient() {
 
           {/* Error banner */}
           {error && (
-            <div style={{
+            <div ref={errorBannerRef} style={{
               background: 'rgba(var(--err-rgb),0.10)',
               border: '1px solid rgba(var(--err-rgb),0.25)',
               borderRadius: 10, padding: '10px 14px',

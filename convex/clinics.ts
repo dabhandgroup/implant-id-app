@@ -30,6 +30,17 @@ export const generateUploadUrl = mutation({
   },
 })
 
+/** Generate a Convex storage upload URL for clinic onboarding applicants.
+ *  Only requires Clerk auth — applicants are not staff members yet. */
+export const onboardingGenerateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated — please sign in before uploading')
+    return await ctx.storage.generateUploadUrl()
+  },
+})
+
 /** Save a clinic logo after upload — gets URL from storage and patches the clinic record. */
 export const saveClinicLogoUrl = mutation({
   args: { storageId: v.id('_storage') },

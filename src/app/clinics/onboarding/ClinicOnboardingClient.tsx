@@ -1,7 +1,7 @@
 'use client'
-import { useState, useRef } from 'react'
-import { useMutation }      from 'convex/react'
-import { api }              from '../../../../convex/_generated/api'
+import { useState, useRef, useEffect } from 'react'
+import { useMutation }                  from 'convex/react'
+import { api }                          from '../../../../convex/_generated/api'
 import { CustomSelect }     from '@/components/ui/CustomSelect'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -97,7 +97,8 @@ function SidePanel() {
 
 export default function ClinicOnboardingClient() {
   const submitApplication = useMutation(api.clinics.submitClinicApplication)
-  const generateUploadUrl = useMutation(api.clinics.generateUploadUrl)
+  // Use onboarding-specific URL generator — applicants are not staff members yet
+  const generateUploadUrl = useMutation(api.clinics.onboardingGenerateUploadUrl)
 
   // Section 1 — Clinic information
   const [facilityName,    setFacilityName]    = useState('')
@@ -132,6 +133,11 @@ export default function ClinicOnboardingClient() {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
   const [done,    setDone]    = useState(false)
+  const errorRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [error])
 
   // ── File drop handlers ─────────────────────────────────────────────────────
 
@@ -282,7 +288,7 @@ export default function ClinicOnboardingClient() {
 
           {/* Error banner */}
           {error && (
-            <div style={{
+            <div ref={errorRef} style={{
               background:'rgba(var(--err-rgb),0.10)',
               border:'1px solid rgba(var(--err-rgb),0.25)',
               borderRadius:10, padding:'10px 14px', fontSize:13.5, color:'var(--err)', marginBottom:24,

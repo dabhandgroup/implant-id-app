@@ -114,17 +114,18 @@ export default function ClinicOnboardingClient() {
   const [contactEmail, setContactEmail] = useState('')
   const [contactPhone, setContactPhone] = useState('')
 
-  // Section 3 — Accreditation (UI only — no upload backend yet)
-  const [accreditationFile, setAccreditationFile] = useState<File | null>(null)
-  const [dragOver,          setDragOver]          = useState(false)
+  // Section 3 — Accreditation (optional)
+  const [accreditationFile,   setAccreditationFile]   = useState<File | null>(null)
+  const [accreditationNumber, setAccreditationNumber] = useState('')
+  const [dragOver,            setDragOver]            = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Section 4 — Regulatory body (optional)
   const [regulatoryBody,  setRegulatoryBody]  = useState('')
   const [registrationNum, setRegistrationNum] = useState('')
 
-  // Section 5 — Services / capabilities
-  const [services, setServices] = useState<string[]>([])
+  // Section 5 — Scanner hardware (optional)
+  const [scannerInfo, setScannerInfo] = useState('')
 
   // Section 6 — Additional information
   const [additionalInfo, setAdditionalInfo] = useState('')
@@ -166,9 +167,7 @@ export default function ClinicOnboardingClient() {
     if (!contactName.trim())     return setError('Enter the primary contact name')
     if (!contactEmail.trim() || !contactEmail.includes('@'))
       return setError('Enter a valid email address')
-    if (!accreditationFile)      return setError('Upload your accreditation certificate or proof of registration')
     if (!regulatoryBody)         return setError('Select your regulatory or accreditation body')
-    if (!registrationNum.trim()) return setError('Enter your registration or licence number')
 
     setLoading(true)
 
@@ -199,10 +198,11 @@ export default function ClinicOnboardingClient() {
         facilityType,
         facilityAddress: facilityAddress.trim(),
         facilityCountry,
-        regulatoryBody:  regulatoryBody         || undefined,
-        registrationNum: registrationNum.trim() || undefined,
-        services:        services,
-        additionalInfo:  additionalInfo.trim()  || undefined,
+        regulatoryBody:      regulatoryBody              || undefined,
+        registrationNum:     registrationNum.trim()      || undefined,
+        accreditationNumber: accreditationNumber.trim()  || undefined,
+        scannerInfo:         scannerInfo.trim()          || undefined,
+        additionalInfo:      additionalInfo.trim()       || undefined,
         mriScannerCount:     mriCount    ? Number(mriCount)    : undefined,
         staffUsingImplantId: staffCount  ? Number(staffCount)  : undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -452,12 +452,11 @@ export default function ClinicOnboardingClient() {
             <div className="form-section">
               <h3>
                 <span className="num">3</span>
-                Accreditation
-                <span style={{ color:'var(--err)', marginLeft:2 }}>*</span>
+                Accreditation <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
               </h3>
               <p className="desc">
-                Upload your registration certificate or proof of accreditation.
-                This is required as part of the verification process.
+                Upload a certificate or proof of accreditation if you have one, and / or enter your
+                personal accreditation number (e.g. HCPC or AHPRA registration number).
               </p>
 
               <input
@@ -499,6 +498,18 @@ export default function ClinicOnboardingClient() {
                   </>
                 )}
               </div>
+
+              <div className="field" style={{ marginTop:14 }}>
+                <label>HCPC / AHPRA number <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="e.g. PH123456 or MED0001234"
+                  value={accreditationNumber}
+                  onChange={e => setAccreditationNumber(e.target.value)}
+                  aria-label="HCPC or AHPRA accreditation number"
+                />
+              </div>
             </div>
 
             {/* ── Section 4: Regulatory body ───────────────────────────────── */}
@@ -537,32 +548,26 @@ export default function ClinicOnboardingClient() {
               </div>
             </div>
 
-            {/* ── Section 5: Services & specialisms ───────────────────────── */}
+            {/* ── Section 5: Scanner hardware ──────────────────────────────── */}
             <div className="form-section">
               <h3>
                 <span className="num">5</span>
-                Services &amp; specialisms <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
+                Scanner hardware <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
               </h3>
-              <p className="desc">Select the implant types and services your clinic handles. These appear as filters patients use on the &ldquo;Find a clinic&rdquo; page.</p>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
-                {[
-                  'Pacemaker / ICD', 'Cochlear', 'DBS / Neurostim',
-                  'Spinal Cord', 'MRI Centre', 'Orthopaedic',
-                ].map(opt => {
-                  const isOn = services.includes(opt)
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      className={`cap-chip${isOn ? ' on' : ''}`}
-                      onClick={() => setServices(prev => isOn ? prev.filter(s => s !== opt) : [...prev, opt])}
-                      aria-pressed={isOn}
-                    >
-                      {opt}
-                    </button>
-                  )
-                })}
-              </div>
+              <p className="desc">
+                Describe the MRI scanner(s) at your site — manufacturer, model, field strength
+                (e.g. 1.5T / 3T / 7T), scanner type (open / closed / standing), and maximum
+                spatial gradient if known. This helps us match patients to compatible scanners.
+              </p>
+              <textarea
+                className="input"
+                rows={4}
+                placeholder="e.g. Siemens MAGNETOM Vida 3T, closed-bore. Philips Ingenia 1.5T, open. Max spatial gradient 80 T/m."
+                value={scannerInfo}
+                onChange={e => setScannerInfo(e.target.value)}
+                style={{ resize:'vertical', minHeight:100 }}
+                aria-label="MRI scanner hardware details"
+              />
             </div>
 
             {/* ── Section 6: Additional information ───────────────────────── */}

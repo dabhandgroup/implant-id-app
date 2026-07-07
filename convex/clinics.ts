@@ -81,9 +81,11 @@ export const submitClinicApplication = mutation({
     regulatoryBody:  v.optional(v.string()),
     registrationNum: v.optional(v.string()),
 
-    // Services
-    services:       v.array(v.string()),
-    additionalInfo: v.optional(v.string()),
+    // Services / scanner info
+    services:            v.optional(v.array(v.string())),
+    scannerInfo:         v.optional(v.string()),
+    accreditationNumber: v.optional(v.string()),
+    additionalInfo:      v.optional(v.string()),
 
     // Facility capacity (kept as separate fields so the detail page can display them cleanly)
     mriScannerCount:     v.optional(v.number()),
@@ -134,26 +136,28 @@ export const submitClinicApplication = mutation({
       facilityType:    args.facilityType,
       facilityCity:    args.facilityCity,
       facilityCountry: args.facilityCountry,
-      services:        args.services,
+      services:    args.services,
+      scannerInfo: args.scannerInfo,
     })
 
     // Confirmation email to the clinic — receipt of everything they submitted
     await ctx.scheduler.runAfter(0, internal.email.sendClinicApplicationConfirmationEmail, {
-      contactName:     args.contactName,
-      contactEmail:    args.contactEmail,
-      facilityName:    args.facilityName,
-      facilityType:    args.facilityType,
-      facilityAddress: args.facilityAddress,
-      facilityCity:    args.facilityCity,
-      facilityCountry: args.facilityCountry,
-      facilityWebsite: args.facilityWebsite,
-      facilityPhone:   args.facilityPhone,
-      contactPhone:    args.contactPhone,
-      jobTitle:        args.jobTitle,
-      regulatoryBody:  args.regulatoryBody,
-      registrationNum: args.registrationNum,
-      services:        args.services,
-      additionalInfo:  args.additionalInfo,
+      contactName:         args.contactName,
+      contactEmail:        args.contactEmail,
+      facilityName:        args.facilityName,
+      facilityType:        args.facilityType,
+      facilityAddress:     args.facilityAddress,
+      facilityCity:        args.facilityCity,
+      facilityCountry:     args.facilityCountry,
+      facilityWebsite:     args.facilityWebsite,
+      facilityPhone:       args.facilityPhone,
+      contactPhone:        args.contactPhone,
+      jobTitle:            args.jobTitle,
+      regulatoryBody:      args.regulatoryBody,
+      registrationNum:     args.registrationNum,
+      accreditationNumber: args.accreditationNumber,
+      scannerInfo:         args.scannerInfo,
+      additionalInfo:      args.additionalInfo,
     })
 
     return { id, alreadySubmitted: false }
@@ -834,7 +838,7 @@ export const reviewApplication = mutation({
           phone:          app.facilityPhone ?? app.contactPhone ?? undefined,
           email:          app.contactEmail,
           website:        app.facilityWebsite ?? undefined,
-          capabilities:   app.services,
+          capabilities:   app.services ?? [],
           status:         'active',
           showToPatients: true,
           billingStatus:  'trialing',

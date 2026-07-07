@@ -387,11 +387,11 @@ export default function ApplicationClient({ id }: { id: string }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <InfoField label="Type"    value={app.facilityType} />
             <InfoField label="Address" value={address} />
-            {app.services.length > 0 && (
+            {(app.services ?? []).length > 0 && (
               <div>
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 11, color: 'var(--muted2)', marginBottom: 4 }}>Services</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                  {app.services.map(s => (
+                  {(app.services ?? []).map(s => (
                     <span key={s} style={{
                       fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 500,
                       background: 'var(--bg)', border: '1px solid var(--border)',

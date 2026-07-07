@@ -26,7 +26,8 @@ export const sendClinicApplicationEmail = internalAction({
     facilityType:    v.string(),
     facilityCity:    v.optional(v.string()),
     facilityCountry: v.string(),
-    services:        v.array(v.string()),
+    services:        v.optional(v.array(v.string())),
+    scannerInfo:     v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const adminEmails = await ctx.runQuery(
@@ -55,7 +56,8 @@ export const sendClinicApplicationEmail = internalAction({
           { label: 'Location',  value: location },
           { label: 'Contact',   value: args.contactName },
           { label: 'Email',     value: args.contactEmail },
-          { label: 'Services',  value: args.services.join(', ') || '—' },
+          { label: 'Services',  value: (args.services ?? []).join(', ') || '—' },
+          ...(args.scannerInfo ? [{ label: 'Scanner hardware', value: args.scannerInfo }] : []),
         ],
         cta: {
           label: 'Review application →',
@@ -83,10 +85,12 @@ export const sendClinicApplicationConfirmationEmail = internalAction({
     facilityPhone:   v.optional(v.string()),
     contactPhone:    v.optional(v.string()),
     jobTitle:        v.optional(v.string()),
-    regulatoryBody:  v.optional(v.string()),
-    registrationNum: v.optional(v.string()),
-    services:        v.array(v.string()),
-    additionalInfo:  v.optional(v.string()),
+    regulatoryBody:      v.optional(v.string()),
+    registrationNum:     v.optional(v.string()),
+    accreditationNumber: v.optional(v.string()),
+    services:            v.optional(v.array(v.string())),
+    scannerInfo:         v.optional(v.string()),
+    additionalInfo:      v.optional(v.string()),
   },
   handler: async (_ctx, args) => {
     const r         = resend()
@@ -106,10 +110,11 @@ export const sendClinicApplicationConfirmationEmail = internalAction({
       { label: 'Contact email',    value: args.contactEmail },
       ...(args.contactPhone    ? [{ label: 'Contact phone',   value: args.contactPhone }]    : []),
       ...(args.jobTitle        ? [{ label: 'Job title',       value: args.jobTitle }]        : []),
-      ...(args.regulatoryBody  ? [{ label: 'Regulatory body', value: args.regulatoryBody }]  : []),
-      ...(args.registrationNum ? [{ label: 'Reg. number',     value: args.registrationNum }] : []),
-      { label: 'Services',         value: args.services.join(', ') || '—' },
-      ...(args.additionalInfo  ? [{ label: 'Additional info', value: args.additionalInfo }]  : []),
+      ...(args.regulatoryBody      ? [{ label: 'Regulatory body',    value: args.regulatoryBody }]      : []),
+      ...(args.registrationNum     ? [{ label: 'Reg. number',        value: args.registrationNum }]     : []),
+      ...(args.accreditationNumber ? [{ label: 'HCPC / AHPRA no.',  value: args.accreditationNumber }] : []),
+      ...(args.scannerInfo         ? [{ label: 'Scanner hardware',   value: args.scannerInfo }]         : []),
+      ...(args.additionalInfo      ? [{ label: 'Additional info',    value: args.additionalInfo }]      : []),
     ]
 
     await r.emails.send({

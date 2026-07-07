@@ -25,6 +25,7 @@ interface ImplantEntry {
   device:       SelectedDevice | null
   hospital:     string
   surgeon:      string
+  surgeryDay:   string
   surgeryMonth: string
   surgeryYear:  string
 }
@@ -264,10 +265,16 @@ function DobPicker({ value, onChange }: { value: string; onChange: (v: string) =
   )
 }
 
-// ── Surgery date picker (month + year only) ───────────────────────────────────
+// ── Surgery date picker (day / month / year) ──────────────────────────────────
 
-function SurgeryDatePicker({ month, year, onMonthChange, onYearChange }: {
-  month: string; year: string
+const DAYS: SelectOption[] = Array.from({ length: 31 }, (_, i) => {
+  const d = String(i + 1).padStart(2, '0')
+  return { value: d, label: String(i + 1) }
+})
+
+function SurgeryDatePicker({ day, month, year, onDayChange, onMonthChange, onYearChange }: {
+  day: string; month: string; year: string
+  onDayChange:   (d: string) => void
   onMonthChange: (m: string) => void
   onYearChange:  (y: string) => void
 }) {
@@ -279,6 +286,13 @@ function SurgeryDatePicker({ month, year, onMonthChange, onYearChange }: {
 
   return (
     <div style={{ display: 'flex', gap: 8 }}>
+      <CompactSelect
+        style={{ flex: '0 0 72px' }}
+        options={DAYS}
+        value={day}
+        placeholder="Day"
+        onChange={onDayChange}
+      />
       <CompactSelect
         style={{ flex: 1 }}
         options={MONTHS}
@@ -555,7 +569,8 @@ function ImplantBlock({
         <div className="field">
           <label>Date of surgery</label>
           <SurgeryDatePicker
-            month={entry.surgeryMonth} year={entry.surgeryYear}
+            day={entry.surgeryDay} month={entry.surgeryMonth} year={entry.surgeryYear}
+            onDayChange={d   => onChange({ ...entry, surgeryDay: d   })}
             onMonthChange={m => onChange({ ...entry, surgeryMonth: m })}
             onYearChange={y  => onChange({ ...entry, surgeryYear: y  })}
           />
@@ -631,7 +646,7 @@ export default function RegisterClient() {
   // ── Step 3: implant details ───────────────────────────────────────────────
   const implantIdCounter = useRef(0)
   const [implants, setImplants] = useState<ImplantEntry[]>([
-    { id: 0, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' },
+    { id: 0, device: null, hospital: '', surgeon: '', surgeryDay: '', surgeryMonth: '', surgeryYear: '' },
   ])
 
   // ── Step 4: summary ───────────────────────────────────────────────────────
@@ -806,7 +821,7 @@ export default function RegisterClient() {
     try {
       const first = implants[0]
       const extra = implants.slice(1).filter(imp =>
-        imp.device || imp.hospital || imp.surgeon || imp.surgeryMonth || imp.surgeryYear
+        imp.device || imp.hospital || imp.surgeon || imp.surgeryDay || imp.surgeryMonth || imp.surgeryYear
       )
       const result = await createPatient({
         firstName: firstName.trim(),
@@ -820,6 +835,7 @@ export default function RegisterClient() {
         selfReportedManufacturer: first?.device?.manufacturer  || undefined,
         selfReportedModelNumber:  first?.device?.model_number  || undefined,
         selfReportedDeviceType:   first?.device?.device_type   || undefined,
+        selfReportedImplantDay:   first?.surgeryDay   || undefined,
         selfReportedImplantMonth: first?.surgeryMonth || undefined,
         selfReportedImplantYear:  first?.surgeryYear  || undefined,
         selfReportedHospital:     first?.hospital.trim() || undefined,
@@ -831,6 +847,7 @@ export default function RegisterClient() {
               manufacturer: imp.device?.manufacturer  || null,
               modelNumber:  imp.device?.model_number  || null,
               deviceType:   imp.device?.device_type   || null,
+              day:          imp.surgeryDay   || null,
               month:        imp.surgeryMonth || null,
               year:         imp.surgeryYear  || null,
               hospital:     imp.hospital || null,
@@ -1130,7 +1147,7 @@ export default function RegisterClient() {
                   implantIdCounter.current += 1
                   setImplants(prev => [
                     ...prev,
-                    { id: implantIdCounter.current, device: null, hospital: '', surgeon: '', surgeryMonth: '', surgeryYear: '' },
+                    { id: implantIdCounter.current, device: null, hospital: '', surgeon: '', surgeryDay: '', surgeryMonth: '', surgeryYear: '' },
                   ])
                 }}>
                 + Add another implant
@@ -1276,10 +1293,11 @@ export default function RegisterClient() {
                       <span className="v">{imp.surgeon}</span>
                     </div>
                   )}
-                  {(imp.surgeryMonth || imp.surgeryYear) && (
+                  {(imp.surgeryDay || imp.surgeryMonth || imp.surgeryYear) && (
                     <div className="row">
                       <span className="k">Surgery date</span>
                       <span className="v">
+                        {imp.surgeryDay ? `${parseInt(imp.surgeryDay)} ` : ''}
                         {imp.surgeryMonth ? MONTHS.find(m => m.value === imp.surgeryMonth)?.label : ''}{' '}
                         {imp.surgeryYear}
                       </span>

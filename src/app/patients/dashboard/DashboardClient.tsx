@@ -989,7 +989,11 @@ export default function DashboardClient() {
                     <div className="k" style={{ color: isPending ? '#94a3b8' : undefined }}>Implanted</div>
                     <div className="v" style={{ color: isPending ? '#334155' : undefined }}>
                       {patient.selfReportedImplantMonth
-                        ? `${MONTHS[parseInt(patient.selfReportedImplantMonth)-1]?.slice(0,3)} ${patient.selfReportedImplantYear}`
+                        ? [
+                            (patient as any).selfReportedImplantDay ? parseInt((patient as any).selfReportedImplantDay) + ' ' : '',
+                            MONTHS[parseInt(patient.selfReportedImplantMonth)-1]?.slice(0,3),
+                            ' ' + patient.selfReportedImplantYear,
+                          ].join('')
                         : patient.selfReportedImplantYear}
                     </div>
                   </div>

@@ -107,6 +107,7 @@ export default defineSchema({
     selfReportedManufacturer: v.optional(v.string()),  // manufacturer common_name
     selfReportedModelNumber:  v.optional(v.string()),  // model_number
     selfReportedDeviceType:   v.optional(v.string()),  // e.g. "Pacemaker"
+    selfReportedImplantDay:   v.optional(v.string()),  // DD
     selfReportedImplantMonth: v.optional(v.string()),  // MM
     selfReportedImplantYear:  v.optional(v.string()),  // YYYY
     selfReportedHospital:     v.optional(v.string()),
@@ -335,8 +336,10 @@ export default defineSchema({
     regulatoryBody:   v.optional(v.string()),
     registrationNum:  v.optional(v.string()),
 
-    // Services
-    services:         v.array(v.string()),  // e.g. ["MRI", "Pacemaker clinics"]
+    // Services / scanner info
+    services:         v.optional(v.array(v.string())),  // legacy — now optional
+    scannerInfo:      v.optional(v.string()),            // free-text scanner hardware description
+    accreditationNumber: v.optional(v.string()),         // personal accreditation number (HCPC/AHPRA)
     additionalInfo:   v.optional(v.string()),
 
     // Facility capacity (collected in onboarding form)

@@ -1,8 +1,10 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
-import { useMutation }                  from 'convex/react'
-import { api }                          from '../../../../convex/_generated/api'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useMutation, useQuery }                 from 'convex/react'
+import { api }                                   from '../../../../convex/_generated/api'
 import { CustomSelect }     from '@/components/ui/CustomSelect'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const apiAny = api as any
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -93,6 +95,120 @@ function SidePanel() {
   )
 }
 
+// ── Scanner picker ────────────────────────────────────────────────────────────
+
+interface ScDoc { _id: string; manufacturer: string; model: string; fieldStrength: string; scannerType: string }
+
+function ScannerPicker({
+  selected, onSelect, onRemove,
+}: {
+  selected:  ScDoc[]
+  onSelect:  (s: ScDoc) => void
+  onRemove:  (id: string) => void
+}) {
+  const allScanners = useQuery(apiAny.scanners.listApprovedScanners) as ScDoc[] | undefined
+  const [search, setSearch] = useState('')
+  const [open,   setOpen]   = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const results = useMemo(() => {
+    if (!allScanners || !search.trim()) return []
+    const q = search.toLowerCase()
+    return allScanners
+      .filter(s => !selected.some(sel => sel._id === s._id))
+      .filter(s =>
+        s.manufacturer.toLowerCase().includes(q) ||
+        s.model.toLowerCase().includes(q) ||
+        s.fieldStrength.toLowerCase().includes(q)
+      )
+      .slice(0, 8)
+  }, [allScanners, search, selected])
+
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+      {/* Selected scanners */}
+      {selected.length > 0 && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+          {selected.map(s => (
+            <span key={s._id} style={{
+              display:'inline-flex', alignItems:'center', gap:7,
+              background:'rgba(var(--accent-rgb),0.10)', border:'1px solid rgba(var(--accent-rgb),0.25)',
+              borderRadius:8, padding:'5px 10px', fontFamily:'var(--ff)', fontSize:13, color:'var(--accent-deep)',
+            }}>
+              <span style={{ fontWeight:600 }}>{s.fieldStrength}</span>
+              {s.manufacturer} {s.model}
+              <button
+                type="button"
+                onClick={() => onRemove(s._id)}
+                aria-label={`Remove ${s.manufacturer} ${s.model}`}
+                style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--accent)', padding:0, lineHeight:1, display:'flex' }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Search input */}
+      <div ref={ref} style={{ position:'relative' }}>
+        <input
+          className="input"
+          placeholder="Search scanner (e.g. Siemens 3T, Philips 1.5T…)"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          aria-label="Search MRI scanners"
+          aria-autocomplete="list"
+        />
+        {open && results.length > 0 && (
+          <div style={{
+            position:'absolute', top:'calc(100% + 4px)', left:0, right:0, zIndex:99,
+            background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10,
+            boxShadow:'0 8px 24px rgba(0,0,0,.12)', maxHeight:240, overflowY:'auto',
+          }}>
+            {results.map(s => (
+              <button
+                key={s._id}
+                type="button"
+                onMouseDown={e => { e.preventDefault(); onSelect(s); setSearch(''); setOpen(false) }}
+                style={{
+                  display:'flex', alignItems:'center', gap:10, width:'100%', textAlign:'left',
+                  padding:'10px 14px', background:'transparent', border:'none', cursor:'pointer',
+                  borderBottom:'1px solid var(--border)', fontFamily:'var(--ff)',
+                }}
+              >
+                <span style={{ background:'rgba(var(--accent-rgb),0.10)', color:'var(--accent-deep)', borderRadius:5, padding:'2px 7px', fontSize:11, fontWeight:700 }}>{s.fieldStrength}</span>
+                <span style={{ fontWeight:600, fontSize:13.5, color:'var(--text)' }}>{s.manufacturer} {s.model}</span>
+                <span style={{ fontSize:12, color:'var(--muted)', marginLeft:'auto' }}>{s.scannerType}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {open && search.trim() && results.length === 0 && allScanners !== undefined && (
+          <div style={{
+            position:'absolute', top:'calc(100% + 4px)', left:0, right:0, zIndex:99,
+            background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10,
+            padding:'14px 16px', fontFamily:'var(--ff)', fontSize:13.5, color:'var(--muted)',
+          }}>
+            No matching scanners found. You can add yours from <strong>clinic settings</strong> after sign-up, or ask us to add it.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ClinicOnboardingClient() {
@@ -125,7 +241,7 @@ export default function ClinicOnboardingClient() {
   const [registrationNum, setRegistrationNum] = useState('')
 
   // Section 5 — Scanner hardware (optional)
-  const [scannerInfo, setScannerInfo] = useState('')
+  const [selectedScanners, setSelectedScanners] = useState<ScDoc[]>([])
 
   // Section 6 — Additional information
   const [additionalInfo, setAdditionalInfo] = useState('')
@@ -201,7 +317,7 @@ export default function ClinicOnboardingClient() {
         regulatoryBody:      regulatoryBody              || undefined,
         registrationNum:     registrationNum.trim()      || undefined,
         accreditationNumber: accreditationNumber.trim()  || undefined,
-        scannerInfo:         scannerInfo.trim()          || undefined,
+        pendingScannerIds:   selectedScanners.length > 0 ? selectedScanners.map(s => s._id) : undefined,
         additionalInfo:      additionalInfo.trim()       || undefined,
         mriScannerCount:     mriCount    ? Number(mriCount)    : undefined,
         staffUsingImplantId: staffCount  ? Number(staffCount)  : undefined,
@@ -555,18 +671,14 @@ export default function ClinicOnboardingClient() {
                 Scanner hardware <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
               </h3>
               <p className="desc">
-                Describe the MRI scanner(s) at your site — manufacturer, model, field strength
-                (e.g. 1.5T / 3T / 7T), scanner type (open / closed / standing), and maximum
-                spatial gradient if known. This helps us match patients to compatible scanners.
+                Search for the MRI scanner(s) at your site and select them from the list.
+                Linking your scanners helps us match patients to compatible equipment automatically.
+                If your scanner isn't listed, you can submit it for approval after sign-up in clinic settings.
               </p>
-              <textarea
-                className="input"
-                rows={4}
-                placeholder="e.g. Siemens MAGNETOM Vida 3T, closed-bore. Philips Ingenia 1.5T, open. Max spatial gradient 80 T/m."
-                value={scannerInfo}
-                onChange={e => setScannerInfo(e.target.value)}
-                style={{ resize:'vertical', minHeight:100 }}
-                aria-label="MRI scanner hardware details"
+              <ScannerPicker
+                selected={selectedScanners}
+                onSelect={s => setSelectedScanners(prev => [...prev, s])}
+                onRemove={id => setSelectedScanners(prev => prev.filter(s => s._id !== id))}
               />
             </div>
 

@@ -1,0 +1,34 @@
+/* Master — Scanners page */
+
+.sc-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:24px}
+.sc-tab{font-family:var(--ff);font-size:13.5px;font-weight:500;color:var(--muted);background:transparent;border:none;padding:10px 18px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s}
+.sc-tab:hover{color:var(--text)}
+.sc-tab.active{color:var(--accent-deep);border-bottom-color:var(--accent)}
+
+.sc-pill{display:inline-flex;align-items:center;gap:4px;font-family:var(--ff);font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;letter-spacing:.4px;text-transform:uppercase}
+.sc-pill.approved{background:rgba(var(--ok-rgb),0.12);color:var(--ok)}
+.sc-pill.pending{background:rgba(var(--warn-rgb),0.12);color:var(--warn)}
+.sc-pill.rejected{background:rgba(var(--err-rgb),0.12);color:var(--err)}
+
+/* Field strength badge */
+.fs-badge{display:inline-flex;align-items:center;font-family:var(--ff);font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:5px;background:rgba(var(--accent-rgb),0.10);color:var(--accent-deep)}
+
+/* Add / Edit scanner modal */
+.sc-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.sc-modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:540px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.sc-modal-h{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--border)}
+.sc-modal-h h3{font-family:var(--ff);font-size:17px;font-weight:600;letter-spacing:-.015em;margin:0}
+.sc-modal-close{background:transparent;border:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.sc-modal-close:hover{color:var(--text)}
+.sc-modal-body{padding:20px 24px 24px;display:flex;flex-direction:column;gap:16px}
+.sc-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sc-modal-acts{display:flex;justify-content:flex-end;gap:10px;padding:0 24px 20px}
+
+/* Pending card */
+.sc-pending-list{display:flex;flex-direction:column;gap:12px}
+.sc-pending-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;align-items:flex-start;gap:16px}
+.sc-pending-info{flex:1;min-width:0}
+.sc-pending-name{font-family:var(--ff);font-size:14.5px;font-weight:600;color:var(--text);margin:0 0 4px}
+.sc-pending-meta{font-family:var(--fb);font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px}
+.sc-pending-acts{display:flex;gap:8px;flex-shrink:0}
+.sc-pending-clinic{font-size:12px;color:var(--muted2);font-family:var(--ff);margin-top:6px}

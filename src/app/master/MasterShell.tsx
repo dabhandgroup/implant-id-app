@@ -21,6 +21,7 @@ function pageTitleFromPathname(pathname: string): string {
   if (pathname.startsWith('/master/devices/scrape')) return 'Scrape'
   if (pathname.startsWith('/master/devices/ai'))     return 'AI Assistant'
   if (pathname.startsWith('/master/devices'))        return 'Devices'
+  if (pathname.startsWith('/master/scanners'))       return 'Scanners'
   if (pathname.startsWith('/master/patients/new'))   return 'Add Patient'
   if (pathname.startsWith('/master/patients'))       return 'Patients'
   if (pathname.match(/\/master\/manufacturers\/[^/]+\/edit$/)) return 'Edit Manufacturer'
@@ -45,9 +46,10 @@ export default function MasterShell({ children }: MasterShellProps) {
   const [signingOut,     setSigningOut]     = useState(false)
 
   // ── Real-time admin notification data ───────────────────────────────────────
-  const pendingClinics  = useQuery(api.clinics.listApplications,      { status: 'pending' })
-  const pendingMfrs     = useQuery(api.manufacturers.listApplications, { status: 'pending' })
-  const pendingDevices  = useQuery(api.devices.listPendingDevices)
+  const pendingClinics   = useQuery(api.clinics.listApplications,      { status: 'pending' })
+  const pendingMfrs      = useQuery(api.manufacturers.listApplications, { status: 'pending' })
+  const pendingDevices   = useQuery(api.devices.listPendingDevices)
+  const pendingScanners  = useQuery((api as any).scanners.listScanners, { status: 'pending' })
 
   type AdminNotif = { id: string; title: string; body: string; href: string; type: 'clinic' | 'manufacturer' | 'device'; time: number }
   const adminNotifs: AdminNotif[] = [
@@ -326,6 +328,18 @@ export default function MasterShell({ children }: MasterShellProps) {
           <a href="/master/devices/ai" className={`sb-link${isActive('/master/devices/ai') ? ' active' : ''}`}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>
             <span>AI</span>
+          </a>
+
+          <a href="/master/scanners" className={`sb-link${isActive('/master/scanners') ? ' active' : ''}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+              <rect x="2" y="7" width="20" height="10" rx="3" ry="3"/>
+              <path d="M7 7V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2"/><path d="M7 17v2a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2"/>
+              <line x1="12" y1="12" x2="12.01" y2="12"/>
+            </svg>
+            <span>Scanners</span>
+            {(pendingScanners?.length ?? 0) > 0 && (
+              <span className="pill">{(pendingScanners as unknown[]).length}</span>
+            )}
           </a>
 
           {/* ── ADMIN ── */}

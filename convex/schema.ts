@@ -226,6 +226,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     website: v.optional(v.string()),
     capabilities: v.array(v.string()), // e.g. ["Pacemaker/ICD","DBS/Neurostim"]
+    scannerIds:   v.optional(v.array(v.id('scanners'))), // linked MRI scanners
     logoUrl: v.optional(v.string()),
     status: v.union(v.literal('active'), v.literal('pending'), v.literal('suspended')),
     showToPatients: v.optional(v.boolean()),  // appears on patient Find a Clinic page
@@ -241,6 +242,24 @@ export default defineSchema({
   })
     .index('by_status', ['status'])
     .index('by_stripe_customer', ['stripeCustomerId']),
+
+  // MRI scanner database
+  scanners: defineTable({
+    manufacturer:        v.string(),   // e.g. "Siemens Healthineers"
+    model:               v.string(),   // e.g. "MAGNETOM Vida"
+    fieldStrength:       v.string(),   // "1.5T" | "3T" | "7T" | "0.5T"
+    scannerType:         v.string(),   // "Closed-bore" | "Open-bore" | "Standing / upright"
+    boreDiameter:        v.optional(v.number()),  // cm
+    maxSpatialGradient:  v.optional(v.number()),  // T/m
+    notes:               v.optional(v.string()),
+    status:              v.union(v.literal('approved'), v.literal('pending'), v.literal('rejected')),
+    submittedByClinicId: v.optional(v.id('clinics')),
+    submittedAt:         v.number(),
+    reviewedAt:          v.optional(v.number()),
+    reviewNotes:         v.optional(v.string()),
+  })
+    .index('by_status', ['status'])
+    .index('by_manufacturer', ['manufacturer']),
 
   // Clinic staff members
   staff: defineTable({
@@ -337,10 +356,11 @@ export default defineSchema({
     registrationNum:  v.optional(v.string()),
 
     // Services / scanner info
-    services:         v.optional(v.array(v.string())),  // legacy — now optional
-    scannerInfo:      v.optional(v.string()),            // free-text scanner hardware description
-    accreditationNumber: v.optional(v.string()),         // personal accreditation number (HCPC/AHPRA)
-    additionalInfo:   v.optional(v.string()),
+    services:            v.optional(v.array(v.string())),  // legacy — now optional
+    scannerInfo:         v.optional(v.string()),            // free-text scanner hardware (legacy)
+    accreditationNumber: v.optional(v.string()),            // personal accreditation number (HCPC/AHPRA)
+    pendingScannerIds:   v.optional(v.array(v.string())),   // approved scanner IDs selected during onboarding
+    additionalInfo:      v.optional(v.string()),
 
     // Facility capacity (collected in onboarding form)
     mriScannerCount:    v.optional(v.number()),

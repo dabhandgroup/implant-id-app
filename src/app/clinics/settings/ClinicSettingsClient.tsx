@@ -1,12 +1,261 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useQuery, useMutation } from 'convex/react'
 import { useClerk, useAuth } from '@clerk/nextjs'
 import { api } from '../../../../convex/_generated/api'
 import { PlanPicker } from '@/components/ui/BillingGate'
+import { CustomSelect } from '@/components/ui/CustomSelect'
 
 type Tab = 'info' | 'notifications' | 'security' | 'billing'
+
+interface ScDoc { _id: string; manufacturer: string; model: string; fieldStrength: string; scannerType: string }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const apiAny = api as any
+const FIELD_STRENGTHS = ['0.5T', '1.0T', '1.5T', '3T', '7T', 'Other']
+const SCANNER_TYPES   = ['Closed-bore', 'Open-bore', 'Standing / upright', 'Other']
+
+function ScannerManager() {
+  const myClinicScanners  = useQuery(apiAny.scanners.getMyClinicScanners) as ScDoc[] | undefined
+  const allScanners       = useQuery(apiAny.scanners.listApprovedScanners) as ScDoc[] | undefined
+  const addToClinic       = useMutation(apiAny.scanners.addScannerToClinic)
+  const removeFromClinic  = useMutation(apiAny.scanners.removeScannerFromClinic)
+  const submitNew         = useMutation(apiAny.scanners.submitScanner)
+
+  const [search,        setSearch]        = useState('')
+  const [open,          setOpen]          = useState(false)
+  const [addingId,      setAddingId]      = useState<string | null>(null)
+  const [removingId,    setRemovingId]    = useState<string | null>(null)
+  const [showSubmit,    setShowSubmit]    = useState(false)
+  const [manufacturer,  setManufacturer]  = useState('')
+  const [model,         setModel]         = useState('')
+  const [fieldStrength, setFieldStrength] = useState('')
+  const [scannerType,   setScannerType]   = useState('')
+  const [submitLoading, setSubmitLoading] = useState(false)
+  const [submitError,   setSubmitError]   = useState('')
+  const [submitDone,    setSubmitDone]    = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  const results = useMemo(() => {
+    if (!allScanners || !search.trim()) return []
+    const q = search.toLowerCase()
+    const linked = new Set((myClinicScanners ?? []).map(s => s._id))
+    return allScanners
+      .filter(s => !linked.has(s._id))
+      .filter(s =>
+        s.manufacturer.toLowerCase().includes(q) ||
+        s.model.toLowerCase().includes(q) ||
+        s.fieldStrength.toLowerCase().includes(q)
+      )
+      .slice(0, 8)
+  }, [allScanners, search, myClinicScanners])
+
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+
+  async function handleAdd(s: ScDoc) {
+    setAddingId(s._id)
+    try { await addToClinic({ scannerId: s._id as never }) }
+    finally { setAddingId(null); setSearch(''); setOpen(false) }
+  }
+
+  async function handleRemove(id: string) {
+    setRemovingId(id)
+    try { await removeFromClinic({ scannerId: id as never }) }
+    finally { setRemovingId(null) }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!manufacturer.trim()) return setSubmitError('Enter the manufacturer name')
+    if (!model.trim())        return setSubmitError('Enter the model name')
+    if (!fieldStrength)       return setSubmitError('Select a field strength')
+    if (!scannerType)         return setSubmitError('Select a scanner type')
+    setSubmitError(''); setSubmitLoading(true)
+    try {
+      await submitNew({ manufacturer: manufacturer.trim(), model: model.trim(), fieldStrength, scannerType })
+      setSubmitDone(true)
+      setManufacturer(''); setModel(''); setFieldStrength(''); setScannerType('')
+    } catch (e: unknown) {
+      setSubmitError(e instanceof Error ? e.message : 'Submission failed — please try again')
+    } finally {
+      setSubmitLoading(false)
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <div className="ey" style={{ marginBottom: 6 }}>Site scanners</div>
+      <p style={{ fontSize: 13.5, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.6 }}>
+        Link the MRI scanner(s) at your site. This helps match patients to compatible equipment
+        and populates the scanner field on compatibility checks.
+      </p>
+
+      {/* Linked scanners */}
+      {myClinicScanners === undefined && (
+        <div style={{ fontSize: 13, color: 'var(--muted2)', marginBottom: 16 }}>Loading…</div>
+      )}
+      {myClinicScanners?.length === 0 && (
+        <div style={{ fontSize: 13, color: 'var(--muted2)', marginBottom: 16 }}>
+          No scanners linked yet — search below to add yours.
+        </div>
+      )}
+      {(myClinicScanners ?? []).length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {(myClinicScanners ?? []).map(s => (
+            <span key={s._id} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 7,
+              background: 'rgba(var(--accent-rgb),0.10)', border: '1px solid rgba(var(--accent-rgb),0.25)',
+              borderRadius: 8, padding: '5px 10px', fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--accent-deep)',
+            }}>
+              <span style={{ fontWeight: 600 }}>{s.fieldStrength}</span>
+              {s.manufacturer} {s.model}
+              <button
+                type="button"
+                onClick={() => handleRemove(s._id)}
+                disabled={removingId === s._id}
+                aria-label={`Remove ${s.manufacturer} ${s.model}`}
+                style={{
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  color: 'var(--accent)', padding: 0, lineHeight: 1, display: 'flex',
+                  opacity: removingId === s._id ? 0.5 : 1,
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Search to add */}
+      <div ref={searchRef} style={{ position: 'relative', marginBottom: 14 }}>
+        <input
+          className="input"
+          placeholder="Search scanner to add (e.g. Siemens 3T, Philips Ingenia…)"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setOpen(true) }}
+          onFocus={() => setOpen(true)}
+          aria-label="Search and add MRI scanner"
+          aria-autocomplete="list"
+        />
+        {open && results.length > 0 && (
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 99,
+            background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,.12)', maxHeight: 240, overflowY: 'auto',
+          }}>
+            {results.map(s => (
+              <button
+                key={s._id}
+                type="button"
+                onMouseDown={e => { e.preventDefault(); void handleAdd(s) }}
+                disabled={addingId === s._id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
+                  padding: '10px 14px', background: 'transparent', border: 'none', cursor: 'pointer',
+                  borderBottom: '1px solid var(--border)', fontFamily: 'var(--ff)',
+                  opacity: addingId === s._id ? 0.6 : 1,
+                }}
+              >
+                <span style={{ background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent-deep)', borderRadius: 5, padding: '2px 7px', fontSize: 11, fontWeight: 700 }}>{s.fieldStrength}</span>
+                <span style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--text)' }}>{s.manufacturer} {s.model}</span>
+                <span style={{ fontSize: 12, color: 'var(--muted)', marginLeft: 'auto' }}>{s.scannerType}</span>
+                <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, flexShrink: 0 }}>
+                  {addingId === s._id ? 'Adding…' : '+ Add'}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+        {open && search.trim() && results.length === 0 && allScanners !== undefined && (
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 99,
+            background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10,
+            padding: '14px 16px', fontFamily: 'var(--ff)', fontSize: 13.5, color: 'var(--muted)',
+          }}>
+            No scanner found.{' '}
+            <button type="button" className="link-btn" style={{ fontSize: 13.5 }}
+              onClick={() => { setOpen(false); setShowSubmit(true) }}>
+              Submit yours for approval →
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Submit new scanner */}
+      {!showSubmit && !submitDone && (
+        <button type="button" className="btn" style={{ fontSize: 13 }}
+          onClick={() => setShowSubmit(true)}>
+          + Submit new scanner for approval
+        </button>
+      )}
+
+      {submitDone && (
+        <div style={{ fontSize: 13.5, color: 'var(--ok)', fontFamily: 'var(--ff)' }}>
+          ✓ Scanner submitted — we&apos;ll notify you once approved.
+          <button type="button" className="link-btn" style={{ marginLeft: 12, fontSize: 13 }}
+            onClick={() => setSubmitDone(false)}>
+            Submit another
+          </button>
+        </div>
+      )}
+
+      {showSubmit && !submitDone && (
+        <div style={{
+          marginTop: 4, padding: '18px 20px',
+          background: 'rgba(var(--accent-rgb),0.05)', border: '1px solid rgba(var(--accent-rgb),0.18)',
+          borderRadius: 12,
+        }}>
+          <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, marginBottom: 14 }}>
+            Submit scanner for approval
+          </div>
+          <form onSubmit={e => void handleSubmit(e)} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="field">
+                <label>Manufacturer <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+                <input className="input" placeholder="e.g. Siemens" value={manufacturer}
+                  onChange={e => setManufacturer(e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Model <span style={{ color: 'var(--err)', marginLeft: 3 }}>*</span></label>
+                <input className="input" placeholder="e.g. MAGNETOM Vida" value={model}
+                  onChange={e => setModel(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <CustomSelect label="Field strength" required value={fieldStrength} onChange={setFieldStrength}
+                options={FIELD_STRENGTHS} placeholder="Select" />
+              <CustomSelect label="Scanner type" required value={scannerType} onChange={setScannerType}
+                options={SCANNER_TYPES} placeholder="Select" />
+            </div>
+            {submitError && (
+              <div style={{ padding: '8px 12px', background: 'rgba(var(--err-rgb),0.08)', border: '1px solid rgba(var(--err-rgb),0.20)', borderRadius: 8, fontSize: 13, color: 'var(--err)' }}>
+                {submitError}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="submit" className="btn btn-s" style={{ fontSize: 13 }} disabled={submitLoading}>
+                {submitLoading ? 'Submitting…' : 'Submit for approval'}
+              </button>
+              <button type="button" className="btn" style={{ fontSize: 13 }}
+                onClick={() => { setShowSubmit(false); setSubmitError('') }}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const NOTIF_KEY = 'clinic-notif-prefs'
 
@@ -378,6 +627,9 @@ export default function ClinicSettingsClient() {
               {capsSaving ? 'Saving…' : capsSaved ? 'Saved ✓' : 'Save capabilities'}
             </button>
           </div>
+
+          {/* Site scanners */}
+          <ScannerManager />
 
           {/* Patient discovery toggle */}
           <div className="card" style={{ marginBottom: 20 }}>

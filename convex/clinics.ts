@@ -85,6 +85,7 @@ export const submitClinicApplication = mutation({
     services:            v.optional(v.array(v.string())),
     scannerInfo:         v.optional(v.string()),
     accreditationNumber: v.optional(v.string()),
+    pendingScannerIds:   v.optional(v.array(v.string())),
     additionalInfo:      v.optional(v.string()),
 
     // Facility capacity (kept as separate fields so the detail page can display them cleanly)
@@ -830,6 +831,14 @@ export const reviewApplication = mutation({
         await ctx.db.patch(existingClinic._id, { status: 'active' })
         clinicId = existingClinic._id
       } else {
+        // Convert pendingScannerIds (strings) → validated scanner IDs
+        const rawScannerIds: string[] = (app as unknown as { pendingScannerIds?: string[] }).pendingScannerIds ?? []
+        const validatedScannerIds = (
+          await Promise.all(rawScannerIds.map((id) => ctx.db.get(id as never)))
+        )
+          .map((s, i) => (s ? rawScannerIds[i] : null))
+          .filter(Boolean) as string[]
+
         clinicId = await ctx.db.insert('clinics', {
           name:           app.facilityName,
           address:        app.facilityAddress,
@@ -839,6 +848,7 @@ export const reviewApplication = mutation({
           email:          app.contactEmail,
           website:        app.facilityWebsite ?? undefined,
           capabilities:   app.services ?? [],
+          scannerIds:     validatedScannerIds.length > 0 ? validatedScannerIds as never : undefined,
           status:         'active',
           showToPatients: true,
           billingStatus:  'trialing',

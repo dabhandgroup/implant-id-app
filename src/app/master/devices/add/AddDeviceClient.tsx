@@ -181,15 +181,15 @@ export default function AddDeviceClient() {
 
   return (
     <div className="m-content">
+      <a href="/master/devices" className="btn" style={{ alignSelf:'flex-start', marginBottom:20 }}>← Back to Devices</a>
       <div className="m-h">
         <div>
           <h2>Add Device</h2>
           <div className="sub">Add an implant device to the Implant ID catalogue. Fields marked * are required.</div>
         </div>
-        <a href="/master/devices" className="btn">← Back to Devices</a>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ maxWidth: 820 }}>
+      <form onSubmit={handleSubmit}>
         <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '32px 36px' }}>
 
           {/* ── Section 1: Device Identity ── */}

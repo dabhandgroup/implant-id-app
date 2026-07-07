@@ -171,7 +171,6 @@ export default function ScannersClient() {
   const pending  = useQuery(api.scanners.listScanners, { status: 'pending'  }) as Scanner[] | undefined
   const rejected = useQuery(api.scanners.listScanners, { status: 'rejected' }) as Scanner[] | undefined
 
-  const addScanner     = useMutation(api.scanners.addScanner)
   const updateScanner  = useMutation(api.scanners.updateScanner)
   const approveScanner = useMutation(api.scanners.approveScanner)
   const rejectScanner  = useMutation(api.scanners.rejectScanner)
@@ -180,7 +179,6 @@ export default function ScannersClient() {
   type TabKey = 'approved' | 'pending' | 'rejected'
   const [tab,        setTab]        = useState<TabKey>('approved')
   const [search,     setSearch]     = useState('')
-  const [addOpen,    setAddOpen]    = useState(false)
   const [editTarget, setEditTarget] = useState<(typeof EMPTY_FORM & { _id: string }) | null>(null)
   const [confirm,    setConfirm]    = useState<{ id: string; name: string; action: 'delete' | 'reject' } | null>(null)
   const [working,    setWorking]    = useState(false)
@@ -198,18 +196,6 @@ export default function ScannersClient() {
       s.scannerType.toLowerCase().includes(q)
     )
   }, [tab, approved, pending, rejected, search])
-
-  async function handleAdd(form: typeof EMPTY_FORM) {
-    await addScanner({
-      manufacturer:       form.manufacturer.trim(),
-      model:              form.model.trim(),
-      fieldStrength:      form.fieldStrength,
-      scannerType:        form.scannerType,
-      boreDiameter:       form.boreDiameter       ? Number(form.boreDiameter)       : undefined,
-      maxSpatialGradient: form.maxSpatialGradient ? Number(form.maxSpatialGradient) : undefined,
-      notes:              form.notes.trim()        || undefined,
-    })
-  }
 
   async function handleEdit(form: typeof EMPTY_FORM) {
     if (!editTarget) return
@@ -259,12 +245,12 @@ export default function ScannersClient() {
           <h2>Scanner database</h2>
           <p className="sub">MRI scanners available for clinics to link to their site profile.</p>
         </div>
-        <button className="btn btn-s" onClick={() => setAddOpen(true)}>
+        <a href="/master/scanners/add" className="btn btn-s">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginRight:6 }}>
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           Add scanner
-        </button>
+        </a>
       </div>
 
       {/* Tabs */}
@@ -404,11 +390,6 @@ export default function ScannersClient() {
             ))}
           </div>
         )
-      )}
-
-      {/* Add scanner modal */}
-      {addOpen && (
-        <ScannerModal onClose={() => setAddOpen(false)} onSave={handleAdd} />
       )}
 
       {/* Edit scanner modal */}

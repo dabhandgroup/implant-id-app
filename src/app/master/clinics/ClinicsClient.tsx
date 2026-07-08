@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useMutation, useAction } from 'convex/react'
 import { useRouter } from 'next/navigation'
 import { api } from '../../../../convex/_generated/api'
@@ -112,11 +112,16 @@ export default function ClinicsClient() {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="m-tabs">
-        <button className={`m-tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>
+      <div
+        className="m-tabs"
+        style={{ '--m-tab-count': 3, '--m-tab-idx': tab === 'all' ? 0 : tab === 'pending' ? 1 : 2 } as React.CSSProperties}
+        role="tablist"
+      >
+        <div className="m-tab-slider" aria-hidden="true" />
+        <button role="tab" aria-selected={tab === 'all'} className={`m-tab${tab === 'all' ? ' active' : ''}`} onClick={() => setTab('all')}>
           All Clinics
         </button>
-        <button className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
+        <button role="tab" aria-selected={tab === 'pending'} className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
           Pending
           {pendingCount > 0 && (
             <span style={{ marginLeft: 6, background: 'var(--warn)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>
@@ -124,7 +129,7 @@ export default function ClinicsClient() {
             </span>
           )}
         </button>
-        <button className={`m-tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
+        <button role="tab" aria-selected={tab === 'rejected'} className={`m-tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
           Rejected
           {(rejectedApps?.length ?? 0) > 0 && (
             <span style={{ marginLeft: 6, background: 'rgba(var(--err-rgb),0.80)', color: '#fff', borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>

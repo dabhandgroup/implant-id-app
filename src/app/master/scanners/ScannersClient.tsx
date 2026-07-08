@@ -254,17 +254,26 @@ export default function ScannersClient() {
       </div>
 
       {/* Tabs */}
-      <div className="sc-tabs">
-        {(['approved', 'pending', 'rejected'] as TabKey[]).map(t => (
-          <button key={t} className={`sc-tab${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
-            {t === 'approved' ? 'Approved' : t === 'pending' ? 'Pending review' : 'Rejected'}
-            {t === 'pending' && pendingCount > 0 && (
-              <span style={{ marginLeft:7, background:'var(--warn)', color:'#fff', borderRadius:9, fontSize:10.5, fontWeight:700, padding:'1px 7px' }}>
-                {pendingCount}
-              </span>
-            )}
-          </button>
-        ))}
+      <div
+        className="m-tabs"
+        style={{ '--m-tab-count': 3, '--m-tab-idx': tab === 'approved' ? 0 : tab === 'pending' ? 1 : 2 } as React.CSSProperties}
+        role="tablist"
+      >
+        <div className="m-tab-slider" aria-hidden="true" />
+        <button role="tab" aria-selected={tab === 'approved'} className={`m-tab${tab === 'approved' ? ' active' : ''}`} onClick={() => setTab('approved')}>
+          Approved
+        </button>
+        <button role="tab" aria-selected={tab === 'pending'} className={`m-tab${tab === 'pending' ? ' active' : ''}`} onClick={() => setTab('pending')}>
+          Pending review
+          {pendingCount > 0 && (
+            <span style={{ marginLeft:7, background:'var(--warn)', color:'#fff', borderRadius:9, fontSize:10.5, fontWeight:700, padding:'1px 7px' }}>
+              {pendingCount}
+            </span>
+          )}
+        </button>
+        <button role="tab" aria-selected={tab === 'rejected'} className={`m-tab${tab === 'rejected' ? ' active' : ''}`} onClick={() => setTab('rejected')}>
+          Rejected
+        </button>
       </div>
 
       {/* Error */}

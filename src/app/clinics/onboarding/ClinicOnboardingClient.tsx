@@ -54,6 +54,21 @@ const COUNTRY_REGULATORY_MAP: Record<string, string[]> = {
   'Poland':         EU_BODIES, 'Czech Republic': EU_BODIES, 'Portugal': EU_BODIES, 'Greece': EU_BODIES,
 }
 
+// Country-specific professional registration labels
+const COUNTRY_PROF_REG: Record<string, { label: string; placeholder: string }> = {
+  'United Kingdom': { label: 'HCPC number',                       placeholder: 'e.g. PH123456' },
+  'United States':  { label: 'NPI number',                        placeholder: 'e.g. 1234567890' },
+  'Australia':      { label: 'AHPRA registration number',         placeholder: 'e.g. MED0001234' },
+  'Canada':         { label: 'College registration number',       placeholder: 'e.g. 12345' },
+  'Ireland':        { label: 'CORU registration number',          placeholder: 'e.g. 12345' },
+  'New Zealand':    { label: 'MCNZ / NZRP number',               placeholder: 'e.g. 12345' },
+  'Germany':        { label: 'Approbationsnummer',                placeholder: 'e.g. 12345' },
+  'France':         { label: 'RPPS number',                       placeholder: 'e.g. 12345678901' },
+  'Netherlands':    { label: 'BIG registration number',           placeholder: 'e.g. 89012345616' },
+  'Sweden':         { label: 'Socialstyrelsen number',            placeholder: 'e.g. 12345' },
+}
+const DEFAULT_PROF_REG = { label: 'Professional registration number', placeholder: 'e.g. HCPC, AHPRA, NPI…' }
+
 // ── Left panel shared ─────────────────────────────────────────────────────────
 
 function SidePanel() {
@@ -226,35 +241,36 @@ function ScannerPicker({
 
 export default function ClinicOnboardingClient() {
   const submitApplication = useMutation(api.clinics.submitClinicApplication)
-  // Use onboarding-specific URL generator — applicants are not staff members yet
   const generateUploadUrl = useMutation(api.clinics.onboardingGenerateUploadUrl)
 
-  // Section 1 — Clinic information
+  // Section 1 — Primary contact
+  const [firstName,    setFirstName]    = useState('')
+  const [lastName,     setLastName]     = useState('')
+  const [jobTitle,     setJobTitle]     = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  const [contactPhone, setContactPhone] = useState('')
+  // Professional registration (country-conditional label, lives in primary contact)
+  const [accreditationNumber, setAccreditationNumber] = useState('')
+
+  // Section 2 — Clinic information
   const [facilityName,    setFacilityName]    = useState('')
   const [facilityType,    setFacilityType]    = useState('')
   const [facilityCountry, setFacilityCountry] = useState('')
   const [facilityAddress, setFacilityAddress] = useState('')
-  const [mriCount,        setMriCount]        = useState('')
-  const [staffCount,      setStaffCount]      = useState('')
 
-  // Section 2 — Primary contact
-  const [contactName,  setContactName]  = useState('')
-  const [jobTitle,     setJobTitle]     = useState('')
-  const [contactEmail, setContactEmail] = useState('')
-  const [contactPhone, setContactPhone] = useState('')
+  // Section 3 — Scanner hardware
+  const [selectedScanners, setSelectedScanners] = useState<ScDoc[]>([])
+  const [mriCount,         setMriCount]         = useState('')
+  const [staffCount,       setStaffCount]       = useState('')
 
-  // Section 3 — Accreditation (optional)
-  const [accreditationFile,   setAccreditationFile]   = useState<File | null>(null)
-  const [accreditationNumber, setAccreditationNumber] = useState('')
-  const [dragOver,            setDragOver]            = useState(false)
+  // Section 4 — Accreditation (optional)
+  const [accreditationFile, setAccreditationFile] = useState<File | null>(null)
+  const [dragOver,          setDragOver]          = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Section 4 — Regulatory body (optional)
+  // Section 5 — Regulatory body (optional)
   const [regulatoryBody,  setRegulatoryBody]  = useState('')
   const [registrationNum, setRegistrationNum] = useState('')
-
-  // Section 5 — Scanner hardware (optional)
-  const [selectedScanners, setSelectedScanners] = useState<ScDoc[]>([])
 
   // Section 6 — Additional information
   const [additionalInfo, setAdditionalInfo] = useState('')
@@ -265,7 +281,8 @@ export default function ClinicOnboardingClient() {
   const [done,    setDone]    = useState(false)
   const errorRef = useRef<HTMLDivElement>(null)
 
-  // Regulatory bodies available for the selected country
+  // Derived
+  const profRegInfo = COUNTRY_PROF_REG[facilityCountry] ?? DEFAULT_PROF_REG
   const availableRegulatoryBodies = facilityCountry
     ? (COUNTRY_REGULATORY_MAP[facilityCountry] ?? ALL_BODIES)
     : ALL_BODIES
@@ -300,19 +317,18 @@ export default function ClinicOnboardingClient() {
     e.preventDefault()
     setError('')
 
+    if (!firstName.trim())    return setError('Enter your first name')
+    if (!lastName.trim())     return setError('Enter your last name')
+    if (!contactEmail.trim() || !contactEmail.includes('@'))
+      return setError('Enter a valid email address')
     if (!facilityName.trim())    return setError('Enter the clinic / facility name')
     if (!facilityType)           return setError('Select a facility type')
     if (!facilityCountry)        return setError('Select a country')
     if (!facilityAddress.trim()) return setError('Enter the clinic address')
-    if (!contactName.trim())     return setError('Enter the primary contact name')
-    if (!contactEmail.trim() || !contactEmail.includes('@'))
-      return setError('Enter a valid email address')
-    if (!regulatoryBody)         return setError('Select your regulatory or accreditation body')
 
     setLoading(true)
 
     try {
-      // Upload accreditation document to Convex storage
       let storageId: string | undefined
       let fileName:  string | undefined
 
@@ -330,23 +346,23 @@ export default function ClinicOnboardingClient() {
       }
 
       await submitApplication({
-        contactName:     contactName.trim(),
+        contactName:     `${firstName.trim()} ${lastName.trim()}`.trim(),
         contactEmail:    contactEmail.trim().toLowerCase(),
-        contactPhone:    contactPhone.trim()    || undefined,
-        jobTitle:        jobTitle.trim()        || undefined,
+        contactPhone:    contactPhone.trim()   || undefined,
+        jobTitle:        jobTitle.trim()       || undefined,
         facilityName:    facilityName.trim(),
         facilityType,
         facilityAddress: facilityAddress.trim(),
         facilityCountry,
-        regulatoryBody:      regulatoryBody              || undefined,
-        registrationNum:     registrationNum.trim()      || undefined,
-        accreditationNumber: accreditationNumber.trim()  || undefined,
+        regulatoryBody:      regulatoryBody             || undefined,
+        registrationNum:     registrationNum.trim()     || undefined,
+        accreditationNumber: accreditationNumber.trim() || undefined,
         pendingScannerIds:   selectedScanners.length > 0 ? selectedScanners.map(s => s._id) : undefined,
-        additionalInfo:      additionalInfo.trim()       || undefined,
-        mriScannerCount:     mriCount    ? Number(mriCount)    : undefined,
-        staffUsingImplantId: staffCount  ? Number(staffCount)  : undefined,
+        additionalInfo:      additionalInfo.trim()      || undefined,
+        mriScannerCount:     mriCount   ? Number(mriCount)   : undefined,
+        staffUsingImplantId: staffCount ? Number(staffCount) : undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        storageId:       storageId as any,
+        storageId: storageId as any,
         fileName,
       })
       setDone(true)
@@ -379,7 +395,7 @@ export default function ClinicOnboardingClient() {
                 Application submitted
               </h2>
               <p style={{ color:'var(--muted)', fontSize:15, lineHeight:1.6, maxWidth:380, margin:'0 auto 28px' }}>
-                Thank you, {contactName.split(' ')[0]}. We've received your application for{' '}
+                Thank you, {firstName}. We've received your application for{' '}
                 <strong>{facilityName}</strong> and will be in touch at{' '}
                 <strong>{contactEmail}</strong> within 2 working days.
               </p>
@@ -408,10 +424,8 @@ export default function ClinicOnboardingClient() {
   return (
     <div className="onb">
 
-      {/* ── Left panel (sticky) ───────────────────────────────────────────── */}
       <SidePanel />
 
-      {/* ── Right panel (scrolls with page) ──────────────────────────────── */}
       <div className="onb-main">
         <div className="onb-box">
 
@@ -437,102 +451,10 @@ export default function ClinicOnboardingClient() {
 
           <form onSubmit={handleSubmit} noValidate>
 
-            {/* ── Section 1: Clinic information ────────────────────────────── */}
+            {/* ── Section 1: Primary contact ───────────────────────────────── */}
             <div className="form-section">
               <h3>
                 <span className="num">1</span>
-                Clinic information
-              </h3>
-              <p className="desc">Basic details about your facility and where you're located.</p>
-
-              <div className="form-grid">
-
-                <div className="field field-full">
-                  <label>
-                    Clinic / facility name
-                    <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
-                  </label>
-                  <input
-                    className="input"
-                    type="text"
-                    placeholder="St Vincent's Hospital MRI Department"
-                    value={facilityName}
-                    onChange={e => setFacilityName(e.target.value)}
-                    autoComplete="organization"
-                  />
-                </div>
-
-                <CustomSelect
-                  label="Facility type"
-                  required
-                  value={facilityType}
-                  onChange={setFacilityType}
-                  options={FACILITY_TYPES}
-                  placeholder="Select type"
-                />
-
-                <div className="field field-full">
-                  <label>
-                    Clinic address
-                    <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
-                  </label>
-                  <input
-                    className="input"
-                    type="text"
-                    placeholder="123 Hospital Road, London, W1A 1AA"
-                    value={facilityAddress}
-                    onChange={e => setFacilityAddress(e.target.value)}
-                    autoComplete="street-address"
-                  />
-                </div>
-
-                <div className="field">
-                  <label>Number of MRI scanners <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
-                  <input
-                    className="input"
-                    type="number"
-                    min="0"
-                    placeholder="e.g. 3"
-                    value={mriCount}
-                    onChange={e => setMriCount(e.target.value)}
-                  />
-                </div>
-
-                <div className="field">
-                  <label>Staff who'll use Implant ID <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
-                  <input
-                    className="input"
-                    type="number"
-                    min="1"
-                    placeholder="e.g. 12"
-                    value={staffCount}
-                    onChange={e => setStaffCount(e.target.value)}
-                  />
-                </div>
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <CustomSelect
-                    label="Country"
-                    required
-                    value={facilityCountry}
-                    onChange={handleCountryChange}
-                    options={COUNTRIES}
-                    placeholder="Select your country"
-                  />
-                  {!facilityCountry && (
-                    <p style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'var(--muted)', marginTop:4, marginBottom:0 }}>
-                      Select your country to unlock accreditation and regulatory options below.
-                    </p>
-                  )}
-                </div>
-
-              </div>
-            </div>
-
-            {/* ── Section 2: Primary contact ───────────────────────────────── */}
-            <div className="form-section">
-              <h3>
-                <span className="num">2</span>
                 Primary contact
               </h3>
               <p className="desc">Who should we contact about this application?</p>
@@ -541,16 +463,31 @@ export default function ClinicOnboardingClient() {
 
                 <div className="field">
                   <label>
-                    Full name
+                    First name
                     <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
                   </label>
                   <input
                     className="input"
                     type="text"
-                    placeholder="Dr Jane Smith"
-                    value={contactName}
-                    onChange={e => setContactName(e.target.value)}
-                    autoComplete="name"
+                    placeholder="Jane"
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    autoComplete="given-name"
+                  />
+                </div>
+
+                <div className="field">
+                  <label>
+                    Last name
+                    <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
+                  </label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="Smith"
+                    value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    autoComplete="family-name"
                   />
                 </div>
 
@@ -562,6 +499,7 @@ export default function ClinicOnboardingClient() {
                     placeholder="MRI Lead Radiographer"
                     value={jobTitle}
                     onChange={e => setJobTitle(e.target.value)}
+                    autoComplete="organization-title"
                   />
                 </div>
 
@@ -592,117 +530,102 @@ export default function ClinicOnboardingClient() {
                   />
                 </div>
 
+                <div className="field">
+                  <label>
+                    {profRegInfo.label}
+                    {' '}<span style={{ fontWeight:400, opacity:.6 }}>(optional)</span>
+                  </label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder={facilityCountry ? profRegInfo.placeholder : 'e.g. HCPC, AHPRA, NPI…'}
+                    value={accreditationNumber}
+                    onChange={e => setAccreditationNumber(e.target.value)}
+                    aria-label={profRegInfo.label}
+                  />
+                  {!facilityCountry && (
+                    <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted2)', margin:'4px 0 0' }}>
+                      Label updates to your country's registration scheme once you select a country below.
+                    </p>
+                  )}
+                </div>
+
               </div>
             </div>
 
-            {/* ── Section 3: Accreditation (shown after country selected) ──── */}
-            {facilityCountry && <div className="form-section">
+            {/* ── Section 2: Clinic information ────────────────────────────── */}
+            <div className="form-section">
               <h3>
-                <span className="num">3</span>
-                Accreditation <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
+                <span className="num">2</span>
+                Clinic information
               </h3>
-              <p className="desc">
-                Upload a certificate or proof of accreditation if you have one, and / or enter your
-                personal accreditation number (e.g. HCPC or AHPRA registration number).
-              </p>
+              <p className="desc">Basic details about your facility and where you're located.</p>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={handleFileChange}
-                style={{ display:'none' }}
-                aria-label="Upload accreditation document"
-              />
+              <div className="form-grid">
 
-              <div
-                className="dropzone"
-                role="button"
-                tabIndex={0}
-                aria-label="Upload accreditation document — click or drag and drop"
-                onClick={() => fileInputRef.current?.click()}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click() }}
-                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleFileDrop}
-                style={dragOver ? { borderColor:'var(--accent)', background:'rgba(var(--accent-rgb),0.06)' } : {}}
-              >
-                {accreditationFile ? (
-                  <>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                    </svg>
-                    <p style={{ color:'var(--accent-deep)', fontWeight:500 }}>{accreditationFile.name}</p>
-                    <p className="hint">Click to change file</p>
-                  </>
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    <p>Click to upload or drag and drop</p>
-                    <p className="hint">PDF, JPG or PNG — max 10 MB</p>
-                  </>
-                )}
-              </div>
-
-              <div className="field" style={{ marginTop:14 }}>
-                <label>HCPC / AHPRA number <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
-                <input
-                  className="input"
-                  type="text"
-                  placeholder="e.g. PH123456 or MED0001234"
-                  value={accreditationNumber}
-                  onChange={e => setAccreditationNumber(e.target.value)}
-                  aria-label="HCPC or AHPRA accreditation number"
-                />
-              </div>
-            </div>}
-
-            {/* ── Section 4: Regulatory body (shown after country selected) ── */}
-            {facilityCountry && <div className="form-section">
-              <h3>
-                <span className="num">4</span>
-                Regulatory body
-              </h3>
-              <p className="desc">Your facility's regulatory or accreditation body and registration number.</p>
-
-              <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-
-                <CustomSelect
-                  label="Regulatory / accreditation body"
-                  required
-                  value={regulatoryBody}
-                  onChange={setRegulatoryBody}
-                  options={availableRegulatoryBodies}
-                  placeholder="Select body"
-                />
-
-                <div className="field">
+                <div className="field field-full">
                   <label>
-                    Registration / licence number
+                    Clinic / facility name
                     <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
                   </label>
                   <input
                     className="input"
                     type="text"
-                    placeholder="e.g. CQC-12345"
-                    value={registrationNum}
-                    onChange={e => setRegistrationNum(e.target.value)}
+                    placeholder="St Vincent's Hospital MRI Department"
+                    value={facilityName}
+                    onChange={e => setFacilityName(e.target.value)}
+                    autoComplete="organization"
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <CustomSelect
+                    label="Facility type"
+                    required
+                    value={facilityType}
+                    onChange={setFacilityType}
+                    options={FACILITY_TYPES}
+                    placeholder="Select type"
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <CustomSelect
+                    label="Country"
+                    required
+                    value={facilityCountry}
+                    onChange={handleCountryChange}
+                    options={COUNTRIES}
+                    placeholder="Select your country"
+                  />
+                </div>
+
+                <div className="field field-full">
+                  <label>
+                    Clinic address
+                    <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
+                  </label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="123 Hospital Road, London, W1A 1AA"
+                    value={facilityAddress}
+                    onChange={e => setFacilityAddress(e.target.value)}
+                    autoComplete="street-address"
                   />
                 </div>
 
               </div>
-            </div>}
+            </div>
 
-            {/* ── Section 5: Scanner hardware ──────────────────────────────── */}
+            {/* ── Section 3: Scanner hardware ──────────────────────────────── */}
             <div className="form-section">
               <h3>
-                <span className="num">5</span>
+                <span className="num">3</span>
                 Scanner hardware <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
               </h3>
               <p className="desc">
-                Search for the MRI scanner(s) at your site and select them from the list.
+                Search for the MRI scanner(s) at your site and add them individually.
                 Linking your scanners helps us match patients to compatible equipment automatically.
                 If your scanner isn't listed, you can submit it for approval after sign-up in clinic settings.
               </p>
@@ -711,7 +634,144 @@ export default function ClinicOnboardingClient() {
                 onSelect={s => setSelectedScanners(prev => [...prev, s])}
                 onRemove={id => setSelectedScanners(prev => prev.filter(s => s._id !== id))}
               />
+
+              <div className="form-grid" style={{ marginTop:16 }}>
+                <div className="field">
+                  <label>Number of MRI scanners <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
+                  <input
+                    className="input"
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 3"
+                    value={mriCount}
+                    onChange={e => setMriCount(e.target.value)}
+                  />
+                </div>
+
+                <div className="field">
+                  <label>Staff who'll use Implant ID <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
+                  <input
+                    className="input"
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 12"
+                    value={staffCount}
+                    onChange={e => setStaffCount(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
+
+            {/* ── Section 4: Accreditation (shown after country selected) ──── */}
+            {facilityCountry && (
+              <div className="form-section">
+                <h3>
+                  <span className="num">4</span>
+                  Clinic accreditation
+                  <span style={{
+                    marginLeft:10, fontFamily:'var(--ff)', fontSize:11, fontWeight:700,
+                    letterSpacing:'.8px', textTransform:'uppercase', color:'var(--ok)',
+                    background:'rgba(var(--ok-rgb),0.12)', border:'1px solid rgba(var(--ok-rgb),0.22)',
+                    borderRadius:5, padding:'2px 8px', verticalAlign:'middle',
+                  }}>Recommended</span>
+                </h3>
+                <p className="desc">
+                  Upload any certification or proof of accreditation for your clinic — CQC registration, ISO certificates, NHS trust documentation, or similar.
+                </p>
+
+                <div style={{
+                  background:'rgba(var(--accent-rgb),0.05)', border:'1px solid rgba(var(--accent-rgb),0.15)',
+                  borderRadius:10, padding:'12px 16px', marginBottom:18,
+                  fontFamily:'var(--ff)', fontSize:13, color:'var(--muted)', lineHeight:1.55,
+                  display:'flex', gap:10, alignItems:'flex-start',
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink:0, marginTop:1, color:'var(--accent)' }} aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  <span>
+                    We have strict verification processes to ensure only healthcare professionals get onto the app.
+                    The more information you can provide to allow us to verify you, the better.
+                  </span>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleFileChange}
+                  style={{ display:'none' }}
+                  aria-label="Upload clinic accreditation document"
+                />
+
+                <div
+                  className="dropzone"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Upload clinic accreditation document — click or drag and drop"
+                  onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click() }}
+                  onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleFileDrop}
+                  style={dragOver ? { borderColor:'var(--accent)', background:'rgba(var(--accent-rgb),0.06)' } : {}}
+                >
+                  {accreditationFile ? (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                      </svg>
+                      <p style={{ color:'var(--accent-deep)', fontWeight:500 }}>{accreditationFile.name}</p>
+                      <p className="hint">Click to change file</p>
+                    </>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      <p>Click to upload or drag and drop</p>
+                      <p className="hint">PDF, JPG or PNG — max 10 MB</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── Section 5: Regulatory body (shown after country selected) ── */}
+            {facilityCountry && (
+              <div className="form-section">
+                <h3>
+                  <span className="num">5</span>
+                  Regulatory body <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
+                </h3>
+                <p className="desc">Your facility's regulatory or accreditation body and registration number.</p>
+
+                <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+
+                  <CustomSelect
+                    label="Regulatory / accreditation body"
+                    value={regulatoryBody}
+                    onChange={setRegulatoryBody}
+                    options={availableRegulatoryBodies}
+                    placeholder="Select body"
+                  />
+
+                  <div className="field">
+                    <label>
+                      Registration / licence number
+                      <span style={{ fontWeight:400, opacity:.6, marginLeft:4 }}>(optional)</span>
+                    </label>
+                    <input
+                      className="input"
+                      type="text"
+                      placeholder="e.g. CQC-12345"
+                      value={registrationNum}
+                      onChange={e => setRegistrationNum(e.target.value)}
+                    />
+                  </div>
+
+                </div>
+              </div>
+            )}
 
             {/* ── Section 6: Additional information ───────────────────────── */}
             <div className="form-section">

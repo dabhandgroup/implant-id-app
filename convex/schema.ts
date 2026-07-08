@@ -580,4 +580,28 @@ export default defineSchema({
     expiresAt:     v.number(),
     used:          v.boolean(),
   }).index('by_application', ['applicationId']),
+
+  // Global system email toggles — singleton, one row (no per-admin, platform-wide)
+  systemEmailSettings: defineTable({
+    // Manufacturer
+    manufacturerApproval:          v.boolean(),
+    manufacturerInvite:            v.boolean(),
+    manufacturerRejection:         v.boolean(),
+    // Device (sent to manufacturers)
+    devicePending:                 v.boolean(),
+    deviceLive:                    v.boolean(),
+    deviceRejection:               v.boolean(),
+    // Clinic
+    clinicApplicationConfirmation: v.boolean(),
+    clinicApproval:                v.boolean(),
+    clinicRejection:               v.boolean(),
+    staffInvite:                   v.boolean(),
+    clinicPatientInvite:           v.boolean(),
+    // Patient
+    patientWelcome:                v.boolean(),
+    patientVerified:               v.boolean(),
+    patientShare:                  v.boolean(),
+    // Surgeon
+    surgeonInvite:                 v.boolean(),
+  }),
 })

@@ -97,7 +97,8 @@ export const sendClinicApplicationConfirmationEmail = internalAction({
     scannerInfo:         v.optional(v.string()),
     additionalInfo:      v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'clinicApplicationConfirmation' })) return
     const r         = resend()
     const firstName = safeName(args.contactName)
     const location  = args.facilityCity
@@ -156,7 +157,8 @@ export const sendClinicApprovalEmail = internalAction({
     facilityName: v.string(),
     inviteUrl:    v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'clinicApproval' })) return
     const r         = resend()
     const firstName = safeName(args.contactName)
     const isNew     = !!args.inviteUrl
@@ -221,7 +223,8 @@ export const sendClinicRejectionEmail = internalAction({
     facilityName: v.string(),
     reviewNotes:  v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'clinicRejection' })) return
     const r         = resend()
     const firstName = safeName(args.contactName)
 
@@ -278,7 +281,8 @@ export const sendStaffInviteEmail = internalAction({
     jobType:      v.string(),   // 'radiographer' | 'surgeon' | 'admin'
     inviteUrl:    v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'staffInvite' })) return
     const r         = resend()
     const firstName = safeName(args.contactName)
     const roleLabel = args.jobType === 'surgeon' ? 'Surgeon'
@@ -357,7 +361,8 @@ export const sendPatientWelcomeEmail = internalAction({
     email:         v.string(),
     implantIdCode: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'patientWelcome' })) return
     const r = resend()
     await r.emails.send({
       from:    FROM,
@@ -402,7 +407,8 @@ export const sendPatientVerifiedEmail = internalAction({
     email:         v.string(),
     implantIdCode: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'patientVerified' })) return
     const r = resend()
     await r.emails.send({
       from:    FROM,
@@ -453,6 +459,7 @@ export const sendPatientShareEmail = internalAction({
     clinicName:     v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'patientShare' })) return
     const r = resend()
     const scanUrl  = `https://portal.implantid.io/scan/${args.implantIdCode}`
 
@@ -547,7 +554,8 @@ export const sendSurgeonPlatformInviteEmail = internalAction({
     patientName:      v.string(),
     patientImplantId: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'surgeonInvite' })) return
     const r         = resend()
     const greeting  = args.surgeonName ? args.surgeonName.split(' ')[0] : 'there'
     await r.emails.send({
@@ -640,7 +648,8 @@ export const sendManufacturerApprovalEmail = internalAction({
     contactEmail: v.string(),
     companyName: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'manufacturerApproval' })) return
     const r = resend()
     const firstName = safeName(args.contactName)
     await r.emails.send({
@@ -690,7 +699,8 @@ export const sendManufacturerInviteEmail = internalAction({
     contactEmail: v.string(),
     companyName: v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'manufacturerInvite' })) return
     const r = resend()
     const firstName = safeName(args.contactName)
     await r.emails.send({
@@ -739,7 +749,8 @@ export const sendManufacturerRejectionEmail = internalAction({
     companyName: v.string(),
     reviewNotes: v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'manufacturerRejection' })) return
     const r = resend()
     const firstName = safeName(args.contactName)
 
@@ -794,7 +805,8 @@ export const sendDeviceRejectionEmail = internalAction({
     deviceModel:  v.string(),
     reason:       v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'deviceRejection' })) return
     const r = resend()
     const firstName = safeName(args.contactName)
 
@@ -911,7 +923,8 @@ export const sendClinicPatientInviteEmail = internalAction({
     activationUrl: v.optional(v.string()),
     isActivation:  v.optional(v.boolean()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'clinicPatientInvite' })) return
     const r = resend()
     const loginUrl = args.activationUrl ?? `https://portal.implantid.io/login?email=${encodeURIComponent(args.email)}&role=patient`
     await r.emails.send({
@@ -964,7 +977,8 @@ export const sendDevicePendingEmail = internalAction({
     deviceId:     v.string(),
     portalUrl:    v.string(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'devicePending' })) return
     const r         = resend()
     const firstName = safeName(args.contactName)
     const portalUrl = args.portalUrl
@@ -1016,7 +1030,8 @@ export const sendDeviceBulkPendingEmail = internalAction({
     companyName:  v.string(),
     count:        v.number(),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'devicePending' })) return
     const r         = resend()
     const firstName = safeName(args.contactName)
 
@@ -1068,7 +1083,8 @@ export const sendDeviceLiveEmail = internalAction({
     deviceNames:  v.array(v.string()),
     deviceId:     v.optional(v.string()),
   },
-  handler: async (_ctx, args) => {
+  handler: async (ctx, args) => {
+    if (!await ctx.runQuery(internal.adminSettings.isSystemEmailEnabled, { type: 'deviceLive' })) return
     const r         = resend()
     const firstName = safeName(args.contactName)
     const isBulk    = args.deviceNames.length > 1

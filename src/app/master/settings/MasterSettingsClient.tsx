@@ -56,6 +56,11 @@ export default function MasterSettingsClient() {
   const upsertNotif     = useMutation(api.adminSettings.upsertAdminNotificationSettings)
   const [notifSaving,   setNotifSaving]  = useState<string | null>(null)
 
+  // ── System email settings ─────────────────────────────────────────────────
+  const sysEmailSettings = useQuery(api.adminSettings.getSystemEmailSettings)
+  const upsertSysEmail   = useMutation(api.adminSettings.upsertSystemEmailSettings)
+  const [sysEmailSaving, setSysEmailSaving] = useState<string | null>(null)
+
   async function handleNotifToggle(field: 'newClinicApplication' | 'newManufacturerApplication' | 'newDevicePendingReview') {
     if (!notifSettings) return
     setNotifSaving(field)
@@ -69,6 +74,34 @@ export default function MasterSettingsClient() {
       await upsertNotif(patch)
     } finally {
       setNotifSaving(null)
+    }
+  }
+
+  type SysEmailField = 'manufacturerApproval' | 'manufacturerInvite' | 'manufacturerRejection'
+    | 'devicePending' | 'deviceLive' | 'deviceRejection'
+    | 'clinicApplicationConfirmation' | 'clinicApproval' | 'clinicRejection'
+    | 'staffInvite' | 'clinicPatientInvite'
+    | 'patientWelcome' | 'patientVerified' | 'patientShare'
+    | 'surgeonInvite'
+
+  const SYS_EMAIL_DEFAULTS: Record<SysEmailField, boolean> = {
+    manufacturerApproval: true, manufacturerInvite: true, manufacturerRejection: true,
+    devicePending: true, deviceLive: true, deviceRejection: true,
+    clinicApplicationConfirmation: true, clinicApproval: true, clinicRejection: true,
+    staffInvite: true, clinicPatientInvite: true,
+    patientWelcome: true, patientVerified: true, patientShare: true,
+    surgeonInvite: true,
+  }
+
+  async function handleSysEmailToggle(field: SysEmailField) {
+    if (!sysEmailSettings) return
+    setSysEmailSaving(field)
+    const current = { ...SYS_EMAIL_DEFAULTS, ...sysEmailSettings } as Record<SysEmailField, boolean>
+    const patch: Record<SysEmailField, boolean> = { ...current, [field]: !current[field] }
+    try {
+      await upsertSysEmail(patch)
+    } finally {
+      setSysEmailSaving(null)
     }
   }
 
@@ -591,60 +624,188 @@ export default function MasterSettingsClient() {
 
           {/* ── Notifications panel ── */}
           {activeSection === 'notifications' && (
-            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-              <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Email notifications</div>
-                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Choose which platform events send you an email. All notifications are on by default.</div>
+            <>
+              {/* ─ Email Alerts card (admin-only notifications) ─ */}
+              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Email alerts</div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Notifications sent to your inbox when platform activity needs review. These apply only to your account.</div>
+                </div>
+
+                {notifSettings === undefined ? (
+                  <div style={{ padding: '24px 22px', color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
+                ) : notifSettings === null ? (
+                  <div style={{ padding: '24px 22px', color: 'var(--muted)', fontSize: 13 }}>Could not load settings.</div>
+                ) : (
+                  <div>
+                    {([
+                      { field: 'newClinicApplication'       as const, label: 'New clinic application',       desc: 'When a clinic submits an application to join the platform.' },
+                      { field: 'newManufacturerApplication' as const, label: 'New manufacturer application', desc: 'When a manufacturer applies to submit devices.' },
+                      { field: 'newDevicePendingReview'     as const, label: 'Device pending review',        desc: 'When a manufacturer submits a device for approval.' },
+                    ]).map(({ field, label, desc }, i, arr) => {
+                      const enabled = (notifSettings as Record<string, boolean>)[field] ?? true
+                      const saving  = notifSaving === field
+                      return (
+                        <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 22px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{label}</div>
+                            <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{desc}</div>
+                          </div>
+                          <button
+                            onClick={() => handleNotifToggle(field)}
+                            disabled={saving}
+                            aria-label={`${enabled ? 'Disable' : 'Enable'} ${label} notifications`}
+                            style={{
+                              flexShrink: 0, width: 44, height: 24, borderRadius: 12, border: 'none',
+                              background: enabled ? 'var(--accent)' : 'var(--border)',
+                              position: 'relative', cursor: saving ? 'default' : 'pointer',
+                              transition: 'background .2s', opacity: saving ? .6 : 1,
+                            }}
+                          >
+                            <span style={{
+                              position: 'absolute', top: 3, left: enabled ? 23 : 3,
+                              width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                              transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+                            }} />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
 
-              {notifSettings === undefined ? (
-                <div style={{ padding: '24px 22px', color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
-              ) : notifSettings === null ? (
-                <div style={{ padding: '24px 22px', color: 'var(--muted)', fontSize: 13 }}>Could not load notification settings.</div>
-              ) : (
-                <div>
-                  {([
-                    { field: 'newClinicApplication'       as const, label: 'New clinic application',       desc: 'When a clinic submits an application to join the platform.' },
-                    { field: 'newManufacturerApplication' as const, label: 'New manufacturer application', desc: 'When a manufacturer applies to submit devices.' },
-                    { field: 'newDevicePendingReview'     as const, label: 'Device pending review',        desc: 'When a manufacturer submits a device for approval.' },
-                  ]).map(({ field, label, desc }, i, arr) => {
-                    const enabled = (notifSettings as Record<string, boolean>)[field] ?? true
-                    const saving  = notifSaving === field
-                    return (
-                      <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 22px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{label}</div>
-                          <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 2 }}>{desc}</div>
+              {/* ─ System Emails card (platform-wide transactional email toggles) ─ */}
+              <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ fontFamily: 'var(--ff)', fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>System emails</div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
+                    Platform-wide transactional emails sent to manufacturers, clinics, and patients. Toggle off while seeding data to suppress emails globally.
+                  </div>
+                </div>
+
+                {sysEmailSettings === undefined ? (
+                  <div style={{ padding: '24px 22px', color: 'var(--muted)', fontSize: 13 }}>Loading…</div>
+                ) : sysEmailSettings === null ? (
+                  <div style={{ padding: '24px 22px', color: 'var(--muted)', fontSize: 13 }}>Could not load settings.</div>
+                ) : (() => {
+                  const settings = { ...SYS_EMAIL_DEFAULTS, ...sysEmailSettings } as Record<SysEmailField, boolean>
+                  const groups: { heading: string; items: { field: SysEmailField; label: string; desc: string }[] }[] = [
+                    {
+                      heading: 'Manufacturer',
+                      items: [
+                        { field: 'manufacturerApproval',  label: 'Approval / welcome email',  desc: 'Sent when a manufacturer application is approved.' },
+                        { field: 'manufacturerInvite',    label: 'Invite email',               desc: 'Sent when an existing manufacturer invites a new contact.' },
+                        { field: 'manufacturerRejection', label: 'Rejection email',             desc: 'Sent when a manufacturer application is declined.' },
+                      ],
+                    },
+                    {
+                      heading: 'Device',
+                      items: [
+                        { field: 'devicePending',    label: 'Pending / 24h hold email', desc: 'Sent to manufacturer when a device enters the 24h review hold.' },
+                        { field: 'deviceLive',       label: 'Device live email',        desc: 'Sent to manufacturer when a device is published to the catalogue.' },
+                        { field: 'deviceRejection',  label: 'Device rejection email',   desc: 'Sent to manufacturer when a submitted device is rejected.' },
+                      ],
+                    },
+                    {
+                      heading: 'Clinic',
+                      items: [
+                        { field: 'clinicApplicationConfirmation', label: 'Application confirmation', desc: 'Sent to the clinic contact when they submit an onboarding application.' },
+                        { field: 'clinicApproval',                label: 'Approval email',           desc: 'Sent to the clinic when their application is approved.' },
+                        { field: 'clinicRejection',               label: 'Rejection email',          desc: 'Sent to the clinic when their application is declined.' },
+                        { field: 'staffInvite',                   label: 'Staff invite email',       desc: 'Sent to a staff member when a clinic invites them to join.' },
+                        { field: 'clinicPatientInvite',           label: 'Patient invite email',     desc: 'Sent to a patient when a clinic creates their record and invites them.' },
+                      ],
+                    },
+                    {
+                      heading: 'Patient',
+                      items: [
+                        { field: 'patientWelcome',  label: 'Welcome email',   desc: 'Sent to a patient when they register.' },
+                        { field: 'patientVerified', label: 'Verified email',  desc: 'Sent to a patient when their record is verified by a clinic.' },
+                        { field: 'patientShare',    label: 'Share email',     desc: 'Sent to a clinic when a patient shares their record with them.' },
+                      ],
+                    },
+                    {
+                      heading: 'Surgeon',
+                      items: [
+                        { field: 'surgeonInvite', label: 'Platform invite email', desc: 'Sent to a surgeon when a patient names them and they\'re invited to join.' },
+                      ],
+                    },
+                  ]
+
+                  const anyOff = (Object.keys(SYS_EMAIL_DEFAULTS) as SysEmailField[]).some(f => !settings[f])
+
+                  return (
+                    <div>
+                      {/* Quick action row */}
+                      <div style={{ padding: '12px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(var(--accent-rgb),0.03)' }}>
+                        <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                          {anyOff
+                            ? <span style={{ color: 'var(--warn, #b45309)', fontWeight: 500 }}>⚠ Some emails are turned off</span>
+                            : <span style={{ color: 'var(--ok)' }}>✓ All system emails are active</span>
+                          }
                         </div>
                         <button
-                          onClick={() => handleNotifToggle(field)}
-                          disabled={saving}
-                          aria-label={`${enabled ? 'Disable' : 'Enable'} ${label} notifications`}
-                          style={{
-                            flexShrink: 0, width: 44, height: 24, borderRadius: 12, border: 'none',
-                            background: enabled ? 'var(--accent)' : 'var(--border)',
-                            position: 'relative', cursor: saving ? 'default' : 'pointer',
-                            transition: 'background .2s', opacity: saving ? .6 : 1,
+                          className="btn"
+                          style={{ fontSize: 12.5, padding: '6px 12px' }}
+                          onClick={() => {
+                            const allOn = !anyOff
+                            const allOff: Record<SysEmailField, boolean> = { ...SYS_EMAIL_DEFAULTS }
+                            for (const k of Object.keys(allOff) as SysEmailField[]) allOff[k] = !allOn
+                            upsertSysEmail(!allOn ? allOff : SYS_EMAIL_DEFAULTS)
                           }}
                         >
-                          <span style={{
-                            position: 'absolute', top: 3, left: enabled ? 23 : 3,
-                            width: 18, height: 18, borderRadius: '50%', background: '#fff',
-                            transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
-                          }} />
+                          {anyOff ? 'Enable all' : 'Disable all'}
                         </button>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
 
-              <div style={{ padding: '14px 22px', background: 'rgba(var(--accent-rgb),0.05)', borderTop: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>
-                  These settings apply only to your account. Other admins manage their own notification preferences.
-                </div>
+                      {groups.map((group, gi) => (
+                        <div key={group.heading}>
+                          <div style={{ padding: '10px 22px 4px', fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, letterSpacing: '.5px', textTransform: 'uppercase', color: 'var(--muted2)', borderTop: gi > 0 ? '1px solid var(--border)' : 'none' }}>
+                            {group.heading}
+                          </div>
+                          {group.items.map(({ field, label, desc }, i) => {
+                            const enabled = settings[field] ?? true
+                            const saving  = sysEmailSaving === field
+                            return (
+                              <div key={field} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '13px 22px', borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 500, color: enabled ? 'var(--text)' : 'var(--muted)' }}>{label}</div>
+                                  <div style={{ fontSize: 12.5, color: 'var(--muted2)', marginTop: 2 }}>{desc}</div>
+                                </div>
+                                <button
+                                  onClick={() => handleSysEmailToggle(field)}
+                                  disabled={saving}
+                                  aria-label={`${enabled ? 'Disable' : 'Enable'} ${label}`}
+                                  style={{
+                                    flexShrink: 0, width: 44, height: 24, borderRadius: 12, border: 'none',
+                                    background: enabled ? 'var(--accent)' : 'var(--border)',
+                                    position: 'relative', cursor: saving ? 'default' : 'pointer',
+                                    transition: 'background .2s', opacity: saving ? .6 : 1,
+                                  }}
+                                >
+                                  <span style={{
+                                    position: 'absolute', top: 3, left: enabled ? 23 : 3,
+                                    width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                                    transition: 'left .2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+                                  }} />
+                                </button>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ))}
+
+                      <div style={{ padding: '14px 22px', background: 'rgba(var(--accent-rgb),0.05)', borderTop: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>
+                          These settings are platform-wide and apply to all email triggers — not per-admin. Toggle emails off while importing data to avoid sending bulk notifications.
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
-            </div>
+            </>
           )}
 
           {/* ── Admin Users panel ── */}

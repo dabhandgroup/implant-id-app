@@ -1,6 +1,76 @@
 import { query, mutation, internalQuery } from './_generated/server'
 import { v } from 'convex/values'
 
+// ── System Email Settings ─────────────────────────────────────────────────────
+
+type SystemEmailType =
+  | 'manufacturerApproval' | 'manufacturerInvite' | 'manufacturerRejection'
+  | 'devicePending' | 'deviceLive' | 'deviceRejection'
+  | 'clinicApplicationConfirmation' | 'clinicApproval' | 'clinicRejection'
+  | 'staffInvite' | 'clinicPatientInvite'
+  | 'patientWelcome' | 'patientVerified' | 'patientShare'
+  | 'surgeonInvite'
+
+const EMAIL_DEFAULTS: Record<SystemEmailType, boolean> = {
+  manufacturerApproval: true, manufacturerInvite: true, manufacturerRejection: true,
+  devicePending: true, deviceLive: true, deviceRejection: true,
+  clinicApplicationConfirmation: true, clinicApproval: true, clinicRejection: true,
+  staffInvite: true, clinicPatientInvite: true,
+  patientWelcome: true, patientVerified: true, patientShare: true,
+  surgeonInvite: true,
+}
+
+export const getSystemEmailSettings = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    const doc = await ctx.db.query('systemEmailSettings').first()
+    return doc ?? { ...EMAIL_DEFAULTS }
+  },
+})
+
+export const upsertSystemEmailSettings = mutation({
+  args: {
+    manufacturerApproval:          v.boolean(),
+    manufacturerInvite:            v.boolean(),
+    manufacturerRejection:         v.boolean(),
+    devicePending:                 v.boolean(),
+    deviceLive:                    v.boolean(),
+    deviceRejection:               v.boolean(),
+    clinicApplicationConfirmation: v.boolean(),
+    clinicApproval:                v.boolean(),
+    clinicRejection:               v.boolean(),
+    staffInvite:                   v.boolean(),
+    clinicPatientInvite:           v.boolean(),
+    patientWelcome:                v.boolean(),
+    patientVerified:               v.boolean(),
+    patientShare:                  v.boolean(),
+    surgeonInvite:                 v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const existing = await ctx.db.query('systemEmailSettings').first()
+    if (existing) {
+      await ctx.db.patch(existing._id, args)
+    } else {
+      await ctx.db.insert('systemEmailSettings', args)
+    }
+  },
+})
+
+/** Called by email internalActions to check if a given email type is enabled globally. */
+export const isSystemEmailEnabled = internalQuery({
+  args: { type: v.string() },
+  handler: async (ctx, { type }) => {
+    const doc = await ctx.db.query('systemEmailSettings').first()
+    if (!doc) return true
+    const val = (doc as unknown as Record<string, unknown>)[type]
+    return typeof val === 'boolean' ? val : true
+  },
+})
+
 type NotificationType = 'newClinicApplication' | 'newManufacturerApplication' | 'newDevicePendingReview'
 
 const DEFAULTS: Record<NotificationType, boolean> = {

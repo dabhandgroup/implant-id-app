@@ -170,6 +170,32 @@ export const submitScannerDuringOnboarding = mutation({
   },
 })
 
+/**
+ * Fully public suggestion — no auth required.
+ * Used from the clinic onboarding scanner picker when a scanner isn't found.
+ * Goes straight to the pending queue for admin review.
+ */
+export const suggestScannerPublic = mutation({
+  args: {
+    manufacturer:  v.string(),
+    model:         v.string(),
+    fieldStrength: v.string(),
+    scannerType:   v.string(),
+    notes:         v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert('scanners', {
+      manufacturer:  args.manufacturer,
+      model:         args.model,
+      fieldStrength: args.fieldStrength,
+      scannerType:   args.scannerType,
+      notes:         args.notes,
+      status:        'pending',
+      submittedAt:   Date.now(),
+    })
+  },
+})
+
 /** Admin: approve a pending scanner submission. */
 export const approveScanner = mutation({
   args: { id: v.id('scanners') },

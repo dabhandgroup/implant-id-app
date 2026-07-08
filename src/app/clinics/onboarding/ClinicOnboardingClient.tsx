@@ -127,6 +127,9 @@ function SidePanel() {
 
 interface ScDoc { _id: string; manufacturer: string; model: string; fieldStrength: string; scannerType: string }
 
+const FIELD_STRENGTHS_SUGGEST = ['0.5T', '1.0T', '1.5T', '3T', '7T', 'Other']
+const SCANNER_TYPES_SUGGEST   = ['Closed-bore', 'Open-bore', 'Standing / upright', 'Other']
+
 function ScannerPicker({
   selected, onSelect, onRemove,
 }: {
@@ -134,9 +137,21 @@ function ScannerPicker({
   onSelect:  (s: ScDoc) => void
   onRemove:  (id: string) => void
 }) {
-  const allScanners = useQuery(apiAny.scanners.listApprovedScanners) as ScDoc[] | undefined
-  const [search, setSearch] = useState('')
-  const [open,   setOpen]   = useState(false)
+  const allScanners   = useQuery(apiAny.scanners.listApprovedScanners) as ScDoc[] | undefined
+  const suggestMut    = useMutation(apiAny.scanners.suggestScannerPublic)
+
+  const [search,          setSearch]          = useState('')
+  const [open,            setOpen]            = useState(false)
+  const [suggesting,      setSuggesting]      = useState(false)
+  const [suggestDone,     setSuggestDone]     = useState(false)
+  const [suggestLoading,  setSuggestLoading]  = useState(false)
+  const [suggestError,    setSuggestError]    = useState('')
+  const [sfManufacturer,  setSfManufacturer]  = useState('')
+  const [sfModel,         setSfModel]         = useState('')
+  const [sfFieldStrength, setSfFieldStrength] = useState('')
+  const [sfScannerType,   setSfScannerType]   = useState('')
+  const [sfNotes,         setSfNotes]         = useState('')
+
   const ref = useRef<HTMLDivElement>(null)
 
   const results = useMemo(() => {
@@ -159,6 +174,47 @@ function ScannerPicker({
     document.addEventListener('mousedown', h)
     return () => document.removeEventListener('mousedown', h)
   }, [])
+
+  function openSuggestion() {
+    setOpen(false)
+    setSuggesting(true)
+    setSuggestDone(false)
+    setSuggestError('')
+    setSfManufacturer(search.trim())
+    setSfModel('')
+    setSfFieldStrength('')
+    setSfScannerType('')
+    setSfNotes('')
+  }
+
+  function closeSuggestion() {
+    setSuggesting(false)
+    setSuggestDone(false)
+  }
+
+  async function handleSuggest(e: React.FormEvent) {
+    e.preventDefault()
+    setSuggestError('')
+    if (!sfManufacturer.trim()) return setSuggestError('Enter the manufacturer name')
+    if (!sfModel.trim())        return setSuggestError('Enter the model name')
+    if (!sfFieldStrength)       return setSuggestError('Select a field strength')
+    if (!sfScannerType)         return setSuggestError('Select a scanner type')
+    setSuggestLoading(true)
+    try {
+      await suggestMut({
+        manufacturer:  sfManufacturer.trim(),
+        model:         sfModel.trim(),
+        fieldStrength: sfFieldStrength,
+        scannerType:   sfScannerType,
+        notes:         sfNotes.trim() || undefined,
+      })
+      setSuggestDone(true)
+    } catch (err) {
+      setSuggestError((err as { message?: string })?.message ?? 'Submission failed — try again')
+    } finally {
+      setSuggestLoading(false)
+    }
+  }
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -188,7 +244,7 @@ function ScannerPicker({
         </div>
       )}
 
-      {/* Search input */}
+      {/* Search input + dropdown */}
       <div ref={ref} style={{ position:'relative' }}>
         <input
           className="input"
@@ -227,12 +283,182 @@ function ScannerPicker({
           <div style={{
             position:'absolute', top:'calc(100% + 4px)', left:0, right:0, zIndex:99,
             background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10,
-            padding:'14px 16px', fontFamily:'var(--ff)', fontSize:13.5, color:'var(--muted)',
+            padding:'14px 16px', fontFamily:'var(--ff)',
           }}>
-            No matching scanners found. You can add yours from <strong>clinic settings</strong> after sign-up, or ask us to add it.
+            <p style={{ fontSize:13.5, color:'var(--muted)', margin:'0 0 10px' }}>
+              No matching scanners found.
+            </p>
+            <button
+              type="button"
+              onMouseDown={e => { e.preventDefault(); openSuggestion() }}
+              style={{
+                display:'inline-flex', alignItems:'center', gap:6, fontFamily:'var(--ff)',
+                fontSize:13, fontWeight:500, color:'var(--accent)',
+                background:'rgba(var(--accent-rgb),0.08)', border:'1px dashed rgba(var(--accent-rgb),0.30)',
+                borderRadius:8, padding:'7px 14px', cursor:'pointer',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Suggest this scanner for review
+            </button>
           </div>
         )}
       </div>
+
+      {/* Suggestion form */}
+      {suggesting && !suggestDone && (
+        <div style={{
+          background:'var(--bg)', border:'1px solid var(--border)', borderRadius:12, padding:'20px 22px',
+        }}>
+          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:4 }}>
+            <h4 style={{ fontFamily:'var(--ff)', fontSize:14, fontWeight:600, color:'var(--text)', margin:0 }}>
+              Suggest a scanner
+            </h4>
+            <button
+              type="button"
+              onClick={closeSuggestion}
+              aria-label="Close suggestion form"
+              style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', padding:2, lineHeight:1, display:'flex' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <p style={{ fontFamily:'var(--fb)', fontSize:12.5, color:'var(--muted)', margin:'0 0 16px', lineHeight:1.5 }}>
+            Tell us the details and we'll verify and add it to the database within a few days.
+          </p>
+
+          <form onSubmit={handleSuggest} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <div className="field" style={{ margin:0 }}>
+                <label>Manufacturer <span style={{ color:'var(--err)', marginLeft:3 }}>*</span></label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="e.g. Siemens"
+                  value={sfManufacturer}
+                  onChange={e => setSfManufacturer(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="field" style={{ margin:0 }}>
+                <label>Model <span style={{ color:'var(--err)', marginLeft:3 }}>*</span></label>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder="e.g. MAGNETOM Vida"
+                  value={sfModel}
+                  onChange={e => setSfModel(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+
+            <div className="field" style={{ margin:0 }}>
+              <label>Field strength <span style={{ color:'var(--err)', marginLeft:3 }}>*</span></label>
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:2 }}>
+                {FIELD_STRENGTHS_SUGGEST.map(fs => {
+                  const on = sfFieldStrength === fs
+                  return (
+                    <button key={fs} type="button" onClick={() => setSfFieldStrength(fs)} style={{
+                      padding:'6px 14px', borderRadius:8, cursor:'pointer', transition:'all .15s',
+                      fontFamily:'var(--ff)', fontSize:13, fontWeight: on ? 700 : 500,
+                      border:`1.5px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
+                      background: on ? 'rgba(var(--accent-rgb),0.12)' : 'transparent',
+                      color: on ? 'var(--accent-deep)' : 'var(--muted)',
+                    }}>{fs}</button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="field" style={{ margin:0 }}>
+              <label>Scanner type <span style={{ color:'var(--err)', marginLeft:3 }}>*</span></label>
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:2 }}>
+                {SCANNER_TYPES_SUGGEST.map(st => {
+                  const on = sfScannerType === st
+                  return (
+                    <button key={st} type="button" onClick={() => setSfScannerType(st)} style={{
+                      padding:'6px 14px', borderRadius:8, cursor:'pointer', transition:'all .15s',
+                      fontFamily:'var(--ff)', fontSize:13, fontWeight: on ? 700 : 500,
+                      border:`1.5px solid ${on ? 'var(--accent)' : 'var(--border)'}`,
+                      background: on ? 'rgba(var(--accent-rgb),0.12)' : 'transparent',
+                      color: on ? 'var(--accent-deep)' : 'var(--muted)',
+                    }}>{st}</button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="field" style={{ margin:0 }}>
+              <label>Notes <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
+              <textarea
+                className="input"
+                rows={2}
+                placeholder="Any additional details — country, specific model variant, certifications…"
+                value={sfNotes}
+                onChange={e => setSfNotes(e.target.value)}
+                style={{ resize:'vertical' }}
+              />
+            </div>
+
+            {suggestError && (
+              <div style={{
+                background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)',
+                borderRadius:8, padding:'10px 14px', fontFamily:'var(--ff)', fontSize:13, color:'var(--err)',
+              }}>
+                {suggestError}
+              </div>
+            )}
+
+            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+              <button type="button" className="btn" onClick={closeSuggestion}>Cancel</button>
+              <button type="submit" className="btn btn-s" disabled={suggestLoading}>
+                {suggestLoading ? 'Submitting…' : 'Submit for review →'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Success state */}
+      {suggesting && suggestDone && (
+        <div style={{
+          display:'flex', alignItems:'flex-start', gap:12,
+          background:'rgba(var(--ok-rgb),0.08)', border:'1px solid rgba(var(--ok-rgb),0.22)',
+          borderRadius:12, padding:'14px 16px',
+        }}>
+          <div style={{
+            width:28, height:28, borderRadius:'50%', background:'rgba(var(--ok-rgb),0.15)',
+            color:'var(--ok)', display:'grid', placeItems:'center', flexShrink:0,
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div style={{ flex:1 }}>
+            <p style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:600, color:'var(--text)', margin:'0 0 2px' }}>
+              Scanner submitted for review
+            </p>
+            <p style={{ fontFamily:'var(--fb)', fontSize:13, color:'var(--muted)', margin:'0' }}>
+              We'll verify the details and add it to the database within a few days.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={closeSuggestion}
+            aria-label="Dismiss"
+            style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', padding:2, lineHeight:1, display:'flex' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

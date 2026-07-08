@@ -579,7 +579,7 @@ export const resolveMatrix = query({
     // 2. Fetch coil (optional)
     const coil = args.coilId ? await ctx.db.get(args.coilId) : null
 
-    let weightAlert: string | null = null
+    const preflightWarnings: string[] = []
     const systems: SystemInput[] = []
 
     // 3. Assemble systems
@@ -590,7 +590,7 @@ export const resolveMatrix = query({
 
       // Weight pre-check
       if (patient?.weightKg && scanner.tableLimitKg && patient.weightKg > scanner.tableLimitKg) {
-        weightAlert = `Patient weight ${patient.weightKg} kg may exceed this scanner's rated table limit of ${scanner.tableLimitKg} kg. Confirm with site engineering before positioning.`
+        preflightWarnings.push(`Patient weight ${patient.weightKg} kg may exceed this scanner's rated table limit of ${scanner.tableLimitKg} kg. Confirm with site engineering before positioning.`)
       }
 
       const patientDeviceRows = await ctx.db
@@ -620,6 +620,21 @@ export const resolveMatrix = query({
 
         const primaryDevice = deviceDocs.find((d) => d._id === primary.deviceId)
         if (!primaryDevice) continue
+
+        // Post-implant wait check
+        const postWaitWeeks = (primaryDevice as unknown as { postImplantWaitWeeks?: number }).postImplantWaitWeeks
+        const implantDate   = (primary as unknown as { implantDate?: string }).implantDate
+        if (postWaitWeeks && implantDate) {
+          const implantMs  = new Date(implantDate).getTime()
+          const nowMs      = Date.now()
+          const weeksSince = (nowMs - implantMs) / (7 * 24 * 60 * 60 * 1000)
+          if (weeksSince < postWaitWeeks) {
+            const daysLeft = Math.ceil((postWaitWeeks - weeksSince) * 7)
+            preflightWarnings.push(
+              `${primaryDevice.deviceName ?? primaryDevice.model}: manufacturer requires ${postWaitWeeks} weeks post-implant before MRI. Approximately ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining.`
+            )
+          }
+        }
 
         // Leads = all group members that are not the primary
         const leadRows = group.filter((pd) => pd._id !== primary._id)
@@ -684,7 +699,7 @@ export const resolveMatrix = query({
       verdict,
       systems:             results,
       combinedConstraints,
-      weightAlert,
+      weightAlert: preflightWarnings.length > 0 ? preflightWarnings.join('\n') : null,
     }
   },
 })

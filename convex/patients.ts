@@ -579,14 +579,22 @@ export const getMyLinkedDevices = query({
       links.map(async (l) => {
         const d = await ctx.db.get(l.deviceId)
         return d ? {
-          _id:          l._id,
-          deviceId:     l.deviceId,
-          name:         d.model,
-          manufacturer: d.manufacturer,
-          deviceType:   d.deviceType,
-          mriStatus:    d.mriStatus,
-          serialNumber: l.serialNumber,
-          implantDate:  l.implantDate,
+          _id:                  l._id,
+          deviceId:             l.deviceId,
+          name:                 d.model,
+          manufacturer:         d.manufacturer,
+          deviceType:           d.deviceType,
+          mriStatus:            d.mriStatus,
+          mriClassification:    (d as unknown as { mriClassification?: string }).mriClassification,
+          deviceStatus:         (d as unknown as { status?: string }).status,
+          recalled:             (d as unknown as { recalled?: boolean }).recalled,
+          recallNotes:          (d as unknown as { recallNotes?: string }).recallNotes,
+          serialNumber:         l.serialNumber,
+          implantDate:          l.implantDate,
+          deviceIntegrityState: (l as unknown as { deviceIntegrityState?: string }).deviceIntegrityState,
+          implantLocation:      (l as unknown as { implantLocation?: string }).implantLocation,
+          leadTipPosition:      (l as unknown as { leadTipPosition?: string }).leadTipPosition,
+          recordState:          (l as unknown as { recordState?: string }).recordState,
         } : null
       }),
     ).then(list => list.filter(Boolean))

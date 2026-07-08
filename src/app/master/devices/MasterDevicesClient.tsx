@@ -16,16 +16,30 @@ function pendingCountdown(creationTime: number): string {
 }
 
 const MRI_COLOURS: Record<string, { color: string; label: string }> = {
-  safe:        { color: 'var(--ok)',    label: 'MR Safe' },
-  conditional: { color: '#b45309',     label: 'MR Conditional' },
-  unsafe:      { color: 'var(--err)',  label: 'MR Unsafe' },
-  unknown:     { color: 'var(--muted)', label: 'Unknown' },
+  // legacy short-form
+  safe:            { color: 'var(--ok)',    label: 'MR Safe' },
+  conditional:     { color: '#b45309',     label: 'MR Conditional' },
+  unsafe:          { color: 'var(--err)',  label: 'MR Unsafe' },
+  unknown:         { color: 'var(--muted)', label: 'Unknown' },
+  // canonical long-form (mriClassification field)
+  'MR Safe':       { color: 'var(--ok)',    label: 'MR Safe' },
+  'MR Conditional':{ color: '#b45309',     label: 'MR Conditional' },
+  'MR Unsafe':     { color: 'var(--err)',  label: 'MR Unsafe' },
+  'Not Tested':    { color: 'var(--muted)', label: 'Not Tested' },
+  'Not Stated':    { color: 'var(--muted)', label: 'Not Stated' },
 }
 
 const MRI_ICON: Record<string, string> = {
-  safe:        '/mr-safe.svg',
-  conditional: '/mr-conditional.svg',
-  unsafe:      '/mr-unsafe.svg',
+  safe:             '/mr-safe.svg',
+  conditional:      '/mr-conditional.svg',
+  unsafe:           '/mr-unsafe.svg',
+  'MR Safe':        '/mr-safe.svg',
+  'MR Conditional': '/mr-conditional.svg',
+  'MR Unsafe':      '/mr-unsafe.svg',
+}
+
+function mriKey(d: { mriClassification?: string; mriStatus?: string }): string {
+  return (d as { mriClassification?: string }).mriClassification ?? (d.mriStatus ?? 'unknown')
 }
 
 export default function MasterDevicesClient() {
@@ -151,8 +165,8 @@ export default function MasterDevicesClient() {
                 <tbody>
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {devices.map((d: any) => {
-                    const mri  = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
-                    const icon = MRI_ICON[d.mriStatus]
+                    const mri  = MRI_COLOURS[mriKey(d)] ?? MRI_COLOURS.unknown
+                    const icon = MRI_ICON[mriKey(d)]
                     return (
                       <tr key={d._id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/master/devices/${d.deviceCode ?? d._id}`)}>
                         <td style={{ fontWeight: 500 }}>{d.manufacturer}</td>
@@ -197,8 +211,8 @@ export default function MasterDevicesClient() {
             <div className="m-devices-cards">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {devices.map((d: any) => {
-                const mri  = MRI_COLOURS[d.mriStatus] ?? MRI_COLOURS.unknown
-                const icon = MRI_ICON[d.mriStatus]
+                const mri  = MRI_COLOURS[mriKey(d)] ?? MRI_COLOURS.unknown
+                const icon = MRI_ICON[mriKey(d)]
                 return (
                   <div
                     key={d._id}

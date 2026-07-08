@@ -23,7 +23,10 @@ function pageTitleFromPathname(pathname: string): string {
   if (pathname.startsWith('/clinics/patient/'))       return 'Patient record'
   if (pathname.startsWith('/clinics/staff'))          return 'Staff'
   if (pathname.startsWith('/clinics/audit'))          return 'Audit log'
+  if (pathname.startsWith('/clinics/settings/coils')) return 'Coil management'
   if (pathname.startsWith('/clinics/settings'))       return 'Settings'
+  if (pathname.startsWith('/clinics/matrix'))         return 'MRI Matrix'
+  if (pathname.startsWith('/clinics/scan-events'))    return 'Scan log'
   if (pathname.startsWith('/clinics/pending'))        return 'Pending access'
   return 'Dashboard'
 }
@@ -314,6 +317,21 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
           <Link className={`sb-link${isActive('/clinics/add-patient') ? ' active' : ''}`} href="/clinics/add-patient" title="Add patient">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4M19 8v6M16 11h6"/></svg>
             <span>Add patient</span>
+          </Link>
+
+          {/* ── MRI Safety ── */}
+          <div className="sb-section">MRI Safety</div>
+          <Link className={`sb-link${isActive('/clinics/matrix') ? ' active' : ''}`} href="/clinics/matrix" title="MRI Matrix resolver">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M6.34 17.66a8 8 0 1 1 11.32 0"/><path d="M9.17 9.17a4 4 0 0 0 0 5.66M14.83 14.83a4 4 0 0 0 0-5.66"/></svg>
+            <span>MRI Matrix</span>
+          </Link>
+          <Link className={`sb-link${isActive('/clinics/scan-events') ? ' active' : ''}`} href="/clinics/scan-events" title="Scan log">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>Scan log</span>
+          </Link>
+          <Link className={`sb-link${isActive('/clinics/settings/coils') ? ' active' : ''}`} href="/clinics/settings/coils" title="Coil management">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 21 12"/><path d="M21 3v5h-5"/></svg>
+            <span>Coils</span>
           </Link>
 
           {/* ── Clinic ── */}

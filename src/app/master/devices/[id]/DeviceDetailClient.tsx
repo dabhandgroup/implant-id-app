@@ -97,7 +97,16 @@ export default function DeviceDetailClient({ id }: { id: string }) {
     )
   }
 
-  const status   = device.mriStatus as MriStatus
+  // Prefer canonical mriClassification, fall back to legacy mriStatus
+  const CLASS_TO_KEY: Record<string, MriStatus> = {
+    'MR Safe':        'safe',
+    'MR Conditional': 'conditional',
+    'MR Unsafe':      'unsafe',
+    'Not Tested':     'unknown',
+    'Not Stated':     'unknown',
+  }
+  const cls = (device as unknown as { mriClassification?: string }).mriClassification
+  const status: MriStatus = (cls ? (CLASS_TO_KEY[cls] ?? 'unknown') : (device.mriStatus as MriStatus)) ?? 'unknown'
   const devCode  = (device as any).deviceCode as string | undefined
   // Use deviceCode as the slug for internal links, fall back to the raw param
   const slug     = devCode ?? id

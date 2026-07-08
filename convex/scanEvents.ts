@@ -23,6 +23,28 @@ export const listScanEventsByPatient = query({
   },
 })
 
+/** Patient: their own scan history, auth-resolved (no patientId arg required). */
+export const listMyScanEvents = query({
+  args: {
+    paginationOpts: v.object({ numItems: v.number(), cursor: v.union(v.string(), v.null()) }),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return { page: [], isDone: true, continueCursor: '' }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = ctx.db as any
+    const user = await db.query('users').withIndex('by_clerk', (q: any) => q.eq('clerkId', identity.subject)).unique()
+    if (!user || user.role !== 'patient') return { page: [], isDone: true, continueCursor: '' }
+    const patient = await db.query('patients').withIndex('by_user', (q: any) => q.eq('userId', user._id)).unique()
+    if (!patient) return { page: [], isDone: true, continueCursor: '' }
+    return await ctx.db
+      .query('scanEvents')
+      .withIndex('by_patient', (q: any) => q.eq('patientId', patient._id))
+      .order('desc')
+      .paginate(args.paginationOpts)
+  },
+})
+
 /** Clinic staff: their clinic's scan events with optional scanner filter. */
 export const listScanEventsByClinic = query({
   args: {

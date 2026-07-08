@@ -7,6 +7,7 @@ import { useRouter, useSearchParams }   from 'next/navigation'
 import Link                             from 'next/link'
 import QRCode                          from 'qrcode'
 import { CustomSelect }               from '@/components/ui/CustomSelect'
+import ScanHistory                    from './ScanHistory'
 
 
 // ── Confetti fall from top ────────────────────────────────────────────────────
@@ -1237,19 +1238,40 @@ export default function DashboardClient() {
                     </svg>
                   </div>
                   <div style={{ flex:1 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3, flexWrap:'wrap' }}>
                       <span style={{ fontFamily:'var(--ff)', fontWeight:600, fontSize:14, color:'var(--text)' }}>
                         {d.manufacturer} {d.name}
                       </span>
                       <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:600, color:'var(--ok)', background:'rgba(var(--ok-rgb),0.10)', border:'1px solid rgba(var(--ok-rgb),0.22)', borderRadius:5, padding:'2px 7px' }}>
                         Verified
                       </span>
+                      {(d.recalled || d.deviceStatus === 'recalled') && (
+                        <span style={{ fontFamily:'var(--ff)', fontSize:11, fontWeight:700, color:'var(--err)', background:'rgba(var(--err-rgb),0.10)', border:'1px solid rgba(var(--err-rgb),0.30)', borderRadius:5, padding:'2px 7px', letterSpacing:'0.3px' }}>
+                          ⚠ RECALLED
+                        </span>
+                      )}
                     </div>
+                    {(d.recalled || d.deviceStatus === 'recalled') && d.recallNotes && (
+                      <div style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'var(--err)', background:'rgba(var(--err-rgb),0.06)', border:'1px solid rgba(var(--err-rgb),0.20)', borderRadius:7, padding:'6px 10px', marginBottom:4, lineHeight:1.5 }}>
+                        {d.recallNotes}
+                      </div>
+                    )}
                     <div style={{ fontSize:12.5, color:'var(--muted)', display:'flex', gap:12, flexWrap:'wrap' }}>
                       {d.deviceType && <span>{d.deviceType}</span>}
                       {d.serialNumber && <span>S/N: {d.serialNumber}</span>}
                       {d.implantDate && <span>Implanted: {d.implantDate}</span>}
+                      {d.implantLocation && <span>Location: {d.implantLocation}</span>}
+                      {d.leadTipPosition && <span>Lead tip: {d.leadTipPosition}</span>}
                     </div>
+                    {(d.deviceIntegrityState && d.deviceIntegrityState !== 'Complete' && d.deviceIntegrityState !== 'Not Stated') && (
+                      <div style={{ marginTop:5, display:'inline-flex', alignItems:'center', gap:5, background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.22)', borderRadius:6, padding:'3px 9px' }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--err)" strokeWidth="2.2" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        <span style={{ fontFamily:'var(--ff)', fontSize:11.5, color:'var(--err)', fontWeight:600 }}>{d.deviceIntegrityState}</span>
+                      </div>
+                    )}
+                    {d.recordState && (
+                      <div style={{ marginTop:4, fontSize:11, color:'var(--muted2)', fontFamily:'var(--ff)' }}>Record: {d.recordState}</div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1354,6 +1376,9 @@ export default function DashboardClient() {
                   <button className="link-btn" onClick={() => router.push('/patients/add-implant')}>Add your first implant →</button>
                 </div>
               )}
+
+              {/* MRI scan history — collapsed by default, only shows if events exist */}
+              <ScanHistory />
             </div>
 
             {/* ── Health information & allergies ───────────────────── */}

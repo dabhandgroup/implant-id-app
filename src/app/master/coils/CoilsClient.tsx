@@ -13,17 +13,15 @@ interface Clinic { _id: string; name: string }
 interface Coil {
   _id:                  string
   siteId:               string
-  coilName:             string
-  coilManufacturer?:    string
-  coilModel?:           string
-  transmitCoilType?:    string
+  coilDisplayName:      string
+  manufacturer?:        string
+  modelNumber?:         string
+  coilType:             string
   fieldStrength:        string
   compatibleScannerIds: string[]
   status:               string
   recordState?:         string
-  retiredAt?:           number
   notes?:               string
-  createdAt?:           number
 }
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -74,7 +72,7 @@ export default function CoilsClient() {
   }
 
   const clinicOptions = (clinics ?? []).map(c => ({ value: c._id, label: c.name }))
-  const sorted = [...(coils ?? [])].sort((a, b) => (a.coilName ?? '').localeCompare(b.coilName ?? ''))
+  const sorted = [...(coils ?? [])].sort((a, b) => (a.coilDisplayName ?? '').localeCompare(b.coilDisplayName ?? ''))
   const activeCount  = sorted.filter(c => c.status === 'active').length
   const retiredCount = sorted.filter(c => c.status === 'retired').length
 
@@ -156,13 +154,13 @@ export default function CoilsClient() {
                 <tbody>
                   {sorted.map(c => (
                     <tr key={c._id} style={{ opacity: c.status === 'retired' ? 0.6 : 1 }}>
-                      <td style={{ fontFamily: 'var(--ff)', fontWeight: 500 }}>{c.coilName}</td>
+                      <td style={{ fontFamily: 'var(--ff)', fontWeight: 500 }}>{c.coilDisplayName}</td>
                       <td style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)' }}>
-                        {c.coilManufacturer && c.coilModel
-                          ? `${c.coilManufacturer} ${c.coilModel}`
-                          : (c.coilManufacturer ?? c.coilModel ?? '—')}
+                        {c.manufacturer && c.modelNumber
+                          ? `${c.manufacturer} ${c.modelNumber}`
+                          : (c.manufacturer ?? c.modelNumber ?? '—')}
                       </td>
-                      <td style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)' }}>{c.transmitCoilType ?? '—'}</td>
+                      <td style={{ fontFamily: 'var(--ff)', fontSize: 12.5, color: 'var(--muted)' }}>{c.coilType ?? '—'}</td>
                       <td>
                         <span style={{ fontFamily: 'var(--ff)', fontSize: 11.5, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: 'rgba(var(--accent-rgb),0.10)', color: 'var(--accent-deep)' }}>
                           {c.fieldStrength}
@@ -177,13 +175,13 @@ export default function CoilsClient() {
                           {c.status === 'active' && c.recordState !== 'Confirmed' && (
                             <button
                               className="m-act approve"
-                              onClick={() => setConfirm({ id: c._id, name: c.coilName, action: 'confirm' })}
+                              onClick={() => setConfirm({ id: c._id, name: c.coilDisplayName, action: 'confirm' })}
                             >Confirm</button>
                           )}
                           {c.status === 'active' && (
                             <button
                               className="m-act reject"
-                              onClick={() => setConfirm({ id: c._id, name: c.coilName, action: 'retire' })}
+                              onClick={() => setConfirm({ id: c._id, name: c.coilDisplayName, action: 'retire' })}
                             >Retire</button>
                           )}
                         </div>

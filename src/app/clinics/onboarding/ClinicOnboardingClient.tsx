@@ -69,6 +69,33 @@ const COUNTRY_PROF_REG: Record<string, { label: string; placeholder: string }> =
 }
 const DEFAULT_PROF_REG = { label: 'Professional registration number', placeholder: 'e.g. HCPC, AHPRA, NPI…' }
 
+// International phone dial codes (used by PhonePicker + for country auto-populate)
+const PHONE_COUNTRIES = [
+  { flag: '🇬🇧', dial: '+44',  placeholder: '7700 900123',     name: 'United Kingdom'  },
+  { flag: '🇺🇸', dial: '+1',   placeholder: '(201) 555-0123',  name: 'United States'   },
+  { flag: '🇦🇺', dial: '+61',  placeholder: '412 345 678',     name: 'Australia'        },
+  { flag: '🇨🇦', dial: '+1',   placeholder: '(204) 555-0123',  name: 'Canada'           },
+  { flag: '🇮🇪', dial: '+353', placeholder: '85 012 3456',     name: 'Ireland'          },
+  { flag: '🇳🇿', dial: '+64',  placeholder: '21 123 4567',     name: 'New Zealand'      },
+  { flag: '🇩🇪', dial: '+49',  placeholder: '151 12345678',    name: 'Germany'          },
+  { flag: '🇫🇷', dial: '+33',  placeholder: '6 12 34 56 78',   name: 'France'           },
+  { flag: '🇪🇸', dial: '+34',  placeholder: '612 34 56 78',    name: 'Spain'            },
+  { flag: '🇮🇹', dial: '+39',  placeholder: '312 345 6789',    name: 'Italy'            },
+  { flag: '🇳🇱', dial: '+31',  placeholder: '6 12345678',      name: 'Netherlands'      },
+  { flag: '🇧🇪', dial: '+32',  placeholder: '470 12 34 56',    name: 'Belgium'          },
+  { flag: '🇸🇪', dial: '+46',  placeholder: '70 123 45 67',    name: 'Sweden'           },
+  { flag: '🇳🇴', dial: '+47',  placeholder: '406 12 345',      name: 'Norway'           },
+  { flag: '🇩🇰', dial: '+45',  placeholder: '20 12 34 56',     name: 'Denmark'          },
+  { flag: '🇫🇮', dial: '+358', placeholder: '40 123 4567',     name: 'Finland'          },
+  { flag: '🇨🇭', dial: '+41',  placeholder: '76 123 45 67',    name: 'Switzerland'      },
+  { flag: '🇦🇹', dial: '+43',  placeholder: '650 1234567',     name: 'Austria'          },
+  { flag: '🇵🇱', dial: '+48',  placeholder: '512 345 678',     name: 'Poland'           },
+  { flag: '🇨🇿', dial: '+420', placeholder: '601 123 456',     name: 'Czech Republic'   },
+  { flag: '🇵🇹', dial: '+351', placeholder: '912 345 678',     name: 'Portugal'         },
+  { flag: '🇬🇷', dial: '+30',  placeholder: '691 234 5678',    name: 'Greece'           },
+]
+type PhoneCountry = typeof PHONE_COUNTRIES[0]
+
 // ── Left panel shared ─────────────────────────────────────────────────────────
 
 function SidePanel() {
@@ -119,6 +146,75 @@ function SidePanel() {
           GDPR
         </span>
       </div>
+    </div>
+  )
+}
+
+// ── International phone picker ────────────────────────────────────────────────
+
+function PhonePicker({
+  flag, dial, phoneNum, placeholder,
+  onCountryChange, onPhoneChange,
+}: {
+  flag: string; dial: string; phoneNum: string; placeholder: string
+  onCountryChange: (c: PhoneCountry) => void
+  onPhoneChange:   (v: string) => void
+}) {
+  const [open,   setOpen]   = useState(false)
+  const [search, setSearch] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  const filtered = PHONE_COUNTRIES.filter(c =>
+    !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.dial.includes(search)
+  )
+
+  useEffect(() => {
+    if (!open) return
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  return (
+    <div className="phone-row" ref={ref}>
+      <button type="button" className="phone-code" onClick={() => setOpen(o => !o)} aria-label="Select country dial code">
+        <span className="flag-em">{flag}</span>
+        <span className="dial">{dial}</span>
+        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <input
+        className="input" type="tel" placeholder={placeholder}
+        value={phoneNum}
+        onChange={e => onPhoneChange(e.target.value)}
+        onBlur={e => {
+          const stripped = e.target.value.replace(/^0+/, '')
+          if (stripped !== e.target.value) onPhoneChange(stripped)
+        }}
+      />
+      {open && (
+        <div className="phone-dd open">
+          <div className="phone-dd-search">
+            <input
+              placeholder="Search countries…" value={search}
+              onChange={e => setSearch(e.target.value)} autoFocus
+            />
+          </div>
+          <div className="phone-dd-list">
+            {filtered.map(c => (
+              <button key={c.name} type="button"
+                onClick={() => { onCountryChange(c); setOpen(false); setSearch('') }}>
+                <span className="flag-em">{c.flag}</span>
+                {c.name}
+                <span className="dial-r">{c.dial}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -336,23 +432,15 @@ function ScannerPicker({
               <div className="field" style={{ margin:0 }}>
                 <label>Manufacturer <span style={{ color:'var(--err)', marginLeft:3 }}>*</span></label>
                 <input
-                  className="input"
-                  type="text"
-                  placeholder="e.g. Siemens"
-                  value={sfManufacturer}
-                  onChange={e => setSfManufacturer(e.target.value)}
-                  autoComplete="off"
+                  className="input" type="text" placeholder="e.g. Siemens"
+                  value={sfManufacturer} onChange={e => setSfManufacturer(e.target.value)} autoComplete="off"
                 />
               </div>
               <div className="field" style={{ margin:0 }}>
                 <label>Model <span style={{ color:'var(--err)', marginLeft:3 }}>*</span></label>
                 <input
-                  className="input"
-                  type="text"
-                  placeholder="e.g. MAGNETOM Vida"
-                  value={sfModel}
-                  onChange={e => setSfModel(e.target.value)}
-                  autoComplete="off"
+                  className="input" type="text" placeholder="e.g. MAGNETOM Vida"
+                  value={sfModel} onChange={e => setSfModel(e.target.value)} autoComplete="off"
                 />
               </div>
             </div>
@@ -396,12 +484,9 @@ function ScannerPicker({
             <div className="field" style={{ margin:0 }}>
               <label>Notes <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
               <textarea
-                className="input"
-                rows={2}
+                className="input" rows={2}
                 placeholder="Any additional details — country, specific model variant, certifications…"
-                value={sfNotes}
-                onChange={e => setSfNotes(e.target.value)}
-                style={{ resize:'vertical' }}
+                value={sfNotes} onChange={e => setSfNotes(e.target.value)} style={{ resize:'vertical' }}
               />
             </div>
 
@@ -409,9 +494,7 @@ function ScannerPicker({
               <div style={{
                 background:'rgba(var(--err-rgb),0.08)', border:'1px solid rgba(var(--err-rgb),0.20)',
                 borderRadius:8, padding:'10px 14px', fontFamily:'var(--ff)', fontSize:13, color:'var(--err)',
-              }}>
-                {suggestError}
-              </div>
+              }}>{suggestError}</div>
             )}
 
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
@@ -443,16 +526,12 @@ function ScannerPicker({
             <p style={{ fontFamily:'var(--ff)', fontSize:13.5, fontWeight:600, color:'var(--text)', margin:'0 0 2px' }}>
               Scanner submitted for review
             </p>
-            <p style={{ fontFamily:'var(--fb)', fontSize:13, color:'var(--muted)', margin:'0' }}>
+            <p style={{ fontFamily:'var(--fb)', fontSize:13, color:'var(--muted)', margin:0 }}>
               We'll verify the details and add it to the database within a few days.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={closeSuggestion}
-            aria-label="Dismiss"
-            style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', padding:2, lineHeight:1, display:'flex' }}
-          >
+          <button type="button" onClick={closeSuggestion} aria-label="Dismiss"
+            style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', padding:2, lineHeight:1, display:'flex' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -469,20 +548,24 @@ export default function ClinicOnboardingClient() {
   const submitApplication = useMutation(api.clinics.submitClinicApplication)
   const generateUploadUrl = useMutation(api.clinics.onboardingGenerateUploadUrl)
 
-  // Section 1 — Primary contact
-  const [firstName,    setFirstName]    = useState('')
-  const [lastName,     setLastName]     = useState('')
-  const [jobTitle,     setJobTitle]     = useState('')
-  const [contactEmail, setContactEmail] = useState('')
-  const [contactPhone, setContactPhone] = useState('')
-  // Professional registration (country-conditional label, lives in primary contact)
-  const [accreditationNumber, setAccreditationNumber] = useState('')
-
-  // Section 2 — Clinic information
+  // Section 1 — Clinic information
   const [facilityName,    setFacilityName]    = useState('')
   const [facilityType,    setFacilityType]    = useState('')
   const [facilityCountry, setFacilityCountry] = useState('')
   const [facilityAddress, setFacilityAddress] = useState('')
+
+  // Section 2 — Primary contact
+  const [firstName,    setFirstName]    = useState('')
+  const [lastName,     setLastName]     = useState('')
+  const [jobTitle,     setJobTitle]     = useState('')
+  const [contactEmail, setContactEmail] = useState('')
+  // Phone picker state
+  const [phoneFlag,        setPhoneFlag]        = useState('🇬🇧')
+  const [phoneDial,        setPhoneDial]        = useState('+44')
+  const [phoneNum,         setPhoneNum]         = useState('')
+  const [phonePlaceholder, setPhonePlaceholder] = useState('7700 900123')
+  // Professional registration (label driven by facilityCountry from section 1)
+  const [accreditationNumber, setAccreditationNumber] = useState('')
 
   // Section 3 — Scanner hardware
   const [selectedScanners, setSelectedScanners] = useState<ScDoc[]>([])
@@ -519,6 +602,16 @@ export default function ClinicOnboardingClient() {
     if (regulatoryBody && !available.includes(regulatoryBody)) setRegulatoryBody('')
   }
 
+  // When phone country is selected, auto-populate clinic country if not yet set
+  function handlePhoneCountryChange(pc: PhoneCountry) {
+    setPhoneFlag(pc.flag)
+    setPhoneDial(pc.dial)
+    setPhonePlaceholder(pc.placeholder)
+    if (!facilityCountry && COUNTRIES.includes(pc.name)) {
+      handleCountryChange(pc.name)
+    }
+  }
+
   useEffect(() => {
     if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [error])
@@ -543,14 +636,14 @@ export default function ClinicOnboardingClient() {
     e.preventDefault()
     setError('')
 
-    if (!firstName.trim())    return setError('Enter your first name')
-    if (!lastName.trim())     return setError('Enter your last name')
-    if (!contactEmail.trim() || !contactEmail.includes('@'))
-      return setError('Enter a valid email address')
     if (!facilityName.trim())    return setError('Enter the clinic / facility name')
     if (!facilityType)           return setError('Select a facility type')
     if (!facilityCountry)        return setError('Select a country')
     if (!facilityAddress.trim()) return setError('Enter the clinic address')
+    if (!firstName.trim())       return setError('Enter your first name')
+    if (!lastName.trim())        return setError('Enter your last name')
+    if (!contactEmail.trim() || !contactEmail.includes('@'))
+      return setError('Enter a valid email address')
 
     setLoading(true)
 
@@ -571,10 +664,12 @@ export default function ClinicOnboardingClient() {
         fileName  = accreditationFile.name
       }
 
+      const fullPhone = phoneNum.trim() ? `${phoneDial} ${phoneNum.trim()}` : undefined
+
       await submitApplication({
         contactName:     `${firstName.trim()} ${lastName.trim()}`.trim(),
         contactEmail:    contactEmail.trim().toLowerCase(),
-        contactPhone:    contactPhone.trim()   || undefined,
+        contactPhone:    fullPhone,
         jobTitle:        jobTitle.trim()       || undefined,
         facilityName:    facilityName.trim(),
         facilityType,
@@ -677,10 +772,75 @@ export default function ClinicOnboardingClient() {
 
           <form onSubmit={handleSubmit} noValidate>
 
-            {/* ── Section 1: Primary contact ───────────────────────────────── */}
+            {/* ── Section 1: Clinic information ────────────────────────────── */}
             <div className="form-section">
               <h3>
                 <span className="num">1</span>
+                Clinic information
+              </h3>
+              <p className="desc">Basic details about your facility and where you're located.</p>
+
+              <div className="form-grid">
+
+                <div className="field field-full">
+                  <label>
+                    Clinic / facility name
+                    <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
+                  </label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="St Vincent's Hospital MRI Department"
+                    value={facilityName}
+                    onChange={e => setFacilityName(e.target.value)}
+                    autoComplete="organization"
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <CustomSelect
+                    label="Facility type"
+                    required
+                    value={facilityType}
+                    onChange={setFacilityType}
+                    options={FACILITY_TYPES}
+                    placeholder="Select type"
+                  />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <CustomSelect
+                    label="Country"
+                    required
+                    value={facilityCountry}
+                    onChange={handleCountryChange}
+                    options={COUNTRIES}
+                    placeholder="Select your country"
+                  />
+                </div>
+
+                <div className="field field-full">
+                  <label>
+                    Clinic address
+                    <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
+                  </label>
+                  <input
+                    className="input"
+                    type="text"
+                    placeholder="123 Hospital Road, London, W1A 1AA"
+                    value={facilityAddress}
+                    onChange={e => setFacilityAddress(e.target.value)}
+                    autoComplete="street-address"
+                  />
+                </div>
+
+              </div>
+            </div>
+
+            {/* ── Section 2: Primary contact ───────────────────────────────── */}
+            <div className="form-section">
+              <h3>
+                <span className="num">2</span>
                 Primary contact
               </h3>
               <p className="desc">Who should we contact about this application?</p>
@@ -744,15 +904,15 @@ export default function ClinicOnboardingClient() {
                   />
                 </div>
 
-                <div className="field">
+                <div className="field field-full">
                   <label>Phone <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
-                  <input
-                    className="input"
-                    type="tel"
-                    placeholder="+44 20 7000 0000"
-                    value={contactPhone}
-                    onChange={e => setContactPhone(e.target.value)}
-                    autoComplete="tel"
+                  <PhonePicker
+                    flag={phoneFlag}
+                    dial={phoneDial}
+                    phoneNum={phoneNum}
+                    placeholder={phonePlaceholder}
+                    onCountryChange={handlePhoneCountryChange}
+                    onPhoneChange={setPhoneNum}
                   />
                 </div>
 
@@ -764,80 +924,10 @@ export default function ClinicOnboardingClient() {
                   <input
                     className="input"
                     type="text"
-                    placeholder={facilityCountry ? profRegInfo.placeholder : 'e.g. HCPC, AHPRA, NPI…'}
+                    placeholder={profRegInfo.placeholder}
                     value={accreditationNumber}
                     onChange={e => setAccreditationNumber(e.target.value)}
                     aria-label={profRegInfo.label}
-                  />
-                  {!facilityCountry && (
-                    <p style={{ fontFamily:'var(--ff)', fontSize:12, color:'var(--muted2)', margin:'4px 0 0' }}>
-                      Label updates to your country's registration scheme once you select a country below.
-                    </p>
-                  )}
-                </div>
-
-              </div>
-            </div>
-
-            {/* ── Section 2: Clinic information ────────────────────────────── */}
-            <div className="form-section">
-              <h3>
-                <span className="num">2</span>
-                Clinic information
-              </h3>
-              <p className="desc">Basic details about your facility and where you're located.</p>
-
-              <div className="form-grid">
-
-                <div className="field field-full">
-                  <label>
-                    Clinic / facility name
-                    <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
-                  </label>
-                  <input
-                    className="input"
-                    type="text"
-                    placeholder="St Vincent's Hospital MRI Department"
-                    value={facilityName}
-                    onChange={e => setFacilityName(e.target.value)}
-                    autoComplete="organization"
-                  />
-                </div>
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <CustomSelect
-                    label="Facility type"
-                    required
-                    value={facilityType}
-                    onChange={setFacilityType}
-                    options={FACILITY_TYPES}
-                    placeholder="Select type"
-                  />
-                </div>
-
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <CustomSelect
-                    label="Country"
-                    required
-                    value={facilityCountry}
-                    onChange={handleCountryChange}
-                    options={COUNTRIES}
-                    placeholder="Select your country"
-                  />
-                </div>
-
-                <div className="field field-full">
-                  <label>
-                    Clinic address
-                    <span style={{ color:'var(--err)', marginLeft:3 }}>*</span>
-                  </label>
-                  <input
-                    className="input"
-                    type="text"
-                    placeholder="123 Hospital Road, London, W1A 1AA"
-                    value={facilityAddress}
-                    onChange={e => setFacilityAddress(e.target.value)}
-                    autoComplete="street-address"
                   />
                 </div>
 
@@ -853,7 +943,7 @@ export default function ClinicOnboardingClient() {
               <p className="desc">
                 Search for the MRI scanner(s) at your site and add them individually.
                 Linking your scanners helps us match patients to compatible equipment automatically.
-                If your scanner isn't listed, you can submit it for approval after sign-up in clinic settings.
+                If your scanner isn't listed, you can suggest it for review directly from this field.
               </p>
               <ScannerPicker
                 selected={selectedScanners}

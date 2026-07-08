@@ -801,9 +801,9 @@ export default function ManufacturerOnboardingClient() {
                   ] as const).map(({ key, label, required, hint }) => {
                     const doc = docs[key]
                     return (
-                      <div key={key} style={{ marginBottom: 20, padding: '18px 20px', background: 'var(--bg)', border: `1px solid ${doc.storageId ? 'var(--ok)' : 'var(--border)'}`, borderRadius: 12, transition: 'border-color .15s' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <div style={{ fontFamily: 'var(--ff)', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                      <div key={key} style={{ marginBottom: 16, padding: '18px 20px', background: doc.storageId ? 'rgba(var(--ok-rgb),0.06)' : 'var(--bg2)', border: `1.5px solid ${doc.storageId ? 'rgba(var(--ok-rgb),0.35)' : 'var(--border2)'}`, borderRadius: 12, transition: 'border-color .15s' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                          <div style={{ fontFamily: 'var(--ff)', fontSize: 13.5, fontWeight: 600, color: 'var(--text)' }}>
                             {label}
                             {required && <span style={{ color: 'var(--err)', marginLeft: 4 }}>*</span>}
                           </div>
@@ -814,7 +814,7 @@ export default function ManufacturerOnboardingClient() {
                             </div>
                           )}
                         </div>
-                        <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 12 }}>{hint}</div>
+                        <div style={{ fontSize: 12.5, color: 'var(--muted2)', marginBottom: 14, lineHeight: 1.5 }}>{hint}</div>
 
                         {doc.storageId ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

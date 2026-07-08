@@ -15,6 +15,11 @@ function resend() {
   return new Resend(key)
 }
 
+/** Extract first name safely — never returns an empty string. */
+function safeName(name: string, fallback = 'there'): string {
+  return (name ?? '').trim().split(/\s+/)[0] || fallback
+}
+
 // ── Clinic application notification ──────────────────────────────────────────
 
 export const sendClinicApplicationEmail = internalAction({
@@ -94,7 +99,7 @@ export const sendClinicApplicationConfirmationEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r         = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
     const location  = args.facilityCity
       ? `${args.facilityCity}, ${args.facilityCountry}`
       : args.facilityCountry
@@ -153,7 +158,7 @@ export const sendClinicApprovalEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r         = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
     const isNew     = !!args.inviteUrl
 
     await r.emails.send({
@@ -218,7 +223,7 @@ export const sendClinicRejectionEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r         = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
 
     const notesBlock = args.reviewNotes
       ? `
@@ -275,7 +280,7 @@ export const sendStaffInviteEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r         = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
     const roleLabel = args.jobType === 'surgeon' ? 'Surgeon'
                     : args.jobType === 'admin'    ? 'Admin'
                     : 'Radiographer'
@@ -360,7 +365,7 @@ export const sendPatientWelcomeEmail = internalAction({
       subject: `Welcome to Implant ID — your record is being set up`,
       html: buildEmail({
         title:   'Welcome to Implant ID',
-        heading: `Welcome to Implant ID, ${args.firstName}!`,
+        heading: `Welcome to Implant ID${safeName(args.firstName) !== 'there' ? `, ${safeName(args.firstName)}` : ''}!`,
         body: `<p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
           Your Implant ID patient record has been created. Your unique ID is shown below —
           keep it safe, as clinicians may ask for it to access your implant details quickly.
@@ -405,7 +410,7 @@ export const sendPatientVerifiedEmail = internalAction({
       subject: `Your implant record is verified — Implant ID`,
       html: buildEmail({
         title:   'Record Verified',
-        heading: `Great news, ${args.firstName} — your record is verified!`,
+        heading: safeName(args.firstName) !== 'there' ? `Great news, ${safeName(args.firstName)} — your record is verified!` : `Great news — your record is verified!`,
         body: `
           <p style="margin:0 0 16px;color:#64748b;font-size:15px;line-height:1.65;">
             Your clinical team has reviewed and verified your implant record on Implant ID.
@@ -637,7 +642,7 @@ export const sendManufacturerApprovalEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
     await r.emails.send({
       from: FROM,
       to: args.contactEmail,
@@ -667,7 +672,7 @@ export const sendManufacturerApprovalEmail = internalAction({
         },
         cta: {
           label: 'Sign in to your manufacturer portal →',
-          url: `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`,
+          url: `https://portal.implantid.io/manufacturer/login?email=${encodeURIComponent(args.contactEmail)}`,
         },
         footerNote: `If you didn't apply to join Implant ID, please contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,
@@ -687,7 +692,7 @@ export const sendManufacturerInviteEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
     await r.emails.send({
       from: FROM,
       to: args.contactEmail,
@@ -715,7 +720,7 @@ export const sendManufacturerInviteEmail = internalAction({
         },
         cta: {
           label: 'Sign in to your manufacturer portal →',
-          url: `https://portal.implantid.io/login?email=${encodeURIComponent(args.contactEmail)}`,
+          url: `https://portal.implantid.io/manufacturer/login?email=${encodeURIComponent(args.contactEmail)}`,
         },
         footerNote: `If you weren't expecting this invitation, please contact
           <a href="mailto:${SUPPORT}" style="color:#94a3b8;text-decoration:underline;">${SUPPORT}</a> immediately.`,
@@ -736,7 +741,7 @@ export const sendManufacturerRejectionEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
 
     const notesBlock = args.reviewNotes
       ? `
@@ -791,7 +796,7 @@ export const sendDeviceRejectionEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
 
     const reasonBlock = args.reason
       ? `<div style="background:#fef9ec;border-left:3px solid #f0c040;border-radius:0 8px 8px 0;
@@ -844,7 +849,7 @@ export const sendAdminInviteEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r         = resend()
-    const firstName = args.name.split(' ')[0]
+    const firstName = safeName(args.name)
     const isNewUser = !!args.inviteUrl
 
     await r.emails.send({
@@ -961,7 +966,7 @@ export const sendDevicePendingEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r         = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
     const portalUrl = args.portalUrl
 
     await r.emails.send({
@@ -1013,7 +1018,7 @@ export const sendDeviceBulkPendingEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r         = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
 
     await r.emails.send({
       from:    FROM,
@@ -1065,7 +1070,7 @@ export const sendDeviceLiveEmail = internalAction({
   },
   handler: async (_ctx, args) => {
     const r         = resend()
-    const firstName = args.contactName.split(' ')[0]
+    const firstName = safeName(args.contactName)
     const isBulk    = args.deviceNames.length > 1
     const subjectDevice = isBulk
       ? `${args.deviceNames.length} devices from ${args.companyName} are now live`

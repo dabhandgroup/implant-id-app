@@ -5,6 +5,7 @@ import { useQuery, useMutation } from 'convex/react'
 import { useRouter }   from 'next/navigation'
 import { tint } from '@/lib/tint'
 import { api as apiBase } from '../../../../../convex/_generated/api'
+import ConditionsTab from './ConditionsTab'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
@@ -65,6 +66,7 @@ export default function DeviceDetailClient({ id }: { id: string }) {
 
   const linkedPatients = useQuery(api.devices.getPatientsForDevice, device ? { deviceId: device._id } : 'skip')
 
+  const [tab,              setTab]             = useState<'overview' | 'conditions'>('overview')
   const [editingStatus,    setEditingStatus]   = useState(false)
   const [newStatus,        setNewStatus]       = useState<MriStatus>('conditional')
   const [saving,           setSaving]          = useState(false)
@@ -209,6 +211,29 @@ export default function DeviceDetailClient({ id }: { id: string }) {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div
+        className="m-tabs"
+        style={{ '--m-tab-count': 2, '--m-tab-idx': tab === 'overview' ? 0 : 1 } as React.CSSProperties}
+        role="tablist"
+      >
+        <div className="m-tab-slider" aria-hidden="true" />
+        <button role="tab" aria-selected={tab === 'overview'} className={`m-tab${tab === 'overview' ? ' active' : ''}`} onClick={() => setTab('overview')}>
+          Overview
+        </button>
+        <button role="tab" aria-selected={tab === 'conditions'} className={`m-tab${tab === 'conditions' ? ' active' : ''}`} onClick={() => setTab('conditions')}>
+          MRI Conditions
+        </button>
+      </div>
+
+      {/* Conditions tab */}
+      {tab === 'conditions' && (
+        <ConditionsTab deviceId={device._id} />
+      )}
+
+      {/* Overview tab (existing content) */}
+      {tab === 'overview' && <>
+
       {/* MRI status hero card */}
       <div style={{ background: MRI_BG[status], borderRadius: 16, padding: '28px 32px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 20 }}>
         <img
@@ -351,6 +376,8 @@ export default function DeviceDetailClient({ id }: { id: string }) {
           You can restore it or permanently delete it — permanent deletion also removes all linked patient records.
         </div>
       )}
+
+      </>}
 
       {/* ── Linked patients modal ─────────────────────────────────────────── */}
       {showPatients && (

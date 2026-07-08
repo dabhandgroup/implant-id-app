@@ -29,9 +29,14 @@ interface Scanner {
 const FIELD_STRENGTHS = ['0.5T', '1.0T', '1.5T', '3T', '7T', 'Other']
 const SCANNER_TYPES   = ['Closed-bore', 'Open-bore', 'Standing / upright', 'Other']
 
+const FIELD_ORIENTATIONS = ['Horizontal', 'Vertical', 'Not Stated']
+
 const EMPTY_FORM = {
   manufacturer: '', model: '', fieldStrength: '', scannerType: '',
   boreDiameter: '', maxSpatialGradient: '', notes: '',
+  // Hardware spec fields for matrix resolver (Task 4.2)
+  maxSlewRate: '', fieldOrientation: '', tableLimitKg: '',
+  b1RmsMonitoringCapable: false, softwareVersionScope: '',
 }
 
 // ── Add/Edit Scanner modal ────────────────────────────────────────────────────
@@ -47,7 +52,7 @@ function ScannerModal({
   const [saving,  setSaving]  = useState(false)
   const [error,   setError]   = useState('')
 
-  function set(k: keyof typeof EMPTY_FORM, v: string) {
+  function set(k: keyof typeof EMPTY_FORM, v: string | boolean) {
     setForm(f => ({ ...f, [k]: v }))
   }
 
@@ -145,6 +150,56 @@ function ScannerModal({
                 onChange={e => set('maxSpatialGradient', e.target.value)} placeholder="e.g. 80" />
             </div>
           </div>
+          <div className="sc-form-row">
+            <div className="field">
+              <label>Max slew rate (T/m/s) <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
+              <input className="input" type="number" min="0" value={form.maxSlewRate}
+                onChange={e => set('maxSlewRate', e.target.value)} placeholder="e.g. 200" />
+            </div>
+            <div className="field">
+              <label>Table weight limit (kg) <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
+              <input className="input" type="number" min="0" value={form.tableLimitKg}
+                onChange={e => set('tableLimitKg', e.target.value)} placeholder="e.g. 250" />
+            </div>
+          </div>
+          <div className="field">
+            <label>Field orientation <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {FIELD_ORIENTATIONS.map(fo => (
+                <button key={fo} type="button"
+                  onClick={() => set('fieldOrientation', form.fieldOrientation === fo ? '' : fo)}
+                  style={{
+                    fontFamily:'var(--ff)', fontSize:12.5, fontWeight:500,
+                    padding:'5px 12px', borderRadius:8, cursor:'pointer',
+                    border: form.fieldOrientation === fo ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                    background: form.fieldOrientation === fo ? 'rgba(var(--accent-rgb),0.10)' : 'var(--bg)',
+                    color: form.fieldOrientation === fo ? 'var(--accent-deep)' : 'var(--muted)',
+                    transition: 'all .12s',
+                  }}
+                  aria-pressed={form.fieldOrientation === fo}
+                >{fo}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={form.b1RmsMonitoringCapable}
+              onClick={() => set('b1RmsMonitoringCapable', !form.b1RmsMonitoringCapable)}
+              style={{ width:40, height:22, borderRadius:11, border:0, cursor:'pointer', position:'relative', transition:'background .15s',
+                background: form.b1RmsMonitoringCapable ? 'var(--accent)' : 'var(--border)' }}
+            >
+              <span style={{ position:'absolute', top:3, left: form.b1RmsMonitoringCapable ? 21 : 3, width:16, height:16, borderRadius:'50%', background:'#fff', transition:'left .15s' }} />
+            </button>
+            <span style={{ fontFamily:'var(--ff)', fontSize:13, color:'var(--text)' }}>B1+rms monitoring capable</span>
+          </div>
+          <div className="field">
+            <label>Software version scope <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
+            <input className="input" value={form.softwareVersionScope}
+              onChange={e => set('softwareVersionScope', e.target.value)}
+              placeholder="e.g. syngo MR E11 and above" />
+          </div>
           <div className="field">
             <label>Notes <span style={{ fontWeight:400, opacity:.6 }}>(optional)</span></label>
             <textarea className="input" rows={3} value={form.notes}
@@ -200,14 +255,19 @@ export default function ScannersClient() {
   async function handleEdit(form: typeof EMPTY_FORM) {
     if (!editTarget) return
     await updateScanner({
-      id:                 editTarget._id as never,
-      manufacturer:       form.manufacturer.trim(),
-      model:              form.model.trim(),
-      fieldStrength:      form.fieldStrength,
-      scannerType:        form.scannerType,
-      boreDiameter:       form.boreDiameter       ? Number(form.boreDiameter)       : undefined,
-      maxSpatialGradient: form.maxSpatialGradient ? Number(form.maxSpatialGradient) : undefined,
-      notes:              form.notes.trim()        || undefined,
+      id:                     editTarget._id as never,
+      manufacturer:           form.manufacturer.trim(),
+      model:                  form.model.trim(),
+      fieldStrength:          form.fieldStrength,
+      scannerType:            form.scannerType,
+      boreDiameter:           form.boreDiameter       ? Number(form.boreDiameter)       : undefined,
+      maxSpatialGradient:     form.maxSpatialGradient ? Number(form.maxSpatialGradient) : undefined,
+      notes:                  form.notes.trim()        || undefined,
+      maxSlewRate:            form.maxSlewRate         ? Number(form.maxSlewRate)         : undefined,
+      fieldOrientation:       form.fieldOrientation    || undefined,
+      tableLimitKg:           form.tableLimitKg        ? Number(form.tableLimitKg)        : undefined,
+      b1RmsMonitoringCapable: form.b1RmsMonitoringCapable || undefined,
+      softwareVersionScope:   form.softwareVersionScope.trim() || undefined,
     })
   }
 
@@ -342,6 +402,11 @@ export default function ScannersClient() {
                           boreDiameter: s.boreDiameter?.toString() ?? '',
                           maxSpatialGradient: s.maxSpatialGradient?.toString() ?? '',
                           notes: s.notes ?? '',
+                          maxSlewRate:            (s as never as { maxSlewRate?: number }).maxSlewRate?.toString() ?? '',
+                          fieldOrientation:       (s as never as { fieldOrientation?: string }).fieldOrientation ?? '',
+                          tableLimitKg:           (s as never as { tableLimitKg?: number }).tableLimitKg?.toString() ?? '',
+                          b1RmsMonitoringCapable: (s as never as { b1RmsMonitoringCapable?: boolean }).b1RmsMonitoringCapable ?? false,
+                          softwareVersionScope:   (s as never as { softwareVersionScope?: string }).softwareVersionScope ?? '',
                         })}
                       >Edit</button>
                       <button

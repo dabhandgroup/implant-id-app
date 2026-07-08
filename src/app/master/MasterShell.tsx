@@ -23,6 +23,7 @@ function pageTitleFromPathname(pathname: string): string {
   if (pathname.startsWith('/master/devices'))        return 'Devices'
   if (pathname.startsWith('/master/scanners/add'))    return 'Add Scanner'
   if (pathname.startsWith('/master/scanners'))        return 'Scanners'
+  if (pathname.startsWith('/master/coils'))           return 'Coils'
   if (pathname.startsWith('/master/patients/new'))   return 'Add Patient'
   if (pathname.startsWith('/master/patients'))       return 'Patients'
   if (pathname.match(/\/master\/manufacturers\/[^/]+\/edit$/)) return 'Edit Manufacturer'
@@ -331,6 +332,12 @@ export default function MasterShell({ children }: MasterShellProps) {
             <span>AI</span>
           </a>
 
+          <a href="/master/coils" className={`sb-link${isActive('/master/coils') ? ' active' : ''}`}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/><path d="M6.34 17.66a8 8 0 1 1 11.32 0"/><path d="M9.17 9.17a4 4 0 0 0 0 5.66M14.83 14.83a4 4 0 0 0 0-5.66"/>
+            </svg>
+            <span>Coils</span>
+          </a>
           <a href="/master/scanners" className={`sb-link${isActive('/master/scanners') ? ' active' : ''}`}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
               <rect x="2" y="7" width="20" height="10" rx="3" ry="3"/>

@@ -66,7 +66,7 @@ export default defineSchema({
     // v13 fields (Tom's schema — populated on import from the authoritative database)
     deviceName:               v.optional(v.string()),  // human-readable name distinct from model number
     modelNumber:              v.optional(v.string()),  // normalised model number (verbatim from source)
-    mriClassification:        v.optional(v.string()),  // 'MR Conditional' | 'MR Safe' | 'MR Unsafe' | 'Risk-Benefit'
+    mriClassification:        v.optional(v.string()),  // 'MR Conditional' | 'MR Safe' | 'MR Unsafe' | 'Classification Unknown'
     componentRole:            v.optional(v.string()),  // 'Generator' | 'Lead' | 'System' | etc.
     fieldStrength1t5:         v.optional(v.boolean()),
     fieldStrength3t:          v.optional(v.boolean()),
@@ -81,6 +81,21 @@ export default defineSchema({
     radiographerInstructions: v.optional(v.string()),
     representativeInstructions: v.optional(v.string()),
     patientInstructions:      v.optional(v.string()),
+
+    // Task 1.7 — device category + category-specific clinical fields
+    deviceCategory: v.optional(v.string()),  // 'Cardiac — CIED' | 'Neuromodulation' | 'Cochlear & Hearing' | 'Drug Pump' | 'Passive' | 'Functional' | 'Temp & Removable' | 'Legacy & Foreign Body' | 'Other Active'
+    chamberCount: v.optional(v.string()),    // Cardiac only — 'single' | 'dual' | 'triple' | 'N/A'
+    prescanProgrammingRequired: v.optional(v.string()),   // 'TRUE' | 'FALSE' | 'Not Stated'
+    deviceRepresentativeRequired: v.optional(v.string()), // 'TRUE' | 'FALSE' | 'Not Stated'
+    mriModeType: v.optional(v.string()),     // proprietary MRI mode name, e.g. 'SureScan', 'ProMRI'
+    postImplantWaitWeeks: v.optional(v.number()),  // weeks post-implant before MRI permitted
+    deflectionAngle: v.optional(v.number()),       // Passive — degrees at 1.5T
+    torqueMagnitude: v.optional(v.string()),        // Passive — verbatim torque test result
+    artifactType: v.optional(v.string()),           // Passive — 'Signal void' | 'Distortion' | etc.
+    artifactExtentMm: v.optional(v.number()),       // Passive — artifact radius in mm
+    materialFerromagnetic: v.optional(v.boolean()), // Passive — whether ferromagnetic
+    orientationRestriction: v.optional(v.string()), // Passive — verbatim orientation restriction note
+    powerInjectable: v.optional(v.boolean()),       // Ports/catheters — power-injectable rated
   })
     .index('by_manufacturer', ['manufacturer'])
     .index('by_mri_status', ['mriStatus'])
@@ -180,6 +195,14 @@ export default defineSchema({
     systemGroupId: v.optional(v.string()),
     // For lead rows: physical lead length in cm
     leadLengthCm: v.optional(v.number()),
+
+    // Task 1.3 — integrity state, implant location, verification
+    deviceIntegrityState: v.optional(v.string()),  // 'Complete' | 'Fractured-Suspected' | 'Abandoned-Fragment' | 'Explanted-Partial' | 'Not Stated'
+    implantLocation: v.optional(v.string()),        // controlled vocab — actual anatomical pocket
+    leadTipPosition: v.optional(v.string()),        // DBS/SCS lead tip anatomical target
+    surgeonVerifiedDate: v.optional(v.string()),    // YYYY-MM-DD
+    patientConfirmedDate: v.optional(v.string()),   // YYYY-MM-DD
+    recordState: v.optional(v.string()),            // 'Draft' | 'Awaiting Review' | 'Verified — Surgeon' | 'Verified — Dual' | 'Disputed' | 'Discharged — Verified' | 'Discharged — Unverified'
   })
     .index('by_patient', ['patientId'])
     .index('by_device', ['deviceId']),
@@ -263,6 +286,13 @@ export default defineSchema({
     submittedAt:         v.number(),
     reviewedAt:          v.optional(v.number()),
     reviewNotes:         v.optional(v.string()),
+
+    // Task 1.4 — hardware specs needed by the gate walk
+    maxSlewRate:             v.optional(v.number()),  // T/m/s rated max
+    fieldOrientation:        v.optional(v.string()),  // 'Horizontal' | 'Vertical' | 'Not Stated'
+    tableLimitKg:            v.optional(v.number()),  // max patient weight
+    b1RmsMonitoringCapable:  v.optional(v.boolean()), // true = console can enforce B1+RMS limit
+    softwareVersionScope:    v.optional(v.string()),  // verbatim software version range this spec applies to
   })
     .index('by_status', ['status'])
     .index('by_manufacturer', ['manufacturer']),
@@ -448,11 +478,9 @@ export default defineSchema({
     .index('by_slug', ['slug']),
 
   // Source documents & submission contracts
-  // Source docs = IFUs, manuals, spec sheets from manufacturer sites (seeded from devices.ts)
-  // Submission contracts = auto-generated when a manufacturer submits a device via the portal
   documents: defineTable({
     title: v.string(),
-    docType: v.string(),              // 'Manufacturer IFU' | 'Manufacturer MRI Technical Manual' | 'Manufacturer spec sheet' | 'Manufacturer product page' | 'Peer-reviewed publication' | 'Submission Contract'
+    docType: v.string(),              // 'Manufacturer IFU' | 'Manufacturer MRI Technical Manual' | etc.
     manufacturer: v.string(),
     deviceNames: v.array(v.string()), // device names linked to this document
     documentVersion: v.optional(v.string()),
@@ -541,21 +569,94 @@ export default defineSchema({
     .index('by_manufacturer', ['manufacturerId'])
     .index('by_status', ['status']),
 
-  // Device scan conditions — one row per condition-context when zoneCount > 1
-  // A device row with zoneCount = 1 stores conditions inline; >1 means all conditions live here.
+  // Device scan conditions — one row per condition-context
+  // Task 1.1 — expanded to full 40-column structure for the gate-walk resolver
   deviceConditions: defineTable({
-    parentId:           v.string(),  // devices._id or systemParameters.systemId
+    parentId:           v.string(),  // devices._id (string since it can also ref systemParameters)
     zoneLabel:          v.optional(v.string()),   // e.g. "Zone A", "Thorax"
     landmark:           v.optional(v.string()),   // anatomical scan-centre landmark
     fieldStrength:      v.optional(v.string()),   // e.g. "1.5T" | "3T"
     maxSarWb:           v.optional(v.string()),
     maxB1Rms:           v.optional(v.string()),
-    qualifierText:      v.optional(v.string()),   // verbatim IFU qualifier e.g. "With DB-2201 lead"
-    qualifierDeviceIds: v.optional(v.array(v.string())),  // structured resolution of the qualifier
+    qualifierText:      v.optional(v.string()),   // verbatim IFU qualifier
+    qualifierDeviceIds: v.optional(v.array(v.string())),
     mriClassification:  v.optional(v.string()),
     notes:              v.optional(v.string()),
+
+    // Gate 1 — eligibility
+    eligibilityTier:         v.optional(v.string()),  // 'Full Body' | 'Head-Only' | 'Not Eligible' | 'N-A'
+    tierPrecondition:        v.optional(v.string()),  // decomposed text criteria
+    deviceIntegrityState:    v.optional(v.string()),  // join key — 'Complete' | 'Fractured-Suspected' | 'Abandoned-Fragment' | 'Explanted-Partial' | 'Not Stated'
+
+    // General context
+    contextStatus:           v.optional(v.string()),  // 'Permitted' | 'Not Permitted' | 'Not Tested' | 'Not Stated'
+
+    // Gate 5 — bore / orientation
+    boreTypeRequired:         v.optional(v.string()),  // 'Closed-cylindrical' | 'Open' | 'Not Stated'
+    fieldOrientationRequired: v.optional(v.string()),  // 'Horizontal' | 'Vertical' | 'Not Stated'
+
+    // Gate 6 — transmit coil
+    transmitCoilType:        v.optional(v.string()),  // controlled vocab — transmit_coil_type
+
+    // Gate 6b — implant location
+    implantLocationCond:     v.optional(v.string()),  // location this leaf applies to
+
+    // Gate 7 — operating mode
+    operatingMode:           v.optional(v.string()),  // 'Normal' | 'Normal; First Level' | 'First Level'
+    rfExcitationMode:        v.optional(v.string()),  // 'CP only' | 'Not Stated'
+
+    // Gate 3 — spatial gradient
+    maxSpatialGradientCond:  v.optional(v.number()),  // T/m
+
+    // Gate 4 — slew rate
+    maxSlewRateCond:         v.optional(v.number()),  // T/m/s
+    maxDbDt:                 v.optional(v.number()),  // T/s
+
+    // Gate 9 — RF limits (numeric counterparts to string fields above)
+    maxSarWhole:             v.optional(v.number()),  // W/kg whole-body
+    maxSarHead:              v.optional(v.number()),  // W/kg head
+    maxB1RmsVal:             v.optional(v.number()),  // µT (numeric)
+
+    // Gate 8 — exclusion zone / isocentre
+    exclusionZoneApplies:        v.optional(v.boolean()),
+    exclusionZoneDescription:    v.optional(v.string()),
+    isocentreRestriction:        v.optional(v.string()),
+
+    // Gate 10 — time / thermal
+    maxScanTimeMins:         v.optional(v.number()),
+    scanTimeWindowMins:      v.optional(v.number()),
+    cooloffPeriodMins:       v.optional(v.number()),
+
+    // Patient preconditions
+    patientPreconditions:    v.optional(v.string()),  // semicolon-separated prerequisite checks
+
+    // Regional scope
+    regionScope:             v.optional(v.string()),  // 'All' or ISO alpha-2 codes
+    regionPermitted:         v.optional(v.string()),  // verbatim permitted body regions
+    regionExcluded:          v.optional(v.string()),  // verbatim excluded body regions
+
+    // Weight / patient-specific
+    patientWeightBand:       v.optional(v.string()),  // weight-based condition restriction
+
+    // Serial / recall scope
+    serialNumberRange:       v.optional(v.string()),
+    serialNote:              v.optional(v.string()),
+
+    // Visual / diagram
+    requiresVisualReview:    v.optional(v.boolean()),
+    visualExtractionNotes:   v.optional(v.string()),
+
+    // Provenance / admin
+    verificationStatus:      v.optional(v.string()),  // 'Extracted' | 'Under Review' | 'Verified — Tom' | 'Verified — Dual' | 'Superseded' | 'Recalled' | 'Withdrawn'
+    sourceType:              v.optional(v.string()),  // 'Manufacturer MRI Technical Manual' | 'Manufacturer IFU' | etc.
+    docId:                   v.optional(v.string()),  // FK → documents table
+    conditionNotes:          v.optional(v.string()),  // internal admin notes
+    zoneIndex:               v.optional(v.number()),  // ordering (1..n)
   })
-    .index('by_parent', ['parentId']),
+    .index('by_parent', ['parentId'])
+    .index('by_parent_and_field_strength', ['parentId', 'fieldStrength'])
+    .index('by_parent_and_transmit_coil_type', ['parentId', 'transmitCoilType'])
+    .index('by_parent_and_device_integrity_state', ['parentId', 'deviceIntegrityState']),
 
   // OEM-stated system parameter records (generator + specific leads the manufacturer tested)
   systemParameters: defineTable({
@@ -570,6 +671,110 @@ export default defineSchema({
     notes:                v.optional(v.string()),
   })
     .index('by_system_id', ['systemId']),
+
+  // Task 1.2 — site coils (clinic-registered transmit/receive coils for the matrix resolver)
+  // Implements Tom's Site_Coils table — Gate 6 of the gate walk
+  siteCoils: defineTable({
+    siteId:               v.id('clinics'),
+    coilDisplayName:      v.string(),                    // vendor label, e.g. "Body 18 surface coil"
+    coilType:             v.string(),                    // controlled: transmit_coil_type vocab
+    fieldStrength:        v.string(),                    // '1.5T' | '3T' | '7T' | '0.55T'
+    compatibleScannerIds: v.array(v.id('scanners')),     // scanners this coil works with at this site
+    txCapable:            v.boolean(),                   // transmit-capable — resolver uses this
+    rxCapable:            v.boolean(),                   // receive-capable
+    channelCount:         v.optional(v.number()),
+    manufacturer:         v.optional(v.string()),
+    modelNumber:          v.optional(v.string()),
+    status:               v.union(v.literal('active'), v.literal('retired')),
+    recordState:          v.union(v.literal('Unconfirmed'), v.literal('Confirmed')),
+    entryDate:            v.optional(v.string()),        // YYYY-MM-DD
+    notes:                v.optional(v.string()),
+  })
+    .index('by_site_id', ['siteId'])
+    .index('by_site_id_and_status', ['siteId', 'status']),
+
+  // Task 1.5 — risk-benefit records (pre-scan decision gate, P-2 ruling)
+  // Signed by clinician (+ optional radiologist) BEFORE the scan event is created
+  riskBenefitRecords: defineTable({
+    patientId:            v.id('patients'),
+    clinicId:             v.id('clinics'),
+    staffId:              v.id('staff'),
+
+    // Clinical decision
+    indication:           v.string(),
+    decision:             v.union(v.literal('Proceed'), v.literal('Do Not Proceed'), v.literal('Deferred')),
+    reasonForProceeding:  v.optional(v.string()),
+
+    // Hardware planned
+    scannerId:            v.optional(v.id('scanners')),
+    coilId:               v.optional(v.id('siteCoils')),
+    bodyRegion:           v.optional(v.string()),
+
+    // Matrix output snapshot — captured at decision time, never re-resolved (P-3)
+    resolvedOutcomeCache:    v.optional(v.string()),     // 'PASS' | 'FAIL' | 'UNRESOLVED'
+    resolvedConditionIds:    v.optional(v.array(v.string())),
+    resolvedConstraintsJson: v.optional(v.string()),     // JSON constraint set
+    resolutionTimestamp:     v.optional(v.number()),
+
+    // Sign-off
+    clinicianName:        v.string(),
+    clinicianRole:        v.string(),
+    clinicianSignedAt:    v.number(),
+    radiologistName:      v.optional(v.string()),
+    radiologistSignedAt:  v.optional(v.number()),
+
+    // Signed form document
+    signedFormStorageId:  v.optional(v.id('_storage')),
+
+    linkedScanEventId:    v.optional(v.id('scanEvents')),
+    createdAt:            v.number(),
+  })
+    .index('by_patient', ['patientId'])
+    .index('by_clinic', ['clinicId'])
+    .index('by_decision', ['decision']),
+
+  // Task 1.6 — scan events (post-scan execution record + audit snapshot, P-3 ruling)
+  // The resolution snapshot is frozen at scan time and never re-read for future resolutions
+  scanEvents: defineTable({
+    patientId:              v.id('patients'),
+    clinicId:               v.id('clinics'),
+    staffId:                v.id('staff'),
+    scannerId:              v.id('scanners'),
+    coilId:                 v.optional(v.id('siteCoils')),
+    bodyRegion:             v.string(),
+    rvbRecordId:            v.optional(v.id('riskBenefitRecords')),
+
+    // Actual parameters used at console
+    fieldStrengthUsed:      v.string(),
+    operatingModeUsed:      v.optional(v.string()),
+    sarWbActual:            v.optional(v.number()),     // W/kg actually applied
+    sarHeadActual:          v.optional(v.number()),
+    b1RmsActual:            v.optional(v.number()),     // µT
+    slewRateActual:         v.optional(v.number()),     // T/m/s
+    scanTimeMins:           v.optional(v.number()),
+
+    // Outcome
+    outcome:                v.union(
+      v.literal('Completed'),
+      v.literal('Early Termination'),
+      v.literal('Aborted'),
+      v.literal('Not Performed'),
+    ),
+    earlyTerminationReason: v.optional(v.string()),
+    adverseEvents:          v.optional(v.string()),
+    postScanDeviceCheck:    v.optional(v.string()),
+    patientPostScanNotes:   v.optional(v.string()),
+
+    // AUDIT SNAPSHOT — P-3 ruling. Frozen at scan time. Never re-read for future resolutions.
+    resolvedOutcomeCache:    v.string(),                // 'PASS' | 'FAIL' | 'UNRESOLVED'
+    resolvedConditionIds:    v.array(v.string()),       // exact condition IDs used
+    resolvedConstraintsJson: v.string(),                // full constraint set as JSON
+
+    createdAt:              v.number(),
+  })
+    .index('by_patient', ['patientId'])
+    .index('by_clinic', ['clinicId'])
+    .index('by_scanner', ['scannerId']),
 
   // One-time delete-confirmation codes for master admin patient deletion
   adminDeleteCodes: defineTable({

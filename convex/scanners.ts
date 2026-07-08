@@ -51,6 +51,14 @@ export const getScannerById = query({
   },
 })
 
+/** Get a scanner with all hardware spec fields — used by the matrix resolver. */
+export const getFullScannerById = query({
+  args: { id: v.id('scanners') },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id)
+  },
+})
+
 /** Get scanners linked to the authenticated clinic. */
 export const getMyClinicScanners = query({
   args: {},
@@ -79,18 +87,24 @@ export const getMyClinicScanners = query({
 // ── Mutations ─────────────────────────────────────────────────────────────────
 
 const SCANNER_ARGS = {
-  manufacturer:       v.string(),
-  model:              v.string(),
-  fieldStrength:      v.string(),
-  scannerType:        v.string(),
-  boreDiameter:       v.optional(v.number()),
-  maxSpatialGradient: v.optional(v.number()),
-  notes:              v.optional(v.string()),
-  country:            v.optional(v.string()),
-  sourceUrls:         v.optional(v.array(v.object({
+  manufacturer:           v.string(),
+  model:                  v.string(),
+  fieldStrength:          v.string(),
+  scannerType:            v.string(),
+  boreDiameter:           v.optional(v.number()),
+  maxSpatialGradient:     v.optional(v.number()),
+  notes:                  v.optional(v.string()),
+  country:                v.optional(v.string()),
+  sourceUrls:             v.optional(v.array(v.object({
     url:   v.string(),
     label: v.optional(v.string()),
   }))),
+  // Task 2.7 — hardware spec fields needed by the gate walk
+  maxSlewRate:            v.optional(v.number()),   // T/m/s
+  fieldOrientation:       v.optional(v.string()),   // 'Horizontal' | 'Vertical' | 'Not Stated'
+  tableLimitKg:           v.optional(v.number()),   // max patient weight
+  b1RmsMonitoringCapable: v.optional(v.boolean()),  // true = B1+RMS console enforcement capable
+  softwareVersionScope:   v.optional(v.string()),   // verbatim software version scope
 }
 
 /** Admin: add a scanner directly as approved. */

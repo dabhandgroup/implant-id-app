@@ -1,0 +1,948 @@
+<!-- Design plan:
+  Color: Deep navy #0C1C2E ground · Cool ink #162637 cards · Electric teal #00BFCF accent
+         Amber #F59338 warnings · Emerald #22C87A present · Coral #F05252 missing
+         Mist #E6EEF7 page bg (slightly cool white)
+  Type: System stack only — tight weight contrast; mono for IDs/code; no webfont CDN
+  Layout: single column 860px max, tight section bands, status pills as primary info encoding
+  Aesthetic: clinical precision — the palette references MRI scanner software UIs
+-->
+<title>ImplantID — Database & Matrix Gap Analysis</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #E8EEF6;
+  --surface:  #FFFFFF;
+  --deep:     #0C1C2E;
+  --ink:      #162637;
+  --body:     #2C3E52;
+  --muted:    #5A7087;
+  --line:     #D1DCE9;
+  --teal:     #00BFCF;
+  --teal-d:   #0097A7;
+  --teal-bg:  #E0F7FA;
+  --amber:    #F59338;
+  --amber-bg: #FFF3E0;
+  --green:    #22C87A;
+  --green-bg: #E8F8F0;
+  --red:      #F05252;
+  --red-bg:   #FEE8E8;
+  --blue:     #3B82F6;
+  --blue-bg:  #EFF6FF;
+}
+
+html { background: var(--bg); color: var(--body); font-size: 15px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.6;
+  padding: 48px 20px 80px;
+}
+
+.doc { max-width: 860px; margin: 0 auto; }
+
+/* ── HEADER ── */
+.doc-header {
+  background: var(--deep);
+  color: #fff;
+  border-radius: 14px;
+  padding: 40px 44px 36px;
+  margin-bottom: 36px;
+  position: relative;
+  overflow: hidden;
+}
+.doc-header::after {
+  content: '';
+  position: absolute;
+  right: -60px; top: -60px;
+  width: 260px; height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,191,207,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+.doc-eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 12px;
+}
+.doc-header h1 {
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+  line-height: 1.15;
+  text-wrap: balance;
+  margin-bottom: 14px;
+}
+.doc-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+.doc-meta-item {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+}
+.doc-meta-item strong { color: rgba(255,255,255,0.85); font-weight: 600; }
+
+/* ── LEGEND ── */
+.legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ── STATUS PILLS ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  border-radius: 5px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.pill-exists  { background: var(--green-bg);  color: #0E7A4A; }
+.pill-missing { background: var(--red-bg);    color: #B91C1C; }
+.pill-partial { background: var(--amber-bg);  color: #9A4E0B; }
+.pill-diff    { background: var(--blue-bg);   color: #1D4ED8; }
+.pill-concept { background: #F3F0FF;           color: #4C1D95; }
+.pill-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: currentColor; opacity: 0.7; flex-shrink: 0;
+}
+
+/* ── SECTIONS ── */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.section-head-left { flex: 1; }
+.section-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--deep);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+.section-sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.section-body { padding: 0; }
+
+/* ── TABLES ── */
+.gap-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gap-table th {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: #F5F8FC;
+  border-bottom: 1px solid var(--line);
+}
+.gap-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  line-height: 1.5;
+}
+.gap-table tr:last-child td { border-bottom: none; }
+.gap-table tr:hover td { background: #FAFCFF; }
+.gap-table td:first-child { font-weight: 600; color: var(--deep); white-space: nowrap; }
+.gap-table .mono {
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+  font-size: 11.5px;
+  background: #F0F4FA;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--ink);
+}
+.gap-table .note { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+
+/* ── CALLOUT BOXES ── */
+.callout {
+  display: flex;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 16px 24px;
+}
+.callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.callout-body strong { font-weight: 700; display: block; margin-bottom: 3px; }
+.callout-critical { background: var(--red-bg); color: #7F1D1D; border: 1px solid #FCA5A5; }
+.callout-key     { background: var(--teal-bg); color: #004D55; border: 1px solid #80DEEA; }
+.callout-good    { background: var(--green-bg); color: #064E2E; border: 1px solid #86EFAC; }
+
+/* ── PROTO SECTION ── */
+.proto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+}
+.proto-card {
+  background: var(--surface);
+  padding: 16px 18px;
+}
+.proto-card-num {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.proto-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--deep);
+  margin-bottom: 4px;
+}
+.proto-card-desc { font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+/* ── ARCH DIAGRAM ── */
+.arch {
+  display: grid;
+  grid-template-columns: 1fr 40px 1fr;
+  gap: 0;
+  align-items: start;
+  padding: 24px;
+}
+.arch-col { display: flex; flex-direction: column; gap: 8px; }
+.arch-col-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--line);
+}
+.arch-item {
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.arch-item-label { color: var(--body); }
+.arch-exists { background: var(--green-bg); border: 1px solid #A7F3D0; }
+.arch-exists .arch-item-label { color: #064E2E; }
+.arch-partial { background: var(--amber-bg); border: 1px solid #FCD34D; }
+.arch-partial .arch-item-label { color: #78350F; }
+.arch-missing { background: var(--red-bg); border: 1px solid #FCA5A5; }
+.arch-missing .arch-item-label { color: #7F1D1D; }
+.arch-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--line);
+  font-size: 20px;
+  padding-top: 32px;
+}
+
+/* ── SUMMARY SCORECARD ── */
+.scorecard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+}
+.score-item {
+  background: var(--surface);
+  padding: 18px 16px;
+  text-align: center;
+}
+.score-num {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.score-label { font-size: 11px; color: var(--muted); font-weight: 500; }
+.score-red   .score-num { color: var(--red); }
+.score-amber .score-num { color: var(--amber); }
+.score-green .score-num { color: var(--green); }
+.score-blue  .score-num { color: var(--blue); }
+
+/* ── FIELD LIST ── */
+.field-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 16px 24px;
+}
+.field-chip {
+  font-family: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+  font-size: 11px;
+  border-radius: 5px;
+  padding: 3px 8px;
+  border: 1px solid;
+}
+.fc-missing { background: var(--red-bg); color: #B91C1C; border-color: #FCA5A5; }
+.fc-exists  { background: var(--green-bg); color: #0E7A4A; border-color: #86EFAC; }
+.fc-partial { background: var(--amber-bg); color: #9A4E0B; border-color: #FCD34D; }
+
+/* ── CONCEPT BLOCK ── */
+.concept-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border-top: 1px solid var(--line);
+}
+.concept-item {
+  background: var(--surface);
+  padding: 16px 20px;
+}
+.concept-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--deep);
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.concept-body { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ── PRIORITY LIST ── */
+.priority-list { padding: 0 24px 20px; }
+.priority-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.priority-item:last-child { border-bottom: none; }
+.priority-marker {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.pm-1 { background: var(--red-bg);   color: var(--red);   border: 1.5px solid var(--red); }
+.pm-2 { background: var(--amber-bg); color: var(--amber); border: 1.5px solid var(--amber); }
+.pm-3 { background: var(--blue-bg);  color: var(--blue);  border: 1.5px solid var(--blue); }
+.priority-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--deep);
+  margin-bottom: 3px;
+}
+.priority-body { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+@media (max-width: 640px) {
+  .scorecard { grid-template-columns: 1fr 1fr; }
+  .concept-grid { grid-template-columns: 1fr; }
+  .arch { grid-template-columns: 1fr; }
+  .arch-arrow { display: none; }
+  .doc-header { padding: 28px 24px; }
+}
+</style>
+
+<div class="doc">
+
+  <!-- HEADER -->
+  <div class="doc-header">
+    <div class="doc-eyebrow">ImplantID Platform · Database Review</div>
+    <h1>Database Architecture &amp; Matrix Gap Analysis</h1>
+    <p style="color:rgba(255,255,255,0.6);font-size:13.5px;line-height:1.55;max-width:560px;margin-top:10px">
+      Review of Tom's authoritative database schema versus what's currently in Convex.
+      No implementation — this is a map of where we are and what's missing before we build the matrix.
+    </p>
+    <div class="doc-meta">
+      <div class="doc-meta-item"><strong>Schema version</strong> Implant Registry v3.1 · Patient Registry v1.0 · Site Registry v1.0</div>
+      <div class="doc-meta-item"><strong>Status ruling</strong> Tom, 2026-07-07</div>
+      <div class="doc-meta-item"><strong>Priority files</strong> Matrix Prototype v1 · Matrix_Test_Database_V2_FILLED</div>
+    </div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);margin-right:4px;">KEY:</span>
+    <span class="legend-item"><span class="pill pill-exists"><span class="pill-dot"></span>Exists</span> in Convex now</span>
+    <span class="legend-item"><span class="pill pill-partial"><span class="pill-dot"></span>Partial</span> something there, needs uplift</span>
+    <span class="legend-item"><span class="pill pill-missing"><span class="pill-dot"></span>Missing</span> not built at all</span>
+    <span class="legend-item"><span class="pill pill-diff"><span class="pill-dot"></span>Different</span> different approach, may need aligning</span>
+    <span class="legend-item"><span class="pill pill-concept"><span class="pill-dot"></span>Concept</span> architectural principle gap</span>
+  </div>
+
+  <!-- SCORECARD -->
+  <div class="section" style="margin-bottom:20px;">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">Summary — what's there vs what's needed</div>
+        <div class="section-sub">Across the four registries and the matrix resolver</div>
+      </div>
+    </div>
+    <div class="scorecard">
+      <div class="score-item score-red">
+        <div class="score-num">7</div>
+        <div class="score-label">Critical gaps</div>
+      </div>
+      <div class="score-item score-amber">
+        <div class="score-num">6</div>
+        <div class="score-label">Partial / needs uplift</div>
+      </div>
+      <div class="score-item score-green">
+        <div class="score-num">12</div>
+        <div class="score-label">Already in Convex</div>
+      </div>
+      <div class="score-item score-blue">
+        <div class="score-num">4</div>
+        <div class="score-label">Concept / approach gaps</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT TOM BUILT -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">What Tom's schema actually is</div>
+        <div class="section-sub">Three separate registries + a matrix resolver — each with a distinct purpose and governance model</div>
+      </div>
+    </div>
+    <div class="arch" style="padding:24px 24px 8px;">
+      <div class="arch-col">
+        <div class="arch-col-title">Tom's schema (authoritative)</div>
+        <div class="arch-item arch-exists"><span class="arch-item-label">📋 Implant Registry v3.1</span><span class="pill pill-exists" style="font-size:9px">25 sheets</span></div>
+        <div class="arch-item arch-exists"><span class="arch-item-label">🧑 Patient Registry v1.0</span><span class="pill pill-exists" style="font-size:9px">11 sheets</span></div>
+        <div class="arch-item arch-exists"><span class="arch-item-label">🏥 Site Registry v1.0</span><span class="pill pill-exists" style="font-size:9px">5 sheets</span></div>
+        <div class="arch-item arch-exists"><span class="arch-item-label">🔑 Account Registry</span><span class="pill pill-exists" style="font-size:9px">separate</span></div>
+        <div class="arch-item arch-exists"><span class="arch-item-label">⚡ Matrix Resolver</span><span class="pill pill-exists" style="font-size:9px">gate-walk HTML</span></div>
+      </div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-col">
+        <div class="arch-col-title">Our Convex tables</div>
+        <div class="arch-item arch-partial"><span class="arch-item-label">devices + deviceConditions</span><span class="pill pill-partial" style="font-size:9px">partial</span></div>
+        <div class="arch-item arch-partial"><span class="arch-item-label">patients + patientDevices</span><span class="pill pill-partial" style="font-size:9px">partial</span></div>
+        <div class="arch-item arch-partial"><span class="arch-item-label">clinics + scanners</span><span class="pill pill-partial" style="font-size:9px">partial</span></div>
+        <div class="arch-item arch-exists"><span class="arch-item-label">users + manufacturers</span><span class="pill pill-exists" style="font-size:9px">good</span></div>
+        <div class="arch-item arch-missing"><span class="arch-item-label">Matrix resolver</span><span class="pill pill-missing" style="font-size:9px">not built</span></div>
+      </div>
+    </div>
+    <div class="callout callout-key" style="margin-top:8px">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <strong>The right shape — wrong depth.</strong>
+        The Convex architecture maps correctly to Tom's registries. We don't need to rebuild from scratch. What's missing is depth: the conditions model is ~8 fields where it needs 46, the scanner table is missing critical hardware specs, and the resolver logic doesn't exist yet. The patient-facing platform and UI are solid foundations.
+      </div>
+    </div>
+  </div>
+
+  <!-- THE MATRIX PROTOTYPE -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">What the Matrix Prototype does (and what we need to replicate)</div>
+        <div class="section-sub">The gate-walk algorithm — runs through 10 sequential gates, stops at the first hard failure, outputs PASS / FAIL / UNRESOLVED</div>
+      </div>
+    </div>
+    <div class="proto-grid">
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 1</div>
+        <div class="proto-card-title">Eligibility / integrity</div>
+        <div class="proto-card-desc">Is the system complete? Any broken/abandoned leads → hard FAIL, non-overridable. Patient's <code>device_integrity_state</code> is the join key.</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 2</div>
+        <div class="proto-card-title">Field strength</div>
+        <div class="proto-card-desc">Does a condition record exist at this scanner's field strength? Absence = FAIL. Closed-world: no record = no permission.</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 3 &amp; 4</div>
+        <div class="proto-card-title">Spatial gradient + slew rate</div>
+        <div class="proto-card-desc">Scanner's max gradient (T/m) and slew rate (T/m/s) checked against the condition limit. Generates a CHECK constraint if scanner exceeds limit.</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 5</div>
+        <div class="proto-card-title">Bore type + orientation</div>
+        <div class="proto-card-desc">Most conditions require closed-cylindrical, horizontal field. Open-bore or vertical → FAIL if condition doesn't match.</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 6</div>
+        <div class="proto-card-title">Transmit coil type</div>
+        <div class="proto-card-desc">The coil is a gate, not a display field. Whole Body Transmit, T/R Head Volume, T/R Lower Extremity — each unlocks different leaves. Receive-only coils don't change body-transmit hazard.</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 6b &amp; 6c</div>
+        <div class="proto-card-title">Generator location + lead model</div>
+        <div class="proto-card-desc">Some conditions split by where the generator is implanted (chest vs abdomen). Different leads have different RF limits — lead model is required to select the right leaf.</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 7</div>
+        <div class="proto-card-title">Operating mode</div>
+        <div class="proto-card-desc">Normal vs First Level — most active devices must be in a specific mode. Stored as a constraint in the output, not a gate that fails.</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 8</div>
+        <div class="proto-card-title">Exclusion zone / isocentre</div>
+        <div class="proto-card-desc">Some devices prohibit scanning over certain body regions. Requested scan region checked against the condition's exclusion zone. VNS, for example, blocks chest/neck scans with body-coil.</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 9</div>
+        <div class="proto-card-title">RF limit (B1+RMS / SAR)</div>
+        <div class="proto-card-desc">The specific RF energy limit for this leaf — whole-body SAR, head SAR, or B1+RMS in µT. Per-lead when lead model is known. Operator sets this at the console.</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-card-num">Gate 10</div>
+        <div class="proto-card-title">Time + thermal</div>
+        <div class="proto-card-desc">Max scan time, scan window, cooloff period, patient temperature monitoring requirement. Stored as constraints in the output.</div>
+      </div>
+    </div>
+    <div class="callout callout-critical" style="margin-top:0">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <strong>Multi-system rule:</strong> when a patient has multiple implanted systems (e.g. pacemaker + DBS), every system must pass independently and the <em>most restrictive combined constraint set governs</em>. MR Unsafe is never overridable — one unsafe device = full stop regardless of everything else.
+      </div>
+    </div>
+  </div>
+
+  <!-- CRITICAL GAPS: CONDITIONS -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">Gap 1 — Conditions data model <span class="pill pill-missing" style="font-size:10px;margin-left:6px">Critical</span></div>
+        <div class="section-sub">Tom's schema has 46 columns per condition row. Our <code>deviceConditions</code> table has ~8 fields. This is the biggest single gap — the matrix cannot run without the full conditions structure.</div>
+      </div>
+    </div>
+    <p style="padding:14px 24px 4px;font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;">Fields we're missing from each condition row:</p>
+    <div class="field-list">
+      <span class="field-chip fc-missing">eligibility_tier</span>
+      <span class="field-chip fc-missing">tier_precondition</span>
+      <span class="field-chip fc-missing">device_integrity_state</span>
+      <span class="field-chip fc-missing">transmit_coil_type</span>
+      <span class="field-chip fc-missing">context_status</span>
+      <span class="field-chip fc-missing">operating_mode</span>
+      <span class="field-chip fc-missing">bore_type_required</span>
+      <span class="field-chip fc-missing">field_orientation_required</span>
+      <span class="field-chip fc-missing">max_sar_head</span>
+      <span class="field-chip fc-missing">max_slew_rate</span>
+      <span class="field-chip fc-missing">max_db_dt</span>
+      <span class="field-chip fc-missing">max_spatial_gradient</span>
+      <span class="field-chip fc-missing">max_scan_time_mins</span>
+      <span class="field-chip fc-missing">scan_time_window_mins</span>
+      <span class="field-chip fc-missing">cooloff_period_mins</span>
+      <span class="field-chip fc-missing">rf_excitation_mode</span>
+      <span class="field-chip fc-missing">implant_location</span>
+      <span class="field-chip fc-missing">region_permitted</span>
+      <span class="field-chip fc-missing">region_excluded</span>
+      <span class="field-chip fc-missing">exclusion_zone_applies</span>
+      <span class="field-chip fc-missing">exclusion_zone_description</span>
+      <span class="field-chip fc-missing">isocentre_restriction</span>
+      <span class="field-chip fc-missing">serial_number_range</span>
+      <span class="field-chip fc-missing">patient_preconditions</span>
+      <span class="field-chip fc-missing">requires_visual_review</span>
+      <span class="field-chip fc-exists">parentId</span>
+      <span class="field-chip fc-exists">zoneLabel</span>
+      <span class="field-chip fc-exists">fieldStrength</span>
+      <span class="field-chip fc-partial">maxSarWb</span>
+      <span class="field-chip fc-partial">maxB1Rms</span>
+      <span class="field-chip fc-partial">qualifierText</span>
+      <span class="field-chip fc-partial">qualifierDeviceIds</span>
+    </div>
+    <div class="callout callout-critical">
+      <div class="callout-icon">🔴</div>
+      <div class="callout-body">
+        <strong><code>device_integrity_state</code> on the condition row is a hard gate.</strong> The condition row must declare what integrity state it applies to (Complete / Fractured-Suspected / Abandoned-Fragment). A patient with a broken lead hits a "Not Eligible" leaf — and the scan is refused. Without this field on the condition, the integrity check can't run.
+      </div>
+    </div>
+  </div>
+
+  <!-- GAP 2: PATIENT IMPLANT RECORD -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">Gap 2 — Patient implant record <span class="pill pill-partial" style="font-size:10px;margin-left:6px">Partial</span></div>
+        <div class="section-sub">The <code>patientDevices</code> table is the right idea but missing fields the resolver needs to gate against.</div>
+      </div>
+    </div>
+    <table class="gap-table">
+      <thead>
+        <tr><th style="width:30%">Field</th><th style="width:15%">Status</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code class="mono">device_integrity_state</code></td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>Critical — <em>Intact / Fractured-Suspected / Abandoned-Fragment / Explanted-Partial / Not Stated.</em> This is Gate 1 of the matrix. Without it, we can't determine if the patient's system is eligible to scan.<div class="note">Tom's vocab: Complete · Fractured-Suspected · Abandoned-Fragment · Explanted-Partial · Not Stated</div></td>
+        </tr>
+        <tr>
+          <td><code class="mono">implant_location</code></td>
+          <td><span class="pill pill-partial">Partial</span></td>
+          <td>We store this as optional free text. It needs to be a controlled vocabulary (Chest / Upper Left Chest / Abdomen / Cranial / Left vagus nerve etc.) — the DBS Percept conditions at 1.5T split by whether the generator is in the chest vs abdomen, each with different B1+RMS limits.<div class="note">Gate 6b in the matrix fails-closed if location is missing or unrecognised.</div></td>
+        </tr>
+        <tr>
+          <td><code class="mono">surgeon_verified_date</code></td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>Dual-verification model: both surgeon and patient must confirm the record is complete. Record state = Verified — Dual requires both dates.</td>
+        </tr>
+        <tr>
+          <td><code class="mono">patient_confirmed_date</code></td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>See above. Patient consciously confirms nothing is missing.</td>
+        </tr>
+        <tr>
+          <td><code class="mono">record_state</code></td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>Draft → Awaiting Review → Verified — Surgeon → Verified — Dual → Disputed → Discharged — Verified. The resolver should only run against Verified rows.<div class="note">P-4 ruling in Patient Registry schema</div></td>
+        </tr>
+        <tr>
+          <td><code class="mono">lead_tip_position</code></td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>For DBS leads — whether the tip is in target (subthalamic nucleus etc.). Relevant to some exclusion zone checks.</td>
+        </tr>
+        <tr>
+          <td><code class="mono">systemGroupId</code></td>
+          <td><span class="pill pill-exists">Exists</span></td>
+          <td>Good — this ties an IPG to its leads. The matrix uses this to assemble a system's full component list before gating.</td>
+        </tr>
+        <tr>
+          <td><code class="mono">serialNumber</code></td>
+          <td><span class="pill pill-exists">Exists</span></td>
+          <td>Good — Tom's ruling P-1: serial numbers live only in Patient_Implants, nowhere else. We've done this correctly.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- GAP 3: SCANNER TABLE -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">Gap 3 — Scanner hardware data <span class="pill pill-partial" style="font-size:10px;margin-left:6px">Partial</span></div>
+        <div class="section-sub">Our <code>scanners</code> table has manufacturer, model, field strength, bore type — but is missing the hardware specs the gate walk compares against conditions.</div>
+      </div>
+    </div>
+    <table class="gap-table">
+      <thead>
+        <tr><th style="width:30%">Field</th><th style="width:15%">Status</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code class="mono">maxSlewRate</code></td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>T/m/s — Gate 4 of the matrix. The condition sets a max slew rate limit; the scanner's rated max is compared. Siemens Skyra = 200 T/m/s, Free.Max = 100 T/m/s.</td>
+        </tr>
+        <tr>
+          <td><code class="mono">fieldOrientation</code></td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>Horizontal vs Vertical — Gate 5. Vertical-field (stand-up) scanners are a different context; most device conditions only cover horizontal.</td>
+        </tr>
+        <tr>
+          <td><code class="mono">tableLimitKg</code></td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>Patient weight suitability check — paired with <code>patients.weightKg</code>. Some scanners have 110 kg limits; bariatric scanners go higher. (Ruling S-5)</td>
+        </tr>
+        <tr>
+          <td><code class="mono">b1RmsMonitoringCapable</code></td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>Some MR Conditional devices require B1+RMS monitoring at the console. If the scanner can't display it, the scan can't proceed for those devices.</td>
+        </tr>
+        <tr>
+          <td><code class="mono">maxSpatialGradient</code></td>
+          <td><span class="pill pill-exists">Exists</span></td>
+          <td>Already in our schema — T/m. Gate 3 of the matrix. Good.</td>
+        </tr>
+        <tr>
+          <td><code class="mono">boreDiameter</code></td>
+          <td><span class="pill pill-exists">Exists</span></td>
+          <td>Present, though Tom's schema stores this on the Scanner_Models reference layer (not the site instance).</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout callout-critical" style="margin-top:0">
+      <div class="callout-icon">🔴</div>
+      <div class="callout-body">
+        <strong>No coils table at all.</strong> The transmit coil type is Gate 6 — arguably the most important hardware gate. A patient with a DBS device may scan at 3T with a head coil but not a body coil; with a lower extremity coil the B1+RMS limit is removed entirely. We have no coil data. We need a <code>siteCoils</code> table: coil display name, <code>transmit_coil_type</code> (controlled vocab), field strength, compatible scanner IDs, tx_capable flag.
+      </div>
+    </div>
+  </div>
+
+  <!-- GAP 4: MRI CLASSIFICATION -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">Gap 4 — MRI classification vocabulary <span class="pill pill-diff" style="font-size:10px;margin-left:6px">Different</span></div>
+        <div class="section-sub">We have two overlapping fields using different vocabularies. This is what Harry noted as "missing" in the test database.</div>
+      </div>
+    </div>
+    <table class="gap-table">
+      <thead>
+        <tr><th>Our field</th><th>Our values</th><th>Tom's field</th><th>Tom's values (ASTM standard)</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code class="mono">devices.mriStatus</code></td>
+          <td>conditional · safe · unsafe · unknown</td>
+          <td><code class="mono">mri_classification</code></td>
+          <td><strong>MR Conditional · MR Safe · MR Unsafe · Classification Unknown</strong></td>
+        </tr>
+        <tr>
+          <td><code class="mono">devices.mriClassification</code></td>
+          <td>MR Conditional · MR Safe · MR Unsafe · Risk-Benefit <em>(v13, optional)</em></td>
+          <td>same</td>
+          <td>This is the right field name and vocabulary. But it's optional on our schema and not always populated.</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout callout-key" style="margin-top:0">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <strong>What to do:</strong> <code>mriClassification</code> (ASTM vocab: MR Safe / MR Conditional / MR Unsafe / Classification Unknown) should be the authoritative field on every device row, not optional. <code>mriStatus</code> is the legacy field — can be derived from it. The matrix test database was missing this column and Harry noticed it — it should be the first thing displayed on the device card.
+      </div>
+    </div>
+  </div>
+
+  <!-- GAP 5: CLINICAL AUDIT TRAIL -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">Gap 5 — Clinical audit trail <span class="pill pill-missing" style="font-size:10px;margin-left:6px">Missing</span></div>
+        <div class="section-sub">Two tables Tom considers essential before a scan event — the pre-scan decision gate and the post-scan record.</div>
+      </div>
+    </div>
+    <table class="gap-table">
+      <thead>
+        <tr><th style="width:30%">Table</th><th style="width:15%">Status</th><th>What it does</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Risk_Benefit_Registry</td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>The pre-scan decision gate. Clinician + radiologist sign-off, clinical indication, reason for scanning despite risk, decision (Proceed / Do Not Proceed / Deferred), signed form reference. Medico-legally this is the document that says "we decided to scan."<div class="note">Tom's ruling P-2: this is separate from the scan event log. RvB = decision; Scan Event = execution.</div></td>
+        </tr>
+        <tr>
+          <td>Scan_Event_Log</td>
+          <td><span class="pill pill-missing">Missing</span></td>
+          <td>What actually happened: site, scanner used, parameters, outcome, adverse events, early termination, post-scan device check. Critically — the <strong>resolution snapshot</strong>: the exact condition IDs resolved on that day, the outcome, and a timestamp.<div class="note">P-3 ruling: the snapshot is an audit record because the device DB moves underneath. A future resolution for the same patient might differ if device data is updated. Medico-legal requires capturing what was served at the time of the scan.</div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- GAP 6: DEVICE CATEGORIES -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">Gap 6 — Device category structure <span class="pill pill-diff" style="font-size:10px;margin-left:6px">Different</span></div>
+        <div class="section-sub">Tom uses separate sheets per category; we use one flat <code>devices</code> table with a <code>classification</code> field. The practical impact is that category-specific fields are missing.</div>
+      </div>
+    </div>
+    <table class="gap-table">
+      <thead>
+        <tr><th>Tom's category sheet</th><th>Our equivalent</th><th>Category-specific fields we're missing</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Active — Cardiac (CIED)</td>
+          <td><code class="mono">classification: 'active'</code></td>
+          <td><code class="mono">chamber_count</code> (single/dual/triple/N-A), <code class="mono">prescan_programming_required</code>, <code class="mono">mri_mode_type</code>, <code class="mono">device_representative_required</code></td>
+        </tr>
+        <tr>
+          <td>Active — Neuromodulation</td>
+          <td>same — no distinction</td>
+          <td>DBS-specific: stimulation parameters, programming device type, programming required pre/post scan</td>
+        </tr>
+        <tr>
+          <td>Active — Cochlear &amp; Hearing</td>
+          <td>same</td>
+          <td>Magnet removal requirement, speech processor removal</td>
+        </tr>
+        <tr>
+          <td>Passive Implants</td>
+          <td><code class="mono">classification: 'passive'</code></td>
+          <td><code class="mono">deflection_angle</code>, <code class="mono">torque_magnitude</code>, <code class="mono">artifact_type</code>, <code class="mono">artifact_extent_mm</code>, <code class="mono">material_ferromagnetic</code>, <code class="mono">heating_temp_rise</code>, <code class="mono">orientation_restriction</code> — passive implants have very different data needs</td>
+        </tr>
+        <tr>
+          <td>Recall Register</td>
+          <td><code class="mono">recalled: boolean</code></td>
+          <td>Proper recall register with <code class="mono">recall_id</code>, lot/serial number ranges, affected regions, regulatory reference, recall class. Serial number range matching at runtime is missing.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- CONCEPT GAPS -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">Concept gaps — how the resolver is supposed to think</div>
+        <div class="section-sub">These aren't data model issues — they're principles that the implementation needs to encode</div>
+      </div>
+    </div>
+    <div class="concept-grid">
+      <div class="concept-item">
+        <div class="concept-title"><span class="pill pill-concept">Concept</span> Closed-world principle</div>
+        <div class="concept-body">The resolver never assumes safety. If no condition record exists for a given combination (field strength + coil + region + integrity state), the answer is FAIL — not "probably fine." <em>Absence of a record is never treated as safe.</em> Our current device display doesn't enforce this — it shows what data we have, but doesn't say "no record = not permitted."</div>
+      </div>
+      <div class="concept-item">
+        <div class="concept-title"><span class="pill pill-concept">Concept</span> Most restrictive governs</div>
+        <div class="concept-body">Patient with a pacemaker AND a DBS implant: both systems must pass their full gate walk independently. The combined constraint set is the union of all constraints from both systems. The most restrictive limits from each system apply simultaneously. The prototype implements this correctly.</div>
+      </div>
+      <div class="concept-item">
+        <div class="concept-title"><span class="pill pill-concept">Concept</span> Audit snapshot (not live re-read)</div>
+        <div class="concept-body">When a scan is logged, the exact condition IDs resolved and the outcome are captured in the Scan_Event_Log alongside a timestamp. Future reads of that event show what was true on the day — not what the device DB says today. The device DB may be updated (new conditions, corrections) but the historical scan record is frozen. This is medico-legal.</div>
+      </div>
+      <div class="concept-item">
+        <div class="concept-title"><span class="pill pill-concept">Concept</span> Free-text never resolves</div>
+        <div class="concept-body">If a patient has an implant recorded as free text only (no <code>device_id</code> link to a governed record), the matrix outputs UNRESOLVED — not a guess. The prototype shows this clearly: "Implant recorded as free text only — link to a governed device record before this system can be resolved." We need to enforce this in the UI.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT'S ALREADY SOLID -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">What's already solid and doesn't need rethinking</div>
+        <div class="section-sub">So we're building forward, not rebuilding from scratch</div>
+      </div>
+    </div>
+    <div class="callout callout-good" style="margin: 20px 24px;">
+      <div class="callout-icon">✅</div>
+      <div class="callout-body">
+        <strong>Architecture is correctly shaped.</strong> Convex tables map to Tom's registries correctly. The split between devices / patients / clinics / scanners is right. The manufacturer portal, clinic onboarding, and admin tooling are solid. The patient-facing UI is excellent (Harry's words, and Tom would agree — it's the right product). The <code>systemGroupId</code> on <code>patientDevices</code> (linking IPG + leads) is exactly what Tom's Patient_Systems sheet does.
+      </div>
+    </div>
+    <table class="gap-table" style="margin-bottom:0">
+      <thead>
+        <tr><th>Thing that works</th><th>Why it's good</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Serial numbers in <code>patientDevices</code> only</td><td>Matches Tom's ruling P-1 exactly — one home for serial numbers platform-wide</td></tr>
+        <tr><td><code>systemGroupId</code> on implant rows</td><td>Ties IPG + leads into a system — the matrix needs this to resolve as a unit</td></tr>
+        <tr><td>patients.weightKg + heightCm</td><td>Needed for SAR suitability and table weight limit checks</td></tr>
+        <tr><td>Verification status workflow (pending → active)</td><td>Mirrors Tom's record_state concept, needs expansion but is the right direction</td></tr>
+        <tr><td>Source document storage (IFUs)</td><td>Tom's schema has a Documents sheet with doc_id FKs — we have this</td></tr>
+        <tr><td>Manufacturer portal + device submission</td><td>Correct governance model — manufacturers submit, admin verifies, Tom's verification_status enum</td></tr>
+        <tr><td>Access request model</td><td>Maps to Tom's Access_Grants concept — patient controls who sees their record</td></tr>
+        <tr><td>Clinic + scanner linking</td><td><code>clinics.scannerIds</code> maps to Site_Scanners correctly</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PRIORITY ORDER -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-head-left">
+        <div class="section-title">Suggested build order — when you're ready to start</div>
+        <div class="section-sub">This is a read-only review — not implementation yet. But here's the logical sequence when we do move.</div>
+      </div>
+    </div>
+    <div class="priority-list" style="padding-top:16px">
+      <div class="priority-item">
+        <div class="priority-marker pm-1">1</div>
+        <div>
+          <div class="priority-title">Uplift conditions model (46-column structure)</div>
+          <div class="priority-body">Expand <code>deviceConditions</code> to include the full gate-walk fields: <code>eligibility_tier</code>, <code>device_integrity_state</code>, <code>transmit_coil_type</code>, <code>operating_mode</code>, <code>bore_type_required</code>, <code>field_orientation_required</code>, <code>max_sar_head</code>, <code>max_slew_rate</code>, <code>max_spatial_gradient</code>, <code>max_scan_time_mins</code>, <code>cooloff_period_mins</code>, <code>exclusion_zone_applies</code>, <code>exclusion_zone_description</code>, <code>isocentre_restriction</code>, <code>region_excluded</code>, <code>patient_preconditions</code>. This is the database foundation — nothing else can run without it.</div>
+        </div>
+      </div>
+      <div class="priority-item">
+        <div class="priority-marker pm-1">2</div>
+        <div>
+          <div class="priority-title">Add device_integrity_state to patientDevices + implant_location as controlled vocab</div>
+          <div class="priority-body">Gate 1 and Gate 6b of the matrix both need these. <code>device_integrity_state</code>: Complete / Fractured-Suspected / Abandoned-Fragment / Explanted-Partial / Not Stated. <code>implant_location</code>: Chest / Upper Left Chest / Abdomen / Cranial / Left vagus nerve / etc. — controlled list, not free text.</div>
+        </div>
+      </div>
+      <div class="priority-item">
+        <div class="priority-marker pm-1">3</div>
+        <div>
+          <div class="priority-title">Add siteCoils table + scanner hardware fields</div>
+          <div class="priority-body">The coil gate is Gate 6 — the most nuanced gate. Add <code>siteCoils</code> with <code>transmit_coil_type</code> (controlled vocab), <code>txCapable</code>, <code>compatibleScannerIds</code>. Add to scanners: <code>maxSlewRate</code>, <code>fieldOrientation</code>, <code>tableLimitKg</code>, <code>b1RmsMonitoringCapable</code>.</div>
+        </div>
+      </div>
+      <div class="priority-item">
+        <div class="priority-marker pm-1">4</div>
+        <div>
+          <div class="priority-title">Build the matrix resolver (gate-walk function)</div>
+          <div class="priority-body">A Convex query / action that takes patient + site + scanner + coil + body region and runs the 10-gate walk, returning PASS / FAIL / UNRESOLVED with the constraint set. The prototype HTML is the spec — it's a beautiful reference implementation. The logic is well-defined; the hard part is the data, which steps 1–3 address.</div>
+        </div>
+      </div>
+      <div class="priority-item">
+        <div class="priority-marker pm-2">5</div>
+        <div>
+          <div class="priority-title">Standardise mri_classification vocabulary platform-wide</div>
+          <div class="priority-body">Make <code>mriClassification</code> (MR Safe / MR Conditional / MR Unsafe / Classification Unknown) mandatory and the primary display field. Deprecate the legacy <code>mriStatus</code> field or derive it from <code>mriClassification</code>.</div>
+        </div>
+      </div>
+      <div class="priority-item">
+        <div class="priority-marker pm-2">6</div>
+        <div>
+          <div class="priority-title">Risk-Benefit Registry + Scan Event Log</div>
+          <div class="priority-body">These two tables are the clinical audit trail. The matrix resolver output feeds into the Risk-Benefit record (clinician decides to proceed based on the resolved constraints). The Scan Event Log captures what actually happened and snapshots the exact condition IDs used — medico-legally required.</div>
+        </div>
+      </div>
+      <div class="priority-item">
+        <div class="priority-marker pm-3">7</div>
+        <div>
+          <div class="priority-title">Device category differentiation + passive implant data model</div>
+          <div class="priority-body">Passive implants (hip replacements, stents, screws) need very different fields (deflection angle, torque, artifact extent, material ferromagnetic). Active cardiac devices need chamber count, programming requirements. Can be tackled after the matrix is running for active devices.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER NOTE -->
+  <div style="margin-top:28px; padding:18px 24px; background:var(--surface); border:1px solid var(--line); border-radius:12px; font-size:12.5px; color:var(--muted); line-height:1.6;">
+    <strong style="color:var(--body); display:block;margin-bottom:4px;">Important: this is assistive review only.</strong>
+    Tom's schema is the governed authority. Any implementation decisions — particularly around clinical safety logic, the verification_status vocabulary, and the conditions data structure — should be confirmed with Tom before coding. The gate-walk logic in the matrix prototype is the reference implementation for the resolver. Where the prototype and this analysis disagree, trust the prototype code.
+  </div>
+
+</div>

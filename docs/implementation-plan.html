@@ -1,0 +1,1173 @@
+<title>ImplantID — Matrix Extension Implementation Plan</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F0F4FA; --surface:#FFFFFF; --deep:#0C1C2E; --ink:#162637; --body:#2C3E52;
+  --muted:#5A7087; --line:#D1DCE9; --line2:#E8EEF6;
+  --teal:#00BFCF; --teal-d:#0097A7; --teal-bg:#E0F7FA;
+  --amber:#F59338; --amber-bg:#FFF3E0;
+  --green:#22C87A; --green-bg:#EDFBF3;
+  --red:#EF4444; --red-bg:#FEE8E8;
+  --blue:#3B82F6; --blue-bg:#EFF6FF;
+  --purple:#7C3AED; --purple-bg:#F5F3FF;
+  --p1:#EF4444; --p2:#F59338; --p3:#3B82F6;
+}
+html{background:var(--bg);font-size:14px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:var(--body);line-height:1.6;padding:40px 20px 80px}
+.wrap{max-width:940px;margin:0 auto}
+
+/* ── Header ── */
+.hdr{background:var(--deep);border-radius:14px;padding:40px 44px 36px;margin-bottom:28px;position:relative;overflow:hidden}
+.hdr::after{content:'';position:absolute;right:-80px;bottom:-80px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(0,191,207,0.15) 0%,transparent 70%);pointer-events:none}
+.hdr-ey{font-size:10px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+.hdr h1{font-size:clamp(20px,2.8vw,28px);font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1.15;text-wrap:balance;margin-bottom:12px}
+.hdr-sub{color:rgba(255,255,255,.6);font-size:13.5px;line-height:1.55;max-width:580px}
+.hdr-meta{display:flex;gap:20px;flex-wrap:wrap;margin-top:18px;padding-top:18px;border-top:1px solid rgba(255,255,255,.1)}
+.hdr-meta-item{font-size:11.5px;color:rgba(255,255,255,.5)}
+.hdr-meta-item strong{color:rgba(255,255,255,.8)}
+
+/* ── TOC ── */
+.toc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 24px;margin-bottom:28px}
+.toc-title{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+.toc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 20px}
+.toc-item{font-size:12.5px;padding:3px 0;color:var(--muted);display:flex;align-items:center;gap:7px}
+.toc-item a{color:var(--body);text-decoration:none;font-weight:500}
+.toc-item a:hover{color:var(--teal)}
+.phase-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── Phase headers ── */
+.phase{margin-bottom:24px;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.phase-hdr{padding:18px 24px 16px;display:flex;align-items:flex-start;gap:14px;border-bottom:1px solid var(--line)}
+.phase-num{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:800;flex-shrink:0;color:#fff}
+.phase-title{font-size:15.5px;font-weight:700;color:var(--deep);letter-spacing:-.01em;margin-bottom:3px}
+.phase-desc{font-size:12.5px;color:var(--muted);line-height:1.45}
+.ph1 .phase-num{background:var(--p1)}
+.ph2 .phase-num{background:#E85D04}
+.ph3 .phase-num{background:var(--p2)}
+.ph4 .phase-num{background:#059669}
+.ph5 .phase-num{background:var(--teal-d)}
+.ph6 .phase-num{background:var(--purple)}
+.ph7 .phase-num{background:var(--p3)}
+.ph1{border-top:3px solid var(--p1)}
+.ph2{border-top:3px solid #E85D04}
+.ph3{border-top:3px solid var(--p2)}
+.ph4{border-top:3px solid #059669}
+.ph5{border-top:3px solid var(--teal-d)}
+.ph6{border-top:3px solid var(--purple)}
+.ph7{border-top:3px solid var(--p3)}
+
+/* ── Tasks ── */
+.task{border-bottom:1px solid var(--line2);padding:16px 24px}
+.task:last-child{border-bottom:none}
+.task-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.task-title{font-size:13.5px;font-weight:700;color:var(--deep)}
+.task-id{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--muted);white-space:nowrap;margin-top:2px}
+.task-files{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.file-chip{font-family:ui-monospace,'SF Mono','Cascadia Code',Menlo,monospace;font-size:10.5px;background:#F0F4FA;border:1px solid var(--line);border-radius:4px;padding:2px 7px;color:var(--ink)}
+.file-chip.new{background:var(--green-bg);border-color:#A7F3D0;color:#065F46}
+.task-body{font-size:12.5px;color:var(--body);line-height:1.55}
+.task-body p{margin-bottom:8px}
+.task-body p:last-child{margin-bottom:0}
+
+/* ── Field tables ── */
+.ft{width:100%;border-collapse:collapse;font-size:11.5px;margin:10px 0}
+.ft th{background:#F5F8FC;text-align:left;padding:7px 10px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.ft td{padding:8px 10px;border-bottom:1px solid var(--line2);vertical-align:top;line-height:1.4}
+.ft tr:last-child td{border-bottom:none}
+.ft td:first-child{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:10.5px;color:var(--ink);white-space:nowrap;font-weight:600}
+.ft td:nth-child(2){color:var(--muted);font-size:11px}
+.ft-new td:first-child{color:#065F46}
+.ft-new{background:rgba(16,185,129,0.04)}
+.ft-mod td:first-child{color:#7C3AED}
+.ftype{font-size:10px;background:#F0F4FA;border:1px solid var(--line);border-radius:3px;padding:1px 5px;font-family:ui-monospace,monospace;color:var(--muted)}
+
+/* ── Code snippets ── */
+pre{background:#0F1E2E;color:#9FB3C8;border-radius:8px;padding:14px 16px;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;line-height:1.6;overflow-x:auto;margin:10px 0}
+pre .kw{color:#7DD3FC}
+pre .str{color:#86EFAC}
+pre .cm{color:#475569}
+pre .ty{color:#FDE68A}
+pre .fn{color:#A5F3FC}
+code{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:11.5px;background:#F0F4FA;border:1px solid var(--line);border-radius:3px;padding:1px 5px;color:var(--ink)}
+
+/* ── Callouts ── */
+.call{display:flex;gap:12px;padding:12px 16px;border-radius:8px;font-size:12px;line-height:1.5;margin:10px 0}
+.call-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.call strong{display:block;font-weight:700;margin-bottom:2px}
+.call-info{background:var(--blue-bg);color:#1E3A8A;border:1px solid #BFDBFE}
+.call-warn{background:var(--amber-bg);color:#78350F;border:1px solid #FCD34D}
+.call-crit{background:var(--red-bg);color:#7F1D1D;border:1px solid #FCA5A5}
+.call-good{background:var(--green-bg);color:#064E2E;border:1px solid #86EFAC}
+.call-key{background:var(--teal-bg);color:#004D55;border:1px solid #80DEEA}
+
+/* ── Checklist ── */
+.cl{list-style:none;padding:0;margin:8px 0}
+.cl li{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:12.5px;line-height:1.45}
+.cl-box{width:14px;height:14px;border:1.5px solid var(--line);border-radius:3px;flex-shrink:0;margin-top:2px}
+
+/* ── Dep badge ── */
+.dep{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.6px;background:#F3F0FF;color:#4C1D95;border:1px solid #DDD6FE;border-radius:4px;padding:1px 7px}
+
+/* ── Status pill ── */
+.pill{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border-radius:4px;padding:2px 7px}
+.p-schema{background:#FEE2E2;color:#991B1B}
+.p-fn{background:#FEF3C7;color:#92400E}
+.p-ui{background:#E0F2FE;color:#075985}
+.p-data{background:#F0FDF4;color:#14532D}
+
+/* ── Verdict card ── */
+.verdict-preview{border:2px solid var(--line);border-radius:10px;padding:16px;margin:10px 0;background:#FAFCFF}
+.verdict-preview h4{font-size:12px;font-weight:700;color:var(--deep);margin-bottom:8px}
+.gate-row{display:grid;grid-template-columns:18% 26% 32% auto;gap:0;border-bottom:1px solid var(--line2);font-size:11px;padding:5px 0}
+.gate-row:last-child{border-bottom:none}
+.gate-row .gc{padding:2px 6px;line-height:1.4}
+.g-pass{color:#059669;font-weight:700}
+.g-fail{color:#DC2626;font-weight:700}
+.g-check{color:#D97706;font-weight:700}
+.g-lim{color:#2563EB;font-weight:700}
+.g-info{color:var(--muted);font-weight:600}
+
+@media(max-width:640px){
+  .toc-grid{grid-template-columns:1fr}
+  .phase-hdr{flex-direction:column;gap:8px}
+  .hdr{padding:28px 22px}
+  pre{font-size:10px}
+}
+</style>
+
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-ey">ImplantID Platform · Extension Plan v1.0</div>
+  <h1>Matrix &amp; Database Extension<br>Implementation Plan</h1>
+  <div class="hdr-sub">
+    Full implementation plan for extending the platform with Tom's authoritative database schema — expanding the data model,
+    building the MRI combination matrix resolver, and adding the clinical audit trail.
+    Reviewed against the gap analysis before starting work.
+  </div>
+  <div class="hdr-meta">
+    <div class="hdr-meta-item"><strong>Phases</strong> 7</div>
+    <div class="hdr-meta-item"><strong>Tasks</strong> 31</div>
+    <div class="hdr-meta-item"><strong>New tables</strong> 3 (siteCoils, riskBenefitRecords, scanEvents)</div>
+    <div class="hdr-meta-item"><strong>Execution order</strong> Sequential — each phase can begin when the prior is complete</div>
+    <div class="hdr-meta-item"><strong>Gate</strong> Review this plan, then proceed without further input checkpoints</div>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <div class="toc-title">Phases</div>
+  <div class="toc-grid">
+    <div class="toc-item"><span class="phase-dot" style="background:var(--p1)"></span><a href="#p1">Phase 1 — Database Schema</a></div>
+    <div class="toc-item"><span class="phase-dot" style="background:#E85D04"></span><a href="#p2">Phase 2 — Convex Functions</a></div>
+    <div class="toc-item"><span class="phase-dot" style="background:var(--p2)"></span><a href="#p3">Phase 3 — Data Seeding</a></div>
+    <div class="toc-item"><span class="phase-dot" style="background:#059669"></span><a href="#p4">Phase 4 — Admin UI</a></div>
+    <div class="toc-item"><span class="phase-dot" style="background:var(--teal-d)"></span><a href="#p5">Phase 5 — Clinic UI (Matrix)</a></div>
+    <div class="toc-item"><span class="phase-dot" style="background:var(--purple)"></span><a href="#p6">Phase 6 — Patient UI</a></div>
+    <div class="toc-item"><span class="phase-dot" style="background:var(--p3)"></span><a href="#p7">Phase 7 — Cross-cutting Quality</a></div>
+  </div>
+</div>
+
+<div class="call call-warn">
+  <div class="call-icon">⚠️</div>
+  <div>
+    <strong>This plan assumes no implementation has started yet.</strong>
+    All tasks are additive to the existing schema — no destructive changes, no table renames.
+    Phases 1 → 2 → 3 must be completed in order. Phases 4–7 can overlap once Phase 2 is complete.
+    Tom's schema (SCHEMA.json v3.1, PATIENT_REGISTRY_SCHEMA v1.0, SITE_REGISTRY_SCHEMA v1.0) is the authoritative data reference throughout.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PHASE 1 — DATABASE SCHEMA
+════════════════════════════════════════════════ -->
+<div id="p1" class="phase ph1">
+  <div class="phase-hdr">
+    <div class="phase-num ph1">1</div>
+    <div>
+      <div class="phase-title">Database Schema <span class="pill p-schema">Schema changes</span></div>
+      <div class="phase-desc">All additive changes to <code>convex/schema.ts</code> — new tables and new fields on existing tables. No existing fields removed or renamed. Convex pushes schema migrations automatically.</div>
+    </div>
+  </div>
+
+  <!-- 1.1 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 1.1</div>
+        <div class="task-title">Expand <code>deviceConditions</code> table — full 40-column conditions structure</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/schema.ts</span>
+    </div>
+    <div class="task-body">
+      <p>The existing table has ~10 fields. Add the remaining fields needed for the gate-walk resolver. Every new field is optional (existing rows have sparse data; new rows from import will be complete).</p>
+      <p>Fields to add to the <code>deviceConditions</code> table definition:</p>
+      <table class="ft">
+        <thead><tr><th>Field name</th><th>Type</th><th>Gate / purpose</th></tr></thead>
+        <tbody>
+          <tr class="ft-new"><td>eligibilityTier</td><td><span class="ftype">optional string</span></td><td>Gate 1 — 'Full Body' | 'Head-Only' | 'Not Eligible' | 'N-A'</td></tr>
+          <tr class="ft-new"><td>tierPrecondition</td><td><span class="ftype">optional string</span></td><td>Gate 1 — text decomposed criteria (e.g. "no broken conductors, no adapters")</td></tr>
+          <tr class="ft-new"><td>deviceIntegrityState</td><td><span class="ftype">optional string</span></td><td>Gate 1 join key — 'Complete' | 'Fractured-Suspected' | 'Abandoned-Fragment' | 'Explanted-Partial' | 'Not Stated'</td></tr>
+          <tr class="ft-new"><td>contextStatus</td><td><span class="ftype">optional string</span></td><td>'Permitted' | 'Not Permitted' | 'Not Tested' | 'Not Stated'</td></tr>
+          <tr class="ft-new"><td>transmitCoilType</td><td><span class="ftype">optional string</span></td><td>Gate 6 — controlled vocab (see Task 1.1a note)</td></tr>
+          <tr class="ft-new"><td>operatingMode</td><td><span class="ftype">optional string</span></td><td>Gate 7 — 'Normal' | 'Normal; First Level' | 'First Level'</td></tr>
+          <tr class="ft-new"><td>rfExcitationMode</td><td><span class="ftype">optional string</span></td><td>'CP only' | 'Not Stated'</td></tr>
+          <tr class="ft-new"><td>boreTypeRequired</td><td><span class="ftype">optional string</span></td><td>Gate 5 — 'Closed-cylindrical' | 'Open' | 'Not Stated'</td></tr>
+          <tr class="ft-new"><td>fieldOrientationRequired</td><td><span class="ftype">optional string</span></td><td>Gate 5 — 'Horizontal' | 'Vertical' | 'Not Stated'</td></tr>
+          <tr class="ft-new"><td>implantLocationCond</td><td><span class="ftype">optional string</span></td><td>Gate 6b — location this leaf applies to (e.g. 'CHEST', 'ABDOMEN', 'UPPER_LEFT_CHEST')</td></tr>
+          <tr class="ft-new"><td>maxSpatialGradientCond</td><td><span class="ftype">optional number</span></td><td>Gate 3 — T/m limit for this condition (numeric)</td></tr>
+          <tr class="ft-new"><td>maxSlewRateCond</td><td><span class="ftype">optional number</span></td><td>Gate 4 — T/m/s limit for this condition</td></tr>
+          <tr class="ft-new"><td>maxDbDt</td><td><span class="ftype">optional number</span></td><td>T/s limit (dB/dt)</td></tr>
+          <tr class="ft-new"><td>maxSarWhole</td><td><span class="ftype">optional number</span></td><td>Gate 9 — whole-body SAR limit W/kg</td></tr>
+          <tr class="ft-new"><td>maxSarHead</td><td><span class="ftype">optional number</span></td><td>Gate 9 — head SAR limit W/kg</td></tr>
+          <tr class="ft-new"><td>maxB1RmsVal</td><td><span class="ftype">optional number</span></td><td>Gate 9 — B1+RMS limit in µT (numeric, not string)</td></tr>
+          <tr class="ft-new"><td>maxScanTimeMins</td><td><span class="ftype">optional number</span></td><td>Gate 10 — max scan time in minutes</td></tr>
+          <tr class="ft-new"><td>scanTimeWindowMins</td><td><span class="ftype">optional number</span></td><td>Gate 10 — rolling window (e.g. 30 min per 60 min)</td></tr>
+          <tr class="ft-new"><td>cooloffPeriodMins</td><td><span class="ftype">optional number</span></td><td>Gate 10 — cooloff between scans</td></tr>
+          <tr class="ft-new"><td>patientPreconditions</td><td><span class="ftype">optional string</span></td><td>Verbatim user-visible text — semicolon-separated prerequisite checks</td></tr>
+          <tr class="ft-new"><td>regionScope</td><td><span class="ftype">optional string</span></td><td>'All' or ISO alpha-2 codes</td></tr>
+          <tr class="ft-new"><td>regionPermitted</td><td><span class="ftype">optional string</span></td><td>Verbatim permitted body regions</td></tr>
+          <tr class="ft-new"><td>regionExcluded</td><td><span class="ftype">optional string</span></td><td>Verbatim excluded body regions</td></tr>
+          <tr class="ft-new"><td>exclusionZoneApplies</td><td><span class="ftype">optional boolean</span></td><td>Gate 8 — whether an exclusion zone is present</td></tr>
+          <tr class="ft-new"><td>exclusionZoneDescription</td><td><span class="ftype">optional string</span></td><td>Gate 8 — verbatim zone description (e.g. "isocentre must not fall within C7–T8")</td></tr>
+          <tr class="ft-new"><td>isocentreRestriction</td><td><span class="ftype">optional string</span></td><td>Gate 8 — isocentre positioning rule (e.g. "inferior to C7")</td></tr>
+          <tr class="ft-new"><td>patientWeightBand</td><td><span class="ftype">optional string</span></td><td>Weight-based condition restriction (verbatim)</td></tr>
+          <tr class="ft-new"><td>serialNumberRange</td><td><span class="ftype">optional string</span></td><td>Recall / serial-specific condition applicability</td></tr>
+          <tr class="ft-new"><td>serialNote</td><td><span class="ftype">optional string</span></td><td>Verbatim display note for serial scope</td></tr>
+          <tr class="ft-new"><td>requiresVisualReview</td><td><span class="ftype">optional boolean</span></td><td>Condition has a diagram that must be reviewed before scanning</td></tr>
+          <tr class="ft-new"><td>visualExtractionNotes</td><td><span class="ftype">optional string</span></td><td>Notes on extracted diagram data (admin-only)</td></tr>
+          <tr class="ft-new"><td>verificationStatus</td><td><span class="ftype">optional string</span></td><td>'Extracted' | 'Under Review' | 'Verified — Tom' | 'Verified — Dual' | 'Superseded' | 'Recalled' | 'Withdrawn'</td></tr>
+          <tr class="ft-new"><td>sourceType</td><td><span class="ftype">optional string</span></td><td>'Manufacturer MRI Technical Manual' | 'Manufacturer IFU' | etc.</td></tr>
+          <tr class="ft-new"><td>docId</td><td><span class="ftype">optional string</span></td><td>FK → documents table</td></tr>
+          <tr class="ft-new"><td>conditionNotes</td><td><span class="ftype">optional string</span></td><td>Internal-only admin notes</td></tr>
+          <tr class="ft-new"><td>zoneIndex</td><td><span class="ftype">optional number</span></td><td>Ordering when a device has multiple zones (1..n)</td></tr>
+        </tbody>
+      </table>
+      <p>Also add indexes to <code>deviceConditions</code>:</p>
+      <pre>.index(<span class="str">'by_parent_fs'</span>, [<span class="str">'parentId'</span>, <span class="str">'fieldStrength'</span>])
+.index(<span class="str">'by_parent_coil'</span>, [<span class="str">'parentId'</span>, <span class="str">'transmitCoilType'</span>])
+.index(<span class="str">'by_parent_integrity'</span>, [<span class="str">'parentId'</span>, <span class="str">'deviceIntegrityState'</span>])</pre>
+      <div class="call call-info">
+        <div class="call-icon">ℹ️</div>
+        <div><strong>Transmit coil type vocab</strong> — controlled values: 'Head transmit/receive' · 'Body transmit/receive' · 'Lower extremity transmit/receive' · 'Body transmit coil' · 'Head transmit coil' · 'Local transmit coil' · 'Not Stated'. A vocab-map (matching the prototype's <code>COIL_VOCAB_MAP</code>) will be embedded in the resolver to handle source-verbatim leaf values.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.2 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 1.2</div>
+        <div class="task-title">New table — <code>siteCoils</code></div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/schema.ts</span>
+    </div>
+    <div class="task-body">
+      <p>The transmit coil is Gate 6 of the matrix. Clinics must register which coils they have, what type each is, and which scanners they're compatible with. This table is the Site_Coils sheet from Tom's site registry.</p>
+      <pre><span class="kw">siteCoils</span>: defineTable({
+  siteId:              v.id(<span class="str">'clinics'</span>),            <span class="cm">// clinic this coil belongs to</span>
+  coilDisplayName:     v.string(),                <span class="cm">// vendor label, e.g. "Body 18 surface coil"</span>
+  coilType:            v.string(),                <span class="cm">// controlled: transmit_coil_type vocab</span>
+  fieldStrength:       v.string(),                <span class="cm">// '1.5T' | '3T' | '7T' | '0.55T'</span>
+  compatibleScannerIds: v.array(v.id(<span class="str">'scanners'</span>)), <span class="cm">// all scanners this coil works with at this site</span>
+  txCapable:           v.boolean(),               <span class="cm">// transmit-capable = resolver uses this</span>
+  rxCapable:           v.boolean(),               <span class="cm">// receive-capable</span>
+  channelCount:        v.optional(v.number()),
+  manufacturer:        v.optional(v.string()),
+  modelNumber:         v.optional(v.string()),
+  status:              v.union(v.literal(<span class="str">'active'</span>), v.literal(<span class="str">'retired'</span>)),
+  recordState:         v.union(v.literal(<span class="str">'Unconfirmed'</span>), v.literal(<span class="str">'Confirmed'</span>)),
+  entryDate:           v.optional(v.string()),
+  notes:               v.optional(v.string()),
+})
+.index(<span class="str">'by_site'</span>, [<span class="str">'siteId'</span>])
+.index(<span class="str">'by_site_status'</span>, [<span class="str">'siteId'</span>, <span class="str">'status'</span>])</pre>
+      <div class="call call-warn">
+        <div class="call-icon">⚠️</div>
+        <div><strong>S-3 calibration rule</strong> (from Tom's site registry): every scanner in <code>compatibleScannerIds</code> must have a matching field strength. Cross-field-strength associations should be blocked in the mutation handler.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.3 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 1.3</div>
+        <div class="task-title">Expand <code>patientDevices</code> — integrity state, implant location, verification</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/schema.ts</span>
+    </div>
+    <div class="task-body">
+      <table class="ft">
+        <thead><tr><th>Field</th><th>Type</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr class="ft-new"><td>deviceIntegrityState</td><td><span class="ftype">optional string</span></td><td>Gate 1 input — 'Complete' | 'Fractured-Suspected' | 'Abandoned-Fragment' | 'Explanted-Partial' | 'Not Stated'. Default 'Not Stated' on existing rows.</td></tr>
+          <tr class="ft-new"><td>implantLocation</td><td><span class="ftype">optional string</span></td><td>Gate 6b input — controlled vocab list (see note below). Required for some devices at certain field strengths.</td></tr>
+          <tr class="ft-new"><td>leadTipPosition</td><td><span class="ftype">optional string</span></td><td>DBS / SCS lead tip anatomical target (e.g. "Subthalamic nucleus, right"). Displayed on implant card.</td></tr>
+          <tr class="ft-new"><td>surgeonVerifiedDate</td><td><span class="ftype">optional string</span></td><td>YYYY-MM-DD. Set when surgeon marks the implant record as verified-correct.</td></tr>
+          <tr class="ft-new"><td>patientConfirmedDate</td><td><span class="ftype">optional string</span></td><td>YYYY-MM-DD. Set when patient actively confirms the record is complete.</td></tr>
+          <tr class="ft-new"><td>recordState</td><td><span class="ftype">optional string</span></td><td>'Draft' | 'Awaiting Review' | 'Verified — Surgeon' | 'Verified — Dual' | 'Disputed' | 'Discharged — Verified' | 'Discharged — Unverified'</td></tr>
+        </tbody>
+      </table>
+      <div class="call call-info">
+        <div class="call-icon">ℹ️</div>
+        <div><strong>implantLocation controlled vocab</strong>: Brain/Skull · Chest/Pectoral · Upper Left Chest (above rib 4) · Abdomen · Left Vagus Nerve · Right Atrium · Right Ventricle · Left Pectoral · Cranial (lead) · Spinal (lead) · Lower Extremity · Other. This list maps to the matrix prototype's location constants.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.4 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 1.4</div>
+        <div class="task-title">Expand <code>scanners</code> — hardware specs needed by the gate walk</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/schema.ts</span>
+    </div>
+    <div class="task-body">
+      <table class="ft">
+        <thead><tr><th>Field</th><th>Type</th><th>Gate / purpose</th></tr></thead>
+        <tbody>
+          <tr class="ft-new"><td>maxSlewRate</td><td><span class="ftype">optional number</span></td><td>Gate 4 — T/m/s rated max. Siemens Skyra = 200, Free.Max = 100, GE Artist = 200</td></tr>
+          <tr class="ft-new"><td>fieldOrientation</td><td><span class="ftype">optional string</span></td><td>Gate 5 — 'Horizontal' | 'Vertical' | 'Not Stated'. Most closed-bore = Horizontal.</td></tr>
+          <tr class="ft-new"><td>tableLimitKg</td><td><span class="ftype">optional number</span></td><td>Max patient weight — checked against patient.weightKg before the gate walk (weight suitability pre-check)</td></tr>
+          <tr class="ft-new"><td>b1RmsMonitoringCapable</td><td><span class="ftype">optional boolean</span></td><td>Some MR Conditional devices require B1+RMS monitoring at console. Scanner must support it.</td></tr>
+          <tr class="ft-new"><td>softwareVersionScope</td><td><span class="ftype">optional string</span></td><td>Verbatim software version range this spec applies to (from manufacturer)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 1.5 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 1.5</div>
+        <div class="task-title">New table — <code>riskBenefitRecords</code> (pre-scan decision gate)</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/schema.ts</span>
+    </div>
+    <div class="task-body">
+      <p>Tom's ruling P-2: the Risk-Benefit decision is separate from the scan event. This is the pre-scan gate — clinician + radiologist sign off on proceeding. Contains the matrix resolution snapshot at the time of the decision.</p>
+      <pre><span class="kw">riskBenefitRecords</span>: defineTable({
+  patientId:            v.id(<span class="str">'patients'</span>),
+  clinicId:             v.id(<span class="str">'clinics'</span>),
+  staffId:              v.id(<span class="str">'staff'</span>),
+
+  <span class="cm">// Clinical decision</span>
+  indication:           v.string(),
+  decision:             v.union(v.literal(<span class="str">'Proceed'</span>), v.literal(<span class="str">'Do Not Proceed'</span>), v.literal(<span class="str">'Deferred'</span>)),
+  reasonForProceeding:  v.optional(v.string()),
+
+  <span class="cm">// Hardware planned</span>
+  scannerId:            v.optional(v.id(<span class="str">'scanners'</span>)),
+  coilId:               v.optional(v.id(<span class="str">'siteCoils'</span>)),
+  bodyRegion:           v.optional(v.string()),
+
+  <span class="cm">// Matrix output snapshot (captured at time of decision — never re-resolved)</span>
+  resolvedOutcomeCache:    v.optional(v.string()),    <span class="cm">// 'PASS' | 'FAIL' | 'UNRESOLVED'</span>
+  resolvedConditionIds:    v.optional(v.array(v.string())),
+  resolvedConstraintsJson: v.optional(v.string()),    <span class="cm">// JSON constraint set</span>
+  resolutionTimestamp:     v.optional(v.number()),
+
+  <span class="cm">// Sign-off</span>
+  clinicianName:        v.string(),
+  clinicianRole:        v.string(),
+  clinicianSignedAt:    v.number(),
+  radiologistName:      v.optional(v.string()),
+  radiologistSignedAt:  v.optional(v.number()),
+
+  <span class="cm">// Document link</span>
+  signedFormStorageId:  v.optional(v.id(<span class="str">'_storage'</span>)),
+
+  linkedScanEventId:    v.optional(v.id(<span class="str">'scanEvents'</span>)),
+  createdAt:            v.number(),
+})
+.index(<span class="str">'by_patient'</span>, [<span class="str">'patientId'</span>])
+.index(<span class="str">'by_clinic'</span>, [<span class="str">'clinicId'</span>])
+.index(<span class="str">'by_decision'</span>, [<span class="str">'decision'</span>])</pre>
+    </div>
+  </div>
+
+  <!-- 1.6 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 1.6</div>
+        <div class="task-title">New table — <code>scanEvents</code> (post-scan audit log)</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/schema.ts</span>
+    </div>
+    <div class="task-body">
+      <p>Tom's ruling P-3: the scan event log stores a <strong>frozen resolution snapshot</strong> — the exact condition IDs resolved at the time of scanning, the parameters used, and the outcome. This snapshot is never re-read for future resolutions; it exists only for medico-legal audit.</p>
+      <pre><span class="kw">scanEvents</span>: defineTable({
+  patientId:              v.id(<span class="str">'patients'</span>),
+  clinicId:               v.id(<span class="str">'clinics'</span>),
+  staffId:                v.id(<span class="str">'staff'</span>),
+  scannerId:              v.id(<span class="str">'scanners'</span>),
+  coilId:                 v.optional(v.id(<span class="str">'siteCoils'</span>)),
+  bodyRegion:             v.string(),
+  rvbRecordId:            v.optional(v.id(<span class="str">'riskBenefitRecords'</span>)),
+
+  <span class="cm">// Actual parameters used at console</span>
+  fieldStrengthUsed:      v.string(),
+  operatingModeUsed:      v.optional(v.string()),
+  sarWbActual:            v.optional(v.number()),    <span class="cm">// W/kg actually applied</span>
+  sarHeadActual:          v.optional(v.number()),
+  b1RmsActual:            v.optional(v.number()),    <span class="cm">// µT</span>
+  slewRateActual:         v.optional(v.number()),    <span class="cm">// T/m/s</span>
+  scanTimeMins:           v.optional(v.number()),
+
+  <span class="cm">// Outcome</span>
+  outcome:                v.union(v.literal(<span class="str">'Completed'</span>), v.literal(<span class="str">'Early Termination'</span>), v.literal(<span class="str">'Aborted'</span>), v.literal(<span class="str">'Not Performed'</span>)),
+  earlyTerminationReason: v.optional(v.string()),
+  adverseEvents:          v.optional(v.string()),
+  postScanDeviceCheck:    v.optional(v.string()),
+  patientPostScanNotes:   v.optional(v.string()),
+
+  <span class="cm">// AUDIT SNAPSHOT — P-3 ruling. Frozen at scan time. Never re-read for future resolutions.</span>
+  resolvedOutcomeCache:   v.string(),                <span class="cm">// 'PASS' | 'FAIL' | 'UNRESOLVED'</span>
+  resolvedConditionIds:   v.array(v.string()),       <span class="cm">// exact condition IDs used</span>
+  resolvedConstraintsJson: v.string(),               <span class="cm">// full constraint set as JSON</span>
+  resolutionTimestamp:    v.number(),
+
+  createdAt:              v.number(),
+})
+.index(<span class="str">'by_patient'</span>, [<span class="str">'patientId'</span>])
+.index(<span class="str">'by_clinic'</span>, [<span class="str">'clinicId'</span>])
+.index(<span class="str">'by_scanner'</span>, [<span class="str">'scannerId'</span>])</pre>
+    </div>
+  </div>
+
+  <!-- 1.7 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 1.7</div>
+        <div class="task-title">Expand <code>devices</code> — category field + category-specific clinical fields</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/schema.ts</span>
+    </div>
+    <div class="task-body">
+      <table class="ft">
+        <thead><tr><th>Field</th><th>Type</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr class="ft-new"><td>deviceCategory</td><td><span class="ftype">optional string</span></td><td>'Cardiac — CIED' | 'Neuromodulation' | 'Cochlear &amp; Hearing' | 'Drug Pump' | 'Passive' | 'Functional' | 'Temp &amp; Removable' | 'Legacy &amp; Foreign Body' | 'Other Active'. Routes the matrix to the correct conditions context.</td></tr>
+          <tr class="ft-new"><td>chamberCount</td><td><span class="ftype">optional string</span></td><td>Cardiac only — 'single' | 'dual' | 'triple' | 'N/A'</td></tr>
+          <tr class="ft-new"><td>prescanProgrammingRequired</td><td><span class="ftype">optional string</span></td><td>'TRUE' | 'FALSE' | 'Not Stated' — CIED/neuro: must be programmed before scan</td></tr>
+          <tr class="ft-new"><td>deviceRepresentativeRequired</td><td><span class="ftype">optional string</span></td><td>'TRUE' | 'FALSE' | 'Not Stated' — OEM rep must be present during scan</td></tr>
+          <tr class="ft-new"><td>mriModeType</td><td><span class="ftype">optional string</span></td><td>Proprietary MRI mode name (e.g. 'SureScan', 'ProMRI', 'SafeR')</td></tr>
+          <tr class="ft-new"><td>postImplantWaitWeeks</td><td><span class="ftype">optional number</span></td><td>Weeks post-implant before MRI is permitted</td></tr>
+          <tr class="ft-new"><td>deflectionAngle</td><td><span class="ftype">optional number</span></td><td>Passive only — degrees at 1.5T</td></tr>
+          <tr class="ft-new"><td>torqueMagnitude</td><td><span class="ftype">optional string</span></td><td>Passive — verbatim torque test result</td></tr>
+          <tr class="ft-new"><td>artifactType</td><td><span class="ftype">optional string</span></td><td>Passive — 'Signal void' | 'Distortion' | 'Susceptibility artifact' | etc.</td></tr>
+          <tr class="ft-new"><td>artifactExtentMm</td><td><span class="ftype">optional number</span></td><td>Passive — artifact radius in mm</td></tr>
+          <tr class="ft-new"><td>materialFerromagnetic</td><td><span class="ftype">optional boolean</span></td><td>Passive — whether material is ferromagnetic</td></tr>
+          <tr class="ft-new"><td>orientationRestriction</td><td><span class="ftype">optional string</span></td><td>Passive — verbatim orientation restriction note</td></tr>
+          <tr class="ft-new"><td>powerInjectable</td><td><span class="ftype">optional boolean</span></td><td>Ports/catheters — power-injectable rated</td></tr>
+        </tbody>
+      </table>
+      <div class="call call-info">
+        <div class="call-icon">ℹ️</div>
+        <div><code>mriClassification</code> already exists as an optional field (added in v13). In Phase 3 we standardise it as non-optional and populate all existing rows.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PHASE 2 — CONVEX FUNCTIONS
+════════════════════════════════════════════════ -->
+<div id="p2" class="phase ph2">
+  <div class="phase-hdr">
+    <div class="phase-num">2</div>
+    <div>
+      <div class="phase-title">Convex Functions Layer <span class="pill p-fn">Functions</span></div>
+      <div class="phase-desc">New and updated queries, mutations, and actions in <code>convex/</code>. The matrix resolver (Task 2.4) is the most complex task in the plan. <span class="dep">Depends on Phase 1</span></div>
+    </div>
+  </div>
+
+  <!-- 2.1 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 2.1</div>
+        <div class="task-title">Update <code>convex/deviceConditions.ts</code> — CRUD for expanded structure</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/deviceConditions.ts</span>
+    </div>
+    <div class="task-body">
+      <p>Add/update mutations and queries to handle all new fields from Task 1.1:</p>
+      <ul class="cl">
+        <li><span class="cl-box"></span><strong>createCondition</strong> — admin only, accepts all 40+ fields, returns conditionId</li>
+        <li><span class="cl-box"></span><strong>updateCondition</strong> — admin only, patch any field</li>
+        <li><span class="cl-box"></span><strong>deleteCondition</strong> — admin only</li>
+        <li><span class="cl-box"></span><strong>listConditionsByDevice</strong> — query by parentId, returns all leaves sorted by zoneIndex then fieldStrength</li>
+        <li><span class="cl-box"></span><strong>listConditionsByParentAndFs</strong> — resolver-optimised query: parentId + fieldStrength index hit</li>
+        <li><span class="cl-box"></span><strong>getConditionById</strong> — single condition fetch</li>
+        <li><span class="cl-box"></span><strong>bulkImportConditions</strong> — admin mutation accepting an array of condition objects (used by Task 3.2 seeding)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2.2 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 2.2</div>
+        <div class="task-title">New file <code>convex/siteCoils.ts</code></div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">convex/siteCoils.ts</span>
+    </div>
+    <div class="task-body">
+      <ul class="cl">
+        <li><span class="cl-box"></span><strong>addCoil</strong> — clinic admin or platform admin. Enforces S-3: rejects if any compatible scanner's field strength doesn't match the coil's field strength.</li>
+        <li><span class="cl-box"></span><strong>updateCoil</strong> — clinic admin / platform admin</li>
+        <li><span class="cl-box"></span><strong>retireCoil</strong> — sets status to 'retired' (no hard delete)</li>
+        <li><span class="cl-box"></span><strong>confirmCoil</strong> — sets recordState to 'Confirmed' (site admin sign-off)</li>
+        <li><span class="cl-box"></span><strong>listCoilsBySite</strong> — query by siteId, returns active coils. Public to clinic staff.</li>
+        <li><span class="cl-box"></span><strong>listCoilsByScanner</strong> — filter by compatible scanner ID (for resolver coil dropdown)</li>
+        <li><span class="cl-box"></span><strong>getCoilById</strong> — single coil fetch (for resolver)</li>
+        <li><span class="cl-box"></span><strong>listAllCoils</strong> — admin only, with pagination</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2.3 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 2.3</div>
+        <div class="task-title">Update <code>convex/patientDevices.ts</code> — integrity, location, verification</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/patientDevices.ts</span>
+    </div>
+    <div class="task-body">
+      <ul class="cl">
+        <li><span class="cl-box"></span><strong>updateImplantIntegrity</strong> — clinic staff or surgeon. Sets <code>deviceIntegrityState</code> with a controlled-value guard.</li>
+        <li><span class="cl-box"></span><strong>updateImplantLocation</strong> — clinic staff or surgeon. Sets <code>implantLocation</code> with controlled-value guard.</li>
+        <li><span class="cl-box"></span><strong>markSurgeonVerified</strong> — surgeon only. Sets <code>surgeonVerifiedDate</code> and updates <code>recordState</code> to 'Verified — Surgeon' (or 'Verified — Dual' if patient already confirmed).</li>
+        <li><span class="cl-box"></span><strong>markPatientConfirmed</strong> — patient only. Sets <code>patientConfirmedDate</code>, updates <code>recordState</code> to 'Verified — Dual' if surgeon has already verified.</li>
+        <li><span class="cl-box"></span><strong>updateRecordState</strong> — admin only. Direct state override for edge cases.</li>
+        <li><span class="cl-box"></span><strong>getImplantsByPatientForResolver</strong> — query that returns patient implants with their device record, system group, integrity state, and location. Used by the matrix resolver assembly step.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2.4 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 2.4</div>
+        <div class="task-title">New file <code>convex/matrix.ts</code> — the gate-walk resolver (core feature)</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">convex/matrix.ts</span>
+    </div>
+    <div class="task-body">
+      <p>This is the primary new capability. A Convex action that implements the 10-gate walk from the prototype HTML, now running against real database rows. The prototype is the canonical spec — implementation follows it gate-by-gate.</p>
+
+      <div class="call call-key">
+        <div class="call-icon">💡</div>
+        <div><strong>Key principle: closed-world.</strong> If no condition record exists for a given input combination, the resolver returns <code>FAIL</code> — never a guess, never "probably safe." Every gate either finds a matching record or stops.</div>
+      </div>
+
+      <p style="margin-top:10px"><strong>Action signature:</strong></p>
+      <pre><span class="kw">resolveMatrix</span> = action({
+  args: {
+    mode:                  v.union(v.literal(<span class="str">'registry'</span>), v.literal(<span class="str">'manual'</span>)),
+    <span class="cm">// Registry mode</span>
+    patientId:             v.optional(v.id(<span class="str">'patients'</span>)),
+    <span class="cm">// Manual mode</span>
+    manualDeviceId:        v.optional(v.id(<span class="str">'devices'</span>)),
+    manualLeadIds:         v.optional(v.array(v.id(<span class="str">'devices'</span>))),
+    manualImplantLocation: v.optional(v.string()),
+    manualIntegrityState:  v.optional(v.string()),
+    <span class="cm">// Hardware (both modes)</span>
+    scannerId:             v.id(<span class="str">'scanners'</span>),
+    coilId:                v.optional(v.id(<span class="str">'siteCoils'</span>)),
+    bodyRegion:            v.string(),
+  },
+  handler: <span class="kw">async</span> (ctx, args) => { ... }
+})</pre>
+
+      <p><strong>Return type:</strong></p>
+      <pre>{
+  verdict:            <span class="ty">'PASS'</span> | <span class="ty">'FAIL'</span> | <span class="ty">'UNRESOLVED'</span>,
+  systems: [{
+    label:            string,
+    verdict:          <span class="ty">'PASS'</span> | <span class="ty">'FAIL'</span> | <span class="ty">'UNRESOLVED'</span>,
+    deviceName:       string,
+    mriClassification: string,
+    gates:            GateRow[],      <span class="cm">// for display in the UI gate table</span>
+    constraints:      string[],       <span class="cm">// what operator must set</span>
+    reasons:          string[],       <span class="cm">// why verdict was reached</span>
+    resolvedConditionIds: string[],   <span class="cm">// for the audit snapshot</span>
+  }],
+  combinedConstraints: string[],      <span class="cm">// deduped, most restrictive union</span>
+  weightAlert:        string | null,  <span class="cm">// if patient weight > scanner table limit</span>
+}</pre>
+
+      <p><strong>Gate-walk implementation steps inside <code>resolveSystem()</code>:</strong></p>
+      <ul class="cl" style="margin-top:8px">
+        <li><span class="cl-box"></span><strong>Gate 0</strong> — fetch all conditions for this device via <code>listConditionsByDevice</code>. If none exist → <code>FAIL</code> (closed world — no record for any combination)</li>
+        <li><span class="cl-box"></span><strong>Gate 1 Eligibility</strong> — check <code>patientDevice.deviceIntegrityState</code> against condition leaves with <code>eligibilityTier = 'Not Eligible'</code>. If any prohibition leaf matches integrity state → <code>FAIL</code> (never overridable)</li>
+        <li><span class="cl-box"></span><strong>Gate 1b VNS special case</strong> — Group A leaves require confirmed upper-left-chest placement. Missing or different location → fail-closed to Group B. If no Group B leaves → <code>UNRESOLVED</code></li>
+        <li><span class="cl-box"></span><strong>Gate 2 Field strength</strong> — filter candidates by <code>fieldStrength</code> matching scanner. Zero matches → <code>FAIL</code></li>
+        <li><span class="cl-box"></span><strong>Gate 3 Spatial gradient</strong> — compare <code>scanner.maxSpatialGradient</code> vs condition's <code>maxSpatialGradientCond</code>. Exceeds → <code>CHECK</code> constraint added, continue</li>
+        <li><span class="cl-box"></span><strong>Gate 4 Slew rate</strong> — compare <code>scanner.maxSlewRate</code> vs condition's <code>maxSlewRateCond</code>. Exceeds → <code>CHECK</code> constraint added</li>
+        <li><span class="cl-box"></span><strong>Gate 5 Bore / orientation</strong> — compare scanner bore/orientation vs <code>boreTypeRequired</code> / <code>fieldOrientationRequired</code>. Mismatch → <code>FAIL</code></li>
+        <li><span class="cl-box"></span><strong>Gate 6 Transmit coil</strong> — map coil's <code>coilType</code> through COIL_VOCAB_MAP, filter conditions by <code>transmitCoilType</code>. Zero matches → <code>FAIL</code>. Receive-only coil → resolved as body-transmit context.</li>
+        <li><span class="cl-box"></span><strong>Gate 6b Implant location</strong> — if remaining candidates are location-scoped, filter by <code>patientDevice.implantLocation</code>. Location missing / no match → <code>UNRESOLVED</code></li>
+        <li><span class="cl-box"></span><strong>Gate 6c Lead model</strong> — if candidates are lead-scoped, filter by patient's lead device IDs. Unknown lead → <code>UNRESOLVED</code></li>
+        <li><span class="cl-box"></span><strong>Gate 7 Operating mode</strong> — extract permitted modes from surviving candidates, add as constraint. No gate failure.</li>
+        <li><span class="cl-box"></span><strong>Gate 8 Isocentre / exclusion zone</strong> — map requested body region to isocentre position (superior/inferior C7). Select appropriate leaf. Check region against <code>exclusionZoneDescription</code>. Blocked region → <code>FAIL</code></li>
+        <li><span class="cl-box"></span><strong>Gate 9 RF limit</strong> — extract B1+RMS or SAR from selected leaf. Per-lead limit with unknown lead → <code>UNRESOLVED</code>. Add as constraint.</li>
+        <li><span class="cl-box"></span><strong>Gate 10 Time / thermal</strong> — extract scan time, window, cooloff, temp monitoring. Add as constraints.</li>
+      </ul>
+
+      <p style="margin-top:10px"><strong>Multi-system handling</strong> (outer loop in <code>resolve()</code>):</p>
+      <ul class="cl">
+        <li><span class="cl-box"></span>Each system (grouped by <code>systemGroupId</code>) resolved independently</li>
+        <li><span class="cl-box"></span>Combined verdict: any <code>FAIL</code> → combined is <code>FAIL</code>; any <code>UNRESOLVED</code> → <code>UNRESOLVED</code>; all <code>PASS</code> → <code>PASS</code></li>
+        <li><span class="cl-box"></span>Constraints: union of all system constraint sets (most restrictive numeric limits win per field)</li>
+        <li><span class="cl-box"></span>Weight pre-check: if <code>patient.weightKg > scanner.tableLimitKg</code>, add a weight alert before the gate walk runs</li>
+      </ul>
+
+      <div class="call call-crit">
+        <div class="call-icon">🔴</div>
+        <div><strong>MR Unsafe is never overridable.</strong> Any device with <code>mriClassification = 'MR Unsafe'</code> stops the resolver immediately with <code>FAIL</code>, regardless of any other conditions. Do not even attempt the gate walk.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.5 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 2.5</div>
+        <div class="task-title">New file <code>convex/riskBenefit.ts</code></div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">convex/riskBenefit.ts</span>
+    </div>
+    <div class="task-body">
+      <ul class="cl">
+        <li><span class="cl-box"></span><strong>createRvbRecord</strong> — clinic staff. Accepts matrix resolution snapshot (outcome, conditionIds, constraintsJson, timestamp) + clinical decision fields. Returns rvbId.</li>
+        <li><span class="cl-box"></span><strong>addRadiologistSign</strong> — clinic staff. Sets <code>radiologistName</code> + <code>radiologistSignedAt</code> on an existing record.</li>
+        <li><span class="cl-box"></span><strong>linkToScanEvent</strong> — sets <code>linkedScanEventId</code> after a scan event is created.</li>
+        <li><span class="cl-box"></span><strong>listRvbByPatient</strong> — query ordered by createdAt desc. Visible to clinic staff and patient.</li>
+        <li><span class="cl-box"></span><strong>listRvbByClinic</strong> — query with date-range filter. Clinic staff only.</li>
+        <li><span class="cl-box"></span><strong>getRvbById</strong> — single record. Clinic staff / admin.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2.6 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 2.6</div>
+        <div class="task-title">New file <code>convex/scanEvents.ts</code></div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">convex/scanEvents.ts</span>
+    </div>
+    <div class="task-body">
+      <ul class="cl">
+        <li><span class="cl-box"></span><strong>createScanEvent</strong> — clinic staff. The resolution snapshot fields (<code>resolvedOutcomeCache</code>, <code>resolvedConditionIds</code>, <code>resolvedConstraintsJson</code>, <code>resolutionTimestamp</code>) must be passed in from the client (they come from the matrix resolver output that was shown to the user) — they are never re-computed here.</li>
+        <li><span class="cl-box"></span><strong>addPatientNotes</strong> — patient only. Adds <code>patientPostScanNotes</code> to their own scan event record.</li>
+        <li><span class="cl-box"></span><strong>listScanEventsByPatient</strong> — patient-owned data. Clinic sees only their own site's rows (by <code>clinicId</code> filter).</li>
+        <li><span class="cl-box"></span><strong>listScanEventsByClinic</strong> — clinic staff, with date/scanner/outcome filters.</li>
+        <li><span class="cl-box"></span><strong>getScanEvent</strong> — single event fetch with full snapshot (for audit display).</li>
+      </ul>
+      <div class="call call-info">
+        <div class="call-icon">ℹ️</div>
+        <div><strong>P-7 ownership rule</strong>: the Scan Event Log is patient-owned. The recording site sees its own rows; other sites must request access through the existing Access_Grants / request flow before viewing a patient's scan history from another site.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2.7 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div>
+        <div class="task-id">TASK 2.7</div>
+        <div class="task-title">Update <code>convex/scanners.ts</code> — accept new hardware spec fields</div>
+      </div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/scanners.ts</span>
+    </div>
+    <div class="task-body">
+      <p>Update <code>addScanner</code>, <code>submitScanner</code>, and the admin <code>updateScanner</code> mutations to accept and persist the new fields from Task 1.4: <code>maxSlewRate</code>, <code>fieldOrientation</code>, <code>tableLimitKg</code>, <code>b1RmsMonitoringCapable</code>, <code>softwareVersionScope</code>.</p>
+      <p>Also add: <code>getFullScannerById</code> query that returns all hardware specs including new fields (used by the matrix resolver at Gate 3–5).</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PHASE 3 — DATA SEEDING
+════════════════════════════════════════════════ -->
+<div id="p3" class="phase ph3">
+  <div class="phase-hdr">
+    <div class="phase-num">3</div>
+    <div>
+      <div class="phase-title">Data Seeding <span class="pill p-data">Data</span></div>
+      <div class="phase-desc">Populate the new schema with real data: scanner models with full hardware specs, seed conditions from the test database, standardise mri_classification. <span class="dep">Depends on Phase 1 + 2</span></div>
+    </div>
+  </div>
+
+  <!-- 3.1 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 3.1</div><div class="task-title">Seed scanner models with full hardware specs</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">convex/seeds/scannerModels.ts</span>
+    </div>
+    <div class="task-body">
+      <p>Create an admin-only mutation that seeds the following known scanner models (from Tom's test database and site registry template). This is the minimum set needed to run the prototype cases:</p>
+      <table class="ft">
+        <thead><tr><th>Scanner</th><th>Field strength</th><th>Max gradient (T/m)</th><th>Max slew (T/m/s)</th><th>Bore</th><th>Orientation</th></tr></thead>
+        <tbody>
+          <tr><td>Siemens MAGNETOM Skyra</td><td>3T</td><td>45</td><td>200</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+          <tr><td>Siemens MAGNETOM Aera</td><td>1.5T</td><td>45</td><td>200</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+          <tr><td>Siemens MAGNETOM Free.Max</td><td>0.55T</td><td>26</td><td>100</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+          <tr><td>GE SIGNA Artist</td><td>1.5T</td><td>44</td><td>200</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+          <tr><td>Philips Ingenia Elition X</td><td>3T</td><td>45</td><td>220</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+          <tr><td>Siemens MAGNETOM Vida</td><td>3T</td><td>45</td><td>200</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+          <tr><td>Siemens MAGNETOM Sola</td><td>1.5T</td><td>45</td><td>200</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+          <tr><td>GE SIGNA Pioneer</td><td>3T</td><td>50</td><td>200</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+          <tr><td>Philips Achieva</td><td>1.5T</td><td>33</td><td>166</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+          <tr><td>Philips Achieva</td><td>3T</td><td>40</td><td>200</td><td>Closed-cylindrical</td><td>Horizontal</td></tr>
+        </tbody>
+      </table>
+      <p>Additional models to be added as Tom provides the full site registry data.</p>
+    </div>
+  </div>
+
+  <!-- 3.2 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 3.2</div><div class="task-title">Import condition leaves from Matrix_Test_Database_V2 prototype</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">convex/seeds/conditions.ts</span>
+    </div>
+    <div class="task-body">
+      <p>The prototype HTML contains a <code>LEAVES</code> array — 14 fully-resolved condition leaves covering Medtronic Percept PC (DBS), LivaNova VNS Model 105, and Medtronic Azure Pacemaker. These become the first real condition records in the database.</p>
+      <p>Mapping from prototype leaf fields to Convex condition row fields:</p>
+      <table class="ft">
+        <thead><tr><th>Prototype field</th><th>Convex field</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>id</td><td>conditionId (in notes)</td><td>Store original ID as <code>conditionNotes</code> for traceability</td></tr>
+          <tr><td>parent</td><td>parentId</td><td>Map to devices._id by looking up manufacturer + model</td></tr>
+          <tr><td>cls</td><td>mriClassification</td><td>'MR Conditional' etc.</td></tr>
+          <tr><td>tier</td><td>eligibilityTier</td><td>'Full Body', 'System-complete', 'Not Eligible'</td></tr>
+          <tr><td>fs (array)</td><td>fieldStrength</td><td>One condition row per field strength value in the array</td></tr>
+          <tr><td>coil</td><td>transmitCoilType</td><td>Map through COIL_VOCAB_MAP</td></tr>
+          <tr><td>integrity</td><td>deviceIntegrityState</td><td>'Active' → 'Complete', 'Fractured-Suspected' etc.</td></tr>
+          <tr><td>mode (array)</td><td>operatingMode</td><td>Join with semicolon: 'Normal; First Level'</td></tr>
+          <tr><td>b1</td><td>maxB1RmsVal</td><td>Parse numeric µT value; store raw string in maxB1Rms (existing field)</td></tr>
+          <tr><td>sar</td><td>maxSarWhole / maxSarHead</td><td>Parse W/kg value; 'whole-body' → maxSarWhole, 'head-avg' → maxSarHead</td></tr>
+          <tr><td>grad</td><td>maxSpatialGradientCond</td><td>Numeric T/m</td></tr>
+          <tr><td>slew</td><td>maxSlewRateCond</td><td>Numeric T/m/s</td></tr>
+          <tr><td>zone</td><td>exclusionZoneApplies + exclusionZoneDescription + regionExcluded</td><td>zone.span → description; zone.regions → regionExcluded (join)</td></tr>
+          <tr><td>time</td><td>maxScanTimeMins + scanTimeWindowMins</td><td>Parse "30 min active / 60 min cool-off"</td></tr>
+          <tr><td>loc</td><td>implantLocationCond</td><td>Location this leaf applies to</td></tr>
+          <tr><td>prohibition</td><td>contextStatus = 'Not Permitted', tierPrecondition</td><td>Prohibition leaves become Not Eligible / Not Permitted rows</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3.3 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 3.3</div><div class="task-title">Standardise <code>mriClassification</code> on all existing device records</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">convex/seeds/standardiseMriClass.ts</span>
+    </div>
+    <div class="task-body">
+      <p>One-time migration mutation (admin only) that iterates all devices where <code>mriClassification</code> is null/undefined and derives it from the existing <code>mriStatus</code> field:</p>
+      <table class="ft">
+        <thead><tr><th>mriStatus (existing)</th><th>mriClassification (new)</th></tr></thead>
+        <tbody>
+          <tr><td>conditional</td><td>MR Conditional</td></tr>
+          <tr><td>safe</td><td>MR Safe</td></tr>
+          <tr><td>unsafe</td><td>MR Unsafe</td></tr>
+          <tr><td>unknown</td><td>Classification Unknown</td></tr>
+        </tbody>
+      </table>
+      <p>After running, <code>mriClassification</code> should be populated on every device row. Update the admin device display to use <code>mriClassification</code> as the primary field everywhere.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PHASE 4 — ADMIN UI
+════════════════════════════════════════════════ -->
+<div id="p4" class="phase ph4">
+  <div class="phase-hdr">
+    <div class="phase-num">4</div>
+    <div>
+      <div class="phase-title">Admin Interface Updates <span class="pill p-ui">Frontend</span></div>
+      <div class="phase-desc">Updates to the master admin portal to manage the new data structures. <span class="dep">Depends on Phase 2</span></div>
+    </div>
+  </div>
+
+  <!-- 4.1 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 4.1</div><div class="task-title">Device conditions management tab in admin device detail</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">src/app/master/devices/[id]/DeviceDetailClient.tsx</span>
+      <span class="file-chip new">src/app/master/devices/[id]/ConditionsTab.tsx</span>
+    </div>
+    <div class="task-body">
+      <p>Add a "Conditions" tab to the existing device detail page. This tab shows all condition rows for this device and allows Tom / admin to add, edit, and review them.</p>
+      <ul class="cl">
+        <li><span class="cl-box"></span>List view: condition rows in a table, columns: condition ID (from notes), field strength, eligibility tier, transmit coil type, integrity state, B1+RMS / SAR / slew limits, verification status. Grouped by field strength.</li>
+        <li><span class="cl-box"></span>Add condition: drawer/modal with all 40 fields. Organised into gate sections (Gate 1 Eligibility → Gate 10 Time/Thermal). No blank-field penalty — most are optional.</li>
+        <li><span class="cl-box"></span>Edit condition: same form, prefilled.</li>
+        <li><span class="cl-box"></span>Delete condition: confirmation required. Admin-only.</li>
+        <li><span class="cl-box"></span>Bulk import: paste-JSON input field. Accepts array of condition objects in the same shape as the seed mutation. Useful for Tom to import from his spreadsheets.</li>
+        <li><span class="cl-box"></span>Verification status badge on each row — shows 'Extracted' / 'Verified — Tom' / etc. with colour coding.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 4.2 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 4.2</div><div class="task-title">Scanner hardware specs in admin scanner edit form</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">src/app/master/scanners/ScannersClient.tsx</span>
+    </div>
+    <div class="task-body">
+      <p>Expand the scanner add/edit form to include the new hardware spec fields added in Task 1.4. Group them under a "Hardware specifications" section:</p>
+      <ul class="cl">
+        <li><span class="cl-box"></span>Max spatial gradient (T/m) — existing, already shown</li>
+        <li><span class="cl-box"></span>Max slew rate (T/m/s) — new input</li>
+        <li><span class="cl-box"></span>Field orientation — dropdown: Horizontal / Vertical / Not Stated</li>
+        <li><span class="cl-box"></span>Patient table limit (kg) — number input</li>
+        <li><span class="cl-box"></span>B1+RMS monitoring capable — yes/no toggle</li>
+        <li><span class="cl-box"></span>Software version scope — text input</li>
+      </ul>
+      <p>Also update the scanner list cards to show slew rate and orientation badges alongside the existing field strength and bore type badges.</p>
+    </div>
+  </div>
+
+  <!-- 4.3 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 4.3</div><div class="task-title">Admin coil management (global view)</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">src/app/master/coils/CoilsClient.tsx</span>
+      <span class="file-chip new">src/app/master/coils/page.tsx</span>
+    </div>
+    <div class="task-body">
+      <p>New page in the master admin portal for a global view of all site coils registered across all clinics. Provides admin visibility and oversight without replacing clinic-side management.</p>
+      <ul class="cl">
+        <li><span class="cl-box"></span>Table: clinic name, coil display name, coil type, field strength, tx/rx, compatible scanners, record state, status</li>
+        <li><span class="cl-box"></span>Filter by clinic, field strength, coil type, confirmation status</li>
+        <li><span class="cl-box"></span>Admin can confirm/unconfirm any coil</li>
+        <li><span class="cl-box"></span>Admin can add a coil on behalf of a clinic (for onboarded clinics)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PHASE 5 — CLINIC UI (THE MATRIX)
+════════════════════════════════════════════════ -->
+<div id="p5" class="phase ph5">
+  <div class="phase-hdr">
+    <div class="phase-num">5</div>
+    <div>
+      <div class="phase-title">Clinic Interface — The Matrix <span class="pill p-ui">Frontend</span></div>
+      <div class="phase-desc">The primary new feature: the MRI combination resolver for clinic staff. This is the main reason everything in Phases 1–4 exists. <span class="dep">Depends on Phase 2 + 3</span></div>
+    </div>
+  </div>
+
+  <!-- 5.1 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 5.1</div><div class="task-title">Clinic coil management page</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">src/app/clinics/settings/coils/CoilsClient.tsx</span>
+      <span class="file-chip new">src/app/clinics/settings/coils/page.tsx</span>
+      <span class="file-chip new">src/app/clinics/settings/coils/page.css</span>
+    </div>
+    <div class="task-body">
+      <p>Before the matrix can run, clinic staff need to register their coils. This page is accessed from the clinic settings area.</p>
+      <ul class="cl">
+        <li><span class="cl-box"></span>List of registered coils for this clinic: display name, coil type pill, field strength, compatible scanners, tx/rx icons, record state badge (Unconfirmed → grey; Confirmed → green)</li>
+        <li><span class="cl-box"></span>Add coil: display name, coil type (CustomSelect from controlled vocab), field strength (CustomSelect: 0.55T / 1.5T / 3T / 7T), compatible scanners (multi-select of clinic's approved scanners, calibration rule enforced), tx capable toggle, rx capable toggle, manufacturer / model number (optional), notes</li>
+        <li><span class="cl-box"></span>Edit / retire coil inline</li>
+        <li><span class="cl-box"></span>Clinic admin can confirm coils; staff can view</li>
+        <li><span class="cl-box"></span>Empty state with clear CTA: "Add your coils before using the MRI Matrix resolver"</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 5.2 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 5.2</div><div class="task-title">The Matrix page — MRI combination resolver</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">src/app/clinics/matrix/MatrixClient.tsx</span>
+      <span class="file-chip new">src/app/clinics/matrix/page.tsx</span>
+      <span class="file-chip new">src/app/clinics/matrix/page.css</span>
+      <span class="file-chip new">src/components/ui/GateWalkTable.tsx</span>
+      <span class="file-chip new">src/components/ui/VerdictCard.tsx</span>
+    </div>
+    <div class="task-body">
+      <p>The core new feature. Two-column layout (matching the prototype): inputs on the left, results on the right.</p>
+
+      <p><strong>Left column — inputs:</strong></p>
+      <ul class="cl">
+        <li><span class="cl-box"></span><strong>Mode toggle</strong>: "Registry patient" | "Manual entry (no storage)" — styled with existing pill toggle pattern</li>
+        <li><span class="cl-box"></span><strong>Step 1 — Patient &amp; implants</strong>:
+          <br>Registry mode: dropdown of patients who've shared access with this clinic (from Access_Grants). Selecting a patient shows their implant chips below: device name, MRI class badge (MR Safe / MR Conditional / MR Unsafe), integrity state badge (Intact / Fractured / Abandoned), system group label, implant location. Free-text implants show an "unlinked — cannot resolve" warning chip.
+          <br>Manual mode: device selector (search from approved devices), optional lead selector, location selector (controlled vocab), integrity state selector. Disclaimer: "Regulatory-fallback mode — not stored anywhere. Resolution quality depends entirely on what is entered."</li>
+        <li><span class="cl-box"></span><strong>Step 2 — Site hardware</strong>: scanner selector (clinic's linked scanners from siteCoils), coil selector (auto-filtered to coils compatible with selected scanner), coil type display (auto-shown from coil record, greyed out — read-only)</li>
+        <li><span class="cl-box"></span><strong>Step 3 — Requested scan</strong>: body region CustomSelect (Brain/Head · Neck/C-spine · Chest/T-spine · Abdomen/L-spine · Pelvis · Knee/lower extremity). "Resolve conditions" button.</li>
+      </ul>
+
+      <p><strong>Right column — results (after resolve):</strong></p>
+      <div class="verdict-preview">
+        <h4>Example gate walk table (per system):</h4>
+        <div class="gate-row" style="background:#F5F8FC;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)">
+          <div class="gc">Gate</div><div class="gc">Patient input</div><div class="gc">Condition requirement</div><div class="gc">Result</div>
+        </div>
+        <div class="gate-row"><div class="gc">1. Eligibility</div><div class="gc">System intact / complete</div><div class="gc">Tier precondition: complete system, no broken leads</div><div class="gc g-pass">PASS</div></div>
+        <div class="gate-row"><div class="gc">2. Field strength</div><div class="gc">Scanner: 3T</div><div class="gc">Condition exists at 3T</div><div class="gc g-pass">PASS</div></div>
+        <div class="gate-row"><div class="gc">3. Spatial gradient</div><div class="gc">Scanner max: 45 T/m</div><div class="gc">Condition limit: ≤20 T/m</div><div class="gc g-check">CHECK — positional</div></div>
+        <div class="gate-row"><div class="gc">6. Transmit coil</div><div class="gc">Body 18 (receive-only)</div><div class="gc">Resolved as body-transmit context</div><div class="gc g-info">INFO</div></div>
+        <div class="gate-row"><div class="gc">9. RF limit</div><div class="gc">Leaf L01</div><div class="gc">B1+RMS ≤2.0 µT</div><div class="gc g-lim">SET LIMIT</div></div>
+        <div class="gate-row"><div class="gc">10. Time/thermal</div><div class="gc">—</div><div class="gc">30 min active / 60 min cooloff · ≤38 °C</div><div class="gc g-lim">CONSTRAINT</div></div>
+      </div>
+      <ul class="cl" style="margin-top:8px">
+        <li><span class="cl-box"></span><strong>Verdict card</strong>: green CONDITIONAL — SCAN PERMITTED (with constraint list) / red SCAN NOT PERMITTED / amber CANNOT RESOLVE (with missing-info prompt)</li>
+        <li><span class="cl-box"></span><strong>Constraint set</strong>: bullet list of what operator must set at console. Clearly attributed to each system where constraints differ.</li>
+        <li><span class="cl-box"></span><strong>Legal disclaimer</strong>: "Assistive decision support only. This is not a safety verdict. The final scanning decision rests with the supervising radiologist / MR safety officer under site policy. No data entered in manual mode is stored."</li>
+        <li><span class="cl-box"></span><strong>"Create Risk-Benefit record"</strong> button: visible on registry mode after a PASS or UNRESOLVED result. Opens Task 5.3 form, pre-populated with the current resolve output.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 5.3 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 5.3</div><div class="task-title">Risk-Benefit record form (pre-scan sign-off)</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">src/app/clinics/matrix/RiskBenefitForm.tsx</span>
+    </div>
+    <div class="task-body">
+      <p>Modal/panel that opens from the Matrix results page. Pre-filled with the matrix output — the clinician reviews the resolved constraints and makes the final decision.</p>
+      <ul class="cl">
+        <li><span class="cl-box"></span>Shows the resolved constraint set (read-only, from the matrix result)</li>
+        <li><span class="cl-box"></span>Clinical indication text field (required)</li>
+        <li><span class="cl-box"></span>Decision: Proceed / Do Not Proceed / Deferred — big clear button group</li>
+        <li><span class="cl-box"></span>If "Proceed": reason for proceeding (required)</li>
+        <li><span class="cl-box"></span>Clinician name + role auto-filled from logged-in staff user</li>
+        <li><span class="cl-box"></span>Optional radiologist countersign: name field + timestamp captured on sign</li>
+        <li><span class="cl-box"></span>Submit: creates <code>riskBenefitRecord</code> with frozen snapshot of matrix output</li>
+        <li><span class="cl-box"></span>On submit: show "Log scan event" button (links to Task 5.4 flow)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 5.4 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 5.4</div><div class="task-title">Scan event log — clinic view</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">src/app/clinics/scan-events/ScanEventsClient.tsx</span>
+      <span class="file-chip new">src/app/clinics/scan-events/page.tsx</span>
+      <span class="file-chip new">src/app/clinics/scan-events/page.css</span>
+      <span class="file-chip new">src/app/clinics/scan-events/LogScanForm.tsx</span>
+    </div>
+    <div class="task-body">
+      <ul class="cl">
+        <li><span class="cl-box"></span><strong>Log Scan form</strong>: linked from the RvB record. Enter actual parameters used (SAR WB, SAR head, B1+RMS, slew rate, scan time, operating mode). Outcome selector. Adverse events text. Post-scan device check. Submit creates the scan event with the frozen resolution snapshot from the associated RvB record.</li>
+        <li><span class="cl-box"></span><strong>Scan events list</strong>: paginated table. Columns: patient name, date, scanner, coil, body region, outcome badge (Completed / Early Termination / Aborted), verdict badge from snapshot (PASS / FAIL / UNRESOLVED). Filter by date range, scanner, outcome.</li>
+        <li><span class="cl-box"></span><strong>Scan event detail</strong>: shows all parameters used, full gate walk snapshot (the frozen conditions resolved at scan time), constraint set. Clearly labelled as "Audit record — captured at [timestamp]. Device data may have changed since."</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PHASE 6 — PATIENT UI
+════════════════════════════════════════════════ -->
+<div id="p6" class="phase ph6">
+  <div class="phase-hdr">
+    <div class="phase-num">6</div>
+    <div>
+      <div class="phase-title">Patient Interface Updates <span class="pill p-ui">Frontend</span></div>
+      <div class="phase-desc">Updates to the patient portal to surface integrity state, record verification, and scan history. <span class="dep">Depends on Phase 2</span></div>
+    </div>
+  </div>
+
+  <!-- 6.1 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 6.1</div><div class="task-title">Implant integrity, location, and record state on patient dashboard</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip">src/app/patients/dashboard/DashboardClient.tsx</span>
+    </div>
+    <div class="task-body">
+      <ul class="cl">
+        <li><span class="cl-box"></span>Show <code>deviceIntegrityState</code> as a badge on each implant card: Complete (green) / Fractured-Suspected (red warning) / Abandoned-Fragment (red) / Not Stated (grey)</li>
+        <li><span class="cl-box"></span>Show <code>implantLocation</code> below device name (if set)</li>
+        <li><span class="cl-box"></span>Show <code>recordState</code> status under each implant: Draft / Awaiting Review / Verified — Surgeon / Verified — Dual</li>
+        <li><span class="cl-box"></span><strong>Patient confirmation CTA</strong>: if surgeon has verified but patient hasn't confirmed, show "Please confirm your implant record is correct" prompt with the implant details and a confirm button. Submits <code>markPatientConfirmed</code> → sets <code>patientConfirmedDate</code> and upgrades recordState to Verified — Dual.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 6.2 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 6.2</div><div class="task-title">Patient scan history</div></div>
+    </div>
+    <div class="task-files">
+      <span class="file-chip new">src/app/patients/dashboard/ScanHistory.tsx</span>
+    </div>
+    <div class="task-body">
+      <p>New section in the patient dashboard below the implant cards. Shows the patient's scan event history (all events from linked clinics where this patient is the subject).</p>
+      <ul class="cl">
+        <li><span class="cl-box"></span>Timeline list: date, site name, scanner, body region, outcome (Completed / etc.)</li>
+        <li><span class="cl-box"></span>Expandable detail: parameters used, constraint set that was applied</li>
+        <li><span class="cl-box"></span>Patient can add their own notes to any of their scan events (calls <code>addPatientNotes</code>)</li>
+        <li><span class="cl-box"></span>Empty state: "No MRI scans on record yet"</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PHASE 7 — CROSS-CUTTING QUALITY
+════════════════════════════════════════════════ -->
+<div id="p7" class="phase ph7">
+  <div class="phase-hdr">
+    <div class="phase-num">7</div>
+    <div>
+      <div class="phase-title">Cross-cutting Quality <span class="pill p-ui">Frontend</span> <span class="pill p-fn">Functions</span></div>
+      <div class="phase-desc">Platform-wide consistency, safety principles, and edge case handling. These can be done incrementally alongside Phases 4–6.</div>
+    </div>
+  </div>
+
+  <!-- 7.1 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 7.1</div><div class="task-title">Closed-world enforcement on device pages</div></div>
+    </div>
+    <div class="task-body">
+      <p>Any device display that shows MRI information must check whether condition records exist. If a device has <code>mriClassification = 'MR Conditional'</code> but <strong>zero condition rows</strong> in <code>deviceConditions</code>, it must not show any MRI parameters — it shows instead:</p>
+      <p><em>"No condition records in database. Treat as unresolved — do not scan without consulting current manufacturer documentation."</em></p>
+      <p>This applies to: the admin device detail, the clinic device lookup, and the matrix resolver (Gate 0 failure).</p>
+    </div>
+  </div>
+
+  <!-- 7.2 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 7.2</div><div class="task-title">mri_classification display standardisation</div></div>
+    </div>
+    <div class="task-body">
+      <p>After Task 3.3 populates <code>mriClassification</code> everywhere, audit all places in the UI that display MRI status and update them to use <code>mriClassification</code> (ASTM standard) as the primary label. The legacy <code>mriStatus</code> field remains in the database for backward compatibility but should not be displayed to users.</p>
+      <p>MRI classification display rules:</p>
+      <ul class="cl">
+        <li><span class="cl-box"></span><strong>MR Safe</strong> — green badge. "This device has been determined to present no known hazards in all MRI environments."</li>
+        <li><span class="cl-box"></span><strong>MR Conditional</strong> — amber badge. "Permitted under specific conditions — resolve against scanner and patient implant data before scanning."</li>
+        <li><span class="cl-box"></span><strong>MR Unsafe</strong> — red badge. "Do not scan. MR Unsafe devices present known hazards in MRI environments."</li>
+        <li><span class="cl-box"></span><strong>Classification Unknown</strong> — grey badge. "Classification not available — treat as MR Unsafe unless manufacturer documentation confirms otherwise."</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 7.3 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 7.3</div><div class="task-title">Weight limit pre-check in the matrix</div></div>
+    </div>
+    <div class="task-body">
+      <p>Before the gate walk runs, check if the selected scanner has <code>tableLimitKg</code> set and if the patient (registry mode) has <code>weightKg</code> set. If <code>patient.weightKg > scanner.tableLimitKg</code>, display a prominent CHECK warning:</p>
+      <p><em>"Patient weight [X kg] may exceed this scanner's rated table limit [Y kg]. Confirm with site engineering before positioning the patient."</em></p>
+      <p>This does not block the gate walk — it's a pre-check advisory, not a hard failure.</p>
+    </div>
+  </div>
+
+  <!-- 7.4 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 7.4</div><div class="task-title">Recall warning on patient implant view</div></div>
+    </div>
+    <div class="task-body">
+      <p>When viewing a patient's implant record, check the linked device's <code>recalled</code> flag. If true, display a prominent recall alert on the implant card:</p>
+      <p><em>"⚠️ RECALL NOTICE: [recallNotes]. Check with the patient's implanting surgeon before any scan or procedure."</em></p>
+      <p>Full serial-number-range matching (condition rows with <code>serialNumberRange</code> vs patient serial numbers) can be added as a follow-on task once the recall register is populated with range data.</p>
+    </div>
+  </div>
+
+  <!-- 7.5 -->
+  <div class="task">
+    <div class="task-hdr">
+      <div><div class="task-id">TASK 7.5</div><div class="task-title">Post-implant wait check in the matrix</div></div>
+    </div>
+    <div class="task-body">
+      <p>If the selected device has <code>postImplantWaitWeeks</code> set, and the patient's implant record has <code>implantDate</code>, calculate whether the required wait period has elapsed. If not, display a CHECK warning:</p>
+      <p><em>"Post-implant wait period: [device] requires [N] weeks post-implant before MRI. Implanted [date] — [N] weeks from [date] = [date]. Confirm elapsed with surgeon."</em></p>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div style="margin-top:28px;padding:18px 22px;background:var(--surface);border:1px solid var(--line);border-radius:12px;font-size:12px;color:var(--muted);line-height:1.6">
+  <strong style="color:var(--body);display:block;margin-bottom:4px">Implementation notes</strong>
+  All phases are designed to be non-destructive — no existing data is modified except by the explicit migration in Task 3.3. The matrix resolver (Task 2.4) is the most complex single task and should be built with reference to the prototype HTML as the canonical spec. Any ambiguity in the gate logic should default to the prototype's behaviour. Tom's schema documents are the authority for data structure decisions.
+  <br><br>
+  The plan is ordered for sequential execution: approve → Phase 1 (schema push to Convex) → Phase 2 (functions) → Phase 3 (seed data) → then Phases 4–7 can proceed in parallel across admin, clinic, and patient portals.
+</div>
+
+</div>

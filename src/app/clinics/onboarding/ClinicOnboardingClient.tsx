@@ -29,7 +29,8 @@ const COUNTRIES = [
   'Austria','Poland','Czech Republic','Portugal','Greece','Other',
 ]
 
-const REGULATORY_BODIES = [
+const EU_BODIES  = ['European CE Mark (EU / EEA)', 'Other', 'Not applicable']
+const ALL_BODIES = [
   'CQC — Care Quality Commission (UK)',
   'MHRA — Medicines and Healthcare products Regulatory Agency (UK)',
   'TGA — Therapeutic Goods Administration (Australia)',
@@ -40,6 +41,18 @@ const REGULATORY_BODIES = [
   'Other',
   'Not applicable',
 ]
+const COUNTRY_REGULATORY_MAP: Record<string, string[]> = {
+  'United Kingdom': ['CQC — Care Quality Commission (UK)', 'MHRA — Medicines and Healthcare products Regulatory Agency (UK)', 'Other', 'Not applicable'],
+  'United States':  ['FDA — Food and Drug Administration (USA)', 'Other', 'Not applicable'],
+  'Australia':      ['TGA — Therapeutic Goods Administration (Australia)', 'Other', 'Not applicable'],
+  'Canada':         ['Health Canada', 'Other', 'Not applicable'],
+  'Ireland':        ['HIQA — Health Information and Quality Authority (Ireland)', 'Other', 'Not applicable'],
+  'New Zealand':    ['Other', 'Not applicable'],
+  'Germany':        EU_BODIES, 'France':      EU_BODIES, 'Spain':    EU_BODIES, 'Italy':   EU_BODIES,
+  'Netherlands':    EU_BODIES, 'Belgium':     EU_BODIES, 'Sweden':   EU_BODIES, 'Norway':  EU_BODIES,
+  'Denmark':        EU_BODIES, 'Finland':     EU_BODIES, 'Switzerland': EU_BODIES, 'Austria': EU_BODIES,
+  'Poland':         EU_BODIES, 'Czech Republic': EU_BODIES, 'Portugal': EU_BODIES, 'Greece': EU_BODIES,
+}
 
 // ── Left panel shared ─────────────────────────────────────────────────────────
 
@@ -252,6 +265,17 @@ export default function ClinicOnboardingClient() {
   const [done,    setDone]    = useState(false)
   const errorRef = useRef<HTMLDivElement>(null)
 
+  // Regulatory bodies available for the selected country
+  const availableRegulatoryBodies = facilityCountry
+    ? (COUNTRY_REGULATORY_MAP[facilityCountry] ?? ALL_BODIES)
+    : ALL_BODIES
+
+  function handleCountryChange(country: string) {
+    setFacilityCountry(country)
+    const available = COUNTRY_REGULATORY_MAP[country] ?? ALL_BODIES
+    if (regulatoryBody && !available.includes(regulatoryBody)) setRegulatoryBody('')
+  }
+
   useEffect(() => {
     if (error) errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [error])
@@ -447,15 +471,6 @@ export default function ClinicOnboardingClient() {
                   placeholder="Select type"
                 />
 
-                <CustomSelect
-                  label="Country"
-                  required
-                  value={facilityCountry}
-                  onChange={setFacilityCountry}
-                  options={COUNTRIES}
-                  placeholder="Select country"
-                />
-
                 <div className="field field-full">
                   <label>
                     Clinic address
@@ -493,6 +508,22 @@ export default function ClinicOnboardingClient() {
                     value={staffCount}
                     onChange={e => setStaffCount(e.target.value)}
                   />
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <CustomSelect
+                    label="Country"
+                    required
+                    value={facilityCountry}
+                    onChange={handleCountryChange}
+                    options={COUNTRIES}
+                    placeholder="Select your country"
+                  />
+                  {!facilityCountry && (
+                    <p style={{ fontFamily:'var(--ff)', fontSize:12.5, color:'var(--muted)', marginTop:4, marginBottom:0 }}>
+                      Select your country to unlock accreditation and regulatory options below.
+                    </p>
+                  )}
                 </div>
 
               </div>
@@ -564,8 +595,8 @@ export default function ClinicOnboardingClient() {
               </div>
             </div>
 
-            {/* ── Section 3: Accreditation ─────────────────────────────────── */}
-            <div className="form-section">
+            {/* ── Section 3: Accreditation (shown after country selected) ──── */}
+            {facilityCountry && <div className="form-section">
               <h3>
                 <span className="num">3</span>
                 Accreditation <span style={{ fontWeight:400, fontSize:13, opacity:.6, marginLeft:4 }}>(optional)</span>
@@ -626,10 +657,10 @@ export default function ClinicOnboardingClient() {
                   aria-label="HCPC or AHPRA accreditation number"
                 />
               </div>
-            </div>
+            </div>}
 
-            {/* ── Section 4: Regulatory body ───────────────────────────────── */}
-            <div className="form-section">
+            {/* ── Section 4: Regulatory body (shown after country selected) ── */}
+            {facilityCountry && <div className="form-section">
               <h3>
                 <span className="num">4</span>
                 Regulatory body
@@ -643,7 +674,7 @@ export default function ClinicOnboardingClient() {
                   required
                   value={regulatoryBody}
                   onChange={setRegulatoryBody}
-                  options={REGULATORY_BODIES}
+                  options={availableRegulatoryBodies}
                   placeholder="Select body"
                 />
 
@@ -662,7 +693,7 @@ export default function ClinicOnboardingClient() {
                 </div>
 
               </div>
-            </div>
+            </div>}
 
             {/* ── Section 5: Scanner hardware ──────────────────────────────── */}
             <div className="form-section">

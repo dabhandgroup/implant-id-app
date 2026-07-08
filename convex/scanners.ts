@@ -86,6 +86,11 @@ const SCANNER_ARGS = {
   boreDiameter:       v.optional(v.number()),
   maxSpatialGradient: v.optional(v.number()),
   notes:              v.optional(v.string()),
+  country:            v.optional(v.string()),
+  sourceUrls:         v.optional(v.array(v.object({
+    url:   v.string(),
+    label: v.optional(v.string()),
+  }))),
 }
 
 /** Admin: add a scanner directly as approved. */

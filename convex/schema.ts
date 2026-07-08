@@ -130,6 +130,7 @@ export default defineSchema({
     weightKg:            v.optional(v.number()),   // kg, e.g. 72
     contrastAllergy:     v.optional(v.boolean()),  // true = contrast allergy present
     contrastAllergyNote: v.optional(v.string()),   // free-text detail
+    allergies:           v.optional(v.array(v.string())), // additional allergies list
 
     // Set to true once the patient has dismissed the first-login welcome flow
     welcomeSeen: v.optional(v.boolean()),
@@ -252,6 +253,11 @@ export default defineSchema({
     boreDiameter:        v.optional(v.number()),  // cm
     maxSpatialGradient:  v.optional(v.number()),  // T/m
     notes:               v.optional(v.string()),
+    country:             v.optional(v.string()),   // country of origin / approval
+    sourceUrls:          v.optional(v.array(v.object({
+      url:   v.string(),
+      label: v.optional(v.string()),
+    }))),
     status:              v.union(v.literal('approved'), v.literal('pending'), v.literal('rejected')),
     submittedByClinicId: v.optional(v.id('clinics')),
     submittedAt:         v.number(),

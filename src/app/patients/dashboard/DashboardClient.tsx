@@ -69,6 +69,7 @@ export default function DashboardClient() {
   const clinicAccess           = useQuery((api as any).patients.getMyClinicAccess)
   const addImplantMut          = useMutation((api as any).patients.addSelfReportedImplant)
   const revokeAccessMut        = useMutation((api as any).patients.revokeClinicAccess)
+  const updateProfileMut       = useMutation((api as any).patients.updatePatientProfile)
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [qrDataUrl,     setQrDataUrl]     = useState<string>('')
@@ -108,6 +109,14 @@ export default function DashboardClient() {
   // Phase 4 — revoke clinic access confirmation
   const [revokeId,    setRevokeId]    = useState<string | null>(null)
   const [revoking,    setRevoking]    = useState(false)
+
+  // Health / allergies section
+  const [allergyEditing,      setAllergyEditing]      = useState(false)
+  const [localContrast,       setLocalContrast]       = useState(false)
+  const [localContrastNote,   setLocalContrastNote]   = useState('')
+  const [localAllergies,      setLocalAllergies]      = useState<string[]>([])
+  const [allergyInput,        setAllergyInput]        = useState('')
+  const [allergySaving,       setAllergySaving]       = useState(false)
 
   const [photoUploading, setPhotoUploading] = useState(false)
   const [walletInfoOpen, setWalletInfoOpen] = useState(false)
@@ -360,6 +369,34 @@ export default function DashboardClient() {
       setRevokeId(null)
     } catch { /* non-fatal — query will refresh */ }
     finally { setRevoking(false) }
+  }
+
+  function openAllergyEditor() {
+    setLocalContrast(!!(patient as any).contrastAllergy)
+    setLocalContrastNote((patient as any).contrastAllergyNote ?? '')
+    setLocalAllergies([...((patient as any).allergies ?? [])])
+    setAllergyInput('')
+    setAllergyEditing(true)
+  }
+
+  function addAllergyTag() {
+    const v = allergyInput.trim()
+    if (!v || localAllergies.includes(v)) { setAllergyInput(''); return }
+    setLocalAllergies(p => [...p, v])
+    setAllergyInput('')
+  }
+
+  async function doSaveAllergies() {
+    setAllergySaving(true)
+    try {
+      await updateProfileMut({
+        contrastAllergy:     localContrast,
+        contrastAllergyNote: localContrastNote.trim() || undefined,
+        allergies:           localAllergies.length > 0 ? localAllergies : [],
+      })
+      setAllergyEditing(false)
+    } catch { /* non-fatal */ }
+    finally { setAllergySaving(false) }
   }
 
   // Parse additional self-reported implants from JSON
@@ -1315,6 +1352,140 @@ export default function DashboardClient() {
                 }}>
                   No implants recorded yet.{' '}
                   <button className="link-btn" onClick={() => router.push('/patients/add-implant')}>Add your first implant →</button>
+                </div>
+              )}
+            </div>
+
+            {/* ── Health information & allergies ───────────────────── */}
+            <div className="sec">
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+                <h2 style={{ margin:0 }}>Health information</h2>
+                {!allergyEditing && (
+                  <button className="btn" onClick={openAllergyEditor} style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Edit
+                  </button>
+                )}
+              </div>
+
+              {!allergyEditing ? (
+                /* ── View mode ── */
+                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 20px', display:'flex', flexDirection:'column', gap:12 }}>
+                  {/* Contrast allergy */}
+                  <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+                    <div style={{
+                      width:32, height:32, borderRadius:8, flexShrink:0,
+                      background: (patient as any).contrastAllergy ? 'rgba(245,158,11,0.12)' : 'rgba(var(--ok-rgb),0.10)',
+                      display:'grid', placeItems:'center',
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={(patient as any).contrastAllergy ? '#f59e0b' : 'var(--ok)'} strokeWidth="2">
+                        {(patient as any).contrastAllergy
+                          ? <><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></>
+                          : <path d="M20 6L9 17l-5-5"/>}
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ fontFamily:'var(--ff)', fontWeight:500, fontSize:13.5, color:'var(--text)' }}>
+                        Contrast allergy: <span style={{ color:(patient as any).contrastAllergy ? '#b45309' : 'var(--ok)', fontWeight:600 }}>
+                          {(patient as any).contrastAllergy ? 'Yes' : 'No known allergy'}
+                        </span>
+                      </div>
+                      {(patient as any).contrastAllergyNote && (
+                        <div style={{ fontSize:12.5, color:'var(--muted)', marginTop:2 }}>{(patient as any).contrastAllergyNote}</div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Additional allergies */}
+                  <div>
+                    <div style={{ fontFamily:'var(--ff)', fontSize:12, fontWeight:600, color:'var(--muted2)', letterSpacing:'.6px', textTransform:'uppercase', marginBottom:8 }}>Other allergies</div>
+                    {((patient as any).allergies ?? []).length > 0 ? (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                        {((patient as any).allergies as string[]).map((a, i) => (
+                          <span key={i} style={{
+                            display:'inline-flex', alignItems:'center', gap:5,
+                            background:'rgba(var(--accent-rgb),0.09)', border:'1px solid rgba(var(--accent-rgb),0.22)',
+                            borderRadius:999, padding:'3px 10px',
+                            fontFamily:'var(--ff)', fontSize:12.5, color:'var(--accent-deep)',
+                          }}>{a}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ fontSize:13, color:'var(--muted2)' }}>None recorded</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                /* ── Edit mode ── */
+                <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:'18px 20px' }}>
+                  {/* Contrast allergy toggle */}
+                  <div className="field">
+                    <label>Contrast allergy</label>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button type="button"
+                        className={!localContrast ? 'btn btn-s' : 'btn'}
+                        style={{ flex:1 }}
+                        onClick={() => setLocalContrast(false)}>No known allergy</button>
+                      <button type="button"
+                        className={localContrast ? 'btn btn-s' : 'btn'}
+                        style={{ flex:1, background:localContrast ? '#f59e0b' : undefined, borderColor:localContrast ? '#f59e0b' : undefined }}
+                        onClick={() => setLocalContrast(true)}>Has allergy / reaction</button>
+                    </div>
+                    {localContrast && (
+                      <textarea
+                        className="input"
+                        rows={2}
+                        placeholder="Describe the reaction or contrast agent involved…"
+                        value={localContrastNote}
+                        onChange={e => setLocalContrastNote(e.target.value)}
+                        style={{ marginTop:8, resize:'vertical' }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Additional allergies */}
+                  <div className="field" style={{ marginTop:14 }}>
+                    <label>Other allergies <span style={{ fontWeight:400, opacity:.6 }}>(e.g. latex, penicillin)</span></label>
+                    {localAllergies.length > 0 && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:8 }}>
+                        {localAllergies.map((a, i) => (
+                          <span key={i} style={{
+                            display:'inline-flex', alignItems:'center', gap:5,
+                            background:'rgba(var(--accent-rgb),0.09)', border:'1px solid rgba(var(--accent-rgb),0.22)',
+                            borderRadius:999, padding:'3px 10px',
+                            fontFamily:'var(--ff)', fontSize:12.5, color:'var(--accent-deep)',
+                          }}>
+                            {a}
+                            <button type="button" onClick={() => setLocalAllergies(p => p.filter((_, j) => j !== i))}
+                              style={{ background:'none', border:'none', cursor:'pointer', color:'var(--accent)', padding:0, lineHeight:1, display:'flex' }}
+                              aria-label={`Remove ${a}`}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display:'flex', gap:8 }}>
+                      <input
+                        className="input"
+                        type="text"
+                        placeholder="Type an allergy and press Add"
+                        value={allergyInput}
+                        onChange={e => setAllergyInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAllergyTag() } }}
+                        style={{ flex:1 }}
+                      />
+                      <button type="button" className="btn" onClick={addAllergyTag} style={{ flexShrink:0 }}>Add</button>
+                    </div>
+                  </div>
+
+                  <div style={{ display:'flex', gap:10, marginTop:18 }}>
+                    <button className="btn" onClick={() => setAllergyEditing(false)}>Cancel</button>
+                    <button className="btn btn-s" onClick={doSaveAllergies} disabled={allergySaving} style={{ flex:1, justifyContent:'center' }}>
+                      {allergySaving ? 'Saving…' : 'Save changes'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

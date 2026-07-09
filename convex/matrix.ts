@@ -566,18 +566,36 @@ export const resolveMatrix = query({
     manualLeadIds:         v.optional(v.array(v.id('devices'))),
     manualImplantLocation: v.optional(v.string()),
     manualIntegrityState:  v.optional(v.string()),
-    // Hardware (both modes)
-    scannerId:             v.id('scanners'),
+    // Hardware (both modes) — either from DB or manual entry
+    scannerId:             v.optional(v.id('scanners')),
     coilId:                v.optional(v.id('siteCoils')),
+    // Manual scanner entry (used when clinic has no scanner in DB)
+    manualFieldStrength:   v.optional(v.string()),
+    manualScannerType:     v.optional(v.string()),
+    manualSpatialGradient: v.optional(v.float64()),
+    manualSlewRate:        v.optional(v.float64()),
+    // Manual coil entry
+    manualCoilType:        v.optional(v.string()),
     bodyRegion:            v.string(),
   },
   handler: async (ctx, args) => {
-    // 1. Fetch scanner
-    const scanner = await ctx.db.get(args.scannerId)
-    if (!scanner) throw new Error('Scanner not found')
+    // 1. Fetch scanner from DB, or build from manual entry
+    const dbScanner = args.scannerId ? await ctx.db.get(args.scannerId) : null
+    if (!dbScanner && !args.manualFieldStrength) throw new Error('Either scannerId or manualFieldStrength is required')
+    const scanner = (dbScanner ?? {
+      fieldStrength:       args.manualFieldStrength!,
+      maxSpatialGradient:  args.manualSpatialGradient,
+      maxSlewRate:         args.manualSlewRate,
+      scannerType:         args.manualScannerType ?? 'Closed-bore',
+      fieldOrientation:    undefined,
+      tableLimitKg:        undefined,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any
 
-    // 2. Fetch coil (optional)
-    const coil = args.coilId ? await ctx.db.get(args.coilId) : null
+    // 2. Fetch coil from DB, or build from manual coil type
+    const dbCoil = args.coilId ? await ctx.db.get(args.coilId) : null
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const coil = (dbCoil ?? (args.manualCoilType ? { coilType: args.manualCoilType, coilDisplayName: args.manualCoilType } : null)) as any
 
     const preflightWarnings: string[] = []
     const systems: SystemInput[] = []
@@ -684,7 +702,7 @@ export const resolveMatrix = query({
     }
 
     // 4. Resolve each system
-    const results = systems.map((s) => resolveSystem(s, scanner, coil, args.bodyRegion))
+    const results = systems.map((s) => resolveSystem(s, scanner as Doc<'scanners'>, coil as Doc<'siteCoils'> | null, args.bodyRegion))
 
     // 5. Combine verdicts — most restrictive wins
     const verdict: 'PASS' | 'FAIL' | 'UNRESOLVED' =

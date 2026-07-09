@@ -164,7 +164,7 @@ export function InlineSelect({ value, onChange, placeholder, options }: InlineSe
         aria-expanded={open}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          width: '100%', textAlign: 'left', cursor: 'pointer', padding: '0 10px',
+          width: '100%', textAlign: 'left', cursor: 'pointer',
           color: value ? 'var(--text)' : 'var(--muted2)',
         }}
       >

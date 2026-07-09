@@ -137,12 +137,15 @@ export default function MatrixClient() {
   const scanners = useQuery(api.scanners.getMyClinicScanners) as Array<{ _id: string; manufacturer: string; model: string; fieldStrength: string }> | undefined
   const patients = useQuery(api.clinics.listClinicPatients) as Array<{ _id: string; firstName: string; lastName: string; implantIdCode?: string }> | undefined
 
-  const [mode,           setMode]           = useState<'registry' | 'manual'>('registry')
-  const [patientId,      setPatientId]      = useState('')
-  const [scannerId,      setScannerId]      = useState('')
-  const [coilId,         setCoilId]         = useState('')
-  const [bodyRegion,     setBodyRegion]      = useState('')
-  const [showRvbForm,    setShowRvbForm]     = useState(false)
+  const [mode,                setMode]              = useState<'registry' | 'manual'>('registry')
+  const [patientId,           setPatientId]         = useState('')
+  const [scannerId,           setScannerId]         = useState('')
+  const [coilId,              setCoilId]            = useState('')
+  const [bodyRegion,          setBodyRegion]        = useState('')
+  const [showRvbForm,         setShowRvbForm]       = useState(false)
+  const [useManualScanner,    setUseManualScanner]  = useState(false)
+  const [manualFieldStrength, setManualFieldStrength] = useState('')
+  const [manualCoilType,      setManualCoilType]    = useState('')
 
   // Coils depend on selected scanner
   const coils = useQuery(
@@ -151,14 +154,20 @@ export default function MatrixClient() {
   ) as Array<{ _id: string; coilDisplayName: string; coilType: string }> | undefined
 
   // The resolver — runs reactively as selections change
-  const canResolve = !!scannerId && !!bodyRegion && (mode === 'manual' ? true : !!patientId)
+  const hasScanner   = useManualScanner ? !!manualFieldStrength : !!scannerId
+  const canResolve   = hasScanner && !!bodyRegion && (mode === 'manual' ? true : !!patientId)
   const resolution = useQuery(
     api.matrix.resolveMatrix,
     canResolve ? {
       mode,
       ...(mode === 'registry' && patientId ? { patientId: patientId as never } : {}),
-      scannerId: scannerId as never,
-      ...(coilId ? { coilId: coilId as never } : {}),
+      ...(useManualScanner ? {
+        manualFieldStrength,
+        ...(manualCoilType ? { manualCoilType } : {}),
+      } : {
+        scannerId: scannerId as never,
+        ...(coilId ? { coilId: coilId as never } : {}),
+      }),
       bodyRegion,
     } : 'skip'
   )
@@ -236,27 +245,82 @@ export default function MatrixClient() {
           {/* Scanner */}
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Scanner</div>
-            <div className="field" style={{ margin: 0 }}>
-              <InlineSelect
-                value={scannerId}
-                onChange={v => { setScannerId(v); setCoilId('') }}
-                options={scannerOpts}
-                placeholder={scanners === undefined ? 'Loading…' : scanners.length === 0 ? 'No scanners at this site' : 'Select scanner…'}
-              />
-            </div>
+            {!useManualScanner ? (
+              <>
+                <div className="field" style={{ margin: 0 }}>
+                  <InlineSelect
+                    value={scannerId}
+                    onChange={v => { setScannerId(v); setCoilId('') }}
+                    options={scannerOpts}
+                    placeholder={scanners === undefined ? 'Loading…' : scanners.length === 0 ? 'No scanners registered' : 'Select scanner…'}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setUseManualScanner(true); setScannerId(''); setCoilId('') }}
+                  style={{ marginTop: 8, fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                >
+                  Not in our database? Enter scanner specs manually →
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', marginBottom: 8 }}>Field strength</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                  {['0.55T', '1.5T', '3T', '7T'].map(fs => (
+                    <button key={fs} type="button"
+                      onClick={() => setManualFieldStrength(manualFieldStrength === fs ? '' : fs)}
+                      aria-pressed={manualFieldStrength === fs}
+                      style={{ fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 8, cursor: 'pointer', transition: 'all .12s',
+                        border: manualFieldStrength === fs ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                        background: manualFieldStrength === fs ? 'rgba(var(--accent-rgb),0.10)' : 'var(--bg)',
+                        color: manualFieldStrength === fs ? 'var(--accent-deep)' : 'var(--muted)',
+                      }}
+                    >{fs}</button>
+                  ))}
+                </div>
+                {scanners && scanners.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setUseManualScanner(false); setManualFieldStrength(''); setManualCoilType('') }}
+                    style={{ fontFamily: 'var(--ff)', fontSize: 12, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                  >
+                    ← Back to scanner list
+                  </button>
+                )}
+              </>
+            )}
           </div>
 
           {/* Coil */}
           <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>RF Coil</div>
-            <div className="field" style={{ margin: 0 }}>
-              <InlineSelect
-                value={coilId}
-                onChange={setCoilId}
-                options={coilOpts}
-                placeholder={!scannerId ? 'Select scanner first' : 'Select coil…'}
-              />
-            </div>
+            {useManualScanner ? (
+              <div className="field" style={{ margin: 0 }}>
+                <InlineSelect
+                  value={manualCoilType}
+                  onChange={setManualCoilType}
+                  options={[
+                    { value: '', label: 'Body transmit/receive (default)' },
+                    { value: 'Body transmit/receive', label: 'Body transmit/receive' },
+                    { value: 'Head transmit/receive', label: 'Head transmit/receive' },
+                    { value: 'Head receive-only', label: 'Head receive-only (body TX)' },
+                    { value: 'Extremity receive-only', label: 'Extremity / local receive-only' },
+                    { value: 'Spine receive-only', label: 'Spine receive-only' },
+                  ]}
+                  placeholder="Body transmit/receive (default)"
+                />
+              </div>
+            ) : (
+              <div className="field" style={{ margin: 0 }}>
+                <InlineSelect
+                  value={coilId}
+                  onChange={setCoilId}
+                  options={coilOpts}
+                  placeholder={!scannerId ? 'Select scanner first' : 'Select coil…'}
+                />
+              </div>
+            )}
           </div>
 
           {/* Body region */}
@@ -284,7 +348,9 @@ export default function MatrixClient() {
           {/* Incomplete state */}
           {!canResolve && (
             <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 32px', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--muted)', marginBottom: 6 }}>Select a scanner and body region to run the matrix resolver</div>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 14, color: 'var(--muted)', marginBottom: 6 }}>
+                {useManualScanner ? 'Select a field strength and body region to run the resolver' : 'Select a scanner and body region to run the matrix resolver'}
+              </div>
               {mode === 'registry' && !patientId && (
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted2)' }}>Also select a patient for registry-mode resolution</div>
               )}

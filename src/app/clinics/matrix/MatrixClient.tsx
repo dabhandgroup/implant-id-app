@@ -139,6 +139,7 @@ export default function MatrixClient() {
 
   const [mode,                setMode]              = useState<'registry' | 'manual'>('registry')
   const [patientId,           setPatientId]         = useState('')
+  const [manualDeviceId,      setManualDeviceId]    = useState('')
   const [scannerId,           setScannerId]         = useState('')
   const [coilId,              setCoilId]            = useState('')
   const [bodyRegion,          setBodyRegion]        = useState('')
@@ -153,14 +154,17 @@ export default function MatrixClient() {
     clinic && scannerId ? { siteId: clinic._id, scannerId: scannerId as never } : 'skip'
   ) as Array<{ _id: string; coilDisplayName: string; coilType: string }> | undefined
 
+  // All live approved devices for manual-mode device picker
+  const allDevices = useQuery(api.devices.listDevices, {}) as Array<{ _id: string; deviceName: string; manufacturer: string; mriClassification?: string }> | undefined
+
   // The resolver — runs reactively as selections change
   const hasScanner   = useManualScanner ? !!manualFieldStrength : !!scannerId
-  const canResolve   = hasScanner && !!bodyRegion && (mode === 'manual' ? true : !!patientId)
+  const canResolve   = hasScanner && !!bodyRegion && (mode === 'registry' ? !!patientId : !!manualDeviceId)
   const resolution = useQuery(
     api.matrix.resolveMatrix,
     canResolve ? {
       mode,
-      ...(mode === 'registry' && patientId ? { patientId: patientId as never } : {}),
+      ...(mode === 'registry' ? { patientId: patientId as never } : { manualDeviceId: manualDeviceId as never }),
       ...(useManualScanner ? {
         manualFieldStrength,
         ...(manualCoilType ? { manualCoilType } : {}),
@@ -178,6 +182,7 @@ export default function MatrixClient() {
   const scannerOpts   = (scanners ?? []).map(s => ({ value: s._id, label: `${s.manufacturer} ${s.model} (${s.fieldStrength})` }))
   const coilOpts      = [{ value: '', label: 'No specific coil' }, ...(coils ?? []).map(c => ({ value: c._id, label: `${c.coilDisplayName} (${c.coilType})` }))]
   const patientOpts   = (patients ?? []).map(p => ({ value: p._id, label: `${p.firstName} ${p.lastName}${p.implantIdCode ? ` — ${p.implantIdCode}` : ''}` }))
+  const deviceOpts    = (allDevices ?? []).map(d => ({ value: d._id, label: `${d.manufacturer} — ${d.deviceName}${d.mriClassification ? ` [${d.mriClassification}]` : ''}` }))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result   = resolution as any
@@ -206,7 +211,7 @@ export default function MatrixClient() {
             <div style={{ display: 'flex', gap: 8 }}>
               {(['registry', 'manual'] as const).map(m => (
                 <button key={m} type="button"
-                  onClick={() => setMode(m)}
+                  onClick={() => { setMode(m); setPatientId(''); setManualDeviceId('') }}
                   aria-pressed={mode === m}
                   style={{ flex: 1, fontFamily: 'var(--ff)', fontSize: 13, fontWeight: 500, padding: '7px 10px', borderRadius: 8, cursor: 'pointer', transition: 'all .12s',
                     border: mode === m ? '1.5px solid var(--accent)' : '1px solid var(--border)',
@@ -239,6 +244,21 @@ export default function MatrixClient() {
           {mode === 'manual' && (
             <div style={{ background: 'rgba(215,83,9,0.06)', border: '1px solid rgba(215,83,9,0.20)', borderRadius: 10, padding: '12px 14px', fontFamily: 'var(--ff)', fontSize: 12.5, color: '#b45309', lineHeight: 1.6 }}>
               Manual mode resolves the default conditions for a device without patient-specific data. Use Registry mode for a real patient scan decision.
+            </div>
+          )}
+
+          {/* Device selector (manual mode) */}
+          {mode === 'manual' && (
+            <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+              <div style={{ fontFamily: 'var(--ff)', fontSize: 11, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--muted2)', marginBottom: 10 }}>Device</div>
+              <div className="field" style={{ margin: 0 }}>
+                <InlineSelect
+                  value={manualDeviceId}
+                  onChange={setManualDeviceId}
+                  options={deviceOpts}
+                  placeholder={allDevices === undefined ? 'Loading…' : allDevices.length === 0 ? 'No approved devices' : 'Select approved device…'}
+                />
+              </div>
             </div>
           )}
 
@@ -353,6 +373,9 @@ export default function MatrixClient() {
               </div>
               {mode === 'registry' && !patientId && (
                 <div style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted2)' }}>Also select a patient for registry-mode resolution</div>
+              )}
+              {mode === 'manual' && !manualDeviceId && (
+                <div style={{ fontFamily: 'var(--ff)', fontSize: 13, color: 'var(--muted2)' }}>Also select a device for manual-mode resolution</div>
               )}
             </div>
           )}

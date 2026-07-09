@@ -367,8 +367,7 @@ export const seedPrototypeConditions = mutation({
         const { key, ...deviceFields } = pd
         const id = await ctx.db.insert('devices', {
           ...deviceFields,
-          verifiedAt:  now,
-          submittedAt: now,
+          verifiedAt: now,
         } as never)
         keyToDeviceId.set(key, id as Id<'devices'>)
       }

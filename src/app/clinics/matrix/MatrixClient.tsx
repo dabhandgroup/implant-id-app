@@ -155,7 +155,7 @@ export default function MatrixClient() {
   ) as Array<{ _id: string; coilDisplayName: string; coilType: string }> | undefined
 
   // All live approved devices for manual-mode device picker
-  const allDevices = useQuery(api.devices.listDevices, {}) as Array<{ _id: string; deviceName: string; manufacturer: string; mriClassification?: string }> | undefined
+  const allDevices = useQuery(api.devices.listDevices, {}) as Array<{ _id: string; deviceName?: string; model?: string; manufacturer: string; mriClassification?: string }> | undefined
 
   // The resolver — runs reactively as selections change
   const hasScanner   = useManualScanner ? !!manualFieldStrength : !!scannerId
@@ -182,7 +182,7 @@ export default function MatrixClient() {
   const scannerOpts   = (scanners ?? []).map(s => ({ value: s._id, label: `${s.manufacturer} ${s.model} (${s.fieldStrength})` }))
   const coilOpts      = [{ value: '', label: 'No specific coil' }, ...(coils ?? []).map(c => ({ value: c._id, label: `${c.coilDisplayName} (${c.coilType})` }))]
   const patientOpts   = (patients ?? []).map(p => ({ value: p._id, label: `${p.firstName} ${p.lastName}${p.implantIdCode ? ` — ${p.implantIdCode}` : ''}` }))
-  const deviceOpts    = (allDevices ?? []).map(d => ({ value: d._id, label: `${d.manufacturer} — ${d.deviceName}${d.mriClassification ? ` [${d.mriClassification}]` : ''}` }))
+  const deviceOpts    = (allDevices ?? []).map(d => ({ value: d._id, label: `${d.manufacturer} — ${d.deviceName ?? d.model ?? '(no name)'}${d.mriClassification ? ` [${d.mriClassification}]` : ''}` }))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result   = resolution as any

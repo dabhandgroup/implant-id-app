@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
-import MatrixClient from './MatrixClient'
+import StandaloneMatrixClient from './StandaloneMatrixClient'
 
 export default function MatrixPage() {
-  return <MatrixClient />
+  return <StandaloneMatrixClient />
 }

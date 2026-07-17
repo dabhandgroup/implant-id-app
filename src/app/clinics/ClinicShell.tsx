@@ -8,6 +8,7 @@ import { useQuery, useMutation }     from 'convex/react'
 import { api as apiBase }            from '../../../convex/_generated/api'
 import Link                          from 'next/link'
 import { PlanPicker, TrialBanner, PastDueBanner } from '@/components/ui/BillingGate'
+import ComingSoon                    from '@/components/ui/ComingSoon'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const api = apiBase as any
 
@@ -172,6 +173,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
   const [profileOpen,    setProfileOpen]    = useState(false)
   const [signingOut,     setSigningOut]     = useState(false)
   const [mobProfileOpen, setMobProfileOpen] = useState(false)
+  const [comingSoon,     setComingSoon]     = useState<string | null>(null)
   const sidebarRef      = useRef<HTMLDivElement>(null)
   const sbBotRef        = useRef<HTMLDivElement>(null)
   const sheetElRef      = useRef<HTMLDivElement>(null)
@@ -282,7 +284,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
         <aside className={`sidebar${mobOpen ? ' open' : ''}`}>
 
           <div className="sb-logo">
-            <Link href="/clinics/scan-patient" className="logo">
+            <Link href="/clinics/matrix" className="logo">
               <img src="/icon.svg" alt="" />
               <span className="logo-text"><b>Implant</b><span>ID</span></span>
             </Link>
@@ -295,29 +297,29 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
 
           {/* ── Lookup ── */}
           <div className="sb-section">Lookup</div>
-          <Link className={`sb-link${isActive('/clinics/scan-patient') ? ' active' : ''}`} href="/clinics/scan-patient" title="Scan patient card">
+          <button type="button" className="sb-link" onClick={() => setComingSoon('Scan patient card')} title="Scan patient card">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="5" y="5" width="3" height="3"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="16" y="5" width="3" height="3"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="5" y="16" width="3" height="3"/><rect x="14" y="14" width="2.5" height="2.5" rx=".5"/><rect x="18" y="14" width="3" height="3" rx=".5"/><rect x="14" y="18" width="3" height="3" rx=".5"/><rect x="19" y="19" width="2" height="2" rx=".5"/></svg>
             <span>Scan card</span>
-          </Link>
-          <Link className={`sb-link${isActive('/clinics/devices') ? ' active' : ''}`} href="/clinics/devices" title="Devices">
+          </button>
+          <button type="button" className="sb-link" onClick={() => setComingSoon('Device library')} title="Devices">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
             <span>Devices</span>
-          </Link>
-          <Link className={`sb-link${isActive('/clinics/manufacturers') ? ' active' : ''}`} href="/clinics/manufacturers" title="Manufacturers">
+          </button>
+          <button type="button" className="sb-link" onClick={() => setComingSoon('Manufacturer directory')} title="Manufacturers">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 9h6M9 13h6M9 17h6"/></svg>
             <span>Manufacturers</span>
-          </Link>
+          </button>
 
           {/* ── Patients ── */}
           <div className="sb-section">Patients</div>
-          <Link className={`sb-link${isActive('/clinics/all-patients') || isActive('/clinics/patient-view') || isActive('/clinics/patient/') ? ' active' : ''}`} href="/clinics/all-patients" title="All patients">
+          <button type="button" className="sb-link" onClick={() => setComingSoon('Patient roster')} title="All patients">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span>All patients</span>
-          </Link>
-          <Link className={`sb-link${isActive('/clinics/add-patient') ? ' active' : ''}`} href="/clinics/add-patient" title="Add patient">
+          </button>
+          <button type="button" className="sb-link" onClick={() => setComingSoon('Add patient')} title="Add patient">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4M19 8v6M16 11h6"/></svg>
             <span>Add patient</span>
-          </Link>
+          </button>
 
           {/* ── MRI Safety ── */}
           <div className="sb-section">MRI Safety</div>
@@ -325,18 +327,18 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M6.34 17.66a8 8 0 1 1 11.32 0"/><path d="M9.17 9.17a4 4 0 0 0 0 5.66M14.83 14.83a4 4 0 0 0 0-5.66"/></svg>
             <span>MRI Matrix</span>
           </Link>
-          <Link className={`sb-link${isActive('/clinics/scan-events') ? ' active' : ''}`} href="/clinics/scan-events" title="Scan log">
+          <button type="button" className="sb-link" onClick={() => setComingSoon('Scan event log')} title="Scan log">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             <span>Scan log</span>
-          </Link>
-          <Link className={`sb-link${isActive('/clinics/settings/scanners') ? ' active' : ''}`} href="/clinics/settings/scanners" title="Scanner library">
+          </button>
+          <button type="button" className="sb-link" onClick={() => setComingSoon('Scanner library')} title="Scanner library">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="2" y="9" width="20" height="6" rx="3"/><circle cx="12" cy="12" r="2"/></svg>
             <span>Scanners</span>
-          </Link>
-          <Link className={`sb-link${isActive('/clinics/settings/coils') ? ' active' : ''}`} href="/clinics/settings/coils" title="Coil management">
+          </button>
+          <button type="button" className="sb-link" onClick={() => setComingSoon('Coil management')} title="Coil management">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 21 12"/><path d="M21 3v5h-5"/></svg>
             <span>Coils</span>
-          </Link>
+          </button>
 
           {/* ── Clinic ── */}
           <div className="sb-section">Clinic</div>
@@ -406,7 +408,7 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
 
           {/* Mobile top header */}
           <div className="mob-header">
-            <Link href="/clinics/scan-patient" className="mob-header-logo">
+            <Link href="/clinics/matrix" className="mob-header-logo">
               <img src="/icon.svg" alt="" />
               <span className="logo-text"><b>Implant</b><span>ID</span></span>
             </Link>
@@ -456,18 +458,18 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
       {/* Mobile bottom nav */}
       <nav className="mob-nav" aria-label="Mobile navigation">
         <div className="mob-nav-tabs">
-          <Link href="/clinics/scan-patient" className={`mob-nav-tab${isActive('/clinics/scan-patient') ? ' active' : ''}`} aria-label="Scan card">
+          <button type="button" onClick={() => setComingSoon('Scan patient card')} className="mob-nav-tab" aria-label="Scan card">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="5" y="5" width="3" height="3"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="16" y="5" width="3" height="3"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="5" y="16" width="3" height="3"/><rect x="14" y="14" width="2.5" height="2.5" rx=".5"/><rect x="18" y="14" width="3" height="3" rx=".5"/><rect x="14" y="18" width="3" height="3" rx=".5"/><rect x="19" y="19" width="2" height="2" rx=".5"/></svg>
             <span className="t">Scan</span>
-          </Link>
-          <Link href="/clinics/all-patients" className={`mob-nav-tab${isActive('/clinics/all-patients') ? ' active' : ''}`} aria-label="Patients">
+          </button>
+          <button type="button" onClick={() => setComingSoon('Patient roster')} className="mob-nav-tab" aria-label="Patients">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span className="t">Patients</span>
-          </Link>
-          <Link href="/clinics/devices" className={`mob-nav-tab${isActive('/clinics/devices') ? ' active' : ''}`} aria-label="Library">
+          </button>
+          <button type="button" onClick={() => setComingSoon('Device library')} className="mob-nav-tab" aria-label="Library">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z"/></svg>
             <span className="t">Library</span>
-          </Link>
+          </button>
           <button
             className="mob-nav-tab mob-nav-menu-btn"
             onClick={() => setMobOpen(o => !o)}
@@ -598,6 +600,9 @@ export default function ClinicShell({ children }: { children: React.ReactNode })
           Sign out
         </button>
       </div>
+
+      {/* Coming soon popup */}
+      <ComingSoon open={!!comingSoon} feature={comingSoon ?? ''} onClose={() => setComingSoon(null)} />
     </>
   )
 }

@@ -593,6 +593,19 @@ footer::before{content:"";position:absolute;top:-200px;left:50%;transform:transl
 .logout-body p{color:var(--muted);font-size:14px;line-height:1.55}
 .logout-actions{padding:16px 22px 22px;display:flex;gap:10px}
 .logout-actions .btn{flex:1;justify-content:center}
+
+/* "Coming soon" info popup — distinct from sign-out confirmation, no danger button */
+.cs-back{position:fixed;inset:0;background:rgba(8,19,23,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
+.cs-back.open{display:flex}
+.cs-modal{width:100%;max-width:420px;background:var(--bg2);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:0 40px 80px -20px rgba(0,0,0,.4)}
+.cs-body{padding:28px 28px 24px;text-align:center}
+.cs-ic{width:52px;height:52px;border-radius:16px;background:rgba(var(--accent-rgb),0.10);color:var(--accent);display:grid;place-items:center;margin:0 auto 16px}
+.cs-ic svg{width:24px;height:24px}
+.cs-body h3{font-family:var(--ff);font-size:19px;letter-spacing:-.015em;margin-bottom:8px}
+.cs-body p{color:var(--muted);font-size:14px;line-height:1.55}
+.cs-actions{padding:16px 22px 22px;display:flex;gap:10px}
+.cs-actions .btn{flex:1;justify-content:center}
+
 /* Confirmation modals (approve/reject/unapprove) — separate from sign-out to avoid LogoutHandler intercept */
 .confirm-back{position:fixed;inset:0;background:rgba(8,19,23,.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:999;display:none;align-items:center;justify-content:center;padding:20px}
 .confirm-back.open{display:flex}

@@ -4,6 +4,10 @@ import { useSignIn, useSignUp, useUser } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { setUserRoleIfNew } from '../actions/setUserRole'
 
+// Clinic-only MVP launch — patient portal is hidden but all patient code stays
+// intact. Flip this back to true (one line) to re-enable the Patient tab.
+const SHOW_PATIENT_LOGIN = false
+
 // ── OTP input row ─────────────────────────────────────────────────────────────
 // MUST live at module level — not inside LoginClient.
 // If defined inside LoginClient, React creates a new function reference on every
@@ -146,7 +150,7 @@ export default function LoginClient() {
 
   // tab / phase state — default to 'clinic' tab when arriving via approval link,
   // but honour ?role=patient for patient invite emails
-  const [tab,      setTab]      = useState<Tab>(prefillRole === 'patient' ? 'patient' : (prefillEmail ? 'clinic' : 'patient'))
+  const [tab,      setTab]      = useState<Tab>(SHOW_PATIENT_LOGIN ? (prefillRole === 'patient' ? 'patient' : (prefillEmail ? 'clinic' : 'patient')) : 'clinic')
   const [patPhase, setPatPhase] = useState<PatientPhase>('phone')
   const [clPhase,  setClPhase]  = useState<ClinicPhase>('email')
 
@@ -505,7 +509,7 @@ export default function LoginClient() {
       <section className="auth-main">
         <div className="auth-box">
           <h1>Log in to Implant ID</h1>
-          <p className="sub">Choose your account type to continue.</p>
+          <p className="sub">{SHOW_PATIENT_LOGIN ? 'Choose your account type to continue.' : 'Log in to your clinic account.'}</p>
 
           {error && (
             <div style={{ background: 'rgba(var(--err-rgb),0.10)', border: '1px solid rgba(var(--err-rgb),0.25)', borderRadius: 10, padding: '10px 14px', fontSize: 13.5, color: 'var(--err)', marginBottom: 16 }}>
@@ -514,10 +518,12 @@ export default function LoginClient() {
           )}
 
           {/* ── Tabs ──────────────────────────────────────────────────────── */}
-          <div className="auth-tabs">
-            <button type="button" className={tab === 'patient' ? 'active' : ''} onTouchStart={() => { setTab('patient'); setError('') }} onClick={() => { setTab('patient'); setError('') }}>Patient</button>
-            <button type="button" className={tab === 'clinic'  ? 'active' : ''} onTouchStart={() => { setTab('clinic');  setError('') }} onClick={() => { setTab('clinic');  setError('') }}>Clinic</button>
-          </div>
+          {SHOW_PATIENT_LOGIN && (
+            <div className="auth-tabs">
+              <button type="button" className={tab === 'patient' ? 'active' : ''} onTouchStart={() => { setTab('patient'); setError('') }} onClick={() => { setTab('patient'); setError('') }}>Patient</button>
+              <button type="button" className={tab === 'clinic'  ? 'active' : ''} onTouchStart={() => { setTab('clinic');  setError('') }} onClick={() => { setTab('clinic');  setError('') }}>Clinic</button>
+            </div>
+          )}
 
           {/* ── PATIENT TAB ───────────────────────────────────────────────── */}
           {tab === 'patient' && (

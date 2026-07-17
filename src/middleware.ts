@@ -19,6 +19,10 @@ const isPublicRoute = createRouteMatcher([
   '/activate(.*)',                 // legacy activation route — kept for old email links
 ])
 
+// Clinic-only MVP launch — patient portal is hidden but all patient route logic
+// stays intact below (dead code). Flip this back to true (one line) to re-enable.
+const PATIENT_PORTAL_ENABLED = false
+
 // Hard-fail at startup if Clerk isn't configured — never silently open all routes
 if (!process.env.CLERK_SECRET_KEY) {
   throw new Error(
@@ -27,6 +31,13 @@ if (!process.env.CLERK_SECRET_KEY) {
 }
 
 export default clerkMiddleware(async (auth, req) => {
+  // 0. Patient portal is disabled for the clinic-only MVP — block direct
+  //    navigation to any /patients/* route (including public ones like
+  //    /patients/register) before any other check runs.
+  if (!PATIENT_PORTAL_ENABLED && req.nextUrl.pathname.startsWith('/patients')) {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
   // 1. Require authentication for all non-public routes
   if (!isPublicRoute(req)) {
     await auth.protect()
